@@ -40,6 +40,7 @@ const defaultUsers: User[] = [
 interface UserState {
   users: User[];
   currentUser: User | null;
+  error: string | null;
   login: (email: string, password: string) => boolean;
   logout: () => void;
   updateUser: (id: string, updates: Partial<User>) => void;
@@ -51,20 +52,24 @@ export const useUserStore = create<UserState>()(
     (set, get) => ({
       users: defaultUsers,
       currentUser: null,
+      error: null,
 
       login: (email: string, password: string) => {
         const user = get().users.find(
           (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
         );
+        
         if (user) {
-          set({ currentUser: user });
+          set({ currentUser: user, error: null });
           return true;
         }
+        
+        set({ error: 'Invalid email or password' });
         return false;
       },
 
       logout: () => {
-        set({ currentUser: null });
+        set({ currentUser: null, error: null });
       },
 
       updateUser: (id: string, updates: Partial<User>) => {
@@ -75,6 +80,7 @@ export const useUserStore = create<UserState>()(
           currentUser: state.currentUser?.id === id 
             ? { ...state.currentUser, ...updates }
             : state.currentUser,
+          error: null
         }));
       },
 
@@ -86,6 +92,7 @@ export const useUserStore = create<UserState>()(
           currentUser: state.currentUser?.id === id 
             ? { ...state.currentUser, password: newPassword }
             : state.currentUser,
+          error: null
         }));
       },
     }),

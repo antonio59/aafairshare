@@ -1,81 +1,135 @@
-import React, { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
-import { Plus, Edit2, Trash2, X, Calendar, Tag } from 'lucide-react';
+import { useUserStore } from '../../store/userStore';
+import { Plus, Edit2, Trash2, X, Calendar, Tag, RefreshCw } from 'lucide-react';
 import RecurringExpenses from './RecurringExpenses';
+import type { Category, Tag as TagType } from '../../types';
 
-interface Category {
-  id: string;
-  name: string;
-  group: string;
-}
+// Type guard functions
+const isCategory = (item: any): item is Category => {
+  return item && 'group' in item;
+};
 
-interface Tag {
-  id: string;
-  name: string;
-  categoryId?: string;
-}
+const isTag = (item: any): item is TagType => {
+  return item && 'categoryId' in item;
+};
 
-const ExpenseSettings: React.FC = () => {
+// Color mapping for different groups
+const groupColors: { [key: string]: string } = {
+  'Utilities': '#2196F3',
+  'Housing': '#795548',
+  'Food': '#4CAF50',
+  'Transportation': '#FF9800',
+  'Insurance': '#9C27B0',
+  'Entertainment': '#F44336',
+  'Clothing': '#E91E63',
+  'Health and Wellness': '#009688',
+  'Miscellaneous': '#9E9E9E'
+};
+
+const ExpenseSettings = () => {
   const [activeTab, setActiveTab] = useState<'categories' | 'tags' | 'recurring'>('categories');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<Category | Tag | null>(null);
-  const { categories, tags, addCategory, updateCategory, deleteCategory, addTag, updateTag, deleteTag } = useExpenseStore();
+  const [editingItem, setEditingItem] = useState<Category | TagType | null>(null);
+  const [isAddingCategories, setIsAddingCategories] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { categories = [], tags = [], addCategory, updateCategory, deleteCategory, addTag, updateTag, deleteTag, restoreDefaultCategories } = useExpenseStore();
+  const { currentUser } = useUserStore();
 
-  const categoryGroups = {
-    'Utilities': ['Water', 'Energy', 'Internet'],
-    'Housing': ['Rent/Mortgage', 'Council Tax', 'Home insurance', 'Maintenance/Repairs', 'Furniture/Appliances'],
-    'Food': ['Groceries', 'Dining out', 'Takeout/Delivery', 'Food Subscriptions'],
-    'Transportation': ['Gasoline', 'Car insurance', 'Maintenance/Repairs', 'Public transportation', 'Ride-hailing services'],
-    'Insurance': ['Health insurance', 'Life insurance', 'Travel insurance'],
-    'Entertainment': ['Movies/Streaming services', 'Concerts/Events', 'Hobbies', 'Holiday', 'Other entertainment'],
-    'Clothing': ['Clothing purchases', 'Dry cleaning', 'Alterations'],
-    'Health and Wellness': ['Medical expenses', 'Gym membership', 'Health supplements', 'Wellness services'],
-    'Miscellaneous': ['Gifts', 'Donations', 'Other miscellaneous expenses']
+  // Ensure categories are loaded
+  useEffect(() => {
+    if (categories.length === 0) {
+      handleRestoreDefaultCategories();
+    }
+  }, []);
+
+  const categoryGroups: { [key: string]: string[] } = {
+    'Utilities': [],
+    'Housing': [],
+    'Food': [],
+    'Transportation': [],
+    'Insurance': [],
+    'Entertainment': [],
+    'Clothing': [],
+    'Health and Wellness': [],
+    'Miscellaneous': []
+  };
+
+  const handleRestoreDefaultCategories = async () => {
+    try {
+      setIsAddingCategories(true);
+      setError(null);
+      await restoreDefaultCategories();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to restore categories');
+      console.error('Error restoring categories:', err);
+    } finally {
+      setIsAddingCategories(false);
+    }
   };
 
   const handleAddItem = () => {
+    if (!currentUser) return;
     setEditingItem(null);
     setIsModalOpen(true);
   };
 
-  const handleEditItem = (item: Category | Tag) => {
+  const handleEditItem = (item: Category | TagType) => {
+    if (!currentUser) return;
     setEditingItem(item);
     setIsModalOpen(true);
   };
 
-  const handleDeleteItem = (id: string) => {
+  const handleDeleteItem = async (id: string) => {
+    if (!currentUser) return;
     if (window.confirm('Are you sure you want to delete this item?')) {
-      if (activeTab === 'categories') {
-        deleteCategory(id);
-      } else if (activeTab === 'tags') {
-        deleteTag(id);
+      try {
+        setError(null);
+        if (activeTab === 'categories') {
+          await deleteCategory(id);
+        } else if (activeTab === 'tags') {
+          await deleteTag(id);
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to delete item');
+        console.error('Error deleting item:', err);
       }
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get('name') as string;
+    if (!currentUser) return;
 
-    if (activeTab === 'categories') {
-      const group = formData.get('group') as string;
-      if (editingItem) {
-        updateCategory(editingItem.id, { name, group });
-      } else {
-        addCategory({ name, group });
+    try {
+      setError(null);
+      const formData = new FormData(e.currentTarget);
+      const name = formData.get('name') as string;
+
+      if (activeTab === 'categories') {
+        const group = formData.get('group') as string;
+        const color = groupColors[group] || '#9E9E9E'; // Default to grey if no color mapping exists
+        
+        if (editingItem && isCategory(editingItem)) {
+          await updateCategory(editingItem.id, { name, group, color });
+        } else {
+          await addCategory({ name, group, color });
+        }
+      } else if (activeTab === 'tags') {
+        const categoryId = formData.get('categoryId') as string;
+        if (editingItem && isTag(editingItem)) {
+          await updateTag(editingItem.id, { name, categoryId: categoryId || undefined });
+        } else {
+          await addTag({ name, categoryId: categoryId || undefined });
+        }
       }
-    } else if (activeTab === 'tags') {
-      const categoryId = formData.get('categoryId') as string;
-      if (editingItem) {
-        updateTag(editingItem.id, { name, categoryId: categoryId || undefined });
-      } else {
-        addTag({ name, categoryId: categoryId || undefined });
-      }
+
+      setIsModalOpen(false);
+      setEditingItem(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save item');
+      console.error('Error saving item:', err);
     }
-
-    setIsModalOpen(false);
-    setEditingItem(null);
   };
 
   const renderContent = () => {
@@ -85,42 +139,67 @@ const ExpenseSettings: React.FC = () => {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Categories</h3>
-              <button
-                onClick={handleAddItem}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                <Plus size={20} />
-                Add Category
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleRestoreDefaultCategories}
+                  disabled={isAddingCategories || !currentUser}
+                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
+                >
+                  <RefreshCw size={20} className={isAddingCategories ? 'animate-spin' : ''} />
+                  Restore Default Categories
+                </button>
+                <button
+                  onClick={handleAddItem}
+                  disabled={!currentUser}
+                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                >
+                  <Plus size={20} />
+                  Add Category
+                </button>
+              </div>
             </div>
 
-            {Object.entries(categoryGroups).map(([group, categoryNames]) => (
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                {error}
+              </div>
+            )}
+
+            {Object.entries(categoryGroups).map(([group]) => (
               <div key={group} className="bg-white rounded-lg shadow-sm p-4">
                 <h4 className="font-medium mb-3">{group}</h4>
                 <div className="space-y-2">
                   {categories
-                    .filter(cat => cat.group === group)
+                    .filter((cat): cat is Category => cat?.group === group)
                     .sort((a, b) => a.name.localeCompare(b.name))
-                    .map(category => (
+                    .map((category) => (
                       <div
                         key={category.id}
                         className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded"
                       >
-                        <span>{category.name}</span>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditItem(category)}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteItem(category.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                        <div className="flex items-center gap-2">
+                          <div 
+                            className="w-4 h-4 rounded-full" 
+                            style={{ backgroundColor: category.color }}
+                          />
+                          <span>{category.name}</span>
                         </div>
+                        {currentUser && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditItem(category)}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(category.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                 </div>
@@ -136,19 +215,26 @@ const ExpenseSettings: React.FC = () => {
               <h3 className="text-lg font-medium">Tags</h3>
               <button
                 onClick={handleAddItem}
-                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                disabled={!currentUser}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
               >
                 <Plus size={20} />
                 Add Tag
               </button>
             </div>
 
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+                {error}
+              </div>
+            )}
+
             <div className="bg-white rounded-lg shadow-sm p-4">
               <div className="space-y-2">
                 {tags
                   .sort((a, b) => a.name.localeCompare(b.name))
-                  .map(tag => {
-                    const category = tag.categoryId ? categories.find(c => c.id === tag.categoryId) : null;
+                  .map((tag) => {
+                    const category = tag.categoryId ? categories.find((c) => c?.id === tag.categoryId) : null;
                     return (
                       <div
                         key={tag.id}
@@ -162,20 +248,22 @@ const ExpenseSettings: React.FC = () => {
                             </span>
                           )}
                         </div>
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleEditItem(tag)}
-                            className="text-blue-600 hover:text-blue-700"
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteItem(tag.id)}
-                            className="text-red-600 hover:text-red-700"
-                          >
-                            <Trash2 size={18} />
-                          </button>
-                        </div>
+                        {currentUser && (
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditItem(tag)}
+                              className="text-blue-600 hover:text-blue-700"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteItem(tag.id)}
+                              className="text-red-600 hover:text-red-700"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -264,7 +352,7 @@ const ExpenseSettings: React.FC = () => {
                   type="text"
                   name="name"
                   defaultValue={editingItem?.name || ''}
-                  className="w-full"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -276,8 +364,8 @@ const ExpenseSettings: React.FC = () => {
                   </label>
                   <select
                     name="group"
-                    defaultValue={editingItem?.group || ''}
-                    className="w-full"
+                    defaultValue={editingItem && isCategory(editingItem) ? editingItem.group : ''}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   >
                     <option value="">Select a group</option>
@@ -297,13 +385,14 @@ const ExpenseSettings: React.FC = () => {
                   </label>
                   <select
                     name="categoryId"
-                    defaultValue={editingItem?.categoryId || ''}
-                    className="w-full"
+                    defaultValue={editingItem && isTag(editingItem) ? editingItem.categoryId : ''}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="">No specific category</option>
                     {categories
+                      .filter((category): category is Category => category !== null)
                       .sort((a, b) => a.name.localeCompare(b.name))
-                      .map(category => (
+                      .map((category) => (
                         <option key={category.id} value={category.id}>
                           {category.name}
                         </option>

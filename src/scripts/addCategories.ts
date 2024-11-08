@@ -1,6 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import { addCategoryToFirestore } from '../store/firebaseOperations';
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import type { Category } from '../types';
+import '../firebase'; // Initialize Firebase
 
 const categories: Omit<Category, 'id'>[] = [
   // Utilities (Blue shades)
@@ -51,11 +53,17 @@ const categories: Omit<Category, 'id'>[] = [
   // Miscellaneous (Grey shades)
   { name: 'Donations', color: '#9E9E9E', group: 'Miscellaneous' },
   { name: 'Gifts', color: '#757575', group: 'Miscellaneous' },
-  { name: 'Other Miscellaneous Expenses', color: '#616161', group: 'Miscellaneous' },
+  { name: 'Other Miscellaneous Expenses', color: '#616161', group: 'Miscellaneous' }
 ];
 
-export const addCategories = async () => {
+const addCategories = async (email: string, password: string) => {
   try {
+    // Sign in first
+    const auth = getAuth();
+    await signInWithEmailAndPassword(auth, email, password);
+    console.log('Successfully signed in');
+
+    // Add categories
     for (const category of categories) {
       const categoryWithId: Category = {
         ...category,
@@ -66,11 +74,21 @@ export const addCategories = async () => {
     }
     console.log('All categories added successfully');
   } catch (error) {
-    console.error('Error adding categories:', error);
+    console.error('Error:', error);
   }
 };
 
 // Execute if this file is run directly
 if (require.main === module) {
-  addCategories();
+  // We need to ask for credentials since this is a script
+  const email = process.argv[2];
+  const password = process.argv[3];
+  
+  if (!email || !password) {
+    console.error('Please provide email and password as arguments');
+    console.error('Usage: npx ts-node src/scripts/addCategories.ts <email> <password>');
+    process.exit(1);
+  }
+
+  addCategories(email, password);
 }
