@@ -6,20 +6,12 @@ import {
   getDocs,
   updateDoc,
   Timestamp,
-  enableIndexedDbPersistence
+  enableIndexedDbPersistence,
+  FirestoreError
 } from 'firebase/firestore';
+import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
 import type { Expense, Category, Tag, Budget, RecurringExpense, Settlement } from '../types';
-
-// Enable offline persistence
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('The current browser does not support persistence.');
-    }
-  });
 
 // Collection references
 const expensesRef = collection(db, 'expenses');
@@ -36,16 +28,45 @@ const dateToTimestamp = (dateStr: string) => Timestamp.fromDate(new Date(dateStr
 const timestampToString = (timestamp: Timestamp) => timestamp.toDate().toISOString();
 
 // Helper function to handle Firestore errors
-const handleFirestoreError = (error: any, operation: string) => {
+const handleFirestoreError = (error: unknown, operation: string): never => {
   console.error(`Error in ${operation}:`, error);
-  if (error.code === 'permission-denied') {
-    throw new Error('Permission denied. Please check your access rights.');
-  } else if (error.code === 'unavailable') {
-    throw new Error('Service temporarily unavailable. Please try again later.');
-  } else {
-    throw error;
+  
+  if (error instanceof FirebaseError || error instanceof FirestoreError) {
+    switch (error.code) {
+      case 'permission-denied':
+        throw new Error('Permission denied. Please check your access rights.');
+      case 'unavailable':
+        throw new Error('Service temporarily unavailable. Please try again later.');
+      case 'not-found':
+        throw new Error('Requested document not found.');
+      case 'already-exists':
+        throw new Error('Document already exists.');
+      default:
+        throw new Error(`Firebase operation failed: ${error.message}`);
+    }
   }
+  
+  if (error instanceof Error) {
+    throw new Error(`Operation failed: ${error.message}`);
+  }
+  
+  throw new Error(`Unknown error occurred during ${operation}`);
 };
+
+// Initialize Firestore with offline persistence
+try {
+  enableIndexedDbPersistence(db).catch((err: FirestoreError) => {
+    if (err.code === 'failed-precondition') {
+      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+    } else if (err.code === 'unimplemented') {
+      console.warn('The current browser does not support persistence.');
+    }
+  });
+} catch (error) {
+  if (error instanceof Error) {
+    console.warn('Failed to enable persistence:', error.message);
+  }
+}
 
 // Expenses
 export const addExpenseToFirestore = async (expense: Expense) => {
@@ -255,13 +276,5 @@ export const fetchAllData = async () => {
     };
   } catch (error) {
     handleFirestoreError(error, 'fetch all data');
-    return {
-      expenses: [],
-      categories: [],
-      tags: [],
-      budgets: [],
-      recurringExpenses: [],
-      settlements: []
-    };
   }
 };
