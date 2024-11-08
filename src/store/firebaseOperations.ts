@@ -1,0 +1,170 @@
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  deleteDoc, 
+  getDocs, 
+  query, 
+  where,
+  updateDoc,
+  Timestamp 
+} from 'firebase/firestore';
+import { db } from '../firebase';
+import type { Expense, Category, Tag, Budget, RecurringExpense, Settlement } from '../types';
+
+// Collection references
+const expensesRef = collection(db, 'expenses');
+const categoriesRef = collection(db, 'categories');
+const tagsRef = collection(db, 'tags');
+const budgetsRef = collection(db, 'budgets');
+const recurringExpensesRef = collection(db, 'recurringExpenses');
+const settlementsRef = collection(db, 'settlements');
+
+// Helper function to convert date string to Firestore Timestamp
+const dateToTimestamp = (dateStr: string) => Timestamp.fromDate(new Date(dateStr));
+
+// Helper function to convert Firestore Timestamp to ISO string
+const timestampToString = (timestamp: Timestamp) => timestamp.toDate().toISOString();
+
+// Expenses
+export const addExpenseToFirestore = async (expense: Expense) => {
+  const docRef = doc(expensesRef, expense.id);
+  const firestoreExpense = {
+    ...expense,
+    date: dateToTimestamp(expense.date)
+  };
+  await setDoc(docRef, firestoreExpense);
+};
+
+export const updateExpenseInFirestore = async (id: string, expense: Partial<Expense>) => {
+  const docRef = doc(expensesRef, id);
+  const firestoreExpense = {
+    ...expense,
+    date: expense.date ? dateToTimestamp(expense.date) : undefined
+  };
+  await updateDoc(docRef, firestoreExpense);
+};
+
+export const deleteExpenseFromFirestore = async (id: string) => {
+  const docRef = doc(expensesRef, id);
+  await deleteDoc(docRef);
+};
+
+// Categories
+export const addCategoryToFirestore = async (category: Category) => {
+  const docRef = doc(categoriesRef, category.id);
+  await setDoc(docRef, category);
+};
+
+export const updateCategoryInFirestore = async (id: string, category: Partial<Category>) => {
+  const docRef = doc(categoriesRef, id);
+  await updateDoc(docRef, category);
+};
+
+export const deleteCategoryFromFirestore = async (id: string) => {
+  const docRef = doc(categoriesRef, id);
+  await deleteDoc(docRef);
+};
+
+// Tags
+export const addTagToFirestore = async (tag: Tag) => {
+  const docRef = doc(tagsRef, tag.id);
+  await setDoc(docRef, tag);
+};
+
+export const updateTagInFirestore = async (id: string, tag: Partial<Tag>) => {
+  const docRef = doc(tagsRef, id);
+  await updateDoc(docRef, tag);
+};
+
+export const deleteTagFromFirestore = async (id: string) => {
+  const docRef = doc(tagsRef, id);
+  await deleteDoc(docRef);
+};
+
+// Budgets
+export const addBudgetToFirestore = async (budget: Budget) => {
+  const docRef = doc(budgetsRef, budget.id);
+  await setDoc(docRef, budget);
+};
+
+export const updateBudgetInFirestore = async (id: string, budget: Partial<Budget>) => {
+  const docRef = doc(budgetsRef, id);
+  await updateDoc(docRef, budget);
+};
+
+export const deleteBudgetFromFirestore = async (id: string) => {
+  const docRef = doc(budgetsRef, id);
+  await deleteDoc(docRef);
+};
+
+// Recurring Expenses
+export const addRecurringExpenseToFirestore = async (expense: RecurringExpense) => {
+  const docRef = doc(recurringExpensesRef, expense.id);
+  const firestoreExpense = {
+    ...expense,
+    lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : null
+  };
+  await setDoc(docRef, firestoreExpense);
+};
+
+export const updateRecurringExpenseInFirestore = async (id: string, expense: Partial<RecurringExpense>) => {
+  const docRef = doc(recurringExpensesRef, id);
+  const firestoreExpense = {
+    ...expense,
+    lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : undefined
+  };
+  await updateDoc(docRef, firestoreExpense);
+};
+
+export const deleteRecurringExpenseFromFirestore = async (id: string) => {
+  const docRef = doc(recurringExpensesRef, id);
+  await deleteDoc(docRef);
+};
+
+// Settlements
+export const addSettlementToFirestore = async (settlement: Settlement) => {
+  const docRef = doc(settlementsRef, settlement.month);
+  const firestoreSettlement = {
+    ...settlement,
+    settledAt: dateToTimestamp(settlement.settledAt)
+  };
+  await setDoc(docRef, firestoreSettlement);
+};
+
+// Fetch all data
+export const fetchAllData = async () => {
+  const expenses = await getDocs(expensesRef);
+  const categories = await getDocs(categoriesRef);
+  const tags = await getDocs(tagsRef);
+  const budgets = await getDocs(budgetsRef);
+  const recurringExpenses = await getDocs(recurringExpensesRef);
+  const settlements = await getDocs(settlementsRef);
+
+  return {
+    expenses: expenses.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        date: timestampToString(data.date as Timestamp)
+      } as Expense;
+    }),
+    categories: categories.docs.map(doc => doc.data() as Category),
+    tags: tags.docs.map(doc => doc.data() as Tag),
+    budgets: budgets.docs.map(doc => doc.data() as Budget),
+    recurringExpenses: recurringExpenses.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        lastProcessed: data.lastProcessed ? timestampToString(data.lastProcessed as Timestamp) : null
+      } as RecurringExpense;
+    }),
+    settlements: settlements.docs.map(doc => {
+      const data = doc.data();
+      return {
+        ...data,
+        settledAt: timestampToString(data.settledAt as Timestamp)
+      } as Settlement;
+    })
+  };
+};

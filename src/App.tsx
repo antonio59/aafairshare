@@ -12,14 +12,32 @@ import { useExpenseStore } from './store/expenseStore';
 import ErrorBoundary from './utils/errorBoundary';
 
 const App = () => {
-  const { processRecurringExpenses } = useExpenseStore();
+  const { processRecurringExpenses, initializeStore, initialized } = useExpenseStore();
 
   useEffect(() => {
-    // Process recurring expenses daily
-    processRecurringExpenses();
-    const interval = setInterval(processRecurringExpenses, 24 * 60 * 60 * 1000);
-    return () => clearInterval(interval);
-  }, [processRecurringExpenses]);
+    // Initialize the store when the app starts
+    initializeStore();
+  }, [initializeStore]);
+
+  useEffect(() => {
+    if (initialized) {
+      // Process recurring expenses daily
+      processRecurringExpenses();
+      const interval = setInterval(processRecurringExpenses, 24 * 60 * 60 * 1000);
+      return () => clearInterval(interval);
+    }
+  }, [initialized, processRecurringExpenses]);
+
+  if (!initialized) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
