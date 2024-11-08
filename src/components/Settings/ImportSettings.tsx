@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FileSpreadsheet, Upload, AlertCircle, Info } from 'lucide-react';
 import { useExpenseStore } from '../../store/expenseStore';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { parse, format } from 'date-fns';
 
 const ImportSettings = () => {
@@ -19,8 +19,9 @@ const ImportSettings = () => {
     setSuccess(null);
 
     try {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
+      const workbook = new ExcelJS.Workbook();
+      const arrayBuffer = await file.arrayBuffer();
+      await workbook.xlsx.load(arrayBuffer);
 
       // Track import statistics
       let totalImported = 0;
@@ -33,53 +34,54 @@ const ImportSettings = () => {
         throw new Error('Default "Other" category not found');
       }
 
-      // Process each sheet (month)
-      for (const sheetName of workbook.SheetNames) {
+      // Process each worksheet (month)
+      for (const worksheet of workbook.worksheets) {
         try {
           // Parse month from sheet name (e.g., "November 2024")
-          const monthDate = parse(sheetName, 'MMMM yyyy', new Date());
+          const monthDate = parse(worksheet.name, 'MMMM yyyy', new Date());
           if (isNaN(monthDate.getTime())) {
-            console.warn(`Invalid sheet name format: ${sheetName}, skipping`);
+            console.warn(`Invalid sheet name format: ${worksheet.name}, skipping`);
             continue;
           }
 
           const monthKey = format(monthDate, 'yyyy-MM');
           processedMonths.add(monthKey);
 
-          const worksheet = workbook.Sheets[sheetName];
-          const jsonData = XLSX.utils.sheet_to_json(worksheet, { 
-            header: 1,
-            raw: false,
-            blankrows: false
+          // Skip if worksheet is empty
+          if (worksheet.rowCount < 3) continue;
+
+          // Get headers from second row (index 1)
+          const headers: string[] = [];
+          worksheet.getRow(2).eachCell((cell, colNumber) => {
+            headers[colNumber - 1] = cell.text.toLowerCase();
           });
 
-          // Skip first two header rows
-          if (jsonData.length < 3) continue;
-
           // Find column indexes
-          const headers = jsonData[1] as string[];
           const colIndexes = {
-            description: headers.findIndex(h => h?.toLowerCase().includes('description')),
-            amount: headers.findIndex(h => h?.toLowerCase().includes('how much')),
-            paidByAndres: headers.findIndex(h => h?.toLowerCase().includes('paid by andres')),
-            paidByAntonio: headers.findIndex(h => h?.toLowerCase().includes('paid by antonio')),
-            extrasAndres: headers.findIndex(h => h?.toLowerCase().includes('extras andres to antonio')),
-            extrasAntonio: headers.findIndex(h => h?.toLowerCase().includes('extras antonio to andres')),
+            description: headers.findIndex(h => h?.includes('description')),
+            amount: headers.findIndex(h => h?.includes('how much')),
+            paidByAndres: headers.findIndex(h => h?.includes('paid by andres')),
+            paidByAntonio: headers.findIndex(h => h?.includes('paid by antonio')),
+            extrasAndres: headers.findIndex(h => h?.includes('extras andres to antonio')),
+            extrasAntonio: headers.findIndex(h => h?.includes('extras antonio to andres')),
             settlement: headers.findIndex(h => 
-              h?.toLowerCase().includes('andres pay to antonio') || 
-              h?.toLowerCase().includes('antonio pay to andres')
+              h?.includes('andres pay to antonio') || 
+              h?.includes('antonio pay to andres')
             ),
           };
 
-          // Process data rows
-          for (let i = 2; i < jsonData.length; i++) {
-            const row = jsonData[i] as string[];
-            if (!row || row.length === 0) continue;
+          // Process data rows starting from row 3
+          for (let rowNumber = 3; rowNumber <= worksheet.rowCount; rowNumber++) {
+            const row = worksheet.getRow(rowNumber);
+            if (row.cellCount === 0) continue;
 
             try {
               // Get description and amount
-              const description = row[colIndexes.description];
-              const amount = parseFloat(String(row[colIndexes.amount]).replace(/[£,]/g, ''));
+              const description = row.getCell(colIndexes.description + 1).text;
+              const amountCell = row.getCell(colIndexes.amount + 1);
+              const amount = typeof amountCell.value === 'number' 
+                ? amountCell.value 
+                : parseFloat(String(amountCell.value).replace(/[£,]/g, ''));
 
               if (isNaN(amount)) {
                 totalSkipped++;
@@ -88,18 +90,18 @@ const ImportSettings = () => {
 
               // Determine paidBy and split
               let paidBy = 'Andres';
-              let split = 'equal' as const;
+              let split: 'equal' | 'no-split' = 'equal';
 
               // Check extras columns first (they take precedence)
-              if (row[colIndexes.extrasAndres]) {
+              if (row.getCell(colIndexes.extrasAndres + 1).text) {
                 paidBy = 'Antonio';
                 split = 'no-split';
-              } else if (row[colIndexes.extrasAntonio]) {
+              } else if (row.getCell(colIndexes.extrasAntonio + 1).text) {
                 paidBy = 'Andres';
                 split = 'no-split';
               } else {
                 // Check regular paid by columns
-                if (row[colIndexes.paidByAntonio]) {
+                if (row.getCell(colIndexes.paidByAntonio + 1).text) {
                   paidBy = 'Antonio';
                 }
               }
@@ -119,25 +121,26 @@ const ImportSettings = () => {
               totalImported++;
 
             } catch (rowError) {
-              console.warn(`Error processing row ${i + 1}:`, rowError);
+              console.warn(`Error processing row ${rowNumber}:`, rowError);
               totalSkipped++;
             }
           }
 
           // Check for settlement
-          // Note: This is a simplified check. In a real implementation,
-          // you'd need to check cell background colors using XLSX.utils.decode_cell
-          const settlementRow = jsonData.find(row => 
-            row[colIndexes.settlement] && 
-            String(row[colIndexes.settlement]).toLowerCase().includes('settled')
-          );
+          let isSettled = false;
+          worksheet.eachRow((row) => {
+            const settlementCell = row.getCell(colIndexes.settlement + 1);
+            if (settlementCell.text.toLowerCase().includes('settled')) {
+              isSettled = true;
+            }
+          });
 
-          if (settlementRow) {
+          if (isSettled) {
             settleMonth(monthKey, 'System Import', 0);
           }
 
         } catch (sheetError) {
-          console.error(`Error processing sheet "${sheetName}":`, sheetError);
+          console.error(`Error processing sheet "${worksheet.name}":`, sheetError);
           throw sheetError;
         }
       }
