@@ -1,6 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
 import { Expense, Category, Tag } from '../types';
 
@@ -53,13 +53,13 @@ const createHeader = (doc: jsPDF, title: string, subtitle?: string, options?: Ex
   doc.text(title, 20, 35);
 
   if (subtitle) {
-    doc.setFont(BRAND_FONTS.regular, 'normal');
+    doc.setFont(BRAND_FONTS.regular);
     doc.setFontSize(12);
     doc.text(subtitle, 20, 45);
   }
 
   // Add settlement status
-  doc.setFont(BRAND_FONTS.regular, 'normal');
+  doc.setFont(BRAND_FONTS.regular);
   doc.setFontSize(10);
   doc.setTextColor(BRAND_COLORS.secondary);
   doc.text(
@@ -80,7 +80,7 @@ const createFooter = (doc: jsPDF) => {
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
-    doc.setFont(BRAND_FONTS.regular, 'normal');
+    doc.setFont(BRAND_FONTS.regular);
     doc.setFontSize(10);
     doc.setTextColor(BRAND_COLORS.text);
     doc.text(
@@ -141,17 +141,16 @@ export const exportToPDF = (
     styles: {
       font: BRAND_FONTS.regular,
       textColor: BRAND_COLORS.text,
-      fontStyle: 'normal',
     },
     headStyles: {
       fillColor: BRAND_COLORS.primary,
-      fontStyle: BRAND_FONTS.boldStyle,
       textColor: '#FFFFFF',
+      fontStyle: 'bold',
     },
     footStyles: {
       fillColor: BRAND_COLORS.secondary,
-      fontStyle: BRAND_FONTS.boldStyle,
       textColor: '#FFFFFF',
+      fontStyle: 'bold',
     },
     alternateRowStyles: {
       fillColor: '#F9FAFB',
@@ -167,41 +166,52 @@ export const exportToPDF = (
   doc.save(`expenses-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 };
 
-export const exportToExcel = (
+export const exportToExcel = async (
   expenses: Expense[],
   categories: Category[],
   tags: Tag[],
   options: ExportOptions
 ) => {
-  // Create workbook and worksheet
-  const wb = XLSX.utils.book_new();
-  
-  // Add title and metadata
-  wb.Props = {
-    Title: 'AA FairShare Expenses',
-    Subject: options.title,
-    Author: 'AA FairShare',
-    CreatedDate: new Date(),
-  };
+  // Create workbook
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = 'AA FairShare';
+  workbook.created = new Date();
+  workbook.modified = new Date();
 
-  // Prepare data with header row
-  const data = [
-    ['AA FairShare - Expense Report'],
-    [options.title],
-    options.subtitle ? [options.subtitle] : [],
-    [`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`],
-    // Settlement status
-    [options.isSettled
+  // Add worksheet
+  const worksheet = workbook.addWorksheet('Expenses');
+
+  // Add title and metadata
+  worksheet.addRow(['AA FairShare - Expense Report']).font = { bold: true, size: 16 };
+  worksheet.addRow([options.title]).font = { bold: true, size: 14 };
+  if (options.subtitle) {
+    worksheet.addRow([options.subtitle]);
+  }
+  worksheet.addRow([`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`]);
+  worksheet.addRow([
+    options.isSettled
       ? `Settled by ${options.settledBy} on ${options.settledDate}`
       : 'Status: Unsettled'
-    ],
-  ];
+  ]);
+  worksheet.addRow([]); // Empty row for spacing
 
-  // Add empty row and headers
-  data.push(
-    [], // Empty row for spacing
-    ['Date', 'Category', 'Tags', 'Description', 'Amount', 'Split', 'Paid By']
-  );
+  // Add headers
+  const headers = ['Date', 'Category', 'Tags', 'Description', 'Amount', 'Split', 'Paid By'];
+  const headerRow = worksheet.addRow(headers);
+
+  // Style header row
+  headerRow.eachCell((cell) => {
+    cell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '3B82F6' }
+    };
+    cell.font = {
+      bold: true,
+      color: { argb: 'FFFFFF' }
+    };
+    cell.alignment = { horizontal: 'center' };
+  });
 
   // Add expense data
   expenses.forEach(expense => {
@@ -211,7 +221,7 @@ export const exportToExcel = (
       .filter(Boolean)
       .join(', ') || '';
 
-    data.push([
+    worksheet.addRow([
       formatDate(expense.date),
       category,
       expenseTags,
@@ -223,44 +233,25 @@ export const exportToExcel = (
   });
 
   // Add total row
+  worksheet.addRow([]); // Empty row for spacing
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  data.push(
-    [], // Empty row for spacing
-    ['', '', '', 'Total', total, '', '']
-  );
-
-  // Create worksheet
-  const ws = XLSX.utils.aoa_to_sheet(data);
+  const totalRow = worksheet.addRow(['', '', '', 'Total', total, '', '']);
+  totalRow.getCell(5).font = { bold: true };
 
   // Set column widths
-  const colWidths = [
-    { wch: 12 }, // Date
-    { wch: 20 }, // Category
-    { wch: 30 }, // Tags
-    { wch: 30 }, // Description
-    { wch: 12 }, // Amount
-    { wch: 12 }, // Split
-    { wch: 12 }, // Paid By
+  worksheet.columns = [
+    { width: 12 }, // Date
+    { width: 20 }, // Category
+    { width: 30 }, // Tags
+    { width: 30 }, // Description
+    { width: 12 }, // Amount
+    { width: 12 }, // Split
+    { width: 12 }, // Paid By
   ];
-  ws['!cols'] = colWidths;
 
-  // Style the header
-  const headerStyle = {
-    font: { bold: true, color: { rgb: "FFFFFF" } },
-    fill: { fgColor: { rgb: "3B82F6" } },
-    alignment: { horizontal: "center" },
-  };
-
-  // Apply styles (limited support in XLSX)
-  const headerRange = XLSX.utils.decode_range('A7:G7');
-  for (let col = headerRange.s.c; col <= headerRange.e.c; col++) {
-    const cellRef = XLSX.utils.encode_cell({ r: 6, c: col });
-    ws[cellRef].s = headerStyle;
-  }
-
-  // Add worksheet to workbook
-  XLSX.utils.book_append_sheet(wb, ws, 'Expenses');
+  // Format amount column as currency
+  worksheet.getColumn(5).numFmt = '£#,##0.00';
 
   // Save the file
-  XLSX.writeFile(wb, `expenses-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  await workbook.xlsx.writeFile(`expenses-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
 };
