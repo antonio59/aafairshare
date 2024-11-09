@@ -2,10 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import Select from 'react-select';
+import Select, { GroupBase, OptionProps } from 'react-select';
 import CreatableSelect from 'react-select/creatable';
 import { ArrowLeft, Calendar, DollarSign, Tag, Users, RefreshCw } from 'lucide-react';
-import type { Expense } from '../types';
+import type { Expense, Category } from '../types';
 
 const CATEGORY_GROUPS = [
   'Food',
@@ -20,6 +20,12 @@ type ExpenseFormData = Omit<Expense, 'id'> & {
   isRecurring: boolean;
   recurringDay: string;
 };
+
+interface CategoryOption {
+  value: string;
+  label: string;
+  icon?: string;
+}
 
 const ExpenseForm = () => {
   const navigate = useNavigate();
@@ -111,12 +117,19 @@ const ExpenseForm = () => {
   };
 
   // Custom option component to show category icon
-  const CategoryOption = ({ data, ...props }: any) => (
-    <div className="flex items-center gap-2 px-2 py-1">
+  const CategoryOption = ({ data, ...props }: OptionProps<CategoryOption, false, GroupBase<CategoryOption>>) => (
+    <div className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-gray-100" {...props}>
       {data.icon && <span>{data.icon}</span>}
       <span>{data.label}</span>
     </div>
   );
+
+  const handleCategoryChange = (selectedOption: CategoryOption | null) => {
+    setFormData(prev => ({
+      ...prev,
+      category: selectedOption?.value || ''
+    }));
+  };
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -139,23 +152,25 @@ const ExpenseForm = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Category
             </label>
-            <Select
+            <Select<CategoryOption, false, GroupBase<CategoryOption>>
               value={
                 formData.category
                   ? {
                       value: formData.category,
-                      label: categories.find(c => c.id === formData.category)?.name,
+                      label: categories.find(c => c.id === formData.category)?.name || '',
                       icon: categories.find(c => c.id === formData.category)?.icon
                     }
                   : null
               }
-              onChange={(option) => setFormData({ ...formData, category: option?.value || '' })}
+              onChange={handleCategoryChange}
               options={groupedCategories}
               components={{ Option: CategoryOption }}
               className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Select a category"
               required
+              isSearchable
+              menuPosition="fixed"
             />
           </div>
 
@@ -188,6 +203,7 @@ const ExpenseForm = () => {
               className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Add tags..."
+              menuPosition="fixed"
             />
             <p className="mt-1 text-sm text-gray-500">
               Type to create new tags or select from existing ones

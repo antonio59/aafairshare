@@ -4,7 +4,7 @@ import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
 import MonthSelector from './MonthSelector';
 import SettlementModal from './SettlementModal';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
 
 const Settlement = () => {
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
@@ -30,7 +30,7 @@ const Settlement = () => {
       if (prev.includes(month)) {
         return prev.filter(m => m !== month);
       } else {
-        return [...prev, month];
+        return [...prev, month].sort();
       }
     });
   };
@@ -51,102 +51,121 @@ const Settlement = () => {
     return 'No balance to settle';
   };
 
+  const getBalanceColor = (amount: number) => {
+    if (amount === 0) return 'text-gray-600';
+    return amount > 0 ? 'text-green-600' : 'text-red-600';
+  };
+
+  const unsettledMonths = pastMonths.filter(month => !isMonthSettled(month));
+
   return (
     <div className="container mx-auto px-4 py-8 mb-20">
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-2xl font-bold mb-6">Settlement</h2>
-        
-        <MonthSelector
-          selectedMonth={selectedMonth}
-          onMonthChange={setSelectedMonth}
-        />
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Settlement</h2>
+          {selectedMonths.length > 0 && (
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <Check className="w-4 h-4" />
+              Settle ({selectedMonths.length})
+            </button>
+          )}
+        </div>
 
-        <div className="mt-6">
-          <button
-            onClick={() => setShowPastMonths(!showPastMonths)}
-            className="flex items-center gap-2 text-blue-600 hover:text-blue-700 mb-4"
-          >
-            {showPastMonths ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
-            {showPastMonths ? 'Hide Past Months' : 'Show Past Months'}
-          </button>
+        {unsettledMonths.length > 0 ? (
+          <>
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
+                <div>
+                  <p className="text-blue-800 font-medium">Unsettled Months</p>
+                  <p className="text-blue-600 text-sm mt-1">
+                    You have {unsettledMonths.length} month{unsettledMonths.length !== 1 ? 's' : ''} that need{unsettledMonths.length === 1 ? 's' : ''} to be settled.
+                    Select the months you want to settle and click the "Settle" button.
+                  </p>
+                </div>
+              </div>
+            </div>
 
-          {showPastMonths && (
-            <div className="space-y-2 mb-6">
-              {pastMonths.map(month => {
+            <div className="space-y-3">
+              {unsettledMonths.map(month => {
                 const balance = getMonthlyBalance(month);
-                const settled = isMonthSettled(month);
-                const settlementDetails = getSettlementDetails(month);
-
-                if (settled) return null; // Skip settled months
+                const balanceColor = getBalanceColor(balance);
 
                 return (
                   <div
                     key={month}
-                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                    onClick={() => handleMonthSelect(month)}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-4">
                       <input
                         type="checkbox"
                         checked={selectedMonths.includes(month)}
-                        onChange={() => handleMonthSelect(month)}
+                        onChange={(e) => e.stopPropagation()}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleMonthSelect(month);
+                        }}
                         className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
                       <div>
                         <p className="font-medium">
                           {format(new Date(month + '-01'), 'MMMM yyyy')}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className={`text-sm ${balanceColor}`}>
                           {formatBalance(balance)}
                         </p>
                       </div>
                     </div>
-                    {settled && settlementDetails && (
-                      <div className="text-right text-sm text-gray-600">
-                        Settled by {settlementDetails.settledBy}
-                        <br />
-                        on {format(new Date(settlementDetails.settledAt), 'dd/MM/yyyy')}
-                      </div>
-                    )}
+                    <div className="text-right">
+                      <p className={`font-medium ${balanceColor}`}>
+                        £{Math.abs(balance).toFixed(2)}
+                      </p>
+                    </div>
                   </div>
                 );
               })}
             </div>
-          )}
-        </div>
 
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold mb-2">Selected Months</h3>
-            {selectedMonths.length > 0 ? (
-              <div className="space-y-2">
-                {selectedMonths.map(month => (
-                  <div key={month} className="flex justify-between items-center">
-                    <span>{format(new Date(month + '-01'), 'MMMM yyyy')}</span>
-                    <span>£{Math.abs(getMonthlyBalance(month)).toFixed(2)}</span>
+            {selectedMonths.length > 0 && (
+              <div className="mt-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">Summary</h3>
+                <div className="space-y-2">
+                  {selectedMonths.map(month => (
+                    <div key={month} className="flex justify-between items-center text-sm">
+                      <span>{format(new Date(month + '-01'), 'MMMM yyyy')}</span>
+                      <span className={getBalanceColor(getMonthlyBalance(month))}>
+                        £{Math.abs(getMonthlyBalance(month)).toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                  <div className="pt-2 mt-2 border-t border-gray-200">
+                    <div className="flex justify-between items-center font-semibold">
+                      <span>Total Balance</span>
+                      <span className={getBalanceColor(getTotalBalance())}>
+                        £{Math.abs(getTotalBalance()).toFixed(2)}
+                      </span>
+                    </div>
+                    <p className={`text-sm mt-1 ${getBalanceColor(getTotalBalance())}`}>
+                      {formatBalance(getTotalBalance())}
+                    </p>
                   </div>
-                ))}
-                <div className="pt-2 mt-2 border-t border-gray-200">
-                  <div className="flex justify-between items-center font-semibold">
-                    <span>Total Balance</span>
-                    <span>£{Math.abs(getTotalBalance()).toFixed(2)}</span>
-                  </div>
-                  <p className="text-gray-600 mt-1">{formatBalance(getTotalBalance())}</p>
                 </div>
               </div>
-            ) : (
-              <p className="text-gray-500">No months selected</p>
             )}
+          </>
+        ) : (
+          <div className="text-center py-12">
+            <Check className="w-12 h-12 text-green-500 mx-auto mb-4" />
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">All Settled Up!</h3>
+            <p className="text-gray-600">
+              You're all caught up. There are no months that need to be settled.
+            </p>
           </div>
-
-          {selectedMonths.length > 0 && (
-            <button
-              onClick={() => setIsModalOpen(true)}
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Settle Selected Months
-            </button>
-          )}
-        </div>
+        )}
 
         {isModalOpen && (
           <SettlementModal
