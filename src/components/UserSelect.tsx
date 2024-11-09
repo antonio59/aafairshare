@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useUserStore } from '../store/userStore';
+import { LogOut, ChevronDown, User } from 'lucide-react';
 
 const UserSelect = () => {
   const { login, currentUser, logout, error: storeError } = useUserStore();
@@ -7,6 +8,8 @@ const UserSelect = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [isResetMode, setIsResetMode] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -14,15 +17,21 @@ const UserSelect = () => {
     setError('');
 
     try {
-      const success = await login(email, password);
-      if (!success) {
-        setError('Invalid email or password');
+      if (isResetMode) {
+        // TODO: Implement password reset
+        alert('Password reset functionality coming soon!');
+        setIsResetMode(false);
       } else {
-        setEmail('');
-        setPassword('');
+        const success = await login(email, password);
+        if (!success) {
+          setError('Invalid email or password');
+        } else {
+          setEmail('');
+          setPassword('');
+        }
       }
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError(isResetMode ? 'Password reset failed' : 'Login failed. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -32,6 +41,7 @@ const UserSelect = () => {
     setIsLoading(true);
     try {
       await logout();
+      setShowDropdown(false);
     } catch (err) {
       setError('Logout failed. Please try again.');
     } finally {
@@ -41,69 +51,103 @@ const UserSelect = () => {
 
   if (currentUser) {
     return (
-      <div className="flex justify-between items-center py-2 border-b border-gray-200">
-        <span className="text-sm text-gray-600">
-          Logged in as {currentUser.name}
-        </span>
+      <div className="relative">
         <button
-          onClick={handleLogout}
-          disabled={isLoading}
-          className="text-sm text-red-600 hover:text-red-700 disabled:opacity-50 flex items-center gap-2"
+          onClick={() => setShowDropdown(!showDropdown)}
+          className="flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-gray-50 transition-colors"
         >
-          {isLoading && (
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
-          )}
-          Logout
+          <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+            <User className="w-4 h-4 text-blue-600" />
+          </div>
+          <span className="text-sm text-gray-700">{currentUser.name}</span>
+          <ChevronDown className="w-4 h-4 text-gray-400" />
         </button>
+
+        {showDropdown && (
+          <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 border border-gray-200">
+            <button
+              onClick={handleLogout}
+              disabled={isLoading}
+              className="w-full px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+              {isLoading ? 'Logging out...' : 'Logout'}
+            </button>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="fixed inset-0 bg-gray-50 flex items-center justify-center z-50">
-      <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
-        <h2 className="text-2xl font-bold mb-6 text-center">AA FairShare</h2>
+      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+        <div className="text-center mb-8">
+          <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center mx-auto mb-4">
+            <User className="w-8 h-8 text-blue-600" />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-800">Welcome Back</h2>
+          <p className="text-gray-600 mt-2">
+            {isResetMode ? 'Enter your email to reset password' : 'Sign in to manage your expenses'}
+          </p>
+        </div>
+
         {(error || storeError) && (
-          <div className="mb-4 p-2 bg-red-100 text-red-700 rounded">
+          <div className="mb-6 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
             {error || storeError}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
+
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
+              Email Address
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
               required
               disabled={isLoading}
+              placeholder="Enter your email"
             />
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              required
-              disabled={isLoading}
-            />
-          </div>
+
+          {!isResetMode && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow"
+                required
+                disabled={isLoading}
+                placeholder="Enter your password"
+              />
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2"
+            className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {isLoading && (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             )}
-            Login
+            {isResetMode ? 'Reset Password' : 'Sign In'}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsResetMode(!isResetMode)}
+            className="w-full text-sm text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            {isResetMode ? 'Back to Sign In' : 'Forgot Password?'}
           </button>
         </form>
       </div>

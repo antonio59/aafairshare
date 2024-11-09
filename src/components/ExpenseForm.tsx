@@ -4,7 +4,8 @@ import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
-import { X } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign, Tag, Users, RefreshCw } from 'lucide-react';
+import type { Expense } from '../types';
 
 const CATEGORY_GROUPS = [
   'Utilities',
@@ -18,21 +19,27 @@ const CATEGORY_GROUPS = [
   'Miscellaneous',
 ] as const;
 
+type ExpenseFormData = Omit<Expense, 'id'> & {
+  isRecurring: boolean;
+  recurringDay: string;
+};
+
 const ExpenseForm = () => {
   const navigate = useNavigate();
   const { addExpense, categories, tags, addTag } = useExpenseStore();
   const { currentUser } = useUserStore();
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<ExpenseFormData>({
     description: '',
-    amount: '',
+    amount: 0,
     date: new Date().toISOString().split('T')[0],
     category: '',
     paidBy: currentUser?.role === 'partner1' ? 'Andres' : 'Antonio',
-    split: 'equal' as const,
-    tags: [] as string[],
+    split: 'equal',
+    tags: [],
     isRecurring: false,
     recurringDay: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Group categories for the select input
   const groupedCategories = useMemo(() => {
@@ -59,14 +66,20 @@ const ExpenseForm = () => {
     [tags]
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addExpense({
-      ...formData,
-      amount: parseFloat(formData.amount),
-      date: new Date(formData.date).toISOString(),
-    });
-    navigate('/');
+    setIsSubmitting(true);
+    try {
+      await addExpense({
+        ...formData,
+        amount: typeof formData.amount === 'string' ? parseFloat(formData.amount) : formData.amount,
+        date: new Date(formData.date).toISOString(),
+      });
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to add expense:', error);
+      setIsSubmitting(false);
+    }
   };
 
   const handleTagChange = (newValue: any) => {
@@ -76,18 +89,22 @@ const ExpenseForm = () => {
     }));
   };
 
-  const handleCreateTag = (inputValue: string) => {
+  const handleCreateTag = async (inputValue: string) => {
     const newTag = {
       name: inputValue,
       categoryId: formData.category,
     };
     
-    addTag(newTag);
+    await addTag(newTag);
     
-    setFormData(prev => ({
-      ...prev,
-      tags: [...prev.tags, newTag.id!],
-    }));
+    // The tag will have an ID after being added to the store
+    const addedTag = tags.find(t => t.name === inputValue);
+    if (addedTag) {
+      setFormData(prev => ({
+        ...prev,
+        tags: [...prev.tags, addedTag.id],
+      }));
+    }
   };
 
   // Prevent mouse wheel from changing number input
@@ -96,10 +113,22 @@ const ExpenseForm = () => {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="max-w-lg mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Add New Expense</h1>
-        <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow p-6 space-y-4">
+    <div className="max-w-2xl mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <button
+          onClick={() => navigate('/')}
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          title="Go back"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-600" />
+        </button>
+        <h1 className="text-2xl font-bold text-gray-800">Add New Expense</h1>
+      </div>
+
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Main Details Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Category
@@ -115,7 +144,7 @@ const ExpenseForm = () => {
               }
               onChange={(option) => setFormData({ ...formData, category: option?.value || '' })}
               options={groupedCategories}
-              className="w-full"
+              className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Select a category"
               required
@@ -130,7 +159,8 @@ const ExpenseForm = () => {
               type="text"
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="Add a description..."
             />
           </div>
 
@@ -147,7 +177,7 @@ const ExpenseForm = () => {
               onChange={handleTagChange}
               onCreateOption={handleCreateTag}
               options={tagOptions}
-              className="w-full"
+              className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Add tags..."
             />
@@ -156,107 +186,149 @@ const ExpenseForm = () => {
             </p>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount (£)
-            </label>
-            <input
-              type="number"
-              step="0.01"
-              value={formData.amount}
-              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-              onWheel={handleWheel}
-              className="w-full amount-input"
-              required
-            />
-          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Amount (£)
+              </label>
+              <div className="relative">
+                <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                  onWheel={handleWheel}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="0.00"
+                  required
+                />
+              </div>
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Date
-            </label>
-            <input
-              type="date"
-              value={formData.date}
-              onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-              className="w-full"
-              required
-            />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Date
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+            </div>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Paid By
-            </label>
-            <select
-              value={formData.paidBy}
-              onChange={(e) => setFormData({ ...formData, paidBy: e.target.value })}
-              className="w-full"
-              required
-            >
-              <option value="Andres">Andres</option>
-              <option value="Antonio">Antonio</option>
-            </select>
+        {/* Split Details Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Paid By
+              </label>
+              <div className="relative">
+                <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <select
+                  value={formData.paidBy}
+                  onChange={(e) => setFormData({ ...formData, paidBy: e.target.value })}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
+                  required
+                >
+                  <option value="Andres">Andres</option>
+                  <option value="Antonio">Antonio</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Split
+              </label>
+              <select
+                value={formData.split}
+                onChange={(e) => setFormData({ ...formData, split: e.target.value as 'equal' | 'no-split' })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="equal">Equal Split</option>
+                <option value="no-split">No Split</option>
+              </select>
+            </div>
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Split
-            </label>
-            <select
-              value={formData.split}
-              onChange={(e) => setFormData({ ...formData, split: e.target.value as 'equal' | 'no-split' })}
-              className="w-full"
-              required
-            >
-              <option value="equal">Equal Split</option>
-              <option value="no-split">No Split</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <div className="flex items-center">
+        {/* Recurring Details Card */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-start gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <RefreshCw className="w-5 h-5 text-gray-400" />
+                <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">
+                  Recurring Expense
+                </label>
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Enable this for expenses that occur monthly
+              </p>
+            </div>
+            <div className="flex items-center h-6">
               <input
                 type="checkbox"
                 id="isRecurring"
                 checked={formData.isRecurring}
                 onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
-                className="h-4 w-4 text-blue-600 rounded border-gray-300"
+                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
               />
-              <label htmlFor="isRecurring" className="ml-2 text-sm text-gray-700">
-                Recurring Expense
-              </label>
             </div>
+          </div>
 
-            {formData.isRecurring && (
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Day of Month
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="31"
-                  value={formData.recurringDay}
-                  onChange={(e) => setFormData({ ...formData, recurringDay: e.target.value })}
-                  onWheel={handleWheel}
-                  className="w-full"
-                  required={formData.isRecurring}
-                />
-              </div>
+          {formData.isRecurring && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Day of Month
+              </label>
+              <input
+                type="number"
+                min="1"
+                max="31"
+                value={formData.recurringDay}
+                onChange={(e) => setFormData({ ...formData, recurringDay: e.target.value })}
+                onWheel={handleWheel}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter day (1-31)"
+                required={formData.isRecurring}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-4">
+          <button
+            type="button"
+            onClick={() => navigate('/')}
+            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          >
+            {isSubmitting && (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
             )}
-          </div>
-
-          <div className="pt-4">
-            <button
-              type="submit"
-              className="w-full bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
-            >
-              Add Expense
-            </button>
-          </div>
-        </form>
-      </div>
+            Add Expense
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

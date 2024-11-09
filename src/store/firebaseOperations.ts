@@ -6,8 +6,9 @@ import {
   getDocs,
   updateDoc,
   Timestamp,
-  enableIndexedDbPersistence,
-  FirestoreError
+  FirestoreError,
+  enableNetwork,
+  disableNetwork
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
@@ -27,254 +28,338 @@ const dateToTimestamp = (dateStr: string) => Timestamp.fromDate(new Date(dateStr
 // Helper function to convert Firestore Timestamp to ISO string
 const timestampToString = (timestamp: Timestamp) => timestamp.toDate().toISOString();
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// Helper function to retry operations
+const withRetry = async <T>(operation: () => Promise<T>, retries = MAX_RETRIES): Promise<T> => {
+  try {
+    return await operation();
+  } catch (error) {
+    if (error instanceof FirebaseError || error instanceof FirestoreError) {
+      if (error.code === 'unavailable' && retries > 0) {
+        await delay(RETRY_DELAY);
+        return withRetry(operation, retries - 1);
+      }
+    }
+    throw error;
+  }
+};
+
 // Helper function to handle Firestore errors
-const handleFirestoreError = (error: unknown, operation: string): never => {
+const handleFirestoreError = (error: unknown, operation: string): Promise<never> => {
   console.error(`Error in ${operation}:`, error);
   
   if (error instanceof FirebaseError || error instanceof FirestoreError) {
     switch (error.code) {
       case 'permission-denied':
-        throw new Error('Permission denied. Please check your access rights.');
+        return Promise.reject(new Error('You don\'t have permission to perform this action. Please check your access rights or log in again.'));
       case 'unavailable':
-        throw new Error('Service temporarily unavailable. Please try again later.');
+        return Promise.reject(new Error('Service is temporarily unavailable. We\'ll automatically retry when connectivity is restored.'));
       case 'not-found':
-        throw new Error('Requested document not found.');
+        return Promise.reject(new Error('The requested data could not be found. It may have been deleted or moved.'));
       case 'already-exists':
-        throw new Error('Document already exists.');
+        return Promise.reject(new Error('This data already exists and cannot be duplicated.'));
+      case 'failed-precondition':
+        return Promise.reject(new Error('Operation cannot be performed in the current state. Please refresh the page.'));
+      case 'unauthenticated':
+        return Promise.reject(new Error('Your session has expired. Please log in again.'));
+      case 'cancelled':
+        return Promise.reject(new Error('Operation was cancelled. Please try again.'));
+      case 'data-loss':
+        return Promise.reject(new Error('Critical data error occurred. Please contact support.'));
+      case 'deadline-exceeded':
+        return Promise.reject(new Error('Operation timed out. Please check your connection and try again.'));
+      case 'resource-exhausted':
+        return Promise.reject(new Error('System temporarily overloaded. Please try again in a few minutes.'));
       default:
-        throw new Error(`Firebase operation failed: ${error.message}`);
+        return Promise.reject(new Error(`Operation failed: ${error.message}`));
     }
   }
   
   if (error instanceof Error) {
-    throw new Error(`Operation failed: ${error.message}`);
+    return Promise.reject(new Error(`Operation failed: ${error.message}`));
   }
   
-  throw new Error(`Unknown error occurred during ${operation}`);
+  return Promise.reject(new Error(`An unexpected error occurred during ${operation}. Please try again.`));
 };
 
-// Initialize Firestore with offline persistence
-try {
-  enableIndexedDbPersistence(db).catch((err: FirestoreError) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('The current browser does not support persistence.');
-    }
-  });
-} catch (error) {
-  if (error instanceof Error) {
-    console.warn('Failed to enable persistence:', error.message);
+// Network status management
+let isOffline = false;
+
+export const goOffline = async () => {
+  if (!isOffline) {
+    await disableNetwork(db);
+    isOffline = true;
   }
-}
+};
+
+export const goOnline = async () => {
+  if (isOffline) {
+    await enableNetwork(db);
+    isOffline = false;
+  }
+};
 
 // Expenses
 export const addExpenseToFirestore = async (expense: Expense) => {
   try {
-    const docRef = doc(expensesRef, expense.id);
-    const firestoreExpense = {
-      ...expense,
-      date: dateToTimestamp(expense.date)
-    };
-    await setDoc(docRef, firestoreExpense);
+    await withRetry(async () => {
+      const docRef = doc(expensesRef, expense.id);
+      const firestoreExpense = {
+        ...expense,
+        date: dateToTimestamp(expense.date)
+      };
+      await setDoc(docRef, firestoreExpense);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'add expense');
+    return handleFirestoreError(error, 'add expense');
   }
 };
 
 export const updateExpenseInFirestore = async (id: string, expense: Partial<Expense>) => {
   try {
-    const docRef = doc(expensesRef, id);
-    const firestoreExpense = {
-      ...expense,
-      date: expense.date ? dateToTimestamp(expense.date) : undefined
-    };
-    await updateDoc(docRef, firestoreExpense);
+    await withRetry(async () => {
+      const docRef = doc(expensesRef, id);
+      const firestoreExpense = {
+        ...expense,
+        date: expense.date ? dateToTimestamp(expense.date) : undefined
+      };
+      await updateDoc(docRef, firestoreExpense);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'update expense');
+    return handleFirestoreError(error, 'update expense');
   }
 };
 
 export const deleteExpenseFromFirestore = async (id: string) => {
   try {
-    const docRef = doc(expensesRef, id);
-    await deleteDoc(docRef);
+    await withRetry(async () => {
+      const docRef = doc(expensesRef, id);
+      await deleteDoc(docRef);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'delete expense');
+    return handleFirestoreError(error, 'delete expense');
   }
 };
 
 // Categories
 export const addCategoryToFirestore = async (category: Category) => {
   try {
-    const docRef = doc(categoriesRef, category.id);
-    await setDoc(docRef, category);
+    await withRetry(async () => {
+      const docRef = doc(categoriesRef, category.id);
+      await setDoc(docRef, category);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'add category');
+    return handleFirestoreError(error, 'add category');
   }
 };
 
 export const updateCategoryInFirestore = async (id: string, category: Partial<Category>) => {
   try {
-    const docRef = doc(categoriesRef, id);
-    await updateDoc(docRef, category);
+    await withRetry(async () => {
+      const docRef = doc(categoriesRef, id);
+      await updateDoc(docRef, category);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'update category');
+    return handleFirestoreError(error, 'update category');
   }
 };
 
 export const deleteCategoryFromFirestore = async (id: string) => {
   try {
-    const docRef = doc(categoriesRef, id);
-    await deleteDoc(docRef);
+    await withRetry(async () => {
+      const docRef = doc(categoriesRef, id);
+      await deleteDoc(docRef);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'delete category');
+    return handleFirestoreError(error, 'delete category');
   }
 };
 
 // Tags
 export const addTagToFirestore = async (tag: Tag) => {
   try {
-    const docRef = doc(tagsRef, tag.id);
-    await setDoc(docRef, tag);
+    await withRetry(async () => {
+      const docRef = doc(tagsRef, tag.id);
+      await setDoc(docRef, tag);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'add tag');
+    return handleFirestoreError(error, 'add tag');
   }
 };
 
 export const updateTagInFirestore = async (id: string, tag: Partial<Tag>) => {
   try {
-    const docRef = doc(tagsRef, id);
-    await updateDoc(docRef, tag);
+    await withRetry(async () => {
+      const docRef = doc(tagsRef, id);
+      await updateDoc(docRef, tag);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'update tag');
+    return handleFirestoreError(error, 'update tag');
   }
 };
 
 export const deleteTagFromFirestore = async (id: string) => {
   try {
-    const docRef = doc(tagsRef, id);
-    await deleteDoc(docRef);
+    await withRetry(async () => {
+      const docRef = doc(tagsRef, id);
+      await deleteDoc(docRef);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'delete tag');
+    return handleFirestoreError(error, 'delete tag');
   }
 };
 
 // Budgets
 export const addBudgetToFirestore = async (budget: Budget) => {
   try {
-    const docRef = doc(budgetsRef, budget.id);
-    await setDoc(docRef, budget);
+    await withRetry(async () => {
+      const docRef = doc(budgetsRef, budget.id);
+      await setDoc(docRef, budget);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'add budget');
+    return handleFirestoreError(error, 'add budget');
   }
 };
 
 export const updateBudgetInFirestore = async (id: string, budget: Partial<Budget>) => {
   try {
-    const docRef = doc(budgetsRef, id);
-    await updateDoc(docRef, budget);
+    await withRetry(async () => {
+      const docRef = doc(budgetsRef, id);
+      await updateDoc(docRef, budget);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'update budget');
+    return handleFirestoreError(error, 'update budget');
   }
 };
 
 export const deleteBudgetFromFirestore = async (id: string) => {
   try {
-    const docRef = doc(budgetsRef, id);
-    await deleteDoc(docRef);
+    await withRetry(async () => {
+      const docRef = doc(budgetsRef, id);
+      await deleteDoc(docRef);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'delete budget');
+    return handleFirestoreError(error, 'delete budget');
   }
 };
 
 // Recurring Expenses
 export const addRecurringExpenseToFirestore = async (expense: RecurringExpense) => {
   try {
-    const docRef = doc(recurringExpensesRef, expense.id);
-    const firestoreExpense = {
-      ...expense,
-      lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : null
-    };
-    await setDoc(docRef, firestoreExpense);
+    await withRetry(async () => {
+      const docRef = doc(recurringExpensesRef, expense.id);
+      const firestoreExpense = {
+        ...expense,
+        lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : null
+      };
+      await setDoc(docRef, firestoreExpense);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'add recurring expense');
+    return handleFirestoreError(error, 'add recurring expense');
   }
 };
 
 export const updateRecurringExpenseInFirestore = async (id: string, expense: Partial<RecurringExpense>) => {
   try {
-    const docRef = doc(recurringExpensesRef, id);
-    const firestoreExpense = {
-      ...expense,
-      lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : undefined
-    };
-    await updateDoc(docRef, firestoreExpense);
+    await withRetry(async () => {
+      const docRef = doc(recurringExpensesRef, id);
+      const firestoreExpense = {
+        ...expense,
+        lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : undefined
+      };
+      await updateDoc(docRef, firestoreExpense);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'update recurring expense');
+    return handleFirestoreError(error, 'update recurring expense');
   }
 };
 
 export const deleteRecurringExpenseFromFirestore = async (id: string) => {
   try {
-    const docRef = doc(recurringExpensesRef, id);
-    await deleteDoc(docRef);
+    await withRetry(async () => {
+      const docRef = doc(recurringExpensesRef, id);
+      await deleteDoc(docRef);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'delete recurring expense');
+    return handleFirestoreError(error, 'delete recurring expense');
   }
 };
 
 // Settlements
 export const addSettlementToFirestore = async (settlement: Settlement) => {
   try {
-    const docRef = doc(settlementsRef, settlement.month);
-    const firestoreSettlement = {
-      ...settlement,
-      settledAt: dateToTimestamp(settlement.settledAt)
-    };
-    await setDoc(docRef, firestoreSettlement);
+    await withRetry(async () => {
+      const docRef = doc(settlementsRef, settlement.month);
+      const firestoreSettlement = {
+        ...settlement,
+        settledAt: dateToTimestamp(settlement.settledAt)
+      };
+      await setDoc(docRef, firestoreSettlement);
+    });
   } catch (error) {
-    handleFirestoreError(error, 'add settlement');
+    return handleFirestoreError(error, 'add settlement');
   }
 };
 
-// Fetch all data
-export const fetchAllData = async () => {
-  try {
-    const expenses = await getDocs(expensesRef);
-    const categories = await getDocs(categoriesRef);
-    const tags = await getDocs(tagsRef);
-    const budgets = await getDocs(budgetsRef);
-    const recurringExpenses = await getDocs(recurringExpensesRef);
-    const settlements = await getDocs(settlementsRef);
+export interface FirestoreData {
+  expenses: Expense[];
+  categories: Category[];
+  tags: Tag[];
+  budgets: Budget[];
+  recurringExpenses: RecurringExpense[];
+  settlements: Settlement[];
+}
 
-    return {
-      expenses: expenses.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          date: timestampToString(data.date as Timestamp)
-        } as Expense;
-      }),
-      categories: categories.docs.map(doc => doc.data() as Category),
-      tags: tags.docs.map(doc => doc.data() as Tag),
-      budgets: budgets.docs.map(doc => doc.data() as Budget),
-      recurringExpenses: recurringExpenses.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          lastProcessed: data.lastProcessed ? timestampToString(data.lastProcessed as Timestamp) : null
-        } as RecurringExpense;
-      }),
-      settlements: settlements.docs.map(doc => {
-        const data = doc.data();
-        return {
-          ...data,
-          settledAt: timestampToString(data.settledAt as Timestamp)
-        } as Settlement;
-      })
-    };
+// Fetch all data with offline support
+export const fetchAllData = async (): Promise<FirestoreData> => {
+  try {
+    return await withRetry(async () => {
+      const expenses = await getDocs(expensesRef);
+      const categories = await getDocs(categoriesRef);
+      const tags = await getDocs(tagsRef);
+      const budgets = await getDocs(budgetsRef);
+      const recurringExpenses = await getDocs(recurringExpensesRef);
+      const settlements = await getDocs(settlementsRef);
+
+      return {
+        expenses: expenses.docs.map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            date: timestampToString(data.date as Timestamp)
+          } as Expense;
+        }),
+        categories: categories.docs.map(doc => doc.data() as Category),
+        tags: tags.docs.map(doc => doc.data() as Tag),
+        budgets: budgets.docs.map(doc => doc.data() as Budget),
+        recurringExpenses: recurringExpenses.docs.map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            lastProcessed: data.lastProcessed ? timestampToString(data.lastProcessed as Timestamp) : null
+          } as RecurringExpense;
+        }),
+        settlements: settlements.docs.map(doc => {
+          const data = doc.data();
+          return {
+            ...data,
+            settledAt: timestampToString(data.settledAt as Timestamp)
+          } as Settlement;
+        })
+      };
+    });
   } catch (error) {
-    handleFirestoreError(error, 'fetch all data');
+    if (error instanceof FirebaseError && error.code === 'unavailable') {
+      // If offline, try to work with cached data
+      await goOffline();
+      return fetchAllData();
+    }
+    return handleFirestoreError(error, 'fetch all data');
   }
 };

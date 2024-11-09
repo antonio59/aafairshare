@@ -16,39 +16,62 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore
+// Initialize Firestore with settings
 const db = getFirestore(app);
-
-// Enable offline persistence
-enableIndexedDbPersistence(db)
-  .catch((err) => {
-    if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-    } else if (err.code === 'unimplemented') {
-      console.warn('The current browser does not support persistence.');
-    }
-  });
 
 // Initialize Auth
 const auth = getAuth(app);
 
-// Initialize Analytics
+// Initialize Analytics if not in development
 let analytics = null;
-try {
-  analytics = getAnalytics(app);
-} catch (error) {
-  console.warn('Analytics initialization failed:', error);
+if (process.env.NODE_ENV !== 'development') {
+  try {
+    analytics = getAnalytics(app);
+  } catch (error) {
+    console.warn('Analytics initialization skipped in development');
+  }
 }
 
 // Use emulators in development
 if (process.env.NODE_ENV === 'development') {
   try {
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectAuthEmulator(auth, 'http://localhost:9099');
+    // Only connect to emulators if they're running
+    fetch('http://localhost:8080')
+      .then(() => {
+        connectFirestoreEmulator(db, 'localhost', 8080);
+        connectAuthEmulator(auth, 'http://localhost:9099');
+        console.log('Connected to Firebase emulators');
+      })
+      .catch(() => {
+        console.log('Firebase emulators not detected, using production environment');
+      });
   } catch (error) {
     console.warn('Failed to connect to emulators:', error);
   }
 }
+
+// Enable offline persistence only if not already enabled
+let persistenceEnabled = false;
+const enablePersistence = async () => {
+  if (!persistenceEnabled) {
+    try {
+      await enableIndexedDbPersistence(db);
+      persistenceEnabled = true;
+      console.log('Firestore persistence enabled');
+    } catch (err: any) {
+      if (err.code === 'failed-precondition') {
+        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('The current browser does not support persistence.');
+      } else {
+        console.error('Failed to enable persistence:', err);
+      }
+    }
+  }
+};
+
+// Try to enable persistence
+enablePersistence();
 
 export { db, auth, analytics };
 export default app;
