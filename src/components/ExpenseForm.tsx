@@ -7,6 +7,15 @@ import CreatableSelect from 'react-select/creatable';
 import { ArrowLeft, Calendar, DollarSign, Tag, Users, RefreshCw } from 'lucide-react';
 import type { Expense } from '../types';
 
+const CATEGORY_GROUPS = [
+  'Food',
+  'Transport',
+  'Housing',
+  'Entertainment',
+  'Healthcare',
+  'Others'
+] as const;
+
 type ExpenseFormData = Omit<Expense, 'id'> & {
   isRecurring: boolean;
   recurringDay: string;
@@ -29,15 +38,22 @@ const ExpenseForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Convert categories for the select input
-  const categoryOptions = useMemo(() => 
-    categories.map(cat => ({
-      value: cat.id,
-      label: cat.name,
-      icon: cat.icon
-    })).sort((a, b) => a.label.localeCompare(b.label)),
-    [categories]
-  );
+  // Group categories for the select input
+  const groupedCategories = useMemo(() => {
+    const groups = CATEGORY_GROUPS.map(group => ({
+      label: group,
+      options: categories
+        .filter(cat => cat.group === group)
+        .map(cat => ({
+          value: cat.id,
+          label: cat.name,
+          icon: cat.icon
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+    })).filter(group => group.options.length > 0);
+
+    return groups;
+  }, [categories]);
 
   // Convert tags for the select input
   const tagOptions = useMemo(() => 
@@ -134,7 +150,7 @@ const ExpenseForm = () => {
                   : null
               }
               onChange={(option) => setFormData({ ...formData, category: option?.value || '' })}
-              options={categoryOptions}
+              options={groupedCategories}
               components={{ Option: CategoryOption }}
               className="react-select-container"
               classNamePrefix="react-select"
