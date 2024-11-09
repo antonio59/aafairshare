@@ -1,20 +1,11 @@
-import React, { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import { ArrowLeft, Calendar, DollarSign, Users, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Calendar, DollarSign } from 'lucide-react';
 import type { Expense } from '../types';
 import Dropdown from './common/Dropdown';
 import TagInput from './common/TagInput';
-
-const CATEGORY_GROUPS = [
-  'Food',
-  'Transport',
-  'Housing',
-  'Entertainment',
-  'Healthcare',
-  'Others'
-] as const;
 
 type ExpenseFormData = Omit<Expense, 'id'> & {
   isRecurring: boolean;
@@ -34,20 +25,20 @@ const ExpenseForm = () => {
     split: 'equal',
     tags: [],
     isRecurring: false,
-    recurringDay: '',
+    recurringDay: '1',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Convert categories for the dropdown
-  const categoryOptions = useMemo(() => 
-    categories.map(cat => ({
+  const categoryOptions = categories
+    .filter(cat => cat !== null)
+    .map(cat => ({
       value: cat.id,
       label: cat.name,
       icon: cat.icon,
       group: cat.group
-    })).sort((a, b) => a.label.localeCompare(b.label)),
-    [categories]
-  );
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,11 +60,23 @@ const ExpenseForm = () => {
   };
 
   const handleCreateTag = async (name: string) => {
-    const newTag = {
-      name,
-      categoryId: formData.category,
-    };
-    await addTag(newTag);
+    try {
+      await addTag({
+        name,
+        categoryId: formData.category,
+      });
+
+      // After tag is created, find it in the updated tags list
+      const newTag = tags.find(tag => tag.name === name);
+      if (newTag) {
+        setFormData(prev => ({
+          ...prev,
+          tags: [...prev.tags, newTag.id],
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to create tag:', error);
+    }
   };
 
   // Prevent mouse wheel from changing number input
@@ -168,94 +171,53 @@ const ExpenseForm = () => {
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Split Details Card */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Dropdown
-              label="Paid By"
-              value={formData.paidBy}
-              onChange={(value) => setFormData(prev => ({ ...prev, paidBy: value }))}
-              options={[
-                { value: 'Andres', label: 'Andres' },
-                { value: 'Antonio', label: 'Antonio' }
-              ]}
-              required
-            />
-
-            <Dropdown
-              label="Split"
-              value={formData.split}
-              onChange={(value) => setFormData(prev => ({ ...prev, split: value as 'equal' | 'no-split' }))}
-              options={[
-                { value: 'equal', label: 'Equal Split' },
-                { value: 'no-split', label: 'No Split' }
-              ]}
-              required
-            />
-          </div>
-        </div>
-
-        {/* Recurring Details Card */}
-        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
-          <div className="flex items-start gap-4">
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <RefreshCw className="w-5 h-5 text-gray-400" />
-                <label htmlFor="isRecurring" className="text-sm font-medium text-gray-700">
-                  Recurring Expense
-                </label>
-              </div>
-              <p className="text-sm text-gray-500 mt-1">
-                Enable this for expenses that occur monthly
-              </p>
-            </div>
-            <div className="flex items-center h-6">
-              <input
-                type="checkbox"
-                id="isRecurring"
-                checked={formData.isRecurring}
-                onChange={(e) => setFormData({ ...formData, isRecurring: e.target.checked })}
-                className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          {formData.isRecurring && (
-            <div className="mt-4">
+            <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Day of Month
+                Paid By
               </label>
-              <input
-                type="number"
-                inputMode="numeric"
-                min="1"
-                max="31"
-                value={formData.recurringDay}
-                onChange={(e) => setFormData({ ...formData, recurringDay: e.target.value })}
-                onWheel={handleWheel}
+              <select
+                value={formData.paidBy}
+                onChange={(e) => setFormData({ ...formData, paidBy: e.target.value })}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Enter day (1-31)"
-                required={formData.isRecurring}
-              />
+                required
+              >
+                <option value="Andres">Andres</option>
+                <option value="Antonio">Antonio</option>
+              </select>
             </div>
-          )}
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Split
+              </label>
+              <select
+                value={formData.split}
+                onChange={(e) => setFormData({ ...formData, split: e.target.value as 'equal' | 'no-split' })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              >
+                <option value="equal">Equal Split</option>
+                <option value="no-split">No Split</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4 sticky bottom-0 bg-white p-4 shadow-lg rounded-t-lg">
+        <div className="flex justify-end gap-4">
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={isSubmitting || !formData.category}
-            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
           >
             {isSubmitting && (
               <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>

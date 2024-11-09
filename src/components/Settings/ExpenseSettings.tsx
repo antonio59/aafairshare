@@ -15,8 +15,8 @@ const isTag = (item: any): item is TagType => {
   return item && 'categoryId' in item;
 };
 
-// Color mapping for different groups
-const groupColors: { [key: string]: string } = {
+// Category groups and colors
+const categoryGroups = {
   'Utilities': '#2196F3',
   'Housing': '#795548',
   'Food': '#4CAF50',
@@ -26,7 +26,7 @@ const groupColors: { [key: string]: string } = {
   'Clothing': '#E91E63',
   'Health and Wellness': '#009688',
   'Miscellaneous': '#9E9E9E'
-};
+} as const;
 
 const ExpenseSettings = () => {
   const [activeTab, setActiveTab] = useState<'categories' | 'tags' | 'recurring'>('categories');
@@ -51,19 +51,7 @@ const ExpenseSettings = () => {
     if (categories.length === 0) {
       handleRestoreDefaultCategories();
     }
-  }, []);
-
-  const categoryGroups: { [key: string]: string[] } = {
-    'Utilities': [],
-    'Housing': [],
-    'Food': [],
-    'Transportation': [],
-    'Insurance': [],
-    'Entertainment': [],
-    'Clothing': [],
-    'Health and Wellness': [],
-    'Miscellaneous': []
-  };
+  }, [categories.length]);
 
   const handleRestoreDefaultCategories = async () => {
     try {
@@ -132,7 +120,7 @@ const ExpenseSettings = () => {
 
     try {
       if (activeTab === 'categories') {
-        const color = groupColors[formData.group] || '#9E9E9E';
+        const color = categoryGroups[formData.group as keyof typeof categoryGroups] || '#9E9E9E';
         
         if (editingItem && isCategory(editingItem)) {
           await updateCategory(editingItem.id, { 

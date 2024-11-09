@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
-import { Bell, BellOff, AlertCircle, CheckCircle2, Calendar, PieChart, XCircle } from 'lucide-react';
+import { Bell, BellOff, AlertCircle, Calendar, PieChart, XCircle } from 'lucide-react';
 
 const NotificationsSettings = () => {
   const { currentUser, updateUser } = useUserStore();

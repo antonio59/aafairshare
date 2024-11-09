@@ -1,18 +1,9 @@
-import React, { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, X, Calendar, DollarSign, RefreshCw } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { Plus, Edit2, Trash2, X, Calendar, DollarSign } from 'lucide-react';
 import { useExpenseStore } from '../../store/expenseStore';
 import type { RecurringExpense } from '../../types';
 import Dropdown from '../common/Dropdown';
 import TagInput from '../common/TagInput';
-
-const CATEGORY_GROUPS = [
-  'Food',
-  'Transport',
-  'Housing',
-  'Entertainment',
-  'Healthcare',
-  'Others'
-] as const;
 
 interface FormData {
   description: string;
