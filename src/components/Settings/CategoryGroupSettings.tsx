@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
-import { Plus, Edit2, Trash2, X, AlertCircle, CheckCircle2, Loader2, Hash } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, AlertCircle, CheckCircle2, Loader2, Hash, GripVertical } from 'lucide-react';
 import type { CategoryGroup } from '../../types';
+import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from 'react-beautiful-dnd';
 
 const CategoryGroupSettings = () => {
   const { categoryGroups = [], addCategoryGroup, updateCategoryGroup, deleteCategoryGroup } = useExpenseStore();
@@ -61,6 +62,24 @@ const CategoryGroupSettings = () => {
     setSuccess(null);
 
     try {
+      // Validate name
+      if (formData.name.trim().length === 0) {
+        throw new Error('Group name is required');
+      }
+
+      // Validate order
+      if (formData.order < 0) {
+        throw new Error('Order must be a positive number');
+      }
+
+      // Check for duplicate names
+      const existingGroup = categoryGroups.find(
+        g => g.name.toLowerCase() === formData.name.toLowerCase() && g.id !== editingGroup?.id
+      );
+      if (existingGroup) {
+        throw new Error('A group with this name already exists');
+      }
+
       if (editingGroup) {
         await updateCategoryGroup(editingGroup.id, formData);
         setSuccess('Group updated successfully');
@@ -76,6 +95,26 @@ const CategoryGroupSettings = () => {
       console.error('Error saving group:', err);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleDragEnd = async (result: DropResult) => {
+    if (!result.destination) return;
+
+    const items = Array.from(categoryGroups);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+
+    // Update order for all affected groups
+    try {
+      for (let i = 0; i < items.length; i++) {
+        if (items[i].order !== i) {
+          await updateCategoryGroup(items[i].id, { ...items[i], order: i });
+        }
+      }
+    } catch (err) {
+      setError('Failed to update group order');
+      console.error('Error updating group order:', err);
     }
   };
 
@@ -107,45 +146,68 @@ const CategoryGroupSettings = () => {
       )}
 
       <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="space-y-2">
-          {categoryGroups
-            .sort((a, b) => a.order - b.order)
-            .map((group) => (
+        <DragDropContext onDragEnd={handleDragEnd}>
+          <Droppable droppableId="groups">
+            {(provided: DroppableProvided) => (
               <div
-                key={group.id}
-                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                {...provided.droppableProps}
+                ref={provided.innerRef}
+                className="space-y-2"
               >
-                <div className="flex items-center gap-2">
-                  <div 
-                    className="w-4 h-4 rounded-full" 
-                    style={{ backgroundColor: group.color }}
-                  />
-                  <span>{group.name}</span>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEditGroup(group)}
-                    className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-                    title="Edit group"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteGroup(group.id)}
-                    className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                    title="Delete group"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
+                {categoryGroups
+                  .sort((a, b) => a.order - b.order)
+                  .map((group, index) => (
+                    <Draggable key={group.id} draggableId={group.id} index={index}>
+                      {(provided: DraggableProvided) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <div
+                              {...provided.dragHandleProps}
+                              className="cursor-move text-gray-400 hover:text-gray-600"
+                            >
+                              <GripVertical size={18} />
+                            </div>
+                            <div 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: group.color }}
+                            />
+                            <span>{group.name}</span>
+                            <span className="text-sm text-gray-500">Order: {group.order + 1}</span>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditGroup(group)}
+                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                              title="Edit group"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteGroup(group.id)}
+                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Delete group"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                {provided.placeholder}
+                {categoryGroups.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">
+                    No category groups created yet. Add some groups to organize your categories.
+                  </p>
+                )}
               </div>
-            ))}
-          {categoryGroups.length === 0 && (
-            <p className="text-gray-500 text-center py-4">
-              No category groups created yet. Add some groups to organize your categories.
-            </p>
-          )}
-        </div>
+            )}
+          </Droppable>
+        </DragDropContext>
       </div>
 
       {/* Add/Edit Modal */}
@@ -189,13 +251,19 @@ const CategoryGroupSettings = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Color
                 </label>
-                <input
-                  type="color"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="w-full h-10 p-1 border border-gray-300 rounded-lg"
-                  required
-                />
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={formData.color}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
+                    className="w-16 h-10 p-1 border border-gray-300 rounded-lg"
+                    required
+                  />
+                  <div 
+                    className="flex-1 h-10 rounded-lg border border-gray-300"
+                    style={{ backgroundColor: formData.color }}
+                  />
+                </div>
               </div>
 
               <div>
@@ -217,12 +285,16 @@ const CategoryGroupSettings = () => {
                 </label>
                 <input
                   type="number"
-                  value={formData.order}
-                  onChange={(e) => setFormData({ ...formData, order: parseInt(e.target.value) })}
+                  value={formData.order + 1}
+                  onChange={(e) => setFormData({ ...formData, order: Math.max(0, parseInt(e.target.value) - 1) })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  min="0"
+                  min="1"
+                  max={categoryGroups.length + (editingGroup ? 0 : 1)}
                   required
                 />
+                <p className="mt-1 text-sm text-gray-500">
+                  Enter a number between 1 and {categoryGroups.length + (editingGroup ? 0 : 1)}
+                </p>
               </div>
 
               <div className="flex justify-end gap-3 pt-6 border-t">
