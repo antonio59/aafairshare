@@ -14,8 +14,9 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns';
 import Select from 'react-select';
+import { TrendingUp, TrendingDown, DollarSign, PieChart, Users, Calendar } from 'lucide-react';
 
 // Register ChartJS components
 ChartJS.register(
@@ -116,6 +117,40 @@ const Analytics = () => {
     });
   }, [expenses, timeRange.value, selectedCategories, selectedPaidBy, selectedTags]);
 
+  // Calculate summary metrics
+  const summaryMetrics = useMemo(() => {
+    const total = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const avgPerDay = total / (filteredExpenses.length || 1);
+    
+    // Calculate previous period metrics for comparison
+    const now = new Date();
+    const currentPeriodStart = startOfMonth(now);
+    const previousPeriodStart = subMonths(currentPeriodStart, 1);
+    
+    const previousPeriodExpenses = expenses.filter(exp => {
+      const date = parseISO(exp.date);
+      return date >= previousPeriodStart && date < currentPeriodStart;
+    });
+    
+    const previousTotal = previousPeriodExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const percentChange = previousTotal ? ((total - previousTotal) / previousTotal) * 100 : 0;
+
+    const topCategory = Object.entries(
+      filteredExpenses.reduce((acc, exp) => {
+        const catName = categories.find(c => c.id === exp.category)?.name || 'Unknown';
+        acc[catName] = (acc[catName] || 0) + exp.amount;
+        return acc;
+      }, {} as Record<string, number>)
+    ).sort(([, a], [, b]) => b - a)[0];
+
+    return {
+      total,
+      avgPerDay,
+      percentChange,
+      topCategory: topCategory ? { name: topCategory[0], amount: topCategory[1] } : null
+    };
+  }, [filteredExpenses, categories, expenses]);
+
   // Monthly spending trend data
   const monthlyTrendData = useMemo(() => {
     const months: { [key: string]: number } = {};
@@ -204,21 +239,24 @@ const Analytics = () => {
     };
   }, [filteredExpenses, tags]);
 
-  // Split analysis data
+  // Split analysis data with detailed breakdown
   const splitAnalysisData = useMemo(() => {
     const totals = {
-      Andres: { paid: 0, share: 0 },
-      Antonio: { paid: 0, share: 0 }
+      Andres: { paid: 0, share: 0, categories: {} as Record<string, number> },
+      Antonio: { paid: 0, share: 0, categories: {} as Record<string, number> }
     };
 
     filteredExpenses.forEach(expense => {
       const amount = expense.amount;
+      const category = categories.find(c => c.id === expense.category)?.name || 'Unknown';
       
       // Track who paid
       if (expense.paidBy === 'Andres') {
         totals.Andres.paid += amount;
+        totals.Andres.categories[category] = (totals.Andres.categories[category] || 0) + amount;
       } else {
         totals.Antonio.paid += amount;
+        totals.Antonio.categories[category] = (totals.Antonio.categories[category] || 0) + amount;
       }
 
       // Calculate shares
@@ -234,29 +272,94 @@ const Analytics = () => {
       }
     });
 
+    const balance = totals.Andres.paid - totals.Andres.share;
+
     return {
-      labels: ['Amount Paid', 'Fair Share'],
-      datasets: [
-        {
-          label: 'Andres',
-          data: [totals.Andres.paid, totals.Andres.share],
-          backgroundColor: 'rgba(54, 162, 235, 0.5)',
-          borderColor: 'rgb(54, 162, 235)',
-          borderWidth: 1
-        },
-        {
-          label: 'Antonio',
-          data: [totals.Antonio.paid, totals.Antonio.share],
-          backgroundColor: 'rgba(255, 99, 132, 0.5)',
-          borderColor: 'rgb(255, 99, 132)',
-          borderWidth: 1
-        }
-      ]
+      summary: {
+        labels: ['Amount Paid', 'Fair Share'],
+        datasets: [
+          {
+            label: 'Andres',
+            data: [totals.Andres.paid, totals.Andres.share],
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
+            borderColor: 'rgb(54, 162, 235)',
+            borderWidth: 1
+          },
+          {
+            label: 'Antonio',
+            data: [totals.Antonio.paid, totals.Antonio.share],
+            backgroundColor: 'rgba(255, 99, 132, 0.5)',
+            borderColor: 'rgb(255, 99, 132)',
+            borderWidth: 1
+          }
+        ]
+      },
+      details: {
+        Andres: totals.Andres,
+        Antonio: totals.Antonio,
+        balance
+      }
     };
-  }, [filteredExpenses]);
+  }, [filteredExpenses, categories]);
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Spending</p>
+              <p className="text-2xl font-semibold">£{summaryMetrics.total.toFixed(2)}</p>
+              <p className={`text-sm ${summaryMetrics.percentChange > 0 ? 'text-red-500' : 'text-green-500'} flex items-center mt-1`}>
+                {summaryMetrics.percentChange > 0 ? <TrendingUp size={16} className="mr-1" /> : <TrendingDown size={16} className="mr-1" />}
+                {Math.abs(summaryMetrics.percentChange).toFixed(1)}% vs previous
+              </p>
+            </div>
+            <DollarSign size={24} className="text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Daily Average</p>
+              <p className="text-2xl font-semibold">£{summaryMetrics.avgPerDay.toFixed(2)}</p>
+              <p className="text-sm text-gray-500 mt-1">Per day</p>
+            </div>
+            <Calendar size={24} className="text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Top Category</p>
+              <p className="text-2xl font-semibold">{summaryMetrics.topCategory?.name || 'N/A'}</p>
+              <p className="text-sm text-gray-500 mt-1">
+                £{summaryMetrics.topCategory?.amount.toFixed(2) || '0.00'}
+              </p>
+            </div>
+            <PieChart size={24} className="text-purple-500" />
+          </div>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Settlement Balance</p>
+              <p className="text-2xl font-semibold">
+                £{Math.abs(splitAnalysisData.details.balance).toFixed(2)}
+              </p>
+              <p className="text-sm text-gray-500 mt-1">
+                {splitAnalysisData.details.balance > 0 ? 'Antonio owes Andres' : 'Andres owes Antonio'}
+              </p>
+            </div>
+            <Users size={24} className="text-orange-500" />
+          </div>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Filters</h2>
@@ -380,9 +483,9 @@ const Analytics = () => {
         {/* Split Analysis */}
         <div className="bg-white rounded-lg shadow-sm p-6">
           <h3 className="text-lg font-semibold mb-4">Split Analysis</h3>
-          <div className="h-[300px]">
+          <div className="h-[300px] mb-4">
             <Bar
-              data={splitAnalysisData}
+              data={splitAnalysisData.summary}
               options={{
                 responsive: true,
                 maintainAspectRatio: false,
@@ -398,6 +501,24 @@ const Analytics = () => {
                 }
               }}
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4 mt-4">
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Andres</h4>
+              <p className="text-sm text-gray-600">Paid: £{splitAnalysisData.details.Andres.paid.toFixed(2)}</p>
+              <p className="text-sm text-gray-600">Share: £{splitAnalysisData.details.Andres.share.toFixed(2)}</p>
+            </div>
+            <div>
+              <h4 className="font-medium text-gray-700 mb-2">Antonio</h4>
+              <p className="text-sm text-gray-600">Paid: £{splitAnalysisData.details.Antonio.paid.toFixed(2)}</p>
+              <p className="text-sm text-gray-600">Share: £{splitAnalysisData.details.Antonio.share.toFixed(2)}</p>
+            </div>
+          </div>
+          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+            <p className="text-center font-medium">
+              {splitAnalysisData.details.balance > 0 ? 'Antonio owes Andres' : 'Andres owes Antonio'}{' '}
+              <span className="text-blue-600">£{Math.abs(splitAnalysisData.details.balance).toFixed(2)}</span>
+            </p>
           </div>
         </div>
       </div>

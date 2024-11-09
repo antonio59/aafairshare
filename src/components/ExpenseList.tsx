@@ -43,9 +43,30 @@ const ExpenseList = () => {
       });
   }, [expenses, selectedMonth, searchTerm, selectedCategory, selectedPaidBy, categories, tags]);
 
+  // Calculate totals by split type
+  const splitTotals = useMemo(() => {
+    return filteredExpenses.reduce((acc, expense) => {
+      const splitType = expense.split || 'equal';
+      acc[splitType] = (acc[splitType] || 0) + expense.amount;
+      return acc;
+    }, {} as Record<string, number>);
+  }, [filteredExpenses]);
+
   const totalAmount = filteredExpenses.reduce((sum, expense) => sum + expense.amount, 0);
   const isSettled = isMonthSettled(selectedMonth);
   const settlementDetails = getSettlementDetails(selectedMonth);
+
+  // Group expenses by category
+  const expensesByCategory = useMemo(() => {
+    return filteredExpenses.reduce((acc, expense) => {
+      const categoryId = expense.category;
+      if (!acc[categoryId]) {
+        acc[categoryId] = [];
+      }
+      acc[categoryId].push(expense);
+      return acc;
+    }, {} as Record<string, typeof filteredExpenses>);
+  }, [filteredExpenses]);
 
   const handleDelete = (id: string) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
@@ -63,6 +84,7 @@ const ExpenseList = () => {
       isSettled,
       settledBy: settlementDetails?.settledBy,
       settledDate: settlementDetails?.settledAt ? format(new Date(settlementDetails.settledAt), 'dd/MM/yyyy') : undefined,
+      splitTotals,
     });
   };
 
@@ -76,6 +98,7 @@ const ExpenseList = () => {
       isSettled,
       settledBy: settlementDetails?.settledBy,
       settledDate: settlementDetails?.settledAt ? format(new Date(settlementDetails.settledAt), 'dd/MM/yyyy') : undefined,
+      splitTotals,
     });
   };
 
@@ -190,54 +213,73 @@ const ExpenseList = () => {
         </div>
 
         <div className="divide-y">
-          {filteredExpenses.map((expense) => {
-            const expenseTags = expense.tags
-              ?.map(tagId => tags.find(t => t.id === tagId)?.name)
-              .filter(Boolean)
-              .join(', ');
+          {Object.entries(expensesByCategory).map(([categoryId, categoryExpenses]) => {
+            const category = categories.find(c => c.id === categoryId);
+            if (!category) return null;
+
+            const categoryTotal = categoryExpenses.reduce((sum, exp) => sum + exp.amount, 0);
 
             return (
-              <div 
-                key={expense.id} 
-                className="p-4 hover:bg-gray-50 transition-colors flex justify-between items-center"
-              >
-                <div>
-                  <p className="font-medium">{expense.description || categories.find(c => c.id === expense.category)?.name}</p>
-                  <p className="text-sm text-gray-600">
-                    {format(new Date(expense.date), 'dd/MM/yyyy')} • {categories.find(c => c.id === expense.category)?.name}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    Paid by {expense.paidBy} • {expense.split === 'equal' ? 'Split equally' : 'No split'}
-                  </p>
-                  {expenseTags && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {expenseTags.split(', ').map((tag) => (
-                        <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center gap-4">
-                  <p className="font-medium whitespace-nowrap">£{expense.amount.toFixed(2)}</p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setEditingExpense(expense)}
-                      className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-                      title="Edit expense"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(expense.id)}
-                      className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                      title="Delete expense"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              <div key={categoryId} className="divide-y">
+                <div className="bg-gray-50 p-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="font-semibold text-gray-800">{category.name}</h3>
+                    <p className="font-medium">£{categoryTotal.toFixed(2)}</p>
                   </div>
                 </div>
+                {categoryExpenses.map((expense) => {
+                  const expenseTags = expense.tags
+                    ?.map(tagId => tags.find(t => t.id === tagId)?.name)
+                    .filter(Boolean)
+                    .join(', ');
+
+                  return (
+                    <div 
+                      key={expense.id} 
+                      className="p-4 hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <p className="text-sm text-gray-600">
+                            {format(new Date(expense.date), 'dd/MM/yyyy')}
+                          </p>
+                          <p className="font-medium">{expense.description}</p>
+                          {expenseTags && (
+                            <div className="flex flex-wrap gap-1">
+                              {expenseTags.split(', ').map((tag) => (
+                                <span key={tag} className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                          <p className="text-sm text-gray-600">
+                            Paid by {expense.paidBy} • {expense.split === 'equal' ? 'Split equally' : 'No split'}
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          <p className="font-medium whitespace-nowrap">£{expense.amount.toFixed(2)}</p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingExpense(expense)}
+                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                              title="Edit expense"
+                            >
+                              <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(expense.id)}
+                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Delete expense"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             );
           })}
@@ -258,6 +300,21 @@ const ExpenseList = () => {
             </div>
           )}
         </div>
+
+        {/* Split Totals */}
+        {filteredExpenses.length > 0 && (
+          <div className="border-t p-4 bg-gray-50">
+            <h3 className="font-semibold text-gray-800 mb-2">Split Totals</h3>
+            <div className="space-y-2">
+              {Object.entries(splitTotals).map(([splitType, amount]) => (
+                <div key={splitType} className="flex justify-between items-center">
+                  <span className="text-gray-600 capitalize">{splitType} Split</span>
+                  <span className="font-medium">£{amount.toFixed(2)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {editingExpense && (

@@ -27,6 +27,7 @@ interface ExportOptions {
   isSettled?: boolean;
   settledBy?: string;
   settledDate?: string;
+  splitTotals?: Record<string, number>;
 }
 
 // Helper to format currency
@@ -157,6 +158,39 @@ export const exportToPDF = (
     },
   });
 
+  // Add split totals if available
+  if (options.splitTotals && Object.keys(options.splitTotals).length > 0) {
+    const finalY = (doc as any).lastAutoTable.finalY || 75;
+    doc.setFont(BRAND_FONTS.regular, BRAND_FONTS.boldStyle);
+    doc.setFontSize(12);
+    doc.setTextColor(BRAND_COLORS.text);
+    doc.text('Split Totals', 20, finalY + 20);
+
+    const splitData = Object.entries(options.splitTotals).map(([splitType, amount]) => [
+      splitType === 'equal' ? 'Equal Split' : 'No Split',
+      formatCurrency(amount),
+    ]);
+
+    autoTable(doc, {
+      startY: finalY + 25,
+      head: [['Split Type', 'Amount']],
+      body: splitData,
+      theme: 'grid',
+      styles: {
+        font: BRAND_FONTS.regular,
+        textColor: BRAND_COLORS.text,
+      },
+      headStyles: {
+        fillColor: BRAND_COLORS.primary,
+        textColor: '#FFFFFF',
+        fontStyle: 'bold',
+      },
+      alternateRowStyles: {
+        fillColor: '#F9FAFB',
+      },
+    });
+  }
+
   // Add footer with page numbers
   if (options.showFooter) {
     createFooter(doc);
@@ -237,6 +271,32 @@ export const exportToExcel = async (
   const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const totalRow = worksheet.addRow(['', '', '', 'Total', total, '', '']);
   totalRow.getCell(5).font = { bold: true };
+
+  // Add split totals if available
+  if (options.splitTotals && Object.keys(options.splitTotals).length > 0) {
+    worksheet.addRow([]); // Empty row for spacing
+    worksheet.addRow(['Split Totals']).font = { bold: true };
+    
+    const splitHeaders = worksheet.addRow(['Split Type', 'Amount']);
+    splitHeaders.eachCell((cell) => {
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '3B82F6' }
+      };
+      cell.font = {
+        bold: true,
+        color: { argb: 'FFFFFF' }
+      };
+    });
+
+    Object.entries(options.splitTotals).forEach(([splitType, amount]) => {
+      worksheet.addRow([
+        splitType === 'equal' ? 'Equal Split' : 'No Split',
+        amount
+      ]);
+    });
+  }
 
   // Set column widths
   worksheet.columns = [
