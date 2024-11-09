@@ -1,76 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useUserStore } from '../../store/userStore';
-import { Plus, Edit2, Trash2, X, Calendar, Tag, RefreshCw, AlertCircle, CheckCircle2, Loader2, Hash, Folder } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Calendar, Tag, AlertCircle, CheckCircle2, Loader2, Hash, Folder, Grid } from 'lucide-react';
 import RecurringExpenses from './RecurringExpenses';
+import CategoryGroupSettings from './CategoryGroupSettings';
 import type { Category, Tag as TagType } from '../../types';
 import Dropdown from '../common/Dropdown';
 
 // Type guard functions
 const isCategory = (item: any): item is Category => {
-  return item && 'group' in item;
+  return item && 'groupId' in item;
 };
 
 const isTag = (item: any): item is TagType => {
   return item && 'categoryId' in item;
 };
 
-// Category groups and colors
-const categoryGroups = {
-  'Utilities': '#2196F3',
-  'Housing': '#795548',
-  'Food': '#4CAF50',
-  'Transportation': '#FF9800',
-  'Insurance': '#9C27B0',
-  'Entertainment': '#F44336',
-  'Clothing': '#E91E63',
-  'Health and Wellness': '#009688',
-  'Miscellaneous': '#9E9E9E'
-} as const;
-
 const ExpenseSettings = () => {
-  const [activeTab, setActiveTab] = useState<'categories' | 'tags' | 'recurring'>('categories');
+  const [activeTab, setActiveTab] = useState<'groups' | 'categories' | 'tags' | 'recurring'>('groups');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Category | TagType | null>(null);
-  const [isAddingCategories, setIsAddingCategories] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const { categories = [], tags = [], addCategory, updateCategory, deleteCategory, addTag, updateTag, deleteTag, restoreDefaultCategories } = useExpenseStore();
+  const { 
+    categories = [], 
+    categoryGroups = [], 
+    tags = [], 
+    addCategory, 
+    updateCategory, 
+    deleteCategory, 
+    addTag, 
+    updateTag, 
+    deleteTag,
+    addMissingDefaultCategory,
+    addMissingDefaultGroup
+  } = useExpenseStore();
   const { currentUser } = useUserStore();
 
   // Form data state
   const [formData, setFormData] = useState({
     name: '',
-    group: '',
+    groupId: '',
     categoryId: '',
   });
 
-  // Ensure categories are loaded
-  useEffect(() => {
-    if (categories.length === 0) {
-      handleRestoreDefaultCategories();
-    }
-  }, [categories.length]);
-
-  const handleRestoreDefaultCategories = async () => {
-    try {
-      setIsAddingCategories(true);
-      setError(null);
-      setSuccess(null);
-      await restoreDefaultCategories();
-      setSuccess('Default categories restored successfully');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to restore categories');
-      console.error('Error restoring categories:', err);
-    } finally {
-      setIsAddingCategories(false);
-    }
-  };
-
   const handleAddItem = () => {
     if (!currentUser) return;
-    setFormData({ name: '', group: '', categoryId: '' });
+    setFormData({ name: '', groupId: '', categoryId: '' });
     setEditingItem(null);
     setIsModalOpen(true);
     setError(null);
@@ -81,7 +58,7 @@ const ExpenseSettings = () => {
     if (!currentUser) return;
     setFormData({
       name: item.name,
-      group: isCategory(item) ? item.group : '',
+      groupId: isCategory(item) ? item.groupId : '',
       categoryId: isTag(item) ? item.categoryId || '' : '',
     });
     setEditingItem(item);
@@ -120,20 +97,23 @@ const ExpenseSettings = () => {
 
     try {
       if (activeTab === 'categories') {
-        const color = categoryGroups[formData.group as keyof typeof categoryGroups] || '#9E9E9E';
+        const group = categoryGroups.find(g => g.id === formData.groupId);
+        if (!group) {
+          throw new Error('Please select a valid group');
+        }
         
         if (editingItem && isCategory(editingItem)) {
           await updateCategory(editingItem.id, { 
             name: formData.name, 
-            group: formData.group, 
-            color 
+            groupId: formData.groupId,
+            color: group.color
           });
           setSuccess('Category updated successfully');
         } else {
           await addCategory({ 
             name: formData.name, 
-            group: formData.group, 
-            color 
+            groupId: formData.groupId,
+            color: group.color
           });
           setSuccess('Category added successfully');
         }
@@ -165,33 +145,22 @@ const ExpenseSettings = () => {
 
   const renderContent = () => {
     switch (activeTab) {
+      case 'groups':
+        return <CategoryGroupSettings />;
+
       case 'categories':
         return (
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-medium">Categories</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={handleRestoreDefaultCategories}
-                  disabled={isAddingCategories || !currentUser}
-                  className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-                >
-                  {isAddingCategories ? (
-                    <Loader2 size={20} className="animate-spin" />
-                  ) : (
-                    <RefreshCw size={20} />
-                  )}
-                  Restore Default Categories
-                </button>
-                <button
-                  onClick={handleAddItem}
-                  disabled={!currentUser}
-                  className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                >
-                  <Plus size={20} />
-                  Add Category
-                </button>
-              </div>
+              <button
+                onClick={handleAddItem}
+                disabled={!currentUser}
+                className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+              >
+                <Plus size={20} />
+                Add Category
+              </button>
             </div>
 
             {error && (
@@ -208,48 +177,50 @@ const ExpenseSettings = () => {
               </div>
             )}
 
-            {Object.entries(categoryGroups).map(([group]) => (
-              <div key={group} className="bg-white rounded-lg shadow-sm p-4">
-                <h4 className="font-medium mb-3">{group}</h4>
-                <div className="space-y-2">
-                  {categories
-                    .filter((cat): cat is Category => cat?.group === group)
-                    .sort((a, b) => a.name.localeCompare(b.name))
-                    .map((category) => (
-                      <div
-                        key={category.id}
-                        className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div 
-                            className="w-4 h-4 rounded-full" 
-                            style={{ backgroundColor: category.color }}
-                          />
-                          <span>{category.name}</span>
-                        </div>
-                        {currentUser && (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => handleEditItem(category)}
-                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
-                              title="Edit category"
-                            >
-                              <Edit2 size={18} />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteItem(category.id)}
-                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
-                              title="Delete category"
-                            >
-                              <Trash2 size={18} />
-                            </button>
+            {categoryGroups
+              .sort((a, b) => a.order - b.order)
+              .map((group) => (
+                <div key={group.id} className="bg-white rounded-lg shadow-sm p-4">
+                  <h4 className="font-medium mb-3">{group.name}</h4>
+                  <div className="space-y-2">
+                    {categories
+                      .filter((cat): cat is Category => cat?.groupId === group.id)
+                      .sort((a, b) => a.name.localeCompare(b.name))
+                      .map((category) => (
+                        <div
+                          key={category.id}
+                          className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div 
+                              className="w-4 h-4 rounded-full" 
+                              style={{ backgroundColor: category.color }}
+                            />
+                            <span>{category.name}</span>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                          {currentUser && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleEditItem(category)}
+                                className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                                title="Edit category"
+                              >
+                                <Edit2 size={18} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteItem(category.id)}
+                                className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                                title="Delete category"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
           </div>
         );
 
@@ -344,6 +315,17 @@ const ExpenseSettings = () => {
     <div className="space-y-6">
       <div className="flex space-x-4 mb-4 overflow-x-auto">
         <button
+          onClick={() => setActiveTab('groups')}
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'groups'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700'
+          }`}
+        >
+          <Grid size={18} />
+          Groups
+        </button>
+        <button
           onClick={() => setActiveTab('categories')}
           className={`px-4 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap ${
             activeTab === 'categories'
@@ -420,12 +402,14 @@ const ExpenseSettings = () => {
               {activeTab === 'categories' && (
                 <Dropdown
                   label="Group"
-                  value={formData.group}
-                  onChange={(value) => setFormData({ ...formData, group: value })}
-                  options={Object.keys(categoryGroups).map(group => ({
-                    value: group,
-                    label: group
-                  }))}
+                  value={formData.groupId}
+                  onChange={(value) => setFormData({ ...formData, groupId: value })}
+                  options={categoryGroups
+                    .sort((a, b) => a.order - b.order)
+                    .map(group => ({
+                      value: group.id,
+                      label: group.name
+                    }))}
                   placeholder="Select a group"
                   required
                 />

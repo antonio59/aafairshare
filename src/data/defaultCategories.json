@@ -1,196 +1,261 @@
 {
-  "categories": [
+  "categoryGroups": [
     {
-      "id": "util-energy",
-      "name": "Energy",
-      "color": "#2196F3",
-      "group": "Utilities"
+      "id": "group-clothing",
+      "name": "Clothing",
+      "color": "#E91E63",
+      "icon": "ShoppingBag",
+      "order": 1
     },
     {
-      "id": "util-internet",
-      "name": "Internet",
-      "color": "#1976D2",
-      "group": "Utilities"
-    },
-    {
-      "id": "util-water",
-      "name": "Water",
-      "color": "#0D47A1",
-      "group": "Utilities"
-    },
-    {
-      "id": "house-tax",
-      "name": "Council Tax",
-      "color": "#795548",
-      "group": "Housing"
-    },
-    {
-      "id": "house-furniture",
-      "name": "Furniture/Appliances",
-      "color": "#6D4C41",
-      "group": "Housing"
-    },
-    {
-      "id": "house-maintenance",
-      "name": "House Maintenance/Repairs",
-      "color": "#5D4037",
-      "group": "Housing"
-    },
-    {
-      "id": "house-rent",
-      "name": "Rent",
-      "color": "#4E342E",
-      "group": "Housing"
-    },
-    {
-      "id": "food-dining",
-      "name": "Dining Out",
-      "color": "#4CAF50",
-      "group": "Food"
-    },
-    {
-      "id": "food-subscriptions",
-      "name": "Food Subscriptions",
-      "color": "#388E3C",
-      "group": "Food"
-    },
-    {
-      "id": "food-groceries",
-      "name": "Groceries",
-      "color": "#2E7D32",
-      "group": "Food"
-    },
-    {
-      "id": "food-takeout",
-      "name": "Takeout/Delivery",
-      "color": "#1B5E20",
-      "group": "Food"
-    },
-    {
-      "id": "transport-flights",
-      "name": "Flights",
-      "color": "#FF9800",
-      "group": "Transportation"
-    },
-    {
-      "id": "transport-gas",
-      "name": "Gasoline",
-      "color": "#F57C00",
-      "group": "Transportation"
-    },
-    {
-      "id": "transport-public",
-      "name": "Public Transportation",
-      "color": "#EF6C00",
-      "group": "Transportation"
-    },
-    {
-      "id": "transport-ridehail",
-      "name": "Ride-hailing Services",
-      "color": "#E65100",
-      "group": "Transportation"
-    },
-    {
-      "id": "insurance-health",
-      "name": "Health Insurance",
-      "color": "#9C27B0",
-      "group": "Insurance"
-    },
-    {
-      "id": "insurance-home",
-      "name": "Home Insurance",
-      "color": "#7B1FA2",
-      "group": "Insurance"
-    },
-    {
-      "id": "insurance-life",
-      "name": "Life Insurance",
-      "color": "#6A1B9A",
-      "group": "Insurance"
-    },
-    {
-      "id": "insurance-travel",
-      "name": "Travel Insurance",
-      "color": "#4A148C",
-      "group": "Insurance"
-    },
-    {
-      "id": "ent-concerts",
-      "name": "Concerts/Events",
+      "id": "group-entertainment",
+      "name": "Entertainment",
       "color": "#F44336",
-      "group": "Entertainment"
+      "icon": "Music",
+      "order": 2
     },
     {
-      "id": "ent-hobbies",
-      "name": "Hobbies",
-      "color": "#E53935",
-      "group": "Entertainment"
+      "id": "group-food",
+      "name": "Food",
+      "color": "#4CAF50",
+      "icon": "Utensils",
+      "order": 3
     },
     {
-      "id": "ent-holiday",
-      "name": "Holiday",
-      "color": "#D32F2F",
-      "group": "Entertainment"
+      "id": "group-health",
+      "name": "Health and Wellness",
+      "color": "#009688",
+      "icon": "Heart",
+      "order": 4
     },
     {
-      "id": "ent-movies",
-      "name": "Movies",
-      "color": "#C62828",
-      "group": "Entertainment"
+      "id": "group-housing",
+      "name": "Housing",
+      "color": "#795548",
+      "icon": "Home",
+      "order": 5
     },
     {
-      "id": "ent-other",
-      "name": "Other Entertainment",
-      "color": "#B71C1C",
-      "group": "Entertainment"
+      "id": "group-insurance",
+      "name": "Insurance",
+      "color": "#9C27B0",
+      "icon": "Shield",
+      "order": 6
     },
     {
-      "id": "ent-streaming",
-      "name": "Streaming Services",
-      "color": "#D50000",
-      "group": "Entertainment"
+      "id": "group-misc",
+      "name": "Miscellaneous",
+      "color": "#9E9E9E",
+      "icon": "MoreHorizontal",
+      "order": 7
     },
+    {
+      "id": "group-transportation",
+      "name": "Transportation",
+      "color": "#FF9800",
+      "icon": "Car",
+      "order": 8
+    },
+    {
+      "id": "group-utilities",
+      "name": "Utilities",
+      "color": "#2196F3",
+      "icon": "Zap",
+      "order": 9
+    }
+  ],
+  "categories": [
     {
       "id": "clothing-alterations",
       "name": "Alterations",
       "color": "#E91E63",
-      "group": "Clothing"
+      "groupId": "group-clothing"
     },
     {
       "id": "clothing-purchases",
       "name": "Clothing Purchases",
       "color": "#C2185B",
-      "group": "Clothing"
+      "groupId": "group-clothing"
     },
     {
       "id": "clothing-cleaning",
       "name": "Dry Cleaning",
       "color": "#880E4F",
-      "group": "Clothing"
+      "groupId": "group-clothing"
+    },
+    {
+      "id": "ent-concerts",
+      "name": "Concerts/Events",
+      "color": "#F44336",
+      "groupId": "group-entertainment"
+    },
+    {
+      "id": "ent-hobbies",
+      "name": "Hobbies",
+      "color": "#E53935",
+      "groupId": "group-entertainment"
+    },
+    {
+      "id": "ent-holiday",
+      "name": "Holiday",
+      "color": "#D32F2F",
+      "groupId": "group-entertainment"
+    },
+    {
+      "id": "ent-movies",
+      "name": "Movies",
+      "color": "#C62828",
+      "groupId": "group-entertainment"
+    },
+    {
+      "id": "ent-other",
+      "name": "Other Entertainment",
+      "color": "#B71C1C",
+      "groupId": "group-entertainment"
+    },
+    {
+      "id": "ent-streaming",
+      "name": "Streaming Services",
+      "color": "#D50000",
+      "groupId": "group-entertainment"
+    },
+    {
+      "id": "food-dining",
+      "name": "Dining Out",
+      "color": "#4CAF50",
+      "groupId": "group-food"
+    },
+    {
+      "id": "food-subscriptions",
+      "name": "Food Subscriptions",
+      "color": "#388E3C",
+      "groupId": "group-food"
+    },
+    {
+      "id": "food-groceries",
+      "name": "Groceries",
+      "color": "#2E7D32",
+      "groupId": "group-food"
+    },
+    {
+      "id": "food-takeout",
+      "name": "Takeout/Delivery",
+      "color": "#1B5E20",
+      "groupId": "group-food"
     },
     {
       "id": "health-wellness",
       "name": "Health and Wellness",
       "color": "#009688",
-      "group": "Health and Wellness"
+      "groupId": "group-health"
+    },
+    {
+      "id": "house-tax",
+      "name": "Council Tax",
+      "color": "#795548",
+      "groupId": "group-housing"
+    },
+    {
+      "id": "house-furniture",
+      "name": "Furniture/Appliances",
+      "color": "#6D4C41",
+      "groupId": "group-housing"
+    },
+    {
+      "id": "house-maintenance",
+      "name": "House Maintenance/Repairs",
+      "color": "#5D4037",
+      "groupId": "group-housing"
+    },
+    {
+      "id": "house-rent",
+      "name": "Rent",
+      "color": "#4E342E",
+      "groupId": "group-housing"
+    },
+    {
+      "id": "insurance-health",
+      "name": "Health Insurance",
+      "color": "#9C27B0",
+      "groupId": "group-insurance"
+    },
+    {
+      "id": "insurance-home",
+      "name": "Home Insurance",
+      "color": "#7B1FA2",
+      "groupId": "group-insurance"
+    },
+    {
+      "id": "insurance-life",
+      "name": "Life Insurance",
+      "color": "#6A1B9A",
+      "groupId": "group-insurance"
+    },
+    {
+      "id": "insurance-travel",
+      "name": "Travel Insurance",
+      "color": "#4A148C",
+      "groupId": "group-insurance"
     },
     {
       "id": "misc-donations",
       "name": "Donations",
       "color": "#9E9E9E",
-      "group": "Miscellaneous"
+      "groupId": "group-misc"
     },
     {
       "id": "misc-gifts",
       "name": "Gifts",
       "color": "#757575",
-      "group": "Miscellaneous"
+      "groupId": "group-misc"
     },
     {
       "id": "misc-other",
       "name": "Other Miscellaneous Expenses",
       "color": "#616161",
-      "group": "Miscellaneous"
+      "groupId": "group-misc"
+    },
+    {
+      "id": "transport-flights",
+      "name": "Flights",
+      "color": "#FF9800",
+      "groupId": "group-transportation"
+    },
+    {
+      "id": "transport-gas",
+      "name": "Gasoline",
+      "color": "#F57C00",
+      "groupId": "group-transportation"
+    },
+    {
+      "id": "transport-public",
+      "name": "Public Transportation",
+      "color": "#EF6C00",
+      "groupId": "group-transportation"
+    },
+    {
+      "id": "transport-ridehail",
+      "name": "Ride-hailing Services",
+      "color": "#E65100",
+      "groupId": "group-transportation"
+    },
+    {
+      "id": "util-energy",
+      "name": "Energy",
+      "color": "#2196F3",
+      "groupId": "group-utilities"
+    },
+    {
+      "id": "util-internet",
+      "name": "Internet",
+      "color": "#1976D2",
+      "groupId": "group-utilities"
+    },
+    {
+      "id": "util-water",
+      "name": "Water",
+      "color": "#0D47A1",
+      "groupId": "group-utilities"
     }
   ]
 }

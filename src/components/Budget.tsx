@@ -1,38 +1,41 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
 import { PlusCircle, Edit2, Trash2 } from 'lucide-react';
 import Select from 'react-select';
+import type { Budget as BudgetType, CategoryGroup } from '../types';
 
-const CATEGORY_GROUPS = [
-  'Utilities',
-  'Housing',
-  'Food',
-  'Transportation',
-  'Insurance',
-  'Entertainment',
-  'Clothing',
-  'Health and wellness',
-  'Miscellaneous',
-] as const;
+interface NewBudget {
+  category: string;
+  amount: string;
+  period: 'monthly' | 'quarterly' | 'yearly';
+}
 
 const Budget = () => {
-  const { budgets, addBudget, updateBudget: editBudget, deleteBudget, getBudgetProgress, categories } = useExpenseStore();
+  const { budgets, addBudget, updateBudget: editBudget, deleteBudget, getBudgetProgress, categories, categoryGroups } = useExpenseStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedBudget, setSelectedBudget] = useState<any>(null);
-  const [newBudget, setNewBudget] = useState({
+  const [selectedBudget, setSelectedBudget] = useState<BudgetType | null>(null);
+  const [newBudget, setNewBudget] = useState<NewBudget>({
     category: '',
     amount: '',
-    period: 'monthly' as const,
+    period: 'monthly',
   });
   const [error, setError] = useState<string | null>(null);
 
   // Group categories for the select input
   const groupedCategories = useMemo(() => {
-    const groups = CATEGORY_GROUPS.map(group => ({
-      label: group,
-      options: categories
-        .filter(cat => cat.group === group)
+    const groups = Object.entries(
+      categories.reduce<Record<string, typeof categories>>((acc, cat) => {
+        if (!cat) return acc;
+        const group = categoryGroups.find((g: CategoryGroup) => g.id === cat.groupId);
+        if (!group) return acc;
+        if (!acc[group.name]) acc[group.name] = [];
+        acc[group.name].push(cat);
+        return acc;
+      }, {})
+    ).map(([groupName, cats]) => ({
+      label: groupName,
+      options: cats
         .map(cat => ({
           value: cat.id,
           label: cat.name,
@@ -41,7 +44,7 @@ const Budget = () => {
     })).filter(group => group.options.length > 0);
 
     return groups;
-  }, [categories]);
+  }, [categories, categoryGroups]);
 
   const handleAddBudget = (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +74,7 @@ const Budget = () => {
 
     if (!selectedBudget) return;
 
-    const amount = parseFloat(selectedBudget.amount);
+    const amount = parseFloat(selectedBudget.amount.toString());
     if (!selectedBudget.category) {
       setError('Please select a category');
       return;
@@ -112,6 +115,7 @@ const Budget = () => {
         {budgets.map((budget) => {
           const progress = getBudgetProgress(budget);
           const category = categories.find(c => c.id === budget.category);
+          const group = category ? categoryGroups.find((g: CategoryGroup) => g.id === category.groupId) : null;
           
           return (
             <div
@@ -124,6 +128,11 @@ const Budget = () => {
                   <p className="text-gray-600">
                     Budget: £{budget.amount.toFixed(2)} ({budget.period})
                   </p>
+                  {group && (
+                    <p className="text-sm text-gray-500">
+                      Group: {group.name}
+                    </p>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -206,7 +215,7 @@ const Budget = () => {
                     ...newBudget,
                     amount: e.target.value,
                   })}
-                  className="w-full"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -221,7 +230,7 @@ const Budget = () => {
                     ...newBudget,
                     period: e.target.value as 'monthly' | 'quarterly' | 'yearly',
                   })}
-                  className="w-full"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="monthly">Monthly</option>
@@ -300,9 +309,9 @@ const Budget = () => {
                   value={selectedBudget.amount}
                   onChange={(e) => setSelectedBudget({
                     ...selectedBudget,
-                    amount: e.target.value,
+                    amount: parseFloat(e.target.value),
                   })}
-                  className="w-full"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -315,9 +324,9 @@ const Budget = () => {
                   value={selectedBudget.period}
                   onChange={(e) => setSelectedBudget({
                     ...selectedBudget,
-                    period: e.target.value,
+                    period: e.target.value as 'monthly' | 'quarterly' | 'yearly',
                   })}
-                  className="w-full"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="monthly">Monthly</option>

@@ -1,324 +1,226 @@
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import ExcelJS from 'exceljs';
 import { format } from 'date-fns';
-import { Expense, Category, Tag } from '../types';
+import ExcelJS from 'exceljs';
+import type { Expense, Category, Tag } from '../types';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 
-// Branding constants
-const BRAND_COLORS = {
-  primary: '#3B82F6', // Blue
-  secondary: '#1E40AF', // Darker blue
-  text: '#1F2937', // Dark gray
-  border: '#E5E7EB', // Light gray
-};
-
-// Use standard PDF fonts
-const BRAND_FONTS = {
-  regular: 'helvetica',
-  bold: 'helvetica',
-  boldStyle: 'bold',
-};
-
-interface ExportOptions {
-  title: string;
-  subtitle?: string;
-  showLogo?: boolean;
-  showFooter?: boolean;
-  isSettled?: boolean;
-  settledBy?: string;
-  settledDate?: string;
-  splitTotals?: Record<string, number>;
+interface MonthlyTotals {
+  andresPaid: number;
+  antonioPaid: number;
+  andresShare: number;
+  antonioShare: number;
+  total: number;
 }
 
-// Helper to format currency
-const formatCurrency = (amount: number): string => {
-  return `£${amount.toFixed(2)}`;
-};
-
-// Helper to format dates consistently
-const formatDate = (date: string): string => {
-  return format(new Date(date), 'dd/MM/yyyy');
-};
-
-// Create header with branding
-const createHeader = (doc: jsPDF, title: string, subtitle?: string, options?: ExportOptions) => {
-  // Add title
-  doc.setFont(BRAND_FONTS.regular, BRAND_FONTS.boldStyle);
-  doc.setFontSize(20);
-  doc.setTextColor(BRAND_COLORS.primary);
-  doc.text('AA FairShare', 20, 20);
-
-  doc.setFont(BRAND_FONTS.regular, BRAND_FONTS.boldStyle);
-  doc.setFontSize(16);
-  doc.setTextColor(BRAND_COLORS.text);
-  doc.text(title, 20, 35);
-
-  if (subtitle) {
-    doc.setFont(BRAND_FONTS.regular);
-    doc.setFontSize(12);
-    doc.text(subtitle, 20, 45);
-  }
-
-  // Add settlement status
-  doc.setFont(BRAND_FONTS.regular);
-  doc.setFontSize(10);
-  doc.setTextColor(BRAND_COLORS.secondary);
-  doc.text(
-    options?.isSettled
-      ? `Settled by ${options.settledBy} on ${options.settledDate}`
-      : 'Status: Unsettled',
-    20, 55
-  );
-
-  // Add date
-  doc.setFontSize(10);
-  doc.setTextColor(BRAND_COLORS.text);
-  doc.text(`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`, 20, 65);
-};
-
-// Create footer with page numbers
-const createFooter = (doc: jsPDF) => {
-  const pageCount = doc.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFont(BRAND_FONTS.regular);
-    doc.setFontSize(10);
-    doc.setTextColor(BRAND_COLORS.text);
-    doc.text(
-      `Page ${i} of ${pageCount}`,
-      doc.internal.pageSize.width / 2,
-      doc.internal.pageSize.height - 10,
-      { align: 'center' }
-    );
-    doc.text(
-      'AA FairShare - Expense tracking made easy',
-      doc.internal.pageSize.width - 20,
-      doc.internal.pageSize.height - 10,
-      { align: 'right' }
-    );
-  }
-};
-
-export const exportToPDF = (
-  expenses: Expense[],
-  categories: Category[],
-  tags: Tag[],
-  options: ExportOptions
-) => {
-  const doc = new jsPDF();
-
-  // Add header
-  createHeader(doc, options.title, options.subtitle, options);
-
-  // Prepare table data
-  const tableData = expenses.map(expense => {
-    const category = categories.find(c => c.id === expense.category)?.name || 'Uncategorized';
-    const expenseTags = expense.tags
-      ?.map(tagId => tags.find(t => t.id === tagId)?.name)
-      .filter(Boolean)
-      .join(', ') || '';
-
-    return [
-      formatDate(expense.date),
-      category,
-      expenseTags,
-      expense.description || 'Untitled',
-      formatCurrency(expense.amount),
-      expense.split === 'equal' ? 'Equal Split' : 'No Split',
-      expense.paidBy,
-    ];
+const calculateMonthlyTotals = (expenses: Expense[]): MonthlyTotals => {
+  return expenses.reduce((acc, expense) => {
+    const amount = expense.amount;
+    if (expense.paidBy === 'Andres') {
+      acc.andresPaid += amount;
+      if (expense.split === 'equal') {
+        acc.andresShare += amount / 2;
+        acc.antonioShare += amount / 2;
+      } else {
+        acc.andresShare += amount;
+      }
+    } else {
+      acc.antonioPaid += amount;
+      if (expense.split === 'equal') {
+        acc.andresShare += amount / 2;
+        acc.antonioShare += amount / 2;
+      } else {
+        acc.antonioShare += amount;
+      }
+    }
+    acc.total += amount;
+    return acc;
+  }, {
+    andresPaid: 0,
+    antonioPaid: 0,
+    andresShare: 0,
+    antonioShare: 0,
+    total: 0
   });
-
-  // Calculate totals
-  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-
-  // Add table
-  autoTable(doc, {
-    startY: 75,
-    head: [['Date', 'Category', 'Tags', 'Description', 'Amount', 'Split', 'Paid By']],
-    body: tableData,
-    foot: [['', '', '', 'Total', formatCurrency(total), '', '']],
-    theme: 'grid',
-    styles: {
-      font: BRAND_FONTS.regular,
-      textColor: BRAND_COLORS.text,
-    },
-    headStyles: {
-      fillColor: BRAND_COLORS.primary,
-      textColor: '#FFFFFF',
-      fontStyle: 'bold',
-    },
-    footStyles: {
-      fillColor: BRAND_COLORS.secondary,
-      textColor: '#FFFFFF',
-      fontStyle: 'bold',
-    },
-    alternateRowStyles: {
-      fillColor: '#F9FAFB',
-    },
-  });
-
-  // Add split totals if available
-  if (options.splitTotals && Object.keys(options.splitTotals).length > 0) {
-    const finalY = (doc as any).lastAutoTable.finalY || 75;
-    doc.setFont(BRAND_FONTS.regular, BRAND_FONTS.boldStyle);
-    doc.setFontSize(12);
-    doc.setTextColor(BRAND_COLORS.text);
-    doc.text('Split Totals', 20, finalY + 20);
-
-    const splitData = Object.entries(options.splitTotals).map(([splitType, amount]) => [
-      splitType === 'equal' ? 'Equal Split' : 'No Split',
-      formatCurrency(amount),
-    ]);
-
-    autoTable(doc, {
-      startY: finalY + 25,
-      head: [['Split Type', 'Amount']],
-      body: splitData,
-      theme: 'grid',
-      styles: {
-        font: BRAND_FONTS.regular,
-        textColor: BRAND_COLORS.text,
-      },
-      headStyles: {
-        fillColor: BRAND_COLORS.primary,
-        textColor: '#FFFFFF',
-        fontStyle: 'bold',
-      },
-      alternateRowStyles: {
-        fillColor: '#F9FAFB',
-      },
-    });
-  }
-
-  // Add footer with page numbers
-  if (options.showFooter) {
-    createFooter(doc);
-  }
-
-  // Save the PDF
-  doc.save(`expenses-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 };
 
 export const exportToExcel = async (
   expenses: Expense[],
   categories: Category[],
   tags: Tag[],
-  options: ExportOptions
+  month: string
 ) => {
-  // Create workbook
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = 'AA FairShare';
-  workbook.created = new Date();
-  workbook.modified = new Date();
-
-  // Add worksheet
   const worksheet = workbook.addWorksheet('Expenses');
 
-  // Add title and metadata
-  worksheet.addRow(['AA FairShare - Expense Report']).font = { bold: true, size: 16 };
-  worksheet.addRow([options.title]).font = { bold: true, size: 14 };
-  if (options.subtitle) {
-    worksheet.addRow([options.subtitle]);
-  }
-  worksheet.addRow([`Generated on ${format(new Date(), 'dd/MM/yyyy HH:mm')}`]);
-  worksheet.addRow([
-    options.isSettled
-      ? `Settled by ${options.settledBy} on ${options.settledDate}`
-      : 'Status: Unsettled'
-  ]);
-  worksheet.addRow([]); // Empty row for spacing
+  // Set up columns
+  worksheet.columns = [
+    { header: 'Date', key: 'date', width: 15 },
+    { header: 'Category', key: 'category', width: 20 },
+    { header: 'Description', key: 'description', width: 30 },
+    { header: 'Amount', key: 'amount', width: 15 },
+    { header: 'Paid By', key: 'paidBy', width: 15 },
+    { header: 'Split', key: 'split', width: 15 },
+    { header: 'Tags', key: 'tags', width: 30 }
+  ];
 
-  // Add headers
-  const headers = ['Date', 'Category', 'Tags', 'Description', 'Amount', 'Split', 'Paid By'];
-  const headerRow = worksheet.addRow(headers);
-
-  // Style header row
-  headerRow.eachCell((cell) => {
-    cell.fill = {
-      type: 'pattern',
-      pattern: 'solid',
-      fgColor: { argb: '3B82F6' }
-    };
-    cell.font = {
-      bold: true,
-      color: { argb: 'FFFFFF' }
-    };
-    cell.alignment = { horizontal: 'center' };
-  });
+  // Style the header row
+  worksheet.getRow(1).font = { bold: true };
+  worksheet.getRow(1).fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  };
 
   // Add expense data
   expenses.forEach(expense => {
-    const category = categories.find(c => c.id === expense.category)?.name || 'Uncategorized';
-    const expenseTags = expense.tags
-      ?.map(tagId => tags.find(t => t.id === tagId)?.name)
-      .filter(Boolean)
-      .join(', ') || '';
+    const category = categories.find(c => c?.id === expense.category);
+    const expenseTags = expense.tags?.map(tagId => 
+      tags.find(t => t.id === tagId)?.name
+    ).filter(Boolean).join(', ');
 
-    worksheet.addRow([
-      formatDate(expense.date),
-      category,
-      expenseTags,
-      expense.description || 'Untitled',
-      expense.amount,
-      expense.split === 'equal' ? 'Equal Split' : 'No Split',
-      expense.paidBy,
-    ]);
+    worksheet.addRow({
+      date: format(new Date(expense.date), 'MMM d, yyyy'),
+      category: category?.name || '',
+      description: expense.description || '',
+      amount: expense.amount,
+      paidBy: expense.paidBy,
+      split: expense.split === 'equal' ? 'Equal Split' : 'No Split',
+      tags: expenseTags || ''
+    });
   });
 
-  // Add total row
-  worksheet.addRow([]); // Empty row for spacing
-  const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-  const totalRow = worksheet.addRow(['', '', '', 'Total', total, '', '']);
-  totalRow.getCell(5).font = { bold: true };
+  // Format amount column
+  worksheet.getColumn('amount').numFmt = '£#,##0.00';
 
-  // Add split totals if available
-  if (options.splitTotals && Object.keys(options.splitTotals).length > 0) {
-    worksheet.addRow([]); // Empty row for spacing
-    worksheet.addRow(['Split Totals']).font = { bold: true };
-    
-    const splitHeaders = worksheet.addRow(['Split Type', 'Amount']);
-    splitHeaders.eachCell((cell) => {
-      cell.fill = {
-        type: 'pattern',
-        pattern: 'solid',
-        fgColor: { argb: '3B82F6' }
-      };
-      cell.font = {
-        bold: true,
-        color: { argb: 'FFFFFF' }
-      };
-    });
+  // Calculate totals
+  const totals = calculateMonthlyTotals(expenses);
 
-    Object.entries(options.splitTotals).forEach(([splitType, amount]) => {
-      worksheet.addRow([
-        splitType === 'equal' ? 'Equal Split' : 'No Split',
-        amount
-      ]);
-    });
+  // Add empty row
+  worksheet.addRow([]);
+
+  // Add summary section
+  const summaryStartRow = worksheet.rowCount + 1;
+  worksheet.getCell(`A${summaryStartRow}`).value = 'Monthly Summary';
+  worksheet.getCell(`A${summaryStartRow}`).font = { bold: true };
+
+  worksheet.addRow(['Andres paid:', totals.andresPaid]);
+  worksheet.addRow(['Antonio paid:', totals.antonioPaid]);
+  worksheet.addRow(['Andres share:', totals.andresShare]);
+  worksheet.addRow(['Antonio share:', totals.antonioShare]);
+  worksheet.addRow(['Total:', totals.total]);
+
+  // Format summary amounts
+  for (let i = 0; i < 5; i++) {
+    worksheet.getCell(`B${summaryStartRow + i + 1}`).numFmt = '£#,##0.00';
   }
 
-  // Set column widths
-  worksheet.columns = [
-    { width: 12 }, // Date
-    { width: 20 }, // Category
-    { width: 30 }, // Tags
-    { width: 30 }, // Description
-    { width: 12 }, // Amount
-    { width: 12 }, // Split
-    { width: 12 }, // Paid By
-  ];
+  // Add empty row
+  worksheet.addRow([]);
 
-  // Format amount column as currency
-  worksheet.getColumn(5).numFmt = '£#,##0.00';
+  // Add balance
+  const balanceText = totals.andresPaid > totals.andresShare
+    ? `Antonio owes Andres £${(totals.andresPaid - totals.andresShare).toFixed(2)}`
+    : `Andres owes Antonio £${(totals.antonioShare - totals.antonioPaid).toFixed(2)}`;
+  worksheet.addRow([balanceText]);
 
-  // Generate Excel file and trigger download
+  // Generate buffer
   const buffer = await workbook.xlsx.writeBuffer();
+
+  // Create blob and download
   const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
   const url = window.URL.createObjectURL(blob);
+  const monthName = format(new Date(month + '-01'), 'MMMM yyyy');
+  
   const a = document.createElement('a');
   a.href = url;
-  a.download = `expenses-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  a.download = `Expenses_${monthName}.xlsx`;
   a.click();
   window.URL.revokeObjectURL(url);
+};
+
+export const exportToPDF = (
+  expenses: Expense[],
+  categories: Category[],
+  tags: Tag[],
+  month: string
+) => {
+  const doc = new jsPDF();
+  const monthName = format(new Date(month + '-01'), 'MMMM yyyy');
+
+  // Add title
+  doc.setFontSize(16);
+  doc.text(`Expenses - ${monthName}`, 14, 15);
+
+  // Prepare data for table
+  const tableData = expenses.map(expense => {
+    const category = categories.find(c => c?.id === expense.category);
+    const expenseTags = expense.tags?.map(tagId => 
+      tags.find(t => t.id === tagId)?.name
+    ).filter(Boolean).join(', ');
+
+    return [
+      format(new Date(expense.date), 'MMM d, yyyy'),
+      category?.name || '',
+      expense.description || '',
+      `£${expense.amount.toFixed(2)}`,
+      expense.paidBy,
+      expense.split === 'equal' ? 'Equal Split' : 'No Split',
+      expenseTags || ''
+    ];
+  });
+
+  // Add expenses table
+  (doc as any).autoTable({
+    startY: 25,
+    head: [['Date', 'Category', 'Description', 'Amount', 'Paid By', 'Split', 'Tags']],
+    body: tableData,
+    styles: {
+      fontSize: 8
+    },
+    columnStyles: {
+      0: { cellWidth: 20 }, // Date
+      1: { cellWidth: 25 }, // Category
+      2: { cellWidth: 35 }, // Description
+      3: { cellWidth: 20 }, // Amount
+      4: { cellWidth: 20 }, // Paid By
+      5: { cellWidth: 20 }, // Split
+      6: { cellWidth: 40 }  // Tags
+    }
+  });
+
+  // Calculate totals
+  const totals = calculateMonthlyTotals(expenses);
+
+  // Add summary
+  const finalY = (doc as any).lastAutoTable.finalY || 25;
+  doc.setFontSize(12);
+  doc.text('Monthly Summary', 14, finalY + 15);
+
+  const summaryData = [
+    ['Andres paid:', `£${totals.andresPaid.toFixed(2)}`],
+    ['Antonio paid:', `£${totals.antonioPaid.toFixed(2)}`],
+    ['Andres share:', `£${totals.andresShare.toFixed(2)}`],
+    ['Antonio share:', `£${totals.antonioShare.toFixed(2)}`],
+    ['Total:', `£${totals.total.toFixed(2)}`],
+  ];
+
+  (doc as any).autoTable({
+    startY: finalY + 20,
+    body: summaryData,
+    theme: 'plain',
+    styles: {
+      fontSize: 10
+    }
+  });
+
+  // Add balance
+  const balanceText = totals.andresPaid > totals.andresShare
+    ? `Antonio owes Andres £${(totals.andresPaid - totals.andresShare).toFixed(2)}`
+    : `Andres owes Antonio £${(totals.antonioShare - totals.antonioPaid).toFixed(2)}`;
+
+  doc.setFontSize(12);
+  doc.text(balanceText, 14, (doc as any).lastAutoTable.finalY + 15);
+
+  // Save file
+  doc.save(`Expenses_${monthName}.pdf`);
 };

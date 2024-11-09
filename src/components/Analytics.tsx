@@ -13,7 +13,7 @@ import {
 } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useExpenseStore } from '../store/expenseStore';
-import { format, subMonths, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { format, subMonths, startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns';
 import Select from 'react-select';
 
 // Register ChartJS components
@@ -30,7 +30,7 @@ ChartJS.register(
 );
 
 const Analytics = () => {
-  const { expenses, categories, tags } = useExpenseStore();
+  const { expenses, categories, categoryGroups, tags } = useExpenseStore();
   const [timeRange, setTimeRange] = useState({ value: 'current', label: 'Current Month' });
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPaidBy, setSelectedPaidBy] = useState<string[]>([]);
@@ -46,31 +46,30 @@ const Analytics = () => {
 
   // Group categories for the select input
   const groupedCategories = useMemo(() => {
-    const groups = Object.entries(
-      categories.reduce<Record<string, typeof categories>>((acc, cat) => {
-        if (!cat) return acc;
-        if (!acc[cat.group]) acc[cat.group] = [];
-        acc[cat.group].push(cat);
-        return acc;
-      }, {})
-    ).map(([group, cats]) => ({
-      label: group,
-      options: cats
-        .map(cat => ({
-          value: cat.id,
-          label: cat.name,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-    })).filter(group => group.options.length > 0);
+    const groups = categoryGroups
+      .sort((a, b) => a.order - b.order)
+      .map(group => ({
+        label: group.name,
+        options: categories
+          .filter(cat => cat?.groupId === group.id)
+          .map(cat => ({
+            value: cat.id,
+            label: cat.name,
+          }))
+          .sort((a, b) => a.label.localeCompare(b.label))
+      }))
+      .filter(group => group.options.length > 0);
 
     return groups;
-  }, [categories]);
+  }, [categories, categoryGroups]);
 
   const tagOptions = useMemo(() => 
-    tags.map(tag => ({
-      value: tag.id,
-      label: tag.name,
-    }))
+    tags
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map(tag => ({
+        value: tag.id,
+        label: tag.name,
+      }))
   , [tags]);
 
   const paidByOptions = [
@@ -108,6 +107,48 @@ const Analytics = () => {
     });
   }, [expenses, timeRange.value, selectedCategories, selectedPaidBy, selectedTags]);
 
+  // Calculate insights
+  const insights = useMemo(() => {
+    const now = new Date();
+    const currentMonthExpenses = expenses.filter(expense => 
+      isSameMonth(parseISO(expense.date), now)
+    );
+    const lastMonthExpenses = expenses.filter(expense => 
+      isSameMonth(parseISO(expense.date), subMonths(now, 1))
+    );
+
+    const currentTotal = currentMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const lastTotal = lastMonthExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const monthlyChange = ((currentTotal - lastTotal) / lastTotal) * 100;
+
+    const categoryTotals = currentMonthExpenses.reduce((acc, expense) => {
+      const category = categories.find(c => c?.id === expense.category);
+      if (category) {
+        acc[category.id] = (acc[category.id] || 0) + expense.amount;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    const topCategory = Object.entries(categoryTotals)
+      .sort(([, a], [, b]) => b - a)[0];
+    
+    const topCategoryName = topCategory 
+      ? categories.find(c => c?.id === topCategory[0])?.name 
+      : 'None';
+
+    const averageExpense = currentMonthExpenses.length > 0
+      ? currentTotal / currentMonthExpenses.length
+      : 0;
+
+    return {
+      currentTotal,
+      monthlyChange,
+      topCategory: topCategoryName,
+      averageExpense,
+      expenseCount: currentMonthExpenses.length
+    };
+  }, [expenses, categories]);
+
   // Monthly spending trend data
   const monthlyTrendData = useMemo(() => {
     const months: { [key: string]: number } = {};
@@ -136,8 +177,9 @@ const Analytics = () => {
         label: 'Monthly Spending',
         data: Object.values(months).reverse(),
         borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.1)',
         tension: 0.1,
-        fill: false
+        fill: true
       }]
     };
   }, [filteredExpenses, timeRange.value]);
@@ -248,7 +290,35 @@ const Analytics = () => {
   }, [filteredExpenses]);
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 mt-16 mb-20">
+      {/* Key Insights */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <h3 className="text-sm font-medium text-gray-500">Current Month Total</h3>
+          <p className="text-2xl font-bold mt-1">£{insights.currentTotal.toFixed(2)}</p>
+          <p className={`text-sm mt-1 ${
+            insights.monthlyChange > 0 ? 'text-red-600' : 'text-green-600'
+          }`}>
+            {insights.monthlyChange > 0 ? '↑' : '↓'} {Math.abs(insights.monthlyChange).toFixed(1)}% vs last month
+          </p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <h3 className="text-sm font-medium text-gray-500">Top Category</h3>
+          <p className="text-2xl font-bold mt-1">{insights.topCategory}</p>
+          <p className="text-sm text-gray-500 mt-1">Most spent category</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <h3 className="text-sm font-medium text-gray-500">Average Expense</h3>
+          <p className="text-2xl font-bold mt-1">£{insights.averageExpense.toFixed(2)}</p>
+          <p className="text-sm text-gray-500 mt-1">Per transaction</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <h3 className="text-sm font-medium text-gray-500">Number of Expenses</h3>
+          <p className="text-2xl font-bold mt-1">{insights.expenseCount}</p>
+          <p className="text-sm text-gray-500 mt-1">This month</p>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Filters</h2>
@@ -319,6 +389,18 @@ const Analytics = () => {
                 plugins: {
                   legend: {
                     position: 'top' as const,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => `£${context.raw as number}`
+                    }
+                  }
+                },
+                scales: {
+                  y: {
+                    ticks: {
+                      callback: (value) => `£${value}`
+                    }
                   }
                 }
               }}
@@ -338,6 +420,11 @@ const Analytics = () => {
                 plugins: {
                   legend: {
                     position: 'right' as const,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => `£${context.raw as number}`
+                    }
                   }
                 }
               }}
@@ -357,11 +444,19 @@ const Analytics = () => {
                 plugins: {
                   legend: {
                     display: false,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => `£${context.raw as number}`
+                    }
                   }
                 },
                 scales: {
                   y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    ticks: {
+                      callback: (value) => `£${value}`
+                    }
                   }
                 }
               }}
@@ -381,11 +476,19 @@ const Analytics = () => {
                 plugins: {
                   legend: {
                     position: 'top' as const,
+                  },
+                  tooltip: {
+                    callbacks: {
+                      label: (context) => `£${context.raw as number}`
+                    }
                   }
                 },
                 scales: {
                   y: {
-                    beginAtZero: true
+                    beginAtZero: true,
+                    ticks: {
+                      callback: (value) => `£${value}`
+                    }
                   }
                 }
               }}

@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { format, isAfter, addMonths, startOfDay } from 'date-fns';
-import type { Category, Expense, Tag, RecurringExpense, Budget, Settlement } from '../types';
+import type { Category, CategoryGroup, Expense, Tag, RecurringExpense, Budget, Settlement } from '../types';
 import defaultCategoriesData from '../data/defaultCategories.json';
 import {
   addExpenseToFirestore,
@@ -10,6 +10,9 @@ import {
   addCategoryToFirestore,
   updateCategoryInFirestore,
   deleteCategoryFromFirestore,
+  addCategoryGroupToFirestore,
+  updateCategoryGroupInFirestore,
+  deleteCategoryGroupFromFirestore,
   addTagToFirestore,
   updateTagInFirestore,
   deleteTagFromFirestore,
@@ -20,12 +23,14 @@ import {
   updateRecurringExpenseInFirestore,
   deleteRecurringExpenseFromFirestore,
   addSettlementToFirestore,
-  fetchAllData
+  fetchAllData,
+  type FirestoreData
 } from './firebaseOperations';
 
 interface State {
   expenses: Expense[];
   categories: Category[];
+  categoryGroups: CategoryGroup[];
   tags: Tag[];
   budgets: Budget[];
   recurringExpenses: RecurringExpense[];
@@ -46,7 +51,13 @@ interface Actions {
   addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
   updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
-  restoreDefaultCategories: () => Promise<void>;
+  addMissingDefaultCategory: (categoryName: string) => Promise<Category | null>;
+
+  // Category Group actions
+  addCategoryGroup: (group: Omit<CategoryGroup, 'id'>) => Promise<void>;
+  updateCategoryGroup: (id: string, group: Partial<CategoryGroup>) => Promise<void>;
+  deleteCategoryGroup: (id: string) => Promise<void>;
+  addMissingDefaultGroup: (groupName: string) => Promise<CategoryGroup | null>;
   
   // Tag actions
   addTag: (tag: Omit<Tag, 'id'>) => Promise<void>;
@@ -73,12 +84,13 @@ interface Actions {
   getMonthlyBalance: (month: string) => number;
 }
 
-type ExpenseStore = State & Actions;
+type Store = State & Actions;
 
-export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
+export const useExpenseStore = create<Store>((set, get) => ({
   // Initial state
   expenses: [],
   categories: [],
+  categoryGroups: [],
   tags: [],
   budgets: [],
   recurringExpenses: [],
@@ -90,6 +102,40 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   initializeStore: async () => {
     try {
       const data = await fetchAllData();
+      
+      // If no category groups exist, add default ones
+      if (data.categoryGroups.length === 0) {
+        const defaultGroups = defaultCategoriesData.categoryGroups as CategoryGroup[];
+        for (const defaultGroup of defaultGroups) {
+          const newGroup = { ...defaultGroup, id: uuidv4() };
+          await addCategoryGroupToFirestore(newGroup);
+          data.categoryGroups.push(newGroup);
+        }
+      }
+
+      // If no categories exist, add default ones
+      if (data.categories.length === 0) {
+        const groupNameToId = data.categoryGroups.reduce<Record<string, string>>((acc, group) => {
+          acc[group.name] = group.id;
+          return acc;
+        }, {});
+
+        const defaultCategories = defaultCategoriesData.categories as any[];
+        for (const defaultCategory of defaultCategories) {
+          const group = data.categoryGroups.find(g => g.name === defaultCategory.group);
+          if (group) {
+            const newCategory = {
+              id: uuidv4(),
+              name: defaultCategory.name,
+              color: defaultCategory.color,
+              groupId: group.id
+            };
+            await addCategoryToFirestore(newCategory);
+            data.categories.push(newCategory);
+          }
+        }
+      }
+
       set({ 
         ...data, 
         initialized: true,
@@ -100,6 +146,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
       set({ 
         expenses: [],
         categories: [],
+        categoryGroups: [],
         tags: [],
         budgets: [],
         recurringExpenses: [],
@@ -110,56 +157,81 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
     }
   },
 
-  addExpense: async (expense) => {
+  // Category Group actions
+  addCategoryGroup: async (group) => {
     try {
-      const newExpense = { ...expense, id: uuidv4() };
-      await addExpenseToFirestore(newExpense);
-      set((state: State) => ({
-        expenses: [...state.expenses, newExpense],
+      const newGroup = { ...group, id: uuidv4() };
+      await addCategoryGroupToFirestore(newGroup);
+      set((state) => ({
+        categoryGroups: [...state.categoryGroups, newGroup],
         error: null
       }));
     } catch (error) {
-      console.error('Failed to add expense:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to add expense' });
+      console.error('Failed to add category group:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to add category group' });
       throw error;
     }
   },
 
-  updateExpense: async (id, updatedExpense) => {
+  updateCategoryGroup: async (id, updatedGroup) => {
     try {
-      await updateExpenseInFirestore(id, updatedExpense);
-      set((state: State) => ({
-        expenses: state.expenses.map((expense) =>
-          expense.id === id ? { ...expense, ...updatedExpense } : expense
+      await updateCategoryGroupInFirestore(id, updatedGroup);
+      set((state) => ({
+        categoryGroups: state.categoryGroups.map((group) =>
+          group.id === id ? { ...group, ...updatedGroup } : group
         ),
         error: null
       }));
     } catch (error) {
-      console.error('Failed to update expense:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to update expense' });
+      console.error('Failed to update category group:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to update category group' });
       throw error;
     }
   },
 
-  deleteExpense: async (id) => {
+  deleteCategoryGroup: async (id) => {
     try {
-      await deleteExpenseFromFirestore(id);
-      set((state: State) => ({
-        expenses: state.expenses.filter((expense) => expense.id !== id),
+      await deleteCategoryGroupFromFirestore(id);
+      set((state) => ({
+        categoryGroups: state.categoryGroups.filter((group) => group.id !== id),
         error: null
       }));
     } catch (error) {
-      console.error('Failed to delete expense:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to delete expense' });
+      console.error('Failed to delete category group:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to delete category group' });
       throw error;
     }
   },
 
+  addMissingDefaultGroup: async (groupName) => {
+    try {
+      const { categoryGroups } = get();
+      const defaultGroup = (defaultCategoriesData.categoryGroups as CategoryGroup[])
+        .find(g => g.name === groupName);
+      
+      if (defaultGroup && !categoryGroups.some(g => g.name === groupName)) {
+        const newGroup = { ...defaultGroup, id: uuidv4() };
+        await addCategoryGroupToFirestore(newGroup);
+        set((state) => ({
+          categoryGroups: [...state.categoryGroups, newGroup],
+          error: null
+        }));
+        return newGroup;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to add default group:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to add default group' });
+      throw error;
+    }
+  },
+
+  // Category actions
   addCategory: async (category) => {
     try {
       const newCategory = { ...category, id: uuidv4() };
       await addCategoryToFirestore(newCategory);
-      set((state: State) => ({
+      set((state) => ({
         categories: [...state.categories, newCategory],
         error: null
       }));
@@ -173,7 +245,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   updateCategory: async (id, updatedCategory) => {
     try {
       await updateCategoryInFirestore(id, updatedCategory);
-      set((state: State) => ({
+      set((state) => ({
         categories: state.categories.map((category) =>
           category.id === id ? { ...category, ...updatedCategory } : category
         ),
@@ -189,7 +261,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   deleteCategory: async (id) => {
     try {
       await deleteCategoryFromFirestore(id);
-      set((state: State) => ({
+      set((state) => ({
         categories: state.categories.filter((category) => category.id !== id),
         error: null
       }));
@@ -200,42 +272,43 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
     }
   },
 
-  restoreDefaultCategories: async () => {
+  addMissingDefaultCategory: async (categoryName) => {
     try {
-      // First delete all existing categories
-      const { categories } = get();
-      for (const category of categories) {
-        if (category) {
-          await deleteCategoryFromFirestore(category.id);
+      const { categories, categoryGroups } = get();
+      const defaultCategory = (defaultCategoriesData.categories as any[])
+        .find(c => c.name === categoryName);
+      
+      if (defaultCategory && !categories.some(c => c?.name === categoryName)) {
+        const group = categoryGroups.find(g => g.name === defaultCategory.group);
+        if (group) {
+          const newCategory = {
+            id: uuidv4(),
+            name: defaultCategory.name,
+            color: defaultCategory.color,
+            groupId: group.id
+          };
+          await addCategoryToFirestore(newCategory);
+          set((state) => ({
+            categories: [...state.categories, newCategory],
+            error: null
+          }));
+          return newCategory;
         }
       }
-      
-      // Then add all default categories with new IDs
-      const defaultCategories = (defaultCategoriesData.categories as Category[]).map(category => ({
-        ...category,
-        id: uuidv4()
-      }));
-
-      for (const category of defaultCategories) {
-        await addCategoryToFirestore(category);
-      }
-      
-      set((state: State) => ({
-        categories: defaultCategories,
-        error: null
-      }));
+      return null;
     } catch (error) {
-      console.error('Failed to restore default categories:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to restore default categories' });
+      console.error('Failed to add default category:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to add default category' });
       throw error;
     }
   },
 
+  // Tag actions
   addTag: async (tag) => {
     try {
       const newTag = { ...tag, id: uuidv4() };
       await addTagToFirestore(newTag);
-      set((state: State) => ({
+      set((state) => ({
         tags: [...state.tags, newTag],
         error: null
       }));
@@ -249,7 +322,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   updateTag: async (id, updatedTag) => {
     try {
       await updateTagInFirestore(id, updatedTag);
-      set((state: State) => ({
+      set((state) => ({
         tags: state.tags.map((tag) =>
           tag.id === id ? { ...tag, ...updatedTag } : tag
         ),
@@ -265,7 +338,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   deleteTag: async (id) => {
     try {
       await deleteTagFromFirestore(id);
-      set((state: State) => ({
+      set((state) => ({
         tags: state.tags.filter((tag) => tag.id !== id),
         error: null
       }));
@@ -276,11 +349,12 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
     }
   },
 
+  // Budget actions
   addBudget: async (budget) => {
     try {
       const newBudget = { ...budget, id: uuidv4() };
       await addBudgetToFirestore(newBudget);
-      set((state: State) => ({
+      set((state) => ({
         budgets: [...state.budgets, newBudget],
         error: null
       }));
@@ -294,7 +368,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   updateBudget: async (id, updatedBudget) => {
     try {
       await updateBudgetInFirestore(id, updatedBudget);
-      set((state: State) => ({
+      set((state) => ({
         budgets: state.budgets.map((budget) =>
           budget.id === id ? { ...budget, ...updatedBudget } : budget
         ),
@@ -310,7 +384,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   deleteBudget: async (id) => {
     try {
       await deleteBudgetFromFirestore(id);
-      set((state: State) => ({
+      set((state) => ({
         budgets: state.budgets.filter((budget) => budget.id !== id),
         error: null
       }));
@@ -342,11 +416,12 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
     return (totalSpent / budget.amount) * 100;
   },
 
+  // Recurring expense actions
   addRecurringExpense: async (expense) => {
     try {
       const newExpense = { ...expense, id: uuidv4() };
       await addRecurringExpenseToFirestore(newExpense);
-      set((state: State) => ({
+      set((state) => ({
         recurringExpenses: [...state.recurringExpenses, newExpense],
         error: null
       }));
@@ -360,7 +435,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   updateRecurringExpense: async (id, updatedExpense) => {
     try {
       await updateRecurringExpenseInFirestore(id, updatedExpense);
-      set((state: State) => ({
+      set((state) => ({
         recurringExpenses: state.recurringExpenses.map((expense) =>
           expense.id === id ? { ...expense, ...updatedExpense } : expense
         ),
@@ -376,7 +451,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
   deleteRecurringExpense: async (id) => {
     try {
       await deleteRecurringExpenseFromFirestore(id);
-      set((state: State) => ({
+      set((state) => ({
         recurringExpenses: state.recurringExpenses.filter((expense) => expense.id !== id),
         error: null
       }));
@@ -426,6 +501,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
     }
   },
 
+  // Settlement actions
   settleMonth: async (month, settledBy, balance) => {
     try {
       const settlement = {
@@ -435,7 +511,7 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
         balance,
       };
       await addSettlementToFirestore(settlement);
-      set((state: State) => ({
+      set((state) => ({
         settlements: [
           ...state.settlements.filter((s) => s.month !== month),
           settlement,
@@ -482,5 +558,51 @@ export const useExpenseStore = create<ExpenseStore>()((set, get) => ({
           : balance - expense.amount;
       }
     }, 0);
+  },
+
+  // Expense actions
+  addExpense: async (expense) => {
+    try {
+      const newExpense = { ...expense, id: uuidv4() };
+      await addExpenseToFirestore(newExpense);
+      set((state) => ({
+        expenses: [...state.expenses, newExpense],
+        error: null
+      }));
+    } catch (error) {
+      console.error('Failed to add expense:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to add expense' });
+      throw error;
+    }
+  },
+
+  updateExpense: async (id, updatedExpense) => {
+    try {
+      await updateExpenseInFirestore(id, updatedExpense);
+      set((state) => ({
+        expenses: state.expenses.map((expense) =>
+          expense.id === id ? { ...expense, ...updatedExpense } : expense
+        ),
+        error: null
+      }));
+    } catch (error) {
+      console.error('Failed to update expense:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to update expense' });
+      throw error;
+    }
+  },
+
+  deleteExpense: async (id) => {
+    try {
+      await deleteExpenseFromFirestore(id);
+      set((state) => ({
+        expenses: state.expenses.filter((expense) => expense.id !== id),
+        error: null
+      }));
+    } catch (error) {
+      console.error('Failed to delete expense:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to delete expense' });
+      throw error;
+    }
   },
 }));

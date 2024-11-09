@@ -12,11 +12,12 @@ import {
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
-import type { Expense, Category, Tag, Budget, RecurringExpense, Settlement } from '../types';
+import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
 
 // Collection references
 const expensesRef = collection(db, 'expenses');
 const categoriesRef = collection(db, 'categories');
+const categoryGroupsRef = collection(db, 'categoryGroups');
 const tagsRef = collection(db, 'tags');
 const budgetsRef = collection(db, 'budgets');
 const recurringExpensesRef = collection(db, 'recurringExpenses');
@@ -144,6 +145,40 @@ export const deleteExpenseFromFirestore = async (id: string) => {
     });
   } catch (error) {
     return handleFirestoreError(error, 'delete expense');
+  }
+};
+
+// Category Groups
+export const addCategoryGroupToFirestore = async (group: CategoryGroup) => {
+  try {
+    await withRetry(async () => {
+      const docRef = doc(categoryGroupsRef, group.id);
+      await setDoc(docRef, group);
+    });
+  } catch (error) {
+    return handleFirestoreError(error, 'add category group');
+  }
+};
+
+export const updateCategoryGroupInFirestore = async (id: string, group: Partial<CategoryGroup>) => {
+  try {
+    await withRetry(async () => {
+      const docRef = doc(categoryGroupsRef, id);
+      await updateDoc(docRef, group);
+    });
+  } catch (error) {
+    return handleFirestoreError(error, 'update category group');
+  }
+};
+
+export const deleteCategoryGroupFromFirestore = async (id: string) => {
+  try {
+    await withRetry(async () => {
+      const docRef = doc(categoryGroupsRef, id);
+      await deleteDoc(docRef);
+    });
+  } catch (error) {
+    return handleFirestoreError(error, 'delete category group');
   }
 };
 
@@ -310,6 +345,7 @@ export const addSettlementToFirestore = async (settlement: Settlement) => {
 export interface FirestoreData {
   expenses: Expense[];
   categories: Category[];
+  categoryGroups: CategoryGroup[];
   tags: Tag[];
   budgets: Budget[];
   recurringExpenses: RecurringExpense[];
@@ -322,6 +358,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
     return await withRetry(async () => {
       const expenses = await getDocs(expensesRef);
       const categories = await getDocs(categoriesRef);
+      const categoryGroups = await getDocs(categoryGroupsRef);
       const tags = await getDocs(tagsRef);
       const budgets = await getDocs(budgetsRef);
       const recurringExpenses = await getDocs(recurringExpensesRef);
@@ -336,6 +373,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
           } as Expense;
         }),
         categories: categories.docs.map(doc => doc.data() as Category),
+        categoryGroups: categoryGroups.docs.map(doc => doc.data() as CategoryGroup),
         tags: tags.docs.map(doc => doc.data() as Tag),
         budgets: budgets.docs.map(doc => doc.data() as Budget),
         recurringExpenses: recurringExpenses.docs.map(doc => {

@@ -1,22 +1,17 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { format, subMonths, startOfMonth } from 'date-fns';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import MonthSelector from './MonthSelector';
 import SettlementModal from './SettlementModal';
-import { Check, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle } from 'lucide-react';
 
 const Settlement = () => {
-  const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
-  const [showPastMonths, setShowPastMonths] = useState(false);
   const { currentUser } = useUserStore();
   const {
     getMonthlyBalance,
     isMonthSettled,
-    getSettlementDate,
-    getSettlementDetails,
   } = useExpenseStore();
 
   // Generate past 12 months

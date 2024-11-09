@@ -21,11 +21,19 @@ export interface Tag {
   categoryId?: string;
 }
 
+export interface CategoryGroup {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+  order: number;
+}
+
 export interface Category {
   id: string;
   name: string;
   color: string;
-  group: string;
+  groupId: string;
   icon?: string;
 }
 
