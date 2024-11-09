@@ -7,18 +7,6 @@ import CreatableSelect from 'react-select/creatable';
 import { ArrowLeft, Calendar, DollarSign, Tag, Users, RefreshCw } from 'lucide-react';
 import type { Expense } from '../types';
 
-const CATEGORY_GROUPS = [
-  'Utilities',
-  'Housing',
-  'Food',
-  'Transportation',
-  'Insurance',
-  'Entertainment',
-  'Clothing',
-  'Health and wellness',
-  'Miscellaneous',
-] as const;
-
 type ExpenseFormData = Omit<Expense, 'id'> & {
   isRecurring: boolean;
   recurringDay: string;
@@ -41,21 +29,15 @@ const ExpenseForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Group categories for the select input
-  const groupedCategories = useMemo(() => {
-    const groups = CATEGORY_GROUPS.map(group => ({
-      label: group,
-      options: categories
-        .filter(cat => cat.group === group)
-        .map(cat => ({
-          value: cat.id,
-          label: cat.name,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-    })).filter(group => group.options.length > 0);
-
-    return groups;
-  }, [categories]);
+  // Convert categories for the select input
+  const categoryOptions = useMemo(() => 
+    categories.map(cat => ({
+      value: cat.id,
+      label: cat.name,
+      icon: cat.icon
+    })).sort((a, b) => a.label.localeCompare(b.label)),
+    [categories]
+  );
 
   // Convert tags for the select input
   const tagOptions = useMemo(() => 
@@ -112,6 +94,14 @@ const ExpenseForm = () => {
     e.currentTarget.blur();
   };
 
+  // Custom option component to show category icon
+  const CategoryOption = ({ data, ...props }: any) => (
+    <div className="flex items-center gap-2 px-2 py-1">
+      {data.icon && <span>{data.icon}</span>}
+      <span>{data.label}</span>
+    </div>
+  );
+
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
@@ -138,12 +128,14 @@ const ExpenseForm = () => {
                 formData.category
                   ? {
                       value: formData.category,
-                      label: categories.find(c => c.id === formData.category)?.name
+                      label: categories.find(c => c.id === formData.category)?.name,
+                      icon: categories.find(c => c.id === formData.category)?.icon
                     }
                   : null
               }
               onChange={(option) => setFormData({ ...formData, category: option?.value || '' })}
-              options={groupedCategories}
+              options={categoryOptions}
+              components={{ Option: CategoryOption }}
               className="react-select-container"
               classNamePrefix="react-select"
               placeholder="Select a category"

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -38,18 +38,18 @@ if (process.env.NODE_ENV !== 'development') {
 // Use emulators in development
 if (process.env.NODE_ENV === 'development') {
   try {
-    // Only connect to emulators if they're running
-    fetch('http://localhost:9099')
-      .then(() => {
-        connectAuthEmulator(auth, 'http://localhost:9099');
-        console.log('Connected to Firebase Auth emulator');
-      })
-      .catch(() => {
-        console.log('Firebase emulators not detected, using production environment');
-      });
+    // Connect to Firestore emulator
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log('Connected to Firestore emulator');
+    
+    // Connect to Auth emulator
+    connectAuthEmulator(auth, 'http://localhost:9099');
+    console.log('Connected to Auth emulator');
   } catch (error) {
     console.warn('Failed to connect to emulators:', error);
   }
+} else {
+  console.log('Running in production mode');
 }
 
 export { db, auth, analytics };

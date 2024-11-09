@@ -26,6 +26,7 @@ export interface Category {
   name: string;
   color: string;
   group: string;
+  icon?: string;
 }
 
 export interface RecurringExpense {
