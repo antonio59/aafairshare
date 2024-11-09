@@ -2,10 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import CreatableSelect from 'react-select/creatable';
 import { ArrowLeft, Calendar, DollarSign, Users, RefreshCw } from 'lucide-react';
 import type { Expense } from '../types';
 import Dropdown from './common/Dropdown';
+import TagInput from './common/TagInput';
 
 const CATEGORY_GROUPS = [
   'Food',
@@ -49,15 +49,6 @@ const ExpenseForm = () => {
     [categories]
   );
 
-  // Convert tags for the select input
-  const tagOptions = useMemo(() => 
-    tags.map(tag => ({
-      value: tag.id,
-      label: tag.name,
-    })),
-    [tags]
-  );
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.category) {
@@ -77,29 +68,12 @@ const ExpenseForm = () => {
     }
   };
 
-  const handleTagChange = (newValue: any) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: newValue ? newValue.map((v: any) => v.value) : [],
-    }));
-  };
-
-  const handleCreateTag = async (inputValue: string) => {
+  const handleCreateTag = async (name: string) => {
     const newTag = {
-      name: inputValue,
+      name,
       categoryId: formData.category,
     };
-    
     await addTag(newTag);
-    
-    // The tag will have an ID after being added to the store
-    const addedTag = tags.find(t => t.name === inputValue);
-    if (addedTag) {
-      setFormData(prev => ({
-        ...prev,
-        tags: [...prev.tags, addedTag.id],
-      }));
-    }
   };
 
   // Prevent mouse wheel from changing number input
@@ -147,28 +121,14 @@ const ExpenseForm = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tags
-            </label>
-            <CreatableSelect
-              isMulti
-              value={formData.tags.map(tagId => {
-                const tag = tags.find(t => t.id === tagId);
-                return tag ? { value: tag.id, label: tag.name } : null;
-              })}
-              onChange={handleTagChange}
-              onCreateOption={handleCreateTag}
-              options={tagOptions}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Add tags..."
-              menuPosition="fixed"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              Type to create new tags or select from existing ones
-            </p>
-          </div>
+          <TagInput
+            label="Tags"
+            value={formData.tags}
+            onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+            onCreateTag={handleCreateTag}
+            availableTags={tags}
+            placeholder="Add tags..."
+          />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
