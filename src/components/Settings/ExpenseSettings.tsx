@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useUserStore } from '../../store/userStore';
-import { Plus, Edit2, Trash2, X, Calendar, Tag, RefreshCw } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Calendar, Tag, RefreshCw, AlertCircle, CheckCircle2, Loader2, Hash, Folder } from 'lucide-react';
 import RecurringExpenses from './RecurringExpenses';
 import type { Category, Tag as TagType } from '../../types';
+import Dropdown from '../common/Dropdown';
 
 // Type guard functions
 const isCategory = (item: any): item is Category => {
@@ -32,9 +33,18 @@ const ExpenseSettings = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Category | TagType | null>(null);
   const [isAddingCategories, setIsAddingCategories] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const { categories = [], tags = [], addCategory, updateCategory, deleteCategory, addTag, updateTag, deleteTag, restoreDefaultCategories } = useExpenseStore();
   const { currentUser } = useUserStore();
+
+  // Form data state
+  const [formData, setFormData] = useState({
+    name: '',
+    group: '',
+    categoryId: '',
+  });
 
   // Ensure categories are loaded
   useEffect(() => {
@@ -59,7 +69,9 @@ const ExpenseSettings = () => {
     try {
       setIsAddingCategories(true);
       setError(null);
+      setSuccess(null);
       await restoreDefaultCategories();
+      setSuccess('Default categories restored successfully');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to restore categories');
       console.error('Error restoring categories:', err);
@@ -70,14 +82,24 @@ const ExpenseSettings = () => {
 
   const handleAddItem = () => {
     if (!currentUser) return;
+    setFormData({ name: '', group: '', categoryId: '' });
     setEditingItem(null);
     setIsModalOpen(true);
+    setError(null);
+    setSuccess(null);
   };
 
   const handleEditItem = (item: Category | TagType) => {
     if (!currentUser) return;
+    setFormData({
+      name: item.name,
+      group: isCategory(item) ? item.group : '',
+      categoryId: isTag(item) ? item.categoryId || '' : '',
+    });
     setEditingItem(item);
     setIsModalOpen(true);
+    setError(null);
+    setSuccess(null);
   };
 
   const handleDeleteItem = async (id: string) => {
@@ -85,10 +107,13 @@ const ExpenseSettings = () => {
     if (window.confirm('Are you sure you want to delete this item?')) {
       try {
         setError(null);
+        setSuccess(null);
         if (activeTab === 'categories') {
           await deleteCategory(id);
+          setSuccess('Category deleted successfully');
         } else if (activeTab === 'tags') {
           await deleteTag(id);
+          setSuccess('Tag deleted successfully');
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to delete item');
@@ -97,30 +122,46 @@ const ExpenseSettings = () => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!currentUser) return;
 
-    try {
-      setError(null);
-      const formData = new FormData(e.currentTarget);
-      const name = formData.get('name') as string;
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
 
+    try {
       if (activeTab === 'categories') {
-        const group = formData.get('group') as string;
-        const color = groupColors[group] || '#9E9E9E'; // Default to grey if no color mapping exists
+        const color = groupColors[formData.group] || '#9E9E9E';
         
         if (editingItem && isCategory(editingItem)) {
-          await updateCategory(editingItem.id, { name, group, color });
+          await updateCategory(editingItem.id, { 
+            name: formData.name, 
+            group: formData.group, 
+            color 
+          });
+          setSuccess('Category updated successfully');
         } else {
-          await addCategory({ name, group, color });
+          await addCategory({ 
+            name: formData.name, 
+            group: formData.group, 
+            color 
+          });
+          setSuccess('Category added successfully');
         }
       } else if (activeTab === 'tags') {
-        const categoryId = formData.get('categoryId') as string;
         if (editingItem && isTag(editingItem)) {
-          await updateTag(editingItem.id, { name, categoryId: categoryId || undefined });
+          await updateTag(editingItem.id, { 
+            name: formData.name, 
+            categoryId: formData.categoryId || undefined 
+          });
+          setSuccess('Tag updated successfully');
         } else {
-          await addTag({ name, categoryId: categoryId || undefined });
+          await addTag({ 
+            name: formData.name, 
+            categoryId: formData.categoryId || undefined 
+          });
+          setSuccess('Tag added successfully');
         }
       }
 
@@ -129,6 +170,8 @@ const ExpenseSettings = () => {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to save item');
       console.error('Error saving item:', err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -145,7 +188,11 @@ const ExpenseSettings = () => {
                   disabled={isAddingCategories || !currentUser}
                   className="flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
                 >
-                  <RefreshCw size={20} className={isAddingCategories ? 'animate-spin' : ''} />
+                  {isAddingCategories ? (
+                    <Loader2 size={20} className="animate-spin" />
+                  ) : (
+                    <RefreshCw size={20} />
+                  )}
                   Restore Default Categories
                 </button>
                 <button
@@ -160,8 +207,16 @@ const ExpenseSettings = () => {
             </div>
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                {error}
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {success && (
+              <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>{success}</span>
               </div>
             )}
 
@@ -175,7 +230,7 @@ const ExpenseSettings = () => {
                     .map((category) => (
                       <div
                         key={category.id}
-                        className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded"
+                        className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
                       >
                         <div className="flex items-center gap-2">
                           <div 
@@ -188,13 +243,15 @@ const ExpenseSettings = () => {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditItem(category)}
-                              className="text-blue-600 hover:text-blue-700"
+                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                              title="Edit category"
                             >
                               <Edit2 size={18} />
                             </button>
                             <button
                               onClick={() => handleDeleteItem(category.id)}
-                              className="text-red-600 hover:text-red-700"
+                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Delete category"
                             >
                               <Trash2 size={18} />
                             </button>
@@ -224,8 +281,16 @@ const ExpenseSettings = () => {
             </div>
 
             {error && (
-              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
-                {error}
+              <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-2">
+                <AlertCircle className="w-5 h-5" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {success && (
+              <div className="p-3 bg-green-50 border border-green-200 text-green-700 rounded-lg flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5" />
+                <span>{success}</span>
               </div>
             )}
 
@@ -238,7 +303,7 @@ const ExpenseSettings = () => {
                     return (
                       <div
                         key={tag.id}
-                        className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded"
+                        className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors"
                       >
                         <div>
                           <span>{tag.name}</span>
@@ -252,13 +317,15 @@ const ExpenseSettings = () => {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEditItem(tag)}
-                              className="text-blue-600 hover:text-blue-700"
+                              className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                              title="Edit tag"
                             >
                               <Edit2 size={18} />
                             </button>
                             <button
                               onClick={() => handleDeleteItem(tag.id)}
-                              className="text-red-600 hover:text-red-700"
+                              className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Delete tag"
                             >
                               <Trash2 size={18} />
                             </button>
@@ -296,6 +363,7 @@ const ExpenseSettings = () => {
               : 'bg-gray-200 text-gray-700'
           }`}
         >
+          <Folder size={18} />
           Categories
         </button>
         <button
@@ -326,9 +394,9 @@ const ExpenseSettings = () => {
 
       {/* Add/Edit Modal */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-lg max-w-md w-full p-6">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-6">
               <h3 className="text-lg font-semibold">
                 {editingItem ? 'Edit' : 'Add'} {activeTab === 'categories' ? 'Category' : 'Tag'}
               </h3>
@@ -337,71 +405,61 @@ const ExpenseSettings = () => {
                   setIsModalOpen(false);
                   setEditingItem(null);
                 }}
-                className="text-gray-500 hover:text-gray-700"
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
-                <X size={24} />
+                <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Name
                 </label>
-                <input
-                  type="text"
-                  name="name"
-                  defaultValue={editingItem?.name || ''}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  required
-                />
+                <div className="relative">
+                  <Hash className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder={`Enter ${activeTab === 'categories' ? 'category' : 'tag'} name`}
+                    required
+                  />
+                </div>
               </div>
 
               {activeTab === 'categories' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Group
-                  </label>
-                  <select
-                    name="group"
-                    defaultValue={editingItem && isCategory(editingItem) ? editingItem.group : ''}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Select a group</option>
-                    {Object.keys(categoryGroups).map(group => (
-                      <option key={group} value={group}>
-                        {group}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Dropdown
+                  label="Group"
+                  value={formData.group}
+                  onChange={(value) => setFormData({ ...formData, group: value })}
+                  options={Object.keys(categoryGroups).map(group => ({
+                    value: group,
+                    label: group
+                  }))}
+                  placeholder="Select a group"
+                  required
+                />
               )}
 
               {activeTab === 'tags' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Category (Optional)
-                  </label>
-                  <select
-                    name="categoryId"
-                    defaultValue={editingItem && isTag(editingItem) ? editingItem.categoryId : ''}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">No specific category</option>
-                    {categories
-                      .filter((category): category is Category => category !== null)
-                      .sort((a, b) => a.name.localeCompare(b.name))
-                      .map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                  </select>
-                </div>
+                <Dropdown
+                  label="Category (Optional)"
+                  value={formData.categoryId}
+                  onChange={(value) => setFormData({ ...formData, categoryId: value })}
+                  options={categories
+                    .filter((category): category is Category => category !== null)
+                    .sort((a, b) => a.name.localeCompare(b.name))
+                    .map(category => ({
+                      value: category.id,
+                      label: category.name
+                    }))}
+                  placeholder="Select a category"
+                />
               )}
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex justify-end gap-3 pt-6 border-t">
                 <button
                   type="button"
                   onClick={() => {
@@ -414,8 +472,12 @@ const ExpenseSettings = () => {
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  disabled={isSubmitting}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
+                  {isSubmitting && (
+                    <Loader2 size={18} className="animate-spin" />
+                  )}
                   {editingItem ? 'Save Changes' : 'Add'}
                 </button>
               </div>
