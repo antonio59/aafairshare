@@ -2,10 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import Select, { GroupBase, OptionProps } from 'react-select';
 import CreatableSelect from 'react-select/creatable';
-import { ArrowLeft, Calendar, DollarSign, Tag, Users, RefreshCw } from 'lucide-react';
-import type { Expense, Category } from '../types';
+import { ArrowLeft, Calendar, DollarSign, Users, RefreshCw } from 'lucide-react';
+import type { Expense } from '../types';
+import Dropdown from './common/Dropdown';
 
 const CATEGORY_GROUPS = [
   'Food',
@@ -20,12 +20,6 @@ type ExpenseFormData = Omit<Expense, 'id'> & {
   isRecurring: boolean;
   recurringDay: string;
 };
-
-interface CategoryOption {
-  value: string;
-  label: string;
-  icon?: string;
-}
 
 const ExpenseForm = () => {
   const navigate = useNavigate();
@@ -44,22 +38,16 @@ const ExpenseForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Group categories for the select input
-  const groupedCategories = useMemo(() => {
-    const groups = CATEGORY_GROUPS.map(group => ({
-      label: group,
-      options: categories
-        .filter(cat => cat.group === group)
-        .map(cat => ({
-          value: cat.id,
-          label: cat.name,
-          icon: cat.icon
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-    })).filter(group => group.options.length > 0);
-
-    return groups;
-  }, [categories]);
+  // Convert categories for the dropdown
+  const categoryOptions = useMemo(() => 
+    categories.map(cat => ({
+      value: cat.id,
+      label: cat.name,
+      icon: cat.icon,
+      group: cat.group
+    })).sort((a, b) => a.label.localeCompare(b.label)),
+    [categories]
+  );
 
   // Convert tags for the select input
   const tagOptions = useMemo(() => 
@@ -72,6 +60,9 @@ const ExpenseForm = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.category) {
+      return; // Prevent submission if no category is selected
+    }
     setIsSubmitting(true);
     try {
       await addExpense({
@@ -116,23 +107,8 @@ const ExpenseForm = () => {
     e.currentTarget.blur();
   };
 
-  // Custom option component to show category icon
-  const CategoryOption = ({ data, ...props }: OptionProps<CategoryOption, false, GroupBase<CategoryOption>>) => (
-    <div className="flex items-center gap-2 px-2 py-1 cursor-pointer hover:bg-gray-100" {...props}>
-      {data.icon && <span>{data.icon}</span>}
-      <span>{data.label}</span>
-    </div>
-  );
-
-  const handleCategoryChange = (selectedOption: CategoryOption | null) => {
-    setFormData(prev => ({
-      ...prev,
-      category: selectedOption?.value || ''
-    }));
-  };
-
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="flex items-center gap-4 mb-6">
         <button
@@ -147,32 +123,16 @@ const ExpenseForm = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Main Details Card */}
-        <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Category
-            </label>
-            <Select<CategoryOption, false, GroupBase<CategoryOption>>
-              value={
-                formData.category
-                  ? {
-                      value: formData.category,
-                      label: categories.find(c => c.id === formData.category)?.name || '',
-                      icon: categories.find(c => c.id === formData.category)?.icon
-                    }
-                  : null
-              }
-              onChange={handleCategoryChange}
-              options={groupedCategories}
-              components={{ Option: CategoryOption }}
-              className="react-select-container"
-              classNamePrefix="react-select"
-              placeholder="Select a category"
-              required
-              isSearchable
-              menuPosition="fixed"
-            />
-          </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
+          <Dropdown
+            label="Category"
+            value={formData.category}
+            onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+            options={categoryOptions}
+            placeholder="Select a category"
+            required
+            groupBy
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -210,7 +170,7 @@ const ExpenseForm = () => {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Amount (£)
@@ -219,6 +179,7 @@ const ExpenseForm = () => {
                 <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="number"
+                  inputMode="decimal"
                   step="0.01"
                   min="0"
                   value={formData.amount}
@@ -250,45 +211,34 @@ const ExpenseForm = () => {
         </div>
 
         {/* Split Details Card */}
-        <div className="bg-white rounded-lg shadow-sm p-6 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Paid By
-              </label>
-              <div className="relative">
-                <Users className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                <select
-                  value={formData.paidBy}
-                  onChange={(e) => setFormData({ ...formData, paidBy: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent appearance-none"
-                  required
-                >
-                  <option value="Andres">Andres</option>
-                  <option value="Antonio">Antonio</option>
-                </select>
-              </div>
-            </div>
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Dropdown
+              label="Paid By"
+              value={formData.paidBy}
+              onChange={(value) => setFormData(prev => ({ ...prev, paidBy: value }))}
+              options={[
+                { value: 'Andres', label: 'Andres' },
+                { value: 'Antonio', label: 'Antonio' }
+              ]}
+              required
+            />
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Split
-              </label>
-              <select
-                value={formData.split}
-                onChange={(e) => setFormData({ ...formData, split: e.target.value as 'equal' | 'no-split' })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                required
-              >
-                <option value="equal">Equal Split</option>
-                <option value="no-split">No Split</option>
-              </select>
-            </div>
+            <Dropdown
+              label="Split"
+              value={formData.split}
+              onChange={(value) => setFormData(prev => ({ ...prev, split: value as 'equal' | 'no-split' }))}
+              options={[
+                { value: 'equal', label: 'Equal Split' },
+                { value: 'no-split', label: 'No Split' }
+              ]}
+              required
+            />
           </div>
         </div>
 
         {/* Recurring Details Card */}
-        <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <div className="flex items-start gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-2">
@@ -319,6 +269,7 @@ const ExpenseForm = () => {
               </label>
               <input
                 type="number"
+                inputMode="numeric"
                 min="1"
                 max="31"
                 value={formData.recurringDay}
@@ -333,7 +284,7 @@ const ExpenseForm = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex gap-4">
+        <div className="flex gap-4 sticky bottom-0 bg-white p-4 shadow-lg rounded-t-lg">
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -343,7 +294,7 @@ const ExpenseForm = () => {
           </button>
           <button
             type="submit"
-            disabled={isSubmitting}
+            disabled={isSubmitting || !formData.category}
             className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {isSubmitting && (
