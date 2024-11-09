@@ -312,6 +312,13 @@ export const exportToExcel = async (
   // Format amount column as currency
   worksheet.getColumn(5).numFmt = '£#,##0.00';
 
-  // Save the file
-  await workbook.xlsx.writeFile(`expenses-${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+  // Generate Excel file and trigger download
+  const buffer = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `expenses-${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  a.click();
+  window.URL.revokeObjectURL(url);
 };
