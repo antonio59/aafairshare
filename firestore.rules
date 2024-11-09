@@ -2,81 +2,8 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
-    }
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    // Common validation rules
-    function validateTimestamp(timestamp) {
-      return timestamp is timestamp;
-    }
-    
-    function validateNumber(num) {
-      return num is number && num >= 0;
-    }
-    
-    function validateString(str) {
-      return str is string && str.size() > 0;
-    }
-
-    // Expenses collection
-    match /expenses/{expenseId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() 
-        && validateNumber(request.resource.data.amount)
-        && validateTimestamp(request.resource.data.date);
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
-    }
-    
-    // Categories collection
-    match /categories/{categoryId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-    
-    // Tags collection
-    match /tags/{tagId} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn();
-    }
-    
-    // Budgets collection
-    match /budgets/{budgetId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() 
-        && validateNumber(request.resource.data.amount);
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
-    }
-    
-    // Recurring expenses collection
-    match /recurringExpenses/{recurringExpenseId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() 
-        && validateNumber(request.resource.data.amount)
-        && validateNumber(request.resource.data.dayOfMonth)
-        && request.resource.data.dayOfMonth >= 1 
-        && request.resource.data.dayOfMonth <= 31;
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
-    }
-    
-    // Settlements collection
-    match /settlements/{settlementId} {
-      allow read: if isSignedIn();
-      allow create: if isSignedIn() 
-        && validateString(request.resource.data.month)
-        && validateString(request.resource.data.settledBy)
-        && validateTimestamp(request.resource.data.settledAt)
-        && validateNumber(request.resource.data.balance);
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+    match /{document=**} {
+      allow read, write;
     }
   }
 }
