@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 
@@ -16,8 +16,11 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore with settings
-const db = getFirestore(app);
+// Initialize Firestore with cache settings
+const db = initializeFirestore(app, {
+  cacheSizeBytes: 50 * 1024 * 1024, // 50 MB cache size
+  experimentalForceLongPolling: true, // Better offline support
+});
 
 // Initialize Auth
 const auth = getAuth(app);
@@ -36,11 +39,10 @@ if (process.env.NODE_ENV !== 'development') {
 if (process.env.NODE_ENV === 'development') {
   try {
     // Only connect to emulators if they're running
-    fetch('http://localhost:8080')
+    fetch('http://localhost:9099')
       .then(() => {
-        connectFirestoreEmulator(db, 'localhost', 8080);
         connectAuthEmulator(auth, 'http://localhost:9099');
-        console.log('Connected to Firebase emulators');
+        console.log('Connected to Firebase Auth emulator');
       })
       .catch(() => {
         console.log('Firebase emulators not detected, using production environment');
@@ -49,29 +51,6 @@ if (process.env.NODE_ENV === 'development') {
     console.warn('Failed to connect to emulators:', error);
   }
 }
-
-// Enable offline persistence only if not already enabled
-let persistenceEnabled = false;
-const enablePersistence = async () => {
-  if (!persistenceEnabled) {
-    try {
-      await enableIndexedDbPersistence(db);
-      persistenceEnabled = true;
-      console.log('Firestore persistence enabled');
-    } catch (err: any) {
-      if (err.code === 'failed-precondition') {
-        console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
-      } else if (err.code === 'unimplemented') {
-        console.warn('The current browser does not support persistence.');
-      } else {
-        console.error('Failed to enable persistence:', err);
-      }
-    }
-  }
-};
-
-// Try to enable persistence
-enablePersistence();
 
 export { db, auth, analytics };
 export default app;
