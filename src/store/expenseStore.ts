@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 import { format, isAfter, addMonths, startOfDay } from 'date-fns';
 import type { Category, CategoryGroup, Expense, Tag, RecurringExpense, Budget, Settlement } from '../types';
-import defaultCategoriesData from '../data/defaultCategories.json';
 import {
   addExpenseToFirestore,
   updateExpenseInFirestore,
@@ -51,13 +50,11 @@ interface Actions {
   addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
   updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
   deleteCategory: (id: string) => Promise<void>;
-  addMissingDefaultCategory: (categoryName: string) => Promise<Category | null>;
 
   // Category Group actions
   addCategoryGroup: (group: Omit<CategoryGroup, 'id'>) => Promise<void>;
   updateCategoryGroup: (id: string, group: Partial<CategoryGroup>) => Promise<void>;
   deleteCategoryGroup: (id: string) => Promise<void>;
-  addMissingDefaultGroup: (groupName: string) => Promise<CategoryGroup | null>;
   
   // Tag actions
   addTag: (tag: Omit<Tag, 'id'>) => Promise<void>;
@@ -102,40 +99,6 @@ export const useExpenseStore = create<Store>((set, get) => ({
   initializeStore: async () => {
     try {
       const data = await fetchAllData();
-      
-      // If no category groups exist, add default ones
-      if (data.categoryGroups.length === 0) {
-        const defaultGroups = defaultCategoriesData.categoryGroups as CategoryGroup[];
-        for (const defaultGroup of defaultGroups) {
-          const newGroup = { ...defaultGroup, id: uuidv4() };
-          await addCategoryGroupToFirestore(newGroup);
-          data.categoryGroups.push(newGroup);
-        }
-      }
-
-      // If no categories exist, add default ones
-      if (data.categories.length === 0) {
-        const groupNameToId = data.categoryGroups.reduce<Record<string, string>>((acc, group) => {
-          acc[group.name] = group.id;
-          return acc;
-        }, {});
-
-        const defaultCategories = defaultCategoriesData.categories as any[];
-        for (const defaultCategory of defaultCategories) {
-          const group = data.categoryGroups.find(g => g.name === defaultCategory.group);
-          if (group) {
-            const newCategory = {
-              id: uuidv4(),
-              name: defaultCategory.name,
-              color: defaultCategory.color,
-              groupId: group.id
-            };
-            await addCategoryToFirestore(newCategory);
-            data.categories.push(newCategory);
-          }
-        }
-      }
-
       set({ 
         ...data, 
         initialized: true,
@@ -203,29 +166,6 @@ export const useExpenseStore = create<Store>((set, get) => ({
     }
   },
 
-  addMissingDefaultGroup: async (groupName) => {
-    try {
-      const { categoryGroups } = get();
-      const defaultGroup = (defaultCategoriesData.categoryGroups as CategoryGroup[])
-        .find(g => g.name === groupName);
-      
-      if (defaultGroup && !categoryGroups.some(g => g.name === groupName)) {
-        const newGroup = { ...defaultGroup, id: uuidv4() };
-        await addCategoryGroupToFirestore(newGroup);
-        set((state) => ({
-          categoryGroups: [...state.categoryGroups, newGroup],
-          error: null
-        }));
-        return newGroup;
-      }
-      return null;
-    } catch (error) {
-      console.error('Failed to add default group:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to add default group' });
-      throw error;
-    }
-  },
-
   // Category actions
   addCategory: async (category) => {
     try {
@@ -268,37 +208,6 @@ export const useExpenseStore = create<Store>((set, get) => ({
     } catch (error) {
       console.error('Failed to delete category:', error);
       set({ error: error instanceof Error ? error.message : 'Failed to delete category' });
-      throw error;
-    }
-  },
-
-  addMissingDefaultCategory: async (categoryName) => {
-    try {
-      const { categories, categoryGroups } = get();
-      const defaultCategory = (defaultCategoriesData.categories as any[])
-        .find(c => c.name === categoryName);
-      
-      if (defaultCategory && !categories.some(c => c?.name === categoryName)) {
-        const group = categoryGroups.find(g => g.name === defaultCategory.group);
-        if (group) {
-          const newCategory = {
-            id: uuidv4(),
-            name: defaultCategory.name,
-            color: defaultCategory.color,
-            groupId: group.id
-          };
-          await addCategoryToFirestore(newCategory);
-          set((state) => ({
-            categories: [...state.categories, newCategory],
-            error: null
-          }));
-          return newCategory;
-        }
-      }
-      return null;
-    } catch (error) {
-      console.error('Failed to add default category:', error);
-      set({ error: error instanceof Error ? error.message : 'Failed to add default category' });
       throw error;
     }
   },
