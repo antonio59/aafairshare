@@ -24,8 +24,6 @@ export interface Tag {
 export interface CategoryGroup {
   id: string;
   name: string;
-  color: string;
-  icon?: string;
   order: number;
 }
 

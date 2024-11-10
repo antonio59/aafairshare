@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
+import { X } from 'lucide-react';
 import type { Expense } from '../types';
 import Select from 'react-select';
 import CreatableSelect from 'react-select/creatable';
@@ -55,13 +56,11 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
 
   const handleCreateTag = async (inputValue: string) => {
     try {
-      // Create the new tag
       await addTag({
         name: inputValue,
         categoryId: formData.category,
       });
 
-      // After tag is created, find it in the updated tags list
       const newTag = tags.find(tag => tag.name === inputValue);
       if (newTag) {
         setFormData(prev => ({
@@ -74,137 +73,191 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
     }
   };
 
-  // Prevent mouse wheel from changing number input
   const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
   };
 
+  const selectStyles = {
+    control: (base: any) => ({
+      ...base,
+      minHeight: '48px',
+      borderRadius: '0.75rem',
+      borderColor: '#E5E7EB',
+      boxShadow: 'none',
+      '&:hover': {
+        borderColor: '#D1D5DB',
+      },
+    }),
+    valueContainer: (base: any) => ({
+      ...base,
+      padding: '4px 16px',
+    }),
+    input: (base: any) => ({
+      ...base,
+      padding: '4px',
+    }),
+    option: (base: any, state: any) => ({
+      ...base,
+      padding: '10px 16px',
+      backgroundColor: state.isSelected ? '#2563EB' : state.isFocused ? '#EFF6FF' : 'white',
+      '&:active': {
+        backgroundColor: '#DBEAFE',
+      },
+    }),
+    menu: (base: any) => ({
+      ...base,
+      borderRadius: '0.75rem',
+      overflow: 'hidden',
+    }),
+  };
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg w-full max-w-md">
-        <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Edit Expense</h2>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category
-              </label>
-              <Select
-                value={groupedCategories.find(opt => opt.value === formData.category)}
-                onChange={(option) => setFormData({ ...formData, category: option?.value || '' })}
-                options={groupedCategories}
-                className="w-full"
-                classNamePrefix="react-select"
-                placeholder="Select a category"
-                required
-              />
-            </div>
+    <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 overflow-y-auto">
+      <div className="bg-white w-full sm:rounded-xl sm:max-w-md max-h-[100dvh] flex flex-col">
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between sm:rounded-t-xl">
+          <h2 className="text-xl font-semibold text-gray-900">Edit Expense</h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
+            aria-label="Close"
+          >
+            <X size={24} />
+          </button>
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description (Optional)
-              </label>
-              <input
-                type="text"
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
+        {/* Form */}
+        <div className="flex-1 overflow-y-auto px-6 py-8">
+          <form id="expense-form" onSubmit={handleSubmit} className="space-y-8">
+            <div className="space-y-7">
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                  Category
+                </label>
+                <Select
+                  value={groupedCategories.find(opt => opt.value === formData.category)}
+                  onChange={(option) => setFormData({ ...formData, category: option?.value || '' })}
+                  options={groupedCategories}
+                  className="w-full"
+                  classNamePrefix="react-select"
+                  placeholder="Select a category"
+                  required
+                  styles={selectStyles}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tags
-              </label>
-              <CreatableSelect
-                isMulti
-                value={formData.tags.map(tagId => {
-                  const tag = tags.find(t => t.id === tagId);
-                  return tag ? { value: tag.id, label: tag.name } : null;
-                })}
-                onChange={handleTagChange}
-                onCreateOption={handleCreateTag}
-                options={tagOptions}
-                className="w-full"
-                classNamePrefix="react-select"
-                placeholder="Add tags..."
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                  Description (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  className="w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount (£)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                value={formData.amount}
-                onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                onWheel={handleWheel}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                  Tags
+                </label>
+                <CreatableSelect
+                  isMulti
+                  value={formData.tags.map(tagId => {
+                    const tag = tags.find(t => t.id === tagId);
+                    return tag ? { value: tag.id, label: tag.name } : null;
+                  })}
+                  onChange={handleTagChange}
+                  onCreateOption={handleCreateTag}
+                  options={tagOptions}
+                  className="w-full"
+                  classNamePrefix="react-select"
+                  placeholder="Add tags..."
+                  styles={selectStyles}
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                  Amount (£)
+                </label>
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  step="0.01"
+                  value={formData.amount}
+                  onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                  onWheel={handleWheel}
+                  className="w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Paid By
-              </label>
-              <select
-                value={formData.paidBy}
-                onChange={(e) => setFormData({ ...formData, paidBy: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="Andres">Andres</option>
-                <option value="Antonio">Antonio</option>
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                  Date
+                </label>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  className="w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base appearance-none"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Split
-              </label>
-              <select
-                value={formData.split}
-                onChange={(e) => setFormData({ ...formData, split: e.target.value as 'equal' | 'no-split' })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="equal">Equal Split</option>
-                <option value="no-split">No Split</option>
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                  Paid By
+                </label>
+                <select
+                  value={formData.paidBy}
+                  onChange={(e) => setFormData({ ...formData, paidBy: e.target.value })}
+                  className="w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base bg-white"
+                  required
+                >
+                  <option value="Andres">Andres</option>
+                  <option value="Antonio">Antonio</option>
+                </select>
+              </div>
 
-            <div className="flex justify-end gap-3 pt-4">
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              >
-                Save Changes
-              </button>
+              <div>
+                <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                  Split
+                </label>
+                <select
+                  value={formData.split}
+                  onChange={(e) => setFormData({ ...formData, split: e.target.value as 'equal' | 'no-split' })}
+                  className="w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base bg-white"
+                  required
+                >
+                  <option value="equal">Equal Split</option>
+                  <option value="no-split">No Split</option>
+                </select>
+              </div>
             </div>
           </form>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t sm:rounded-b-xl">
+          <div className="flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-w-[88px] px-4 py-2.5 text-gray-700 hover:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              form="expense-form"
+              type="submit"
+              className="min-w-[88px] bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+            >
+              Save
+            </button>
+          </div>
         </div>
       </div>
     </div>
