@@ -53,9 +53,9 @@ const Navbar = () => {
       </header>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
         <div className="container mx-auto px-2 sm:px-4">
-          <div className="grid grid-cols-6 py-1 sm:py-2">
+          <div className="grid grid-cols-6 gap-1">
             {navItems.map(({ path, icon: Icon, label }) => {
               const active = isActive(path);
               return (
@@ -68,12 +68,12 @@ const Navbar = () => {
                       : 'text-gray-600 hover:text-blue-600'
                   }`}
                 >
-                  <div className={`p-1 rounded-lg ${
+                  <div className={`p-1.5 rounded-lg ${
                     active ? 'bg-blue-50' : 'hover:bg-gray-50'
                   }`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-medium mt-1 text-center leading-none">
+                  <span className="text-xs font-medium mt-1 text-center leading-tight line-clamp-1">
                     {label}
                   </span>
                 </Link>
@@ -82,6 +82,9 @@ const Navbar = () => {
           </div>
         </div>
       </nav>
+
+      {/* Main Content Padding */}
+      <div className="pb-[72px]" />
     </>
   );
 };
