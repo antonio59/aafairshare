@@ -5,7 +5,6 @@ import Navbar from './components/Navbar';
 import ExpenseList from './components/ExpenseList';
 import ExpenseForm from './components/ExpenseForm';
 import Analytics from './components/Analytics';
-import Budget from './components/Budget';
 import Settings from './components/Settings';
 import Settlement from './components/Settlement';
 
@@ -25,7 +24,6 @@ function App() {
             <Route path="/" element={<ExpenseList />} />
             <Route path="/add" element={<ExpenseForm />} />
             <Route path="/analytics" element={<Analytics />} />
-            <Route path="/budget" element={<Budget />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settlement" element={<Settlement />} />
           </Routes>

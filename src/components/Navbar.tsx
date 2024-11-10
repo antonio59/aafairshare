@@ -1,4 +1,4 @@
-import { Home, PlusCircle, BarChart3, Settings, Wallet, Target, LogOut } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Settings, Wallet, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 
@@ -14,7 +14,6 @@ const Navbar = () => {
     { path: '/add', icon: PlusCircle, label: 'Add' },
     { path: '/settlement', icon: Wallet, label: 'Settlement' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
-    { path: '/budget', icon: Target, label: 'Budget' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
@@ -55,7 +54,7 @@ const Navbar = () => {
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
         <div className="container mx-auto px-2 sm:px-4">
-          <div className="grid grid-cols-6 gap-1">
+          <div className="grid grid-cols-5 gap-1 py-1">
             {navItems.map(({ path, icon: Icon, label }) => {
               const active = isActive(path);
               return (
@@ -73,7 +72,7 @@ const Navbar = () => {
                   }`}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  <span className="text-xs font-medium mt-1 text-center leading-tight line-clamp-1">
+                  <span className="text-[10px] font-medium mt-1 text-center leading-none">
                     {label}
                   </span>
                 </Link>
@@ -83,7 +82,7 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Main Content Padding */}
+      {/* Content Padding */}
       <div className="pb-[72px]" />
     </>
   );

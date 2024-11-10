@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useUserStore } from '../../store/userStore';
-import { Plus, Edit2, Trash2, X, Calendar, Tag, AlertCircle, CheckCircle2, Loader2, Hash, Folder, Grid } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Calendar, Tag, AlertCircle, CheckCircle2, Loader2, Hash, Folder, Grid, Target } from 'lucide-react';
 import RecurringExpenses from './RecurringExpenses';
 import CategoryGroupSettings from './CategoryGroupSettings';
+import Budget from '../Budget';
 import type { Category, Tag as TagType } from '../../types';
 import Dropdown from '../common/Dropdown';
 
@@ -17,7 +18,7 @@ const isTag = (item: any): item is TagType => {
 };
 
 const ExpenseSettings = () => {
-  const [activeTab, setActiveTab] = useState<'groups' | 'categories' | 'tags' | 'recurring'>('groups');
+  const [activeTab, setActiveTab] = useState<'groups' | 'categories' | 'tags' | 'recurring' | 'budget'>('groups');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Category | TagType | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -33,8 +34,6 @@ const ExpenseSettings = () => {
     addTag, 
     updateTag, 
     deleteTag,
-    addMissingDefaultCategory,
-    addMissingDefaultGroup
   } = useExpenseStore();
   const { currentUser } = useUserStore();
 
@@ -106,14 +105,14 @@ const ExpenseSettings = () => {
           await updateCategory(editingItem.id, { 
             name: formData.name, 
             groupId: formData.groupId,
-            color: group.color
+            color: editingItem.color
           });
           setSuccess('Category updated successfully');
         } else {
           await addCategory({ 
             name: formData.name, 
             groupId: formData.groupId,
-            color: group.color
+            color: '#6B7280' // Default color
           });
           setSuccess('Category added successfully');
         }
@@ -306,6 +305,9 @@ const ExpenseSettings = () => {
       case 'recurring':
         return <RecurringExpenses />;
 
+      case 'budget':
+        return <Budget />;
+
       default:
         return null;
     }
@@ -356,7 +358,18 @@ const ExpenseSettings = () => {
           }`}
         >
           <Calendar size={18} />
-          Recurring Expenses
+          Recurring
+        </button>
+        <button
+          onClick={() => setActiveTab('budget')}
+          className={`px-4 py-2 rounded-lg flex items-center gap-2 whitespace-nowrap ${
+            activeTab === 'budget'
+              ? 'bg-blue-600 text-white'
+              : 'bg-gray-200 text-gray-700'
+          }`}
+        >
+          <Target size={18} />
+          Budget
         </button>
       </div>
 
