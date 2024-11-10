@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
 import { ArrowLeft, Calendar, DollarSign } from 'lucide-react';
-import type { Expense } from '../types';
+import type { Expense, Category } from '../types';
 import Dropdown from './common/Dropdown';
 import TagInput from './common/TagInput';
 
@@ -14,7 +14,7 @@ type ExpenseFormData = Omit<Expense, 'id'> & {
 
 const ExpenseForm = () => {
   const navigate = useNavigate();
-  const { addExpense, categories, tags, addTag } = useExpenseStore();
+  const { addExpense, categories, categoryGroups, tags, addTag } = useExpenseStore();
   const { currentUser } = useUserStore();
   const [formData, setFormData] = useState<ExpenseFormData>({
     description: '',
@@ -29,16 +29,30 @@ const ExpenseForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Convert categories for the dropdown
+  // Convert categories for the dropdown with proper deduplication
   const categoryOptions = categories
-    .filter(cat => cat !== null)
-    .map(cat => ({
-      value: cat.id,
-      label: cat.name,
-      icon: cat.icon,
-      group: cat.groupId
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .filter((cat): cat is Category => cat !== null)
+    .map(cat => {
+      const group = categoryGroups.find(g => g.id === cat.groupId);
+      return {
+        value: cat.id,
+        label: cat.name,
+        icon: cat.icon,
+        group: group?.name || 'Other'
+      };
+    })
+    .sort((a, b) => {
+      // First sort by group name
+      const groupA = a.group || '';
+      const groupB = b.group || '';
+      const groupCompare = groupA.localeCompare(groupB);
+      
+      // If groups are the same, sort by label
+      if (groupCompare === 0) {
+        return a.label.localeCompare(b.label);
+      }
+      return groupCompare;
+    });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -241,10 +255,11 @@ const ExpenseForm = () => {
               disabled={isSubmitting || !formData.category}
               className="min-w-[88px] bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {isSubmitting && (
+              {isSubmitting ? (
                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
+              ) : (
+                <span>Add</span>
               )}
-              <span>Add</span>
             </button>
           </div>
         </form>

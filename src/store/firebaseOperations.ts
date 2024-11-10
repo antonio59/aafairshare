@@ -364,6 +364,16 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       const recurringExpenses = await getDocs(recurringExpensesRef);
       const settlements = await getDocs(settlementsRef);
 
+      // Deduplicate categories based on id and name
+      const uniqueCategories = Array.from(
+        new Map(
+          categories.docs.map(doc => {
+            const data = doc.data() as Category;
+            return [`${data.id}-${data.name}`, data];
+          })
+        ).values()
+      );
+
       return {
         expenses: expenses.docs.map(doc => {
           const data = doc.data();
@@ -372,7 +382,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
             date: timestampToString(data.date as Timestamp)
           } as Expense;
         }),
-        categories: categories.docs.map(doc => doc.data() as Category),
+        categories: uniqueCategories,
         categoryGroups: categoryGroups.docs.map(doc => doc.data() as CategoryGroup),
         tags: tags.docs.map(doc => doc.data() as Tag),
         budgets: budgets.docs.map(doc => doc.data() as Budget),
