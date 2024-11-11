@@ -8,5 +8,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "add-categories": "ts-node --compilerOptions '{\"module\":\"commonjs\"}' src/scripts/addCategories.ts"
+  },
+  "dependencies": {
+    "firebase": "^11.0.1"
   }
 }
