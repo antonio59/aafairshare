@@ -4,41 +4,6 @@ import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebas
 import { auth } from '../firebase';
 import type { User } from '../types';
 
-const defaultUsers: User[] = [
-  {
-    id: '1',
-    name: 'Andres',
-    email: 'andypamo@gmail.com',
-    role: 'partner1',
-    preferences: {
-      currency: 'GBP',
-      favicon: '',
-      notifications: {
-        overBudget: true,
-        monthlyReminder: true,
-        monthEndReminder: true,
-        monthlyAnalytics: true,
-      },
-    },
-  },
-  {
-    id: '2',
-    name: 'Antonio',
-    email: 'antoniojsmith@protonmail.com',
-    role: 'partner2',
-    preferences: {
-      currency: 'GBP',
-      favicon: '',
-      notifications: {
-        overBudget: true,
-        monthlyReminder: true,
-        monthEndReminder: true,
-        monthlyAnalytics: true,
-      },
-    },
-  },
-];
-
 interface UserState {
   users: User[];
   currentUser: User | null;
@@ -46,23 +11,15 @@ interface UserState {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (id: string, updates: Partial<User>) => void;
-  initializeDefaultUser: () => void;
   setCurrentUser: (user: User | null) => void;
 }
 
 export const useUserStore = create<UserState>()(
   persist(
     (set, get) => ({
-      users: defaultUsers,
+      users: [],
       currentUser: null,
       error: null,
-
-      initializeDefaultUser: () => {
-        const { currentUser, users } = get();
-        if (!currentUser && users.length > 0) {
-          set({ currentUser: users[1] }); // Set Antonio as default user
-        }
-      },
 
       setCurrentUser: (user: User | null) => {
         set({ currentUser: user });
@@ -72,20 +29,45 @@ export const useUserStore = create<UserState>()(
         try {
           // Authenticate with Firebase
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          console.log('Firebase Auth user:', userCredential.user);
+          const firebaseUser = userCredential.user;
           
-          // Find the user in our local store by email
-          const user = get().users.find(
-            (u) => u.email.toLowerCase() === email.toLowerCase()
-          );
-          
-          if (user) {
-            set({ currentUser: user, error: null });
-            return true;
-          }
-          
-          set({ error: 'User not found in local store' });
-          return false;
+          // Create or update user in local store based on Firebase user
+          const user: User = {
+            id: firebaseUser.uid,
+            name: firebaseUser.displayName || email.split('@')[0],
+            email: firebaseUser.email || email,
+            role: 'partner1', // Default role, can be updated later
+            preferences: {
+              currency: 'GBP',
+              favicon: '',
+              notifications: {
+                overBudget: true,
+                monthlyReminder: true,
+                monthEndReminder: true,
+                monthlyAnalytics: true,
+              },
+            },
+          };
+
+          // Update users array if user doesn't exist
+          set((state) => {
+            const existingUserIndex = state.users.findIndex(u => u.id === user.id);
+            const updatedUsers = [...state.users];
+            
+            if (existingUserIndex === -1) {
+              updatedUsers.push(user);
+            } else {
+              updatedUsers[existingUserIndex] = user;
+            }
+
+            return {
+              users: updatedUsers,
+              currentUser: user,
+              error: null
+            };
+          });
+
+          return true;
         } catch (error) {
           console.error('Login error:', error);
           set({ error: 'Invalid email or password' });
@@ -131,18 +113,13 @@ export const useUserStore = create<UserState>()(
         currentUser: state.currentUser,
       }),
       onRehydrateStorage: () => (state) => {
-        // Initialize default user after rehydration if no user is logged in
         if (state) {
-          state.initializeDefaultUser();
-          
           // Set up Firebase Auth state listener
           onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
               console.log('Firebase user authenticated:', firebaseUser);
               // Find matching user in our store
-              const user = state.users.find(
-                (u) => u.email.toLowerCase() === firebaseUser.email?.toLowerCase()
-              );
+              const user = state.users.find(u => u.id === firebaseUser.uid);
               if (user && user !== state.currentUser) {
                 state.setCurrentUser(user);
               }

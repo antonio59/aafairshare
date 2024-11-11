@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,7 +8,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { users, setCurrentUser } = useUserStore();
+  const login = useUserStore(state => state.login);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,27 +16,18 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      // First authenticate with Firebase
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Firebase Auth successful:', userCredential.user);
-
-      // Find matching user in our local store
-      const user = users.find(
-        (u) => u.email.toLowerCase() === email.toLowerCase()
-      );
-      
-      if (user) {
-        setCurrentUser(user);
+      const success = await login(email, password);
+      if (success) {
         navigate('/');
       } else {
-        setError('User not found in local store');
+        setError('Failed to authenticate. Please check your credentials.');
       }
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof Error) {
         setError(error.message);
       } else {
-        setError('Invalid email or password');
+        setError('An unexpected error occurred. Please try again.');
       }
     } finally {
       setIsLoading(false);
