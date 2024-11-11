@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
+import { storage } from '../../firebase';
+import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Image } from 'lucide-react';
 
 interface FaviconSettingsProps {}
 
 const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
-  console.log('FaviconSettings: Starting render');
+  console.log('FaviconSettings component rendering');
   const { currentUser, updateUser } = useUserStore();
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -18,9 +20,10 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
   const FILE_EXTENSIONS = ['.png', '.ico', '.jpg', '.svg'];
 
   useEffect(() => {
-    console.log('FaviconSettings: useEffect - currentUser changed', currentUser);
     if (currentUser?.preferences.favicon) {
-      setPreviewUrl(currentUser.preferences.favicon);
+      getDownloadURL(ref(storage, currentUser.preferences.favicon))
+        .then(url => setPreviewUrl(url))
+        .catch(error => console.error('Error loading favicon:', error));
     }
   }, [currentUser]);
 
@@ -39,7 +42,6 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    console.log('FaviconSettings: handleFileChange triggered');
     setError('');
     setSuccess('');
     const file = event.target.files?.[0];
@@ -52,7 +54,7 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       return;
     }
 
-    // Create preview and base64
+    // Create preview
     const reader = new FileReader();
     reader.onloadend = () => {
       setPreviewUrl(reader.result as string);
@@ -72,23 +74,43 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
   };
 
   const handleSave = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !fileInputRef.current?.files?.[0]) return;
     
     setIsProcessing(true);
     setError('');
     setSuccess('');
 
     try {
-      // Update user preferences with base64 string
+      const file = fileInputRef.current.files[0];
+      const fileExt = file.name.split('.').pop() || '';
+      const fileName = `favicon_${Date.now()}.${fileExt}`;
+      const storagePath = `favicons/${currentUser.id}/${fileName}`;
+      const storageRef = ref(storage, storagePath);
+
+      // Delete old favicon if exists and path is stored
+      if (currentUser.preferences.favicon) {
+        try {
+          const oldRef = ref(storage, currentUser.preferences.favicon);
+          await deleteObject(oldRef);
+        } catch (error) {
+          console.error('Error deleting old favicon:', error);
+        }
+      }
+
+      // Upload new favicon
+      await uploadBytes(storageRef, file);
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      // Update user preferences with storage path
       await updateUser(currentUser.id, {
         preferences: {
           ...currentUser.preferences,
-          favicon: previewUrl,
+          favicon: storagePath,
         },
       });
 
       // Update favicon in document
-      updateFavicon(previewUrl);
+      updateFavicon(downloadUrl);
 
       setSuccess('Favicon updated successfully!');
       setTimeout(() => setSuccess(''), 3000);
@@ -107,6 +129,16 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       setError('');
       setSuccess('');
       
+      // Delete current favicon from storage if path exists
+      if (currentUser.preferences.favicon) {
+        try {
+          const oldRef = ref(storage, currentUser.preferences.favicon);
+          await deleteObject(oldRef);
+        } catch (error) {
+          console.error('Error deleting old favicon:', error);
+        }
+      }
+
       // Reset to default favicon
       const defaultFavicon = '/favicon.ico';
       updateFavicon(defaultFavicon);
@@ -131,12 +163,7 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
     }
   };
 
-  if (!currentUser) {
-    console.log('FaviconSettings: No currentUser, returning null');
-    return null;
-  }
-
-  console.log('FaviconSettings: Rendering with currentUser', currentUser);
+  if (!currentUser) return null;
 
   return (
     <div className="bg-white rounded-lg shadow p-6 space-y-4 border-2 border-blue-500 mt-8" style={{ marginTop: '2rem' }}>
