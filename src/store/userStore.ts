@@ -11,6 +11,7 @@ const defaultUsers: User[] = [
     role: 'partner1',
     preferences: {
       currency: 'GBP',
+      favicon: '',
       notifications: {
         overBudget: true,
         monthlyReminder: true,
@@ -27,6 +28,7 @@ const defaultUsers: User[] = [
     role: 'partner2',
     preferences: {
       currency: 'GBP',
+      favicon: '',
       notifications: {
         overBudget: true,
         monthlyReminder: true,
@@ -45,6 +47,7 @@ interface UserState {
   logout: () => void;
   updateUser: (id: string, updates: Partial<User>) => void;
   updatePassword: (id: string, newPassword: string) => void;
+  initializeDefaultUser: () => void;
 }
 
 export const useUserStore = create<UserState>()(
@@ -53,6 +56,13 @@ export const useUserStore = create<UserState>()(
       users: defaultUsers,
       currentUser: null,
       error: null,
+
+      initializeDefaultUser: () => {
+        const { currentUser, users } = get();
+        if (!currentUser && users.length > 0) {
+          set({ currentUser: users[1] }); // Set Antonio as default user
+        }
+      },
 
       login: (email: string, password: string) => {
         const user = get().users.find(
@@ -102,6 +112,12 @@ export const useUserStore = create<UserState>()(
         users: state.users,
         currentUser: state.currentUser,
       }),
+      onRehydrateStorage: () => (state) => {
+        // Initialize default user after rehydration if no user is logged in
+        if (state) {
+          state.initializeDefaultUser();
+        }
+      },
     }
   )
 );

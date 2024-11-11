@@ -2,6 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
+import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC8zIGv9XeuAG6gP2rXPih9tixN1zq0JYo",
@@ -25,6 +26,9 @@ const db = initializeFirestore(app, {
 // Initialize Auth
 const auth = getAuth(app);
 
+// Initialize Storage
+const storage = getStorage(app);
+
 // Initialize Analytics
 let analytics = null;
 try {
@@ -33,5 +37,5 @@ try {
   console.warn('Analytics initialization failed:', error);
 }
 
-export { db, auth, analytics };
+export { db, auth, storage, analytics };
 export default app;

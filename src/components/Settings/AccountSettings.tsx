@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
+import FaviconSettings from './FaviconSettings';
 
 const AccountSettings = () => {
   const { currentUser, updateUser, updatePassword } = useUserStore();
@@ -7,6 +8,14 @@ const AccountSettings = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
+
+  useEffect(() => {
+    console.log('AccountSettings mounted, currentUser:', currentUser);
+  }, [currentUser]);
+
+  useEffect(() => {
+    console.log('About to render FaviconSettings');
+  }, []);
 
   const handlePasswordChange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,47 +49,58 @@ const AccountSettings = () => {
     }
   };
 
-  if (!currentUser) return null;
+  if (!currentUser) {
+    console.log('No currentUser, returning null');
+    return null;
+  }
+
+  console.log('Rendering AccountSettings with currentUser:', currentUser);
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Account Settings</h3>
-        
-        <div className="bg-white rounded-lg shadow p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              value={currentUser.email}
-              disabled
-              className="w-full bg-gray-100"
-            />
-          </div>
+      {/* Basic Account Settings */}
+      <div className="bg-white rounded-lg shadow p-6 space-y-6">
+        <div>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">Basic Settings</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                value={currentUser.email}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100"
+              />
+            </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Currency
-            </label>
-            <select
-              value={currentUser.preferences.currency}
-              onChange={(e) => handleCurrencyChange(e.target.value)}
-              className="w-full"
-            >
-              <option value="GBP">British Pound (£)</option>
-              <option value="EUR">Euro (€)</option>
-              <option value="USD">US Dollar ($)</option>
-            </select>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Currency
+              </label>
+              <select
+                value={currentUser.preferences.currency}
+                onChange={(e) => handleCurrencyChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              >
+                <option value="GBP">British Pound (£)</option>
+                <option value="EUR">Euro (€)</option>
+                <option value="USD">US Dollar ($)</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
 
-      <div>
+      {/* Favicon Settings */}
+      <FaviconSettings />
+
+      {/* Password Change */}
+      <div className="bg-white rounded-lg shadow p-6 space-y-4">
         <h3 className="text-lg font-medium text-gray-900 mb-4">Change Password</h3>
         
-        <form onSubmit={handlePasswordChange} className="bg-white rounded-lg shadow p-6 space-y-4">
+        <form onSubmit={handlePasswordChange} className="space-y-4">
           {passwordError && (
             <div className="p-3 bg-red-100 text-red-700 rounded-md">
               {passwordError}
@@ -100,7 +120,7 @@ const AccountSettings = () => {
               type="password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="w-full"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />
           </div>
@@ -113,7 +133,7 @@ const AccountSettings = () => {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />
           </div>

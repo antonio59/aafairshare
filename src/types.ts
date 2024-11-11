@@ -6,6 +6,7 @@ export interface User {
   role: 'partner1' | 'partner2';
   preferences: {
     currency: string;
+    favicon?: string;
     notifications: {
       overBudget: boolean;
       monthlyReminder: boolean;
