@@ -7,37 +7,50 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Common function to check if user is accessing their own data
-    function isUserAuthenticated(userId) {
-      return isAuthenticated() && request.auth.uid == userId;
+    // Allow authenticated users to read all collections
+    match /expenses/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /categories/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /categoryGroups/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /tags/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /budgets/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /recurringExpenses/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
+    }
+
+    match /settlements/{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated();
     }
 
     match /users/{userId} {
-      allow read, write: if isUserAuthenticated(userId);
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAuthenticated() && request.auth.uid == userId;
     }
 
-    match /expenses/{expenseId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /categories/{categoryId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /budgets/{budgetId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /settlements/{settlementId} {
-      allow read, write: if isAuthenticated();
-    }
-
-    match /tags/{tagId} {
-      allow read, write: if isAuthenticated();
-    }
-
+    // Deny access to any other collections by default
     match /{document=**} {
-      allow read, write: if false; // Deny access to any other collections by default
+      allow read, write: if false;
     }
   }
 }
