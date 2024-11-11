@@ -13,15 +13,15 @@ service cloud.firestore {
          request.auth.token.email == 'antoniojsmith@protonmail.com');
     }
 
-    function isValidTimestamp(timestamp) {
-      return timestamp is timestamp;
+    function isValidDate(field) {
+      return field is number || field is map;
     }
 
     // Allow access to all collections for known users
     match /expenses/{expenseId} {
       allow read: if isKnownUser();
       allow write: if isKnownUser() &&
-        request.resource.data.date is timestamp;
+        isValidDate(request.resource.data.date);
     }
 
     match /categories/{categoryId} {
@@ -49,13 +49,13 @@ service cloud.firestore {
       allow write: if isKnownUser() &&
         (!('lastProcessed' in request.resource.data) || 
          request.resource.data.lastProcessed == null || 
-         isValidTimestamp(request.resource.data.lastProcessed));
+         isValidDate(request.resource.data.lastProcessed));
     }
 
     match /settlements/{settlementId} {
       allow read: if isKnownUser();
       allow write: if isKnownUser() &&
-        isValidTimestamp(request.resource.data.settledAt);
+        isValidDate(request.resource.data.settledAt);
     }
 
     // Deny access to any other collections by default
