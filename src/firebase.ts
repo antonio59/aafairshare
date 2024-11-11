@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
-import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getAuth, connectAuthEmulator, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
@@ -23,8 +23,15 @@ const db = initializeFirestore(app, {
   experimentalForceLongPolling: true, // Better offline support
 });
 
-// Initialize Auth
+// Initialize Auth with local persistence
 const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence)
+  .then(() => {
+    console.log('Firebase Auth persistence set to local');
+  })
+  .catch((error) => {
+    console.error('Error setting auth persistence:', error);
+  });
 
 // Initialize Storage
 const storage = getStorage(app);
@@ -39,7 +46,7 @@ try {
 
 // Use emulators in development
 if (process.env.NODE_ENV === 'development') {
-  connectAuthEmulator(auth, 'http://localhost:9099');
+  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
   connectStorageEmulator(storage, 'localhost', 9199);
 }
 
