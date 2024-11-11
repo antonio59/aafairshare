@@ -79,7 +79,11 @@ export const useUserStore = create<UserState>()(
       },
 
       logout: () => {
-        set({ currentUser: null, error: null });
+        set((state) => {
+          // Clear the persisted state
+          localStorage.removeItem('user-storage');
+          return { currentUser: null, error: null };
+        });
       },
 
       updateUser: (id: string, updates: Partial<User>) => {

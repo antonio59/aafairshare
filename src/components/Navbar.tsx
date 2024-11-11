@@ -17,9 +17,9 @@ const Navbar = () => {
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      await logout();
+      logout();
       navigate('/');
     } catch (error) {
       console.error('Failed to logout:', error);
