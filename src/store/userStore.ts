@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../firebase';
 import type { User } from '../types';
+import { clearAuthCache, handleAuthError } from '../utils/authUtils';
 
 interface UserState {
   users: User[];
@@ -28,6 +29,9 @@ export const useUserStore = create<UserState>()(
       login: async (email: string, password: string) => {
         try {
           console.log('Attempting login for:', email);
+          // Clear any existing auth state
+          await clearAuthCache();
+          
           // Authenticate with Firebase
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
           console.log('Firebase auth successful:', userCredential.user);
@@ -77,7 +81,7 @@ export const useUserStore = create<UserState>()(
 
           return true;
         } catch (error) {
-          console.error('Login error:', error);
+          await handleAuthError(error);
           set({ error: 'Invalid email or password' });
           return false;
         }
@@ -85,13 +89,13 @@ export const useUserStore = create<UserState>()(
 
       logout: async () => {
         try {
-          await signOut(auth);
+          await clearAuthCache();
           set({ currentUser: null, error: null });
-          // Clear persisted state
-          localStorage.removeItem('user-storage');
         } catch (error) {
           console.error('Logout error:', error);
           set({ error: 'Failed to logout' });
+          // Still try to clear state even if there's an error
+          set({ currentUser: null });
         }
       },
 
@@ -121,32 +125,40 @@ export const useUserStore = create<UserState>()(
       onRehydrateStorage: () => (state) => {
         if (state) {
           // Set up Firebase Auth state listener
-          onAuthStateChanged(auth, (firebaseUser) => {
+          onAuthStateChanged(auth, async (firebaseUser) => {
             if (firebaseUser) {
               console.log('Firebase user authenticated:', firebaseUser.email);
-              // Find matching user in our store
-              const user = state.users.find(u => u.id === firebaseUser.uid);
-              if (user && user !== state.currentUser) {
-                state.setCurrentUser(user);
-              } else if (!user) {
-                // Create new user if not found
-                const newUser: User = {
-                  id: firebaseUser.uid,
-                  name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-                  email: firebaseUser.email || '',
-                  role: firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
-                  preferences: {
-                    currency: 'GBP',
-                    favicon: '',
-                    notifications: {
-                      overBudget: true,
-                      monthlyReminder: true,
-                      monthEndReminder: true,
-                      monthlyAnalytics: true,
+              try {
+                // Verify token is valid
+                await firebaseUser.getIdToken(true);
+                
+                // Find matching user in our store
+                const user = state.users.find(u => u.id === firebaseUser.uid);
+                if (user && user !== state.currentUser) {
+                  state.setCurrentUser(user);
+                } else if (!user) {
+                  // Create new user if not found
+                  const newUser: User = {
+                    id: firebaseUser.uid,
+                    name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+                    email: firebaseUser.email || '',
+                    role: firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
+                    preferences: {
+                      currency: 'GBP',
+                      favicon: '',
+                      notifications: {
+                        overBudget: true,
+                        monthlyReminder: true,
+                        monthEndReminder: true,
+                        monthlyAnalytics: true,
+                      },
                     },
-                  },
-                };
-                state.setCurrentUser(newUser);
+                  };
+                  state.setCurrentUser(newUser);
+                }
+              } catch (error) {
+                console.error('Error verifying token:', error);
+                await clearAuthCache();
               }
             } else {
               console.log('No Firebase user');

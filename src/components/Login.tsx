@@ -4,6 +4,7 @@ import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
+import { clearAuthCache, handleAuthError } from '../utils/authUtils';
 
 interface LocationState {
   from?: Location;
@@ -19,6 +20,18 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, currentUser } = useUserStore();
+
+  // Clear auth state on mount
+  useEffect(() => {
+    const init = async () => {
+      try {
+        await clearAuthCache();
+      } catch (error) {
+        console.error('Error clearing auth cache:', error);
+      }
+    };
+    init();
+  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -52,7 +65,7 @@ const Login = () => {
         throw new Error('Failed to initialize user data');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      await handleAuthError(error);
       
       if (error instanceof FirebaseError) {
         switch (error.code) {
@@ -104,7 +117,7 @@ const Login = () => {
       setMessage('Password reset email sent. Please check your inbox and spam folder.');
       setPassword(''); // Clear password field after reset request
     } catch (error) {
-      console.error('Reset password error:', error);
+      await handleAuthError(error);
       
       if (error instanceof FirebaseError) {
         switch (error.code) {
