@@ -6,12 +6,14 @@ import ExpenseEditModal from './ExpenseEditModal';
 import MonthSelector from './MonthSelector';
 import type { Expense } from '../types';
 import { format } from 'date-fns';
+import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 const ExpenseList = () => {
   const navigate = useNavigate();
   const { expenses, categories, tags, deleteExpense } = useExpenseStore();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
+  const [isExporting, setIsExporting] = useState<'excel' | 'pdf' | null>(null);
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
@@ -23,14 +25,26 @@ const ExpenseList = () => {
     }
   };
 
-  const handleExportExcel = () => {
-    // TODO: Implement Excel export
-    console.log('Export to Excel');
+  const handleExportExcel = async () => {
+    setIsExporting('excel');
+    try {
+      await exportToExcel(monthlyExpenses, categories, tags, selectedMonth);
+    } catch (error) {
+      console.error('Failed to export to Excel:', error);
+    } finally {
+      setIsExporting(null);
+    }
   };
 
   const handleExportPDF = () => {
-    // TODO: Implement PDF export
-    console.log('Export to PDF');
+    setIsExporting('pdf');
+    try {
+      exportToPDF(monthlyExpenses, categories, tags, selectedMonth);
+    } catch (error) {
+      console.error('Failed to export to PDF:', error);
+    } finally {
+      setIsExporting(null);
+    }
   };
 
   // Filter expenses by selected month
@@ -79,19 +93,33 @@ const ExpenseList = () => {
         <div className="flex items-center gap-2">
           <button
             onClick={handleExportExcel}
-            className="inline-flex items-center gap-2 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
+            disabled={isExporting !== null}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              isExporting === 'excel'
+                ? 'bg-green-100 text-green-800 cursor-wait'
+                : 'bg-green-600 text-white hover:bg-green-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
             title="Export to Excel"
           >
             <FileSpreadsheet size={18} />
-            <span className="hidden sm:inline">Excel</span>
+            <span className="hidden sm:inline">
+              {isExporting === 'excel' ? 'Exporting...' : 'Excel'}
+            </span>
           </button>
           <button
             onClick={handleExportPDF}
-            className="inline-flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
+            disabled={isExporting !== null}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+              isExporting === 'pdf'
+                ? 'bg-red-100 text-red-800 cursor-wait'
+                : 'bg-red-600 text-white hover:bg-red-700'
+            } disabled:opacity-50 disabled:cursor-not-allowed`}
             title="Export to PDF"
           >
             <FileText size={18} />
-            <span className="hidden sm:inline">PDF</span>
+            <span className="hidden sm:inline">
+              {isExporting === 'pdf' ? 'Exporting...' : 'PDF'}
+            </span>
           </button>
           <button
             onClick={() => navigate('/add')}

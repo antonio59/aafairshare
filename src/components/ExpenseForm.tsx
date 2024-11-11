@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import { ArrowLeft, Calendar } from 'lucide-react';
+import { ArrowLeft, Calendar, HelpCircle } from 'lucide-react';
 import type { Expense, Category } from '../types';
 import Dropdown from './common/Dropdown';
 import TagInput from './common/TagInput';
@@ -120,6 +120,21 @@ const ExpenseForm = () => {
 
   const inputClassName = "w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base bg-white";
 
+  const LabelWithTooltip = ({ label, tooltip }: { label: string; tooltip: string }) => (
+    <div className="flex items-center gap-2 mb-2.5">
+      <label className="block text-sm font-medium text-gray-900">
+        {label}
+      </label>
+      <div className="group relative">
+        <HelpCircle className="w-4 h-4 text-gray-400" />
+        <div className="invisible group-hover:visible absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-sm rounded-lg whitespace-nowrap z-10">
+          {tooltip}
+          <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <>
       <style>
@@ -154,20 +169,40 @@ const ExpenseForm = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Main Details Card */}
           <div className="bg-white rounded-xl shadow-sm p-6 space-y-7">
-            <Dropdown
-              label="Category"
-              value={formData.category}
-              onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
-              options={categoryOptions}
-              placeholder="Select a category"
-              required
-              groupBy
-            />
+            <div>
+              <LabelWithTooltip 
+                label="Category"
+                tooltip="Select the expense type."
+              />
+              <Dropdown
+                value={formData.category}
+                onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                options={categoryOptions}
+                placeholder="Select a category"
+                required
+                groupBy
+              />
+            </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-2.5">
-                Description (Optional)
-              </label>
+              <LabelWithTooltip 
+                label="Tags"
+                tooltip="Add an identifier to tag an expense (e.g., Category: Food, Tag: Tesco)."
+              />
+              <TagInput
+                value={formData.tags}
+                onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                onCreateTag={handleCreateTag}
+                availableTags={tags}
+                placeholder="Add tags..."
+              />
+            </div>
+
+            <div>
+              <LabelWithTooltip 
+                label="Description (Optional)"
+                tooltip="Add notes or additional details about the expense."
+              />
               <input
                 type="text"
                 value={formData.description}
@@ -176,15 +211,6 @@ const ExpenseForm = () => {
                 placeholder="Add a description..."
               />
             </div>
-
-            <TagInput
-              label="Tags"
-              value={formData.tags}
-              onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
-              onCreateTag={handleCreateTag}
-              availableTags={tags}
-              placeholder="Add tags..."
-            />
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
