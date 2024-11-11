@@ -401,6 +401,16 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
         ).values()
       );
 
+      // Deduplicate tags based on name (case-insensitive)
+      const uniqueTags = Array.from(
+        new Map(
+          tags.docs.map(doc => {
+            const data = doc.data() as Tag;
+            return [data.name.toLowerCase(), data];
+          })
+        ).values()
+      );
+
       return {
         expenses: expenses.docs.map(doc => {
           const data = doc.data();
@@ -411,7 +421,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
         }),
         categories: uniqueCategories,
         categoryGroups: categoryGroups.docs.map(doc => doc.data() as CategoryGroup),
-        tags: tags.docs.map(doc => doc.data() as Tag),
+        tags: uniqueTags,
         budgets: budgets.docs.map(doc => doc.data() as Budget),
         recurringExpenses: recurringExpenses.docs.map(doc => {
           const data = doc.data();

@@ -215,6 +215,18 @@ export const useExpenseStore = create<Store>((set, get) => ({
   // Tag actions
   addTag: async (tag) => {
     try {
+      // Check if a tag with the same name already exists (case-insensitive)
+      const { tags } = get();
+      const existingTag = tags.find(t => t.name.toLowerCase() === tag.name.toLowerCase());
+      
+      if (existingTag) {
+        // If tag exists and has different categoryId, update it
+        if (existingTag.categoryId !== tag.categoryId) {
+          await get().updateTag(existingTag.id, { categoryId: tag.categoryId });
+        }
+        return;
+      }
+
       const newTag = { ...tag, id: uuidv4() };
       await addTagToFirestore(newTag);
       set((state) => ({
@@ -230,6 +242,37 @@ export const useExpenseStore = create<Store>((set, get) => ({
 
   updateTag: async (id, updatedTag) => {
     try {
+      // Check if a tag with the same name already exists (case-insensitive)
+      const { tags } = get();
+      const currentTag = tags.find(t => t.id === id);
+      if (!currentTag) throw new Error('Tag not found');
+
+      const existingTag = tags.find(t => 
+        t.id !== id && 
+        t.name.toLowerCase() === (updatedTag.name?.toLowerCase() || currentTag.name.toLowerCase())
+      );
+
+      if (existingTag) {
+        // If a tag with the same name exists, update its categoryId if needed
+        if (updatedTag.categoryId && existingTag.categoryId !== updatedTag.categoryId) {
+          await updateTagInFirestore(existingTag.id, { categoryId: updatedTag.categoryId });
+          set((state) => ({
+            tags: state.tags.map((t) =>
+              t.id === existingTag.id ? { ...t, categoryId: updatedTag.categoryId } : t
+            ),
+            error: null
+          }));
+        }
+        // Delete the current tag as we're using the existing one
+        await deleteTagFromFirestore(id);
+        set((state) => ({
+          tags: state.tags.filter((t) => t.id !== id),
+          error: null
+        }));
+        return;
+      }
+
+      // If no existing tag with the same name, proceed with update
       await updateTagInFirestore(id, updatedTag);
       set((state) => ({
         tags: state.tags.map((tag) =>
