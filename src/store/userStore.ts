@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import type { User } from '../types';
 
 const defaultUsers: User[] = [
@@ -43,8 +45,8 @@ interface UserState {
   users: User[];
   currentUser: User | null;
   error: string | null;
-  login: (email: string, password: string) => boolean;
-  logout: () => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
   updateUser: (id: string, updates: Partial<User>) => void;
   updatePassword: (id: string, newPassword: string) => void;
   initializeDefaultUser: () => void;
@@ -64,26 +66,42 @@ export const useUserStore = create<UserState>()(
         }
       },
 
-      login: (email: string, password: string) => {
-        const user = get().users.find(
-          (u) => u.email.toLowerCase() === email.toLowerCase() && u.password === password
-        );
-        
-        if (user) {
-          set({ currentUser: user, error: null });
-          return true;
+      login: async (email: string, password: string) => {
+        try {
+          // First authenticate with Firebase
+          await signInWithEmailAndPassword(auth, email, password);
+          
+          // Then find the user in our local store
+          const user = get().users.find(
+            (u) => u.email.toLowerCase() === email.toLowerCase()
+          );
+          
+          if (user) {
+            set({ currentUser: user, error: null });
+            return true;
+          }
+          
+          set({ error: 'Invalid email or password' });
+          return false;
+        } catch (error) {
+          console.error('Login error:', error);
+          set({ error: 'Invalid email or password' });
+          return false;
         }
-        
-        set({ error: 'Invalid email or password' });
-        return false;
       },
 
-      logout: () => {
-        set((state) => {
-          // Clear the persisted state
-          localStorage.removeItem('user-storage');
-          return { currentUser: null, error: null };
-        });
+      logout: async () => {
+        try {
+          await signOut(auth);
+          set((state) => {
+            // Clear the persisted state
+            localStorage.removeItem('user-storage');
+            return { currentUser: null, error: null };
+          });
+        } catch (error) {
+          console.error('Logout error:', error);
+          set({ error: 'Failed to logout' });
+        }
       },
 
       updateUser: (id: string, updates: Partial<User>) => {

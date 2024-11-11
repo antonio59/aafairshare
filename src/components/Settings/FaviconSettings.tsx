@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
-import { storage } from '../../firebase';
+import { storage, auth } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import { Image } from 'lucide-react';
 
@@ -74,7 +74,10 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
   };
 
   const handleSave = async () => {
-    if (!currentUser || !fileInputRef.current?.files?.[0]) return;
+    if (!currentUser || !fileInputRef.current?.files?.[0] || !auth.currentUser) {
+      setError('Please log in and select a file to upload');
+      return;
+    }
     
     setIsProcessing(true);
     setError('');
@@ -84,7 +87,7 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       const file = fileInputRef.current.files[0];
       const fileExt = file.name.split('.').pop() || '';
       const fileName = `favicon_${Date.now()}.${fileExt}`;
-      const storagePath = `favicons/${currentUser.id}/${fileName}`;
+      const storagePath = `favicons/${auth.currentUser.uid}/${fileName}`;
       const storageRef = ref(storage, storagePath);
 
       // Delete old favicon if exists and path is stored
@@ -123,7 +126,7 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
   };
 
   const handleReset = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !auth.currentUser) return;
 
     try {
       setError('');
