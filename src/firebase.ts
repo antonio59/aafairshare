@@ -1,8 +1,8 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore, initializeFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
-import { getStorage } from 'firebase/storage';
+import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC8zIGv9XeuAG6gP2rXPih9tixN1zq0JYo",
@@ -36,6 +36,17 @@ try {
 } catch (error) {
   console.warn('Analytics initialization failed:', error);
 }
+
+// Use emulators in development
+if (process.env.NODE_ENV === 'development') {
+  connectAuthEmulator(auth, 'http://localhost:9099');
+  connectStorageEmulator(storage, 'localhost', 9199);
+}
+
+// Log auth state changes for debugging
+auth.onAuthStateChanged((user) => {
+  console.log('Auth state changed:', user);
+});
 
 export { db, auth, storage, analytics };
 export default app;

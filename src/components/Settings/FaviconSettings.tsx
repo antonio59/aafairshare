@@ -84,10 +84,12 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
     setSuccess('');
 
     try {
+      console.log('Current Firebase Auth user:', auth.currentUser);
       const file = fileInputRef.current.files[0];
       const fileExt = file.name.split('.').pop() || '';
       const fileName = `favicon_${Date.now()}.${fileExt}`;
       const storagePath = `favicons/${auth.currentUser.uid}/${fileName}`;
+      console.log('Storage path:', storagePath);
       const storageRef = ref(storage, storagePath);
 
       // Delete old favicon if exists and path is stored
@@ -101,7 +103,8 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       }
 
       // Upload new favicon
-      await uploadBytes(storageRef, file);
+      const snapshot = await uploadBytes(storageRef, file);
+      console.log('Upload snapshot:', snapshot);
       const downloadUrl = await getDownloadURL(storageRef);
 
       // Update user preferences with storage path
@@ -119,7 +122,11 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error in handleSave:', error);
-      setError('Failed to update favicon. Please try again.');
+      if (error instanceof Error) {
+        setError(`Failed to update favicon: ${error.message}`);
+      } else {
+        setError('Failed to update favicon. Please try again.');
+      }
     } finally {
       setIsProcessing(false);
     }
@@ -162,7 +169,11 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error in handleReset:', error);
-      setError('Failed to reset favicon. Please try again.');
+      if (error instanceof Error) {
+        setError(`Failed to reset favicon: ${error.message}`);
+      } else {
+        setError('Failed to reset favicon. Please try again.');
+      }
     }
   };
 

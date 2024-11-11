@@ -2,7 +2,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password: string;
+  password?: string; // Make password optional since we're using Firebase Auth
   role: 'partner1' | 'partner2';
   preferences: {
     currency: string;
