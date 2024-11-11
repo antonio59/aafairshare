@@ -1,8 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
 import { PlusCircle, Edit2, Trash2 } from 'lucide-react';
-import Select from 'react-select';
-import type { Budget as BudgetType, CategoryGroup } from '../types';
+import type { Budget as BudgetType, CategoryGroup, Category } from '../types';
+import Dropdown from './common/Dropdown';
 
 interface NewBudget {
   category: string;
@@ -22,29 +22,33 @@ const Budget = () => {
   });
   const [error, setError] = useState<string | null>(null);
 
-  // Group categories for the select input
-  const groupedCategories = useMemo(() => {
-    const groups = Object.entries(
-      categories.reduce<Record<string, typeof categories>>((acc, cat) => {
-        if (!cat) return acc;
-        const group = categoryGroups.find((g: CategoryGroup) => g.id === cat.groupId);
-        if (!group) return acc;
-        if (!acc[group.name]) acc[group.name] = [];
-        acc[group.name].push(cat);
-        return acc;
-      }, {})
-    ).map(([groupName, cats]) => ({
-      label: groupName,
-      options: cats
-        .map(cat => ({
+  // Convert categories for the dropdown with proper grouping
+  const categoryOptions = useMemo(() => 
+    categories
+      .filter((cat): cat is Category => cat !== null)
+      .map(cat => {
+        const group = categoryGroups.find(g => g.id === cat.groupId);
+        return {
           value: cat.id,
           label: cat.name,
-        }))
-        .sort((a, b) => a.label.localeCompare(b.label))
-    })).filter(group => group.options.length > 0);
-
-    return groups;
-  }, [categories, categoryGroups]);
+          icon: cat.icon,
+          group: group?.name || 'Other'
+        };
+      })
+      .sort((a, b) => {
+        // First sort by group name
+        const groupA = a.group || '';
+        const groupB = b.group || '';
+        const groupCompare = groupA.localeCompare(groupB);
+        
+        // If groups are the same, sort by label
+        if (groupCompare === 0) {
+          return a.label.localeCompare(b.label);
+        }
+        return groupCompare;
+      }),
+    [categories, categoryGroups]
+  );
 
   const handleAddBudget = (e: React.FormEvent) => {
     e.preventDefault();
@@ -180,27 +184,15 @@ const Budget = () => {
               </div>
             )}
             <form onSubmit={handleAddBudget} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <Select
-                  value={
-                    newBudget.category
-                      ? {
-                          value: newBudget.category,
-                          label: categories.find(c => c.id === newBudget.category)?.name
-                        }
-                      : null
-                  }
-                  onChange={(option) => setNewBudget({ ...newBudget, category: option?.value || '' })}
-                  options={groupedCategories}
-                  className="w-full"
-                  classNamePrefix="react-select"
-                  placeholder="Select a category"
-                  required
-                />
-              </div>
+              <Dropdown
+                label="Category"
+                value={newBudget.category}
+                onChange={(value) => setNewBudget({ ...newBudget, category: value })}
+                options={categoryOptions}
+                placeholder="Select a category"
+                required
+                groupBy
+              />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -273,30 +265,18 @@ const Budget = () => {
               </div>
             )}
             <form onSubmit={handleEditBudget} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <Select
-                  value={
-                    selectedBudget.category
-                      ? {
-                          value: selectedBudget.category,
-                          label: categories.find(c => c.id === selectedBudget.category)?.name
-                        }
-                      : null
-                  }
-                  onChange={(option) => setSelectedBudget({
-                    ...selectedBudget,
-                    category: option?.value || ''
-                  })}
-                  options={groupedCategories}
-                  className="w-full"
-                  classNamePrefix="react-select"
-                  placeholder="Select a category"
-                  required
-                />
-              </div>
+              <Dropdown
+                label="Category"
+                value={selectedBudget.category}
+                onChange={(value) => setSelectedBudget({
+                  ...selectedBudget,
+                  category: value
+                })}
+                options={categoryOptions}
+                placeholder="Select a category"
+                required
+                groupBy
+              />
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">

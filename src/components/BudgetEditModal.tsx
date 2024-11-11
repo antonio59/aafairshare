@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import type { Budget } from '../types';
+import type { Budget, Category } from '../types';
+import Dropdown from './common/Dropdown';
 
 interface BudgetEditModalProps {
   budget: Budget;
@@ -10,8 +11,7 @@ interface BudgetEditModalProps {
 }
 
 export default function BudgetEditModal({ budget, onClose }: BudgetEditModalProps) {
-  const updateBudget = useExpenseStore((state) => state.updateBudget);
-  const categories = useExpenseStore((state) => state.categories);
+  const { updateBudget, categories, categoryGroups } = useExpenseStore();
   const { currentUser } = useUserStore();
   const currencySymbol = currentUser?.preferences.currency === 'GBP' ? '£' : '$';
 
@@ -20,6 +20,31 @@ export default function BudgetEditModal({ budget, onClose }: BudgetEditModalProp
     amount: budget.amount ? budget.amount.toString() : '',
     period: budget.period,
   });
+
+  // Convert categories for the dropdown with proper grouping
+  const categoryOptions = categories
+    .filter((cat): cat is Category => cat !== null)
+    .map(cat => {
+      const group = categoryGroups.find(g => g.id === cat.groupId);
+      return {
+        value: cat.id,
+        label: cat.name,
+        icon: cat.icon,
+        group: group?.name || 'Other'
+      };
+    })
+    .sort((a, b) => {
+      // First sort by group name
+      const groupA = a.group || '';
+      const groupB = b.group || '';
+      const groupCompare = groupA.localeCompare(groupB);
+      
+      // If groups are the same, sort by label
+      if (groupCompare === 0) {
+        return a.label.localeCompare(b.label);
+      }
+      return groupCompare;
+    });
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
@@ -65,26 +90,15 @@ export default function BudgetEditModal({ budget, onClose }: BudgetEditModalProp
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div>
-            <label className="block text-sm font-medium text-gray-900 mb-2.5">
-              Category
-            </label>
-            <select
-              value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className={inputClassName}
-              required
-            >
-              <option value="">Select a category</option>
-              {categories
-                .sort((a, b) => a.name.localeCompare(b.name))
-                .map((category) => (
-                  <option key={category.id} value={category.name}>
-                    {category.name}
-                  </option>
-                ))}
-            </select>
-          </div>
+          <Dropdown
+            label="Category"
+            value={formData.category}
+            onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+            options={categoryOptions}
+            placeholder="Select a category"
+            required
+            groupBy
+          />
 
           <div>
             <label className="block text-sm font-medium text-gray-900 mb-2.5">

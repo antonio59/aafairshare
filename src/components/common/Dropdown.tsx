@@ -64,7 +64,7 @@ export default function Dropdown({
         className={`
           w-full px-4 py-2 text-left bg-white border rounded-lg
           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-          transition-colors
+          transition-colors min-h-[42px]
           ${error ? 'border-red-500' : 'border-gray-300'}
           ${isOpen ? 'ring-2 ring-blue-500' : ''}
         `}
@@ -91,8 +91,8 @@ export default function Dropdown({
         >
           {groupBy && groupedOptions ? (
             Object.entries(groupedOptions).map(([group, groupOptions]) => (
-              <div key={group}>
-                <div className="px-4 py-2 bg-gray-50 text-sm font-medium text-gray-700">
+              <div key={group} className="border-b border-gray-100 last:border-b-0">
+                <div className="sticky top-0 px-4 py-2 bg-gray-100 text-sm font-semibold text-gray-800 cursor-default select-none">
                   {group}
                 </div>
                 {groupOptions.map(option => (
@@ -104,9 +104,9 @@ export default function Dropdown({
                       setIsOpen(false);
                     }}
                     className={`
-                      w-full px-4 py-2 text-left flex items-center gap-2
-                      hover:bg-gray-50 transition-colors
-                      ${value === option.value ? 'bg-blue-50 text-blue-700' : ''}
+                      w-full px-6 py-2 text-left flex items-center gap-2
+                      hover:bg-gray-50 transition-colors text-sm
+                      ${value === option.value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}
                     `}
                   >
                     {option.icon && <span>{option.icon}</span>}
@@ -126,8 +126,8 @@ export default function Dropdown({
                 }}
                 className={`
                   w-full px-4 py-2 text-left flex items-center gap-2
-                  hover:bg-gray-50 transition-colors
-                  ${value === option.value ? 'bg-blue-50 text-blue-700' : ''}
+                  hover:bg-gray-50 transition-colors text-sm
+                  ${value === option.value ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}
                 `}
               >
                 {option.icon && <span>{option.icon}</span>}

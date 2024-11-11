@@ -14,7 +14,9 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useExpenseStore } from '../store/expenseStore';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns';
+import Dropdown from './common/Dropdown';
 import Select from 'react-select';
+import type { Category } from '../types';
 
 // Register ChartJS components
 ChartJS.register(
@@ -31,7 +33,7 @@ ChartJS.register(
 
 const Analytics = () => {
   const { expenses, categories, categoryGroups, tags } = useExpenseStore();
-  const [timeRange, setTimeRange] = useState({ value: 'current', label: 'Current Month' });
+  const [timeRange, setTimeRange] = useState('current');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPaidBy, setSelectedPaidBy] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -44,24 +46,33 @@ const Analytics = () => {
     { value: '12', label: 'Last 12 months' }
   ];
 
-  // Group categories for the select input
-  const groupedCategories = useMemo(() => {
-    const groups = categoryGroups
-      .sort((a, b) => a.order - b.order)
-      .map(group => ({
-        label: group.name,
-        options: categories
-          .filter(cat => cat?.groupId === group.id)
-          .map(cat => ({
-            value: cat.id,
-            label: cat.name,
-          }))
-          .sort((a, b) => a.label.localeCompare(b.label))
-      }))
-      .filter(group => group.options.length > 0);
-
-    return groups;
-  }, [categories, categoryGroups]);
+  // Convert categories for the dropdown with proper grouping
+  const categoryOptions = useMemo(() => 
+    categories
+      .filter((cat): cat is Category => cat !== null)
+      .map(cat => {
+        const group = categoryGroups.find(g => g.id === cat.groupId);
+        return {
+          value: cat.id,
+          label: cat.name,
+          icon: cat.icon,
+          group: group?.name || 'Other'
+        };
+      })
+      .sort((a, b) => {
+        // First sort by group name
+        const groupA = a.group || '';
+        const groupB = b.group || '';
+        const groupCompare = groupA.localeCompare(groupB);
+        
+        // If groups are the same, sort by label
+        if (groupCompare === 0) {
+          return a.label.localeCompare(b.label);
+        }
+        return groupCompare;
+      }),
+    [categories, categoryGroups]
+  );
 
   const tagOptions = useMemo(() => 
     tags
@@ -83,7 +94,7 @@ const Analytics = () => {
     let startDate: Date;
     let endDate = endOfMonth(now);
 
-    switch (timeRange.value) {
+    switch (timeRange) {
       case 'current':
         startDate = startOfMonth(now);
         break;
@@ -92,7 +103,7 @@ const Analytics = () => {
         endDate = endOfMonth(subMonths(now, 1));
         break;
       default:
-        startDate = startOfMonth(subMonths(now, parseInt(timeRange.value) - 1));
+        startDate = startOfMonth(subMonths(now, parseInt(timeRange) - 1));
     }
 
     return expenses.filter(expense => {
@@ -105,7 +116,7 @@ const Analytics = () => {
 
       return matchesTimeRange && matchesCategories && matchesPaidBy && matchesTags;
     });
-  }, [expenses, timeRange.value, selectedCategories, selectedPaidBy, selectedTags]);
+  }, [expenses, timeRange, selectedCategories, selectedPaidBy, selectedTags]);
 
   // Calculate insights
   const insights = useMemo(() => {
@@ -153,9 +164,9 @@ const Analytics = () => {
   const monthlyTrendData = useMemo(() => {
     const months: { [key: string]: number } = {};
     const endDate = new Date();
-    const monthCount = timeRange.value === 'current' ? 1 : 
-                      timeRange.value === 'last' ? 1 :
-                      parseInt(timeRange.value);
+    const monthCount = timeRange === 'current' ? 1 : 
+                      timeRange === 'last' ? 1 :
+                      parseInt(timeRange);
     const startDate = subMonths(startOfMonth(endDate), monthCount - 1);
 
     for (let i = 0; i < monthCount; i++) {
@@ -182,7 +193,7 @@ const Analytics = () => {
         fill: true
       }]
     };
-  }, [filteredExpenses, timeRange.value]);
+  }, [filteredExpenses, timeRange]);
 
   // Category breakdown data
   const categoryData = useMemo(() => {
@@ -323,28 +334,22 @@ const Analytics = () => {
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h2 className="text-lg font-semibold mb-4">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Time Range
-            </label>
-            <Select
-              value={timeRange}
-              onChange={(option) => setTimeRange(option || timeRangeOptions[0])}
-              options={timeRangeOptions}
-              className="w-full"
-            />
-          </div>
+          <Dropdown
+            label="Time Range"
+            value={timeRange}
+            onChange={setTimeRange}
+            options={timeRangeOptions}
+            placeholder="Select time range"
+          />
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Categories
             </label>
             <Select
               isMulti
-              value={groupedCategories
-                .flatMap(group => group.options)
-                .filter(option => selectedCategories.includes(option.value))}
+              value={categoryOptions.filter(option => selectedCategories.includes(option.value))}
               onChange={(options) => setSelectedCategories(options.map(opt => opt.value))}
-              options={groupedCategories}
+              options={categoryOptions}
               className="w-full"
             />
           </div>

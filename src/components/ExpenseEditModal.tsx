@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
 import { X, Calendar } from 'lucide-react';
-import type { Expense } from '../types';
-import Select from 'react-select';
-import CreatableSelect from 'react-select/creatable';
+import type { Expense, Category } from '../types';
+import Dropdown from './common/Dropdown';
+import TagInput from './common/TagInput';
 
 interface ExpenseEditModalProps {
   expense: Expense;
@@ -12,7 +12,7 @@ interface ExpenseEditModalProps {
 }
 
 const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
-  const { updateExpense, categories, tags, addTag } = useExpenseStore();
+  const { updateExpense, categories, categoryGroups, tags, addTag } = useExpenseStore();
   const { currentUser } = useUserStore();
   const currencySymbol = currentUser?.preferences.currency === 'GBP' ? '£' : '$';
 
@@ -26,20 +26,30 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
     tags: expense.tags || [],
   });
 
-  // Group categories for the select input
-  const groupedCategories = categories
-    .filter(cat => cat !== null)
-    .map(cat => ({
-      value: cat.id,
-      label: cat.name,
-    }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-
-  // Convert tags for the select input
-  const tagOptions = tags.map(tag => ({
-    value: tag.id,
-    label: tag.name,
-  }));
+  // Convert categories for the dropdown with proper grouping
+  const categoryOptions = categories
+    .filter((cat): cat is Category => cat !== null)
+    .map(cat => {
+      const group = categoryGroups.find(g => g.id === cat.groupId);
+      return {
+        value: cat.id,
+        label: cat.name,
+        icon: cat.icon,
+        group: group?.name || 'Other'
+      };
+    })
+    .sort((a, b) => {
+      // First sort by group name
+      const groupA = a.group || '';
+      const groupB = b.group || '';
+      const groupCompare = groupA.localeCompare(groupB);
+      
+      // If groups are the same, sort by label
+      if (groupCompare === 0) {
+        return a.label.localeCompare(b.label);
+      }
+      return groupCompare;
+    });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,21 +72,15 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
     }
   };
 
-  const handleTagChange = (newValue: any) => {
-    setFormData(prev => ({
-      ...prev,
-      tags: newValue ? newValue.map((v: any) => v.value) : [],
-    }));
-  };
-
-  const handleCreateTag = async (inputValue: string) => {
+  const handleCreateTag = async (name: string) => {
     try {
       await addTag({
-        name: inputValue,
+        name,
         categoryId: formData.category,
       });
 
-      const newTag = tags.find(tag => tag.name === inputValue);
+      // After tag is created, find it in the updated tags list
+      const newTag = tags.find(tag => tag.name === name);
       if (newTag) {
         setFormData(prev => ({
           ...prev,
@@ -90,45 +94,6 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
 
   const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
-  };
-
-  const selectStyles = {
-    control: (base: any) => ({
-      ...base,
-      minHeight: '48px',
-      borderRadius: '0.75rem',
-      borderColor: '#E5E7EB',
-      boxShadow: 'none',
-      '&:hover': {
-        borderColor: '#D1D5DB',
-      },
-    }),
-    valueContainer: (base: any) => ({
-      ...base,
-      padding: '4px 16px',
-    }),
-    input: (base: any) => ({
-      ...base,
-      padding: '4px',
-    }),
-    option: (base: any, state: any) => ({
-      ...base,
-      padding: '10px 16px',
-      backgroundColor: state.isSelected ? '#1D4ED8' : state.isFocused ? '#EFF6FF' : 'white',
-      color: state.isSelected ? 'white' : '#111827',
-      fontWeight: state.isSelected ? '500' : '400',
-      '&:active': {
-        backgroundColor: '#DBEAFE',
-      },
-    }),
-    menu: (base: any) => ({
-      ...base,
-      borderRadius: '0.75rem',
-      overflow: 'hidden',
-      zIndex: 20,
-      border: '1px solid #E5E7EB',
-      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
-    }),
   };
 
   const inputClassName = "w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base bg-white";
@@ -169,21 +134,15 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
           <div className="flex-1 overflow-y-auto px-6 py-8">
             <form id="expense-form" onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-7">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2.5">
-                    Category
-                  </label>
-                  <Select
-                    value={groupedCategories.find(opt => opt.value === formData.category)}
-                    onChange={(option) => setFormData({ ...formData, category: option?.value || '' })}
-                    options={groupedCategories}
-                    className="w-full"
-                    classNamePrefix="react-select"
-                    placeholder="Select a category"
-                    required
-                    styles={selectStyles}
-                  />
-                </div>
+                <Dropdown
+                  label="Category"
+                  value={formData.category}
+                  onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                  options={categoryOptions}
+                  placeholder="Select a category"
+                  required
+                  groupBy
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2.5">
@@ -197,25 +156,14 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-2.5">
-                    Tags
-                  </label>
-                  <CreatableSelect
-                    isMulti
-                    value={formData.tags.map(tagId => {
-                      const tag = tags.find(t => t.id === tagId);
-                      return tag ? { value: tag.id, label: tag.name } : null;
-                    })}
-                    onChange={handleTagChange}
-                    onCreateOption={handleCreateTag}
-                    options={tagOptions}
-                    className="w-full"
-                    classNamePrefix="react-select"
-                    placeholder="Add tags..."
-                    styles={selectStyles}
-                  />
-                </div>
+                <TagInput
+                  label="Tags"
+                  value={formData.tags}
+                  onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                  onCreateTag={handleCreateTag}
+                  availableTags={tags}
+                  placeholder="Add tags..."
+                />
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2.5">
