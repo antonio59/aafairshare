@@ -7,7 +7,6 @@ import { Image } from 'lucide-react';
 interface FaviconSettingsProps {}
 
 const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
-  console.log('FaviconSettings component rendering');
   const { currentUser, updateUser } = useUserStore();
   const [previewUrl, setPreviewUrl] = useState<string>('');
   const [error, setError] = useState<string>('');
@@ -22,8 +21,22 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
   useEffect(() => {
     if (currentUser?.preferences.favicon) {
       getDownloadURL(ref(storage, currentUser.preferences.favicon))
-        .then(url => setPreviewUrl(url))
-        .catch(error => console.error('Error loading favicon:', error));
+        .then(url => {
+          console.log('Favicon URL retrieved:', url);
+          setPreviewUrl(url);
+        })
+        .catch(error => {
+          console.error('Error loading favicon:', error);
+          // Clear the favicon path if it's not accessible
+          if (error.code === 'storage/object-not-found') {
+            updateUser(currentUser.id, {
+              preferences: {
+                ...currentUser.preferences,
+                favicon: '',
+              },
+            });
+          }
+        });
     }
   }, [currentUser]);
 
@@ -84,30 +97,41 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
     setSuccess('');
 
     try {
-      console.log('Current Firebase Auth user:', auth.currentUser);
       const file = fileInputRef.current.files[0];
       const fileExt = file.name.split('.').pop() || '';
       const fileName = `favicon_${Date.now()}.${fileExt}`;
       const storagePath = `favicons/${auth.currentUser.uid}/${fileName}`;
+      
+      console.log('Starting favicon upload process');
       console.log('Storage path:', storagePath);
+      console.log('File type:', file.type);
+      console.log('File size:', file.size);
+      
       const storageRef = ref(storage, storagePath);
 
-      // Delete old favicon if exists and path is stored
+      // Delete old favicon if exists
       if (currentUser.preferences.favicon) {
         try {
           const oldRef = ref(storage, currentUser.preferences.favicon);
           await deleteObject(oldRef);
+          console.log('Old favicon deleted successfully');
         } catch (error) {
           console.error('Error deleting old favicon:', error);
+          // Continue with upload even if delete fails
         }
       }
 
       // Upload new favicon
+      console.log('Uploading new favicon...');
       const snapshot = await uploadBytes(storageRef, file);
-      console.log('Upload snapshot:', snapshot);
+      console.log('Upload completed:', snapshot);
+      
+      console.log('Getting download URL...');
       const downloadUrl = await getDownloadURL(storageRef);
+      console.log('Download URL retrieved:', downloadUrl);
 
-      // Update user preferences with storage path
+      // Update user preferences
+      console.log('Updating user preferences...');
       await updateUser(currentUser.id, {
         preferences: {
           ...currentUser.preferences,
@@ -119,11 +143,21 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       updateFavicon(downloadUrl);
 
       setSuccess('Favicon updated successfully!');
+      console.log('Favicon update process completed successfully');
       setTimeout(() => setSuccess(''), 3000);
     } catch (error) {
       console.error('Error in handleSave:', error);
       if (error instanceof Error) {
-        setError(`Failed to update favicon: ${error.message}`);
+        // Add more specific error handling
+        if (error.message.includes('storage/unauthorized')) {
+          setError('Unauthorized: Please check if you are logged in and try again.');
+        } else if (error.message.includes('storage/quota-exceeded')) {
+          setError('Storage quota exceeded. Please contact support.');
+        } else if (error.message.includes('storage/invalid-format')) {
+          setError('Invalid file format. Please try a different file.');
+        } else {
+          setError(`Failed to update favicon: ${error.message}`);
+        }
       } else {
         setError('Failed to update favicon. Please try again.');
       }
@@ -144,8 +178,10 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
         try {
           const oldRef = ref(storage, currentUser.preferences.favicon);
           await deleteObject(oldRef);
+          console.log('Old favicon deleted during reset');
         } catch (error) {
-          console.error('Error deleting old favicon:', error);
+          console.error('Error deleting old favicon during reset:', error);
+          // Continue with reset even if delete fails
         }
       }
 

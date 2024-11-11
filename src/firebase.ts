@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, initializeFirestore } from 'firebase/firestore';
+import { getFirestore, initializeFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getAuth, connectAuthEmulator, browserLocalPersistence, setPersistence } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 import { getStorage, connectStorageEmulator } from 'firebase/storage';
@@ -33,7 +33,7 @@ setPersistence(auth, browserLocalPersistence)
     console.error('Error setting auth persistence:', error);
   });
 
-// Initialize Storage
+// Initialize Storage with retry logic
 const storage = getStorage(app);
 
 // Initialize Analytics
@@ -46,14 +46,23 @@ try {
 
 // Use emulators in development
 if (process.env.NODE_ENV === 'development') {
-  connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
-  connectStorageEmulator(storage, 'localhost', 9199);
+  try {
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+    connectStorageEmulator(storage, 'localhost', 9199);
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log('Connected to Firebase emulators successfully');
+  } catch (error) {
+    console.error('Error connecting to emulators:', error);
+  }
 }
 
 // Log auth state changes for debugging
 auth.onAuthStateChanged((user) => {
-  console.log('Auth state changed:', user);
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Auth state changed:', user ? 'User logged in' : 'User logged out');
+  }
 });
 
+// Export configured instances
 export { db, auth, storage, analytics };
 export default app;
