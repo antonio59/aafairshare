@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
-import { sendPasswordResetEmail } from 'firebase/auth';
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
+import { FirebaseError } from 'firebase/app';
+import type { User } from '../types';
 
 interface LocationState {
   from?: Location;
@@ -17,7 +19,7 @@ const Login = () => {
   const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const login = useUserStore(state => state.login);
+  const { setCurrentUser } = useUserStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,28 +28,65 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      const success = await login(email, password);
-      if (success) {
-        // Get the redirect path from location state, or default to home
-        const state = location.state as LocationState;
-        const from = state?.from?.pathname || '/';
-        navigate(from, { replace: true });
-      } else {
-        setError('Failed to authenticate. Please check your credentials.');
-      }
+      console.log('Attempting login with:', email);
+      // Try direct Firebase authentication first
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Firebase auth successful:', userCredential.user);
+
+      // Create user object with proper role typing
+      const user: User = {
+        id: userCredential.user.uid,
+        name: userCredential.user.displayName || email.split('@')[0],
+        email: userCredential.user.email || email,
+        role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2' as const,
+        preferences: {
+          currency: 'GBP',
+          favicon: '',
+          notifications: {
+            overBudget: true,
+            monthlyReminder: true,
+            monthEndReminder: true,
+            monthlyAnalytics: true,
+          },
+        },
+      };
+
+      // Update user store
+      setCurrentUser(user);
+      console.log('User store updated:', user);
+
+      // Navigate to intended destination
+      const state = location.state as LocationState;
+      const from = state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
-      if (error instanceof Error) {
-        // Handle specific Firebase auth errors
-        if (error.message.includes('auth/wrong-password')) {
-          setError('Invalid password. If you forgot your password, use the reset link below.');
-        } else if (error.message.includes('auth/user-not-found')) {
-          setError('No account found with this email address.');
-        } else if (error.message.includes('auth/too-many-requests')) {
-          setError('Too many failed attempts. Please try again later or reset your password.');
-        } else {
-          setError(error.message);
+      
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/invalid-email':
+            setError('Invalid email address format.');
+            break;
+          case 'auth/user-disabled':
+            setError('This account has been disabled. Please contact support.');
+            break;
+          case 'auth/user-not-found':
+            setError('No account found with this email address.');
+            break;
+          case 'auth/wrong-password':
+            setError('Invalid password. Please try again or use the reset password link.');
+            break;
+          case 'auth/too-many-requests':
+            setError('Too many failed attempts. Please try again later or reset your password.');
+            break;
+          case 'auth/network-request-failed':
+            setError('Network error. Please check your connection and try again.');
+            break;
+          default:
+            setError(`Authentication error: ${error.message}`);
         }
+      } else if (error instanceof Error) {
+        setError(`Unexpected error: ${error.message}`);
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -68,17 +107,29 @@ const Login = () => {
     setIsResetting(true);
 
     try {
+      console.log('Sending password reset email to:', email);
       await sendPasswordResetEmail(auth, email);
       setMessage('Password reset email sent. Please check your inbox.');
       setPassword(''); // Clear password field after reset request
     } catch (error) {
       console.error('Reset password error:', error);
-      if (error instanceof Error) {
-        if (error.message.includes('auth/user-not-found')) {
-          setError('No account found with this email address.');
-        } else {
-          setError(error.message);
+      
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case 'auth/invalid-email':
+            setError('Invalid email address format.');
+            break;
+          case 'auth/user-not-found':
+            setError('No account found with this email address.');
+            break;
+          case 'auth/too-many-requests':
+            setError('Too many requests. Please try again later.');
+            break;
+          default:
+            setError(`Reset password error: ${error.message}`);
         }
+      } else if (error instanceof Error) {
+        setError(`Unexpected error: ${error.message}`);
       } else {
         setError('Failed to send reset email. Please try again.');
       }

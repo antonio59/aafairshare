@@ -6,7 +6,7 @@ import { getStorage, connectStorageEmulator } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC8zIGv9XeuAG6gP2rXPih9tixN1zq0JYo",
-  authDomain: "aafairshare.online",  // Updated to match production domain
+  authDomain: "aafairshare.firebaseapp.com",  // Changed back to Firebase default domain
   projectId: "aafairshare",
   storageBucket: "aafairshare.appspot.com",
   messagingSenderId: "326349848500",
@@ -71,14 +71,15 @@ if (process.env.NODE_ENV === 'development') {
   }
 }
 
-// Enhanced auth state monitoring
+// Enhanced auth state monitoring with error logging
 auth.onAuthStateChanged((user) => {
   if (user) {
     console.log('User authenticated:', user.email);
-    // Set custom claims or handle additional auth setup if needed
   } else {
-    console.log('User signed out');
+    console.log('User signed out or no user');
   }
+}, (error) => {
+  console.error('Auth state change error:', error);
 });
 
 // Export configured instances
