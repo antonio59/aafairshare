@@ -27,15 +27,16 @@ export const useUserStore = create<UserState>()(
 
       login: async (email: string, password: string) => {
         try {
+          console.log('Attempting login for:', email);
           // Authenticate with Firebase
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          const firebaseUser = userCredential.user;
+          console.log('Firebase auth successful:', userCredential.user);
           
-          // Create or update user in local store based on Firebase user
+          // Create user object
           const user: User = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || email.split('@')[0],
-            email: firebaseUser.email || email,
+            id: userCredential.user.uid,
+            name: userCredential.user.displayName || email.split('@')[0],
+            email: userCredential.user.email || email,
             role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
             preferences: {
               currency: 'GBP',
@@ -122,12 +123,33 @@ export const useUserStore = create<UserState>()(
           // Set up Firebase Auth state listener
           onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
+              console.log('Firebase user authenticated:', firebaseUser.email);
               // Find matching user in our store
               const user = state.users.find(u => u.id === firebaseUser.uid);
               if (user && user !== state.currentUser) {
                 state.setCurrentUser(user);
+              } else if (!user) {
+                // Create new user if not found
+                const newUser: User = {
+                  id: firebaseUser.uid,
+                  name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+                  email: firebaseUser.email || '',
+                  role: firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
+                  preferences: {
+                    currency: 'GBP',
+                    favicon: '',
+                    notifications: {
+                      overBudget: true,
+                      monthlyReminder: true,
+                      monthEndReminder: true,
+                      monthlyAnalytics: true,
+                    },
+                  },
+                };
+                state.setCurrentUser(newUser);
               }
             } else {
+              console.log('No Firebase user');
               state.setCurrentUser(null);
             }
           });

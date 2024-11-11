@@ -10,24 +10,19 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const location = useLocation();
-  const { currentUser, setCurrentUser } = useUserStore();
+  const currentUser = useUserStore(state => state.currentUser);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
       setIsAuthChecked(true);
-      
-      if (firebaseUser) {
-        setIsAuthenticated(true);
-      } else {
-        setIsAuthenticated(false);
-        setCurrentUser(null);
+      if (!user) {
+        console.log('No authenticated user, redirecting to login');
       }
     });
 
     return () => unsubscribe();
-  }, [setCurrentUser]);
+  }, []);
 
   // Show loading state while checking auth
   if (!isAuthChecked) {
@@ -39,7 +34,8 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Redirect to login if not authenticated
-  if (!isAuthenticated || !currentUser) {
+  if (!currentUser || !auth.currentUser) {
+    console.log('Protected route: redirecting to login');
     // Save the attempted URL for redirecting back after login
     return <Navigate to="/login" state={{ from: location }} replace />;
   }

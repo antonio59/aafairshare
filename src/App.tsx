@@ -15,30 +15,38 @@ import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   const { initializeStore } = useExpenseStore();
-  const currentUser = useUserStore(state => state.currentUser);
+  const { currentUser, setCurrentUser } = useUserStore();
   const [isAuthChecked, setIsAuthChecked] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('Auth state changed:', user?.email);
       setIsAuthChecked(true);
-      if (!user && window.location.pathname !== '/login') {
-        window.location.href = '/login';
+      
+      if (!user) {
+        setCurrentUser(null);
+        setIsInitializing(false);
+        return;
+      }
+
+      try {
+        // Initialize store only after successful authentication
+        await initializeStore();
+      } catch (error) {
+        console.error('Failed to initialize store:', error);
+      } finally {
+        setIsInitializing(false);
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [setCurrentUser, initializeStore]);
 
-  useEffect(() => {
-    if (currentUser) {
-      initializeStore();
-    }
-  }, [initializeStore, currentUser]);
-
-  // Show loading state while checking auth
-  if (!isAuthChecked) {
+  // Show loading state while checking auth and initializing
+  if (!isAuthChecked || isInitializing) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );

@@ -7,45 +7,45 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Allow authenticated users to read all collections
+    // Common function to check if user is one of the partners
+    function isPartner() {
+      return isAuthenticated() && 
+        (request.auth.token.email == 'andypamo@gmail.com' || 
+         request.auth.token.email == 'antoniojsmith@protonmail.com');
+    }
+
+    // Allow partners to read and write all collections
     match /expenses/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isPartner();
     }
 
     match /categories/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isPartner();
     }
 
     match /categoryGroups/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isPartner();
     }
 
     match /tags/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isPartner();
     }
 
     match /budgets/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isPartner();
     }
 
     match /recurringExpenses/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isPartner();
     }
 
     match /settlements/{document=**} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated();
+      allow read, write: if isPartner();
     }
 
+    // Allow users to read and write their own data
     match /users/{userId} {
-      allow read: if isAuthenticated() && request.auth.uid == userId;
-      allow write: if isAuthenticated() && request.auth.uid == userId;
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
 
     // Deny access to any other collections by default

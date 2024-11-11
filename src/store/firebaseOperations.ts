@@ -8,27 +8,65 @@ import {
   Timestamp,
   FirestoreError,
   enableNetwork,
-  disableNetwork
+  disableNetwork,
+  getFirestore,
+  DocumentData,
+  QueryDocumentSnapshot,
+  WithFieldValue,
+  CollectionReference
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
+import { auth } from '../firebase';
 import { db } from '../firebase';
 import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-// Collection references
-const expensesRef = collection(db, 'expenses');
-const categoriesRef = collection(db, 'categories');
-const categoryGroupsRef = collection(db, 'categoryGroups');
-const tagsRef = collection(db, 'tags');
-const budgetsRef = collection(db, 'budgets');
-const recurringExpensesRef = collection(db, 'recurringExpenses');
-const settlementsRef = collection(db, 'settlements');
+// Firestore document types
+interface FirestoreExpense extends Omit<Expense, 'date'> {
+  date: Timestamp;
+}
+
+interface FirestoreRecurringExpense extends Omit<RecurringExpense, 'lastProcessed'> {
+  lastProcessed: Timestamp | null;
+}
+
+interface FirestoreSettlement extends Omit<Settlement, 'settledAt'> {
+  settledAt: Timestamp;
+}
+
+// Collection references with proper typing
+let expensesRef: CollectionReference<FirestoreExpense>;
+let categoriesRef: CollectionReference<Category>;
+let categoryGroupsRef: CollectionReference<CategoryGroup>;
+let tagsRef: CollectionReference<Tag>;
+let budgetsRef: CollectionReference<Budget>;
+let recurringExpensesRef: CollectionReference<FirestoreRecurringExpense>;
+let settlementsRef: CollectionReference<FirestoreSettlement>;
+
+// Initialize collection references after authentication
+const initializeCollections = () => {
+  if (!auth.currentUser) {
+    throw new Error('User must be authenticated to initialize collections');
+  }
+  expensesRef = collection(db, 'expenses') as CollectionReference<FirestoreExpense>;
+  categoriesRef = collection(db, 'categories') as CollectionReference<Category>;
+  categoryGroupsRef = collection(db, 'categoryGroups') as CollectionReference<CategoryGroup>;
+  tagsRef = collection(db, 'tags') as CollectionReference<Tag>;
+  budgetsRef = collection(db, 'budgets') as CollectionReference<Budget>;
+  recurringExpensesRef = collection(db, 'recurringExpenses') as CollectionReference<FirestoreRecurringExpense>;
+  settlementsRef = collection(db, 'settlements') as CollectionReference<FirestoreSettlement>;
+};
 
 // Helper function to convert date string to Firestore Timestamp
 const dateToTimestamp = (dateStr: string) => Timestamp.fromDate(new Date(dateStr));
 
 // Helper function to convert Firestore Timestamp to ISO string
 const timestampToString = (timestamp: Timestamp) => timestamp.toDate().toISOString();
+
+// Helper function to safely cast document data
+function getDocData<T>(doc: QueryDocumentSnapshot<T>): T {
+  return doc.data();
+}
 
 // Retry configuration
 const MAX_RETRIES = 3;
@@ -107,268 +145,6 @@ export const goOnline = async () => {
   }
 };
 
-// Initialize default category groups
-export const initializeDefaultCategoryGroups = async () => {
-  const groups = [
-    { name: "Clothing", order: 0 },
-    { name: "Entertainment", order: 1 },
-    { name: "Food", order: 2 },
-    { name: "Health and Wellness", order: 3 },
-    { name: "Housing", order: 4 },
-    { name: "Insurance", order: 5 },
-    { name: "Miscellaneous", order: 6 },
-    { name: "Transportation", order: 7 },
-    { name: "Utilities", order: 8 }
-  ];
-
-  try {
-    for (const group of groups) {
-      const id = uuidv4();
-      const docRef = doc(categoryGroupsRef, id);
-      await setDoc(docRef, { ...group, id });
-      console.log('Added group:', group.name);
-    }
-  } catch (error) {
-    return handleFirestoreError(error, 'initialize default category groups');
-  }
-};
-
-// Expenses
-export const addExpenseToFirestore = async (expense: Expense) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(expensesRef, expense.id);
-      const firestoreExpense = {
-        ...expense,
-        date: dateToTimestamp(expense.date)
-      };
-      await setDoc(docRef, firestoreExpense);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'add expense');
-  }
-};
-
-export const updateExpenseInFirestore = async (id: string, expense: Partial<Expense>) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(expensesRef, id);
-      const firestoreExpense = {
-        ...expense,
-        date: expense.date ? dateToTimestamp(expense.date) : undefined
-      };
-      await updateDoc(docRef, firestoreExpense);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'update expense');
-  }
-};
-
-export const deleteExpenseFromFirestore = async (id: string) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(expensesRef, id);
-      await deleteDoc(docRef);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'delete expense');
-  }
-};
-
-// Category Groups
-export const addCategoryGroupToFirestore = async (group: CategoryGroup) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(categoryGroupsRef, group.id);
-      await setDoc(docRef, group);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'add category group');
-  }
-};
-
-export const updateCategoryGroupInFirestore = async (id: string, group: Partial<CategoryGroup>) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(categoryGroupsRef, id);
-      await updateDoc(docRef, group);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'update category group');
-  }
-};
-
-export const deleteCategoryGroupFromFirestore = async (id: string) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(categoryGroupsRef, id);
-      await deleteDoc(docRef);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'delete category group');
-  }
-};
-
-// Categories
-export const addCategoryToFirestore = async (category: Category) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(categoriesRef, category.id);
-      await setDoc(docRef, category);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'add category');
-  }
-};
-
-export const updateCategoryInFirestore = async (id: string, category: Partial<Category>) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(categoriesRef, id);
-      await updateDoc(docRef, category);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'update category');
-  }
-};
-
-export const deleteCategoryFromFirestore = async (id: string) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(categoriesRef, id);
-      await deleteDoc(docRef);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'delete category');
-  }
-};
-
-// Tags
-export const addTagToFirestore = async (tag: Tag) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(tagsRef, tag.id);
-      await setDoc(docRef, tag);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'add tag');
-  }
-};
-
-export const updateTagInFirestore = async (id: string, tag: Partial<Tag>) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(tagsRef, id);
-      await updateDoc(docRef, tag);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'update tag');
-  }
-};
-
-export const deleteTagFromFirestore = async (id: string) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(tagsRef, id);
-      await deleteDoc(docRef);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'delete tag');
-  }
-};
-
-// Budgets
-export const addBudgetToFirestore = async (budget: Budget) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(budgetsRef, budget.id);
-      await setDoc(docRef, budget);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'add budget');
-  }
-};
-
-export const updateBudgetInFirestore = async (id: string, budget: Partial<Budget>) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(budgetsRef, id);
-      await updateDoc(docRef, budget);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'update budget');
-  }
-};
-
-export const deleteBudgetFromFirestore = async (id: string) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(budgetsRef, id);
-      await deleteDoc(docRef);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'delete budget');
-  }
-};
-
-// Recurring Expenses
-export const addRecurringExpenseToFirestore = async (expense: RecurringExpense) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(recurringExpensesRef, expense.id);
-      const firestoreExpense = {
-        ...expense,
-        lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : null
-      };
-      await setDoc(docRef, firestoreExpense);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'add recurring expense');
-  }
-};
-
-export const updateRecurringExpenseInFirestore = async (id: string, expense: Partial<RecurringExpense>) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(recurringExpensesRef, id);
-      const firestoreExpense = {
-        ...expense,
-        lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : undefined
-      };
-      await updateDoc(docRef, firestoreExpense);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'update recurring expense');
-  }
-};
-
-export const deleteRecurringExpenseFromFirestore = async (id: string) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(recurringExpensesRef, id);
-      await deleteDoc(docRef);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'delete recurring expense');
-  }
-};
-
-// Settlements
-export const addSettlementToFirestore = async (settlement: Settlement) => {
-  try {
-    await withRetry(async () => {
-      const docRef = doc(settlementsRef, settlement.month);
-      const firestoreSettlement = {
-        ...settlement,
-        settledAt: dateToTimestamp(settlement.settledAt)
-      };
-      await setDoc(docRef, firestoreSettlement);
-    });
-  } catch (error) {
-    return handleFirestoreError(error, 'add settlement');
-  }
-};
-
 export interface FirestoreData {
   expenses: Expense[];
   categories: Category[];
@@ -382,6 +158,15 @@ export interface FirestoreData {
 // Fetch all data with offline support
 export const fetchAllData = async (): Promise<FirestoreData> => {
   try {
+    // Initialize collections if not already done
+    if (!auth.currentUser) {
+      throw new Error('User must be authenticated to fetch data');
+    }
+    
+    if (!expensesRef) {
+      initializeCollections();
+    }
+
     return await withRetry(async () => {
       const expenses = await getDocs(expensesRef);
       const categories = await getDocs(categoriesRef);
@@ -395,7 +180,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       const uniqueCategories = Array.from(
         new Map(
           categories.docs.map(doc => {
-            const data = doc.data() as Category;
+            const data = getDocData(doc);
             return [`${data.id}-${data.name}`, data];
           })
         ).values()
@@ -405,7 +190,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       const uniqueTags = Array.from(
         new Map(
           tags.docs.map(doc => {
-            const data = doc.data() as Tag;
+            const data = getDocData(doc);
             return [data.name.toLowerCase(), data];
           })
         ).values()
@@ -413,29 +198,29 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
 
       return {
         expenses: expenses.docs.map(doc => {
-          const data = doc.data();
+          const data = getDocData(doc);
           return {
             ...data,
-            date: timestampToString(data.date as Timestamp)
-          } as Expense;
+            date: timestampToString(data.date)
+          };
         }),
         categories: uniqueCategories,
-        categoryGroups: categoryGroups.docs.map(doc => doc.data() as CategoryGroup),
+        categoryGroups: categoryGroups.docs.map(doc => getDocData(doc)),
         tags: uniqueTags,
-        budgets: budgets.docs.map(doc => doc.data() as Budget),
+        budgets: budgets.docs.map(doc => getDocData(doc)),
         recurringExpenses: recurringExpenses.docs.map(doc => {
-          const data = doc.data();
+          const data = getDocData(doc);
           return {
             ...data,
-            lastProcessed: data.lastProcessed ? timestampToString(data.lastProcessed as Timestamp) : null
-          } as RecurringExpense;
+            lastProcessed: data.lastProcessed ? timestampToString(data.lastProcessed) : undefined
+          };
         }),
         settlements: settlements.docs.map(doc => {
-          const data = doc.data();
+          const data = getDocData(doc);
           return {
             ...data,
-            settledAt: timestampToString(data.settledAt as Timestamp)
-          } as Settlement;
+            settledAt: timestampToString(data.settledAt)
+          };
         })
       };
     });
