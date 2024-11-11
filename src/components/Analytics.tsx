@@ -17,6 +17,7 @@ import { format, subMonths, startOfMonth, endOfMonth, parseISO, isSameMonth } fr
 import Dropdown from './common/Dropdown';
 import Select from 'react-select';
 import type { Category } from '../types';
+import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 // Register ChartJS components
 ChartJS.register(
@@ -37,6 +38,7 @@ const Analytics = () => {
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [selectedPaidBy, setSelectedPaidBy] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [isExporting, setIsExporting] = useState<'excel' | 'pdf' | null>(null);
 
   const timeRangeOptions = [
     { value: 'current', label: 'Current Month' },
@@ -117,6 +119,25 @@ const Analytics = () => {
       return matchesTimeRange && matchesCategories && matchesPaidBy && matchesTags;
     });
   }, [expenses, timeRange, selectedCategories, selectedPaidBy, selectedTags]);
+
+  // Handle exports
+  const handleExport = async (type: 'excel' | 'pdf') => {
+    setIsExporting(type);
+    try {
+      const now = new Date();
+      const month = format(now, 'yyyy-MM');
+      
+      if (type === 'excel') {
+        await exportToExcel(filteredExpenses, categories, tags, month);
+      } else {
+        exportToPDF(filteredExpenses, categories, tags, month);
+      }
+    } catch (error) {
+      console.error(`Error exporting to ${type}:`, error);
+    } finally {
+      setIsExporting(null);
+    }
+  };
 
   // Calculate insights
   const insights = useMemo(() => {
@@ -332,7 +353,35 @@ const Analytics = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Filters</h2>
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-lg font-semibold">Filters</h2>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleExport('excel')}
+              disabled={isExporting !== null}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                ${isExporting === 'excel'
+                  ? 'bg-green-100 text-green-800 cursor-wait'
+                  : 'bg-green-500 text-white hover:bg-green-600 focus:ring-2 focus:ring-offset-2 focus:ring-green-500'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isExporting === 'excel' ? 'Exporting...' : 'Excel'}
+            </button>
+            <button
+              onClick={() => handleExport('pdf')}
+              disabled={isExporting !== null}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-colors
+                ${isExporting === 'pdf'
+                  ? 'bg-blue-100 text-blue-800 cursor-wait'
+                  : 'bg-blue-500 text-white hover:bg-blue-600 focus:ring-2 focus:ring-offset-2 focus:ring-blue-500'
+                }
+                disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isExporting === 'pdf' ? 'Exporting...' : 'PDF'}
+            </button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <Dropdown
             label="Time Range"
