@@ -2,65 +2,9 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Common functions
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function isKnownUser() {
-      return isAuthenticated() && 
-        (request.auth.token.email == 'andypamo@gmail.com' || 
-         request.auth.token.email == 'antoniojsmith@protonmail.com');
-    }
-
-    function isValidDate(field) {
-      return field is number || field is map;
-    }
-
-    // Allow access to all collections for known users
-    match /expenses/{expenseId} {
-      allow read: if isKnownUser();
-      allow write: if isKnownUser() &&
-        isValidDate(request.resource.data.date);
-    }
-
-    match /categories/{categoryId} {
-      allow read: if isKnownUser();
-      allow write: if isKnownUser();
-    }
-
-    match /categoryGroups/{groupId} {
-      allow read: if isKnownUser();
-      allow write: if isKnownUser();
-    }
-
-    match /tags/{tagId} {
-      allow read: if isKnownUser();
-      allow write: if isKnownUser();
-    }
-
-    match /budgets/{budgetId} {
-      allow read: if isKnownUser();
-      allow write: if isKnownUser();
-    }
-
-    match /recurringExpenses/{expenseId} {
-      allow read: if isKnownUser();
-      allow write: if isKnownUser() &&
-        (!('lastProcessed' in request.resource.data) || 
-         request.resource.data.lastProcessed == null || 
-         isValidDate(request.resource.data.lastProcessed));
-    }
-
-    match /settlements/{settlementId} {
-      allow read: if isKnownUser();
-      allow write: if isKnownUser() &&
-        isValidDate(request.resource.data.settledAt);
-    }
-
-    // Deny access to any other collections by default
+    // Allow read/write access to all users under any document
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if request.auth != null;
     }
   }
 }
