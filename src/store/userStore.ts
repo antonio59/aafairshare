@@ -36,7 +36,7 @@ export const useUserStore = create<UserState>()(
             id: firebaseUser.uid,
             name: firebaseUser.displayName || email.split('@')[0],
             email: firebaseUser.email || email,
-            role: 'partner1', // Default role, can be updated later
+            role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
             preferences: {
               currency: 'GBP',
               favicon: '',
@@ -57,7 +57,14 @@ export const useUserStore = create<UserState>()(
             if (existingUserIndex === -1) {
               updatedUsers.push(user);
             } else {
-              updatedUsers[existingUserIndex] = user;
+              updatedUsers[existingUserIndex] = {
+                ...updatedUsers[existingUserIndex],
+                ...user,
+                preferences: {
+                  ...updatedUsers[existingUserIndex].preferences,
+                  ...user.preferences
+                }
+              };
             }
 
             return {
@@ -78,11 +85,9 @@ export const useUserStore = create<UserState>()(
       logout: async () => {
         try {
           await signOut(auth);
-          set((state) => {
-            // Clear the persisted state
-            localStorage.removeItem('user-storage');
-            return { currentUser: null, error: null };
-          });
+          set({ currentUser: null, error: null });
+          // Clear persisted state
+          localStorage.removeItem('user-storage');
         } catch (error) {
           console.error('Logout error:', error);
           set({ error: 'Failed to logout' });
@@ -117,14 +122,12 @@ export const useUserStore = create<UserState>()(
           // Set up Firebase Auth state listener
           onAuthStateChanged(auth, (firebaseUser) => {
             if (firebaseUser) {
-              console.log('Firebase user authenticated:', firebaseUser);
               // Find matching user in our store
               const user = state.users.find(u => u.id === firebaseUser.uid);
               if (user && user !== state.currentUser) {
                 state.setCurrentUser(user);
               }
             } else {
-              console.log('No Firebase user');
               state.setCurrentUser(null);
             }
           });

@@ -1,9 +1,8 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import type { User } from '../types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,6 +11,7 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const location = useLocation();
   const { currentUser, setCurrentUser } = useUserStore();
 
   useEffect(() => {
@@ -20,28 +20,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
       
       if (firebaseUser) {
         setIsAuthenticated(true);
-        
-        // If we have a Firebase user but no current user in store,
-        // create one based on Firebase data
-        if (!currentUser) {
-          const user: User = {
-            id: firebaseUser.uid,
-            name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-            email: firebaseUser.email || '',
-            role: 'partner1', // Default to partner1, can be updated in settings
-            preferences: {
-              currency: 'GBP',
-              favicon: '',
-              notifications: {
-                overBudget: true,
-                monthlyReminder: true,
-                monthEndReminder: true,
-                monthlyAnalytics: true,
-              },
-            },
-          };
-          setCurrentUser(user);
-        }
       } else {
         setIsAuthenticated(false);
         setCurrentUser(null);
@@ -49,7 +27,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     });
 
     return () => unsubscribe();
-  }, [currentUser, setCurrentUser]);
+  }, [setCurrentUser]);
 
   // Show loading state while checking auth
   if (!isAuthChecked) {
@@ -61,8 +39,9 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   }
 
   // Redirect to login if not authenticated
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+  if (!isAuthenticated || !currentUser) {
+    // Save the attempted URL for redirecting back after login
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // Render protected content

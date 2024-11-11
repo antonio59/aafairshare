@@ -1,7 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useExpenseStore } from './store/expenseStore';
 import { useUserStore } from './store/userStore';
+import { auth } from './firebase';
+import { onAuthStateChanged } from 'firebase/auth';
 import Navbar from './components/Navbar';
 import ExpenseList from './components/ExpenseList';
 import ExpenseForm from './components/ExpenseForm';
@@ -14,10 +16,33 @@ import ProtectedRoute from './components/ProtectedRoute';
 function App() {
   const { initializeStore } = useExpenseStore();
   const currentUser = useUserStore(state => state.currentUser);
+  const [isAuthChecked, setIsAuthChecked] = useState(false);
 
   useEffect(() => {
-    initializeStore();
-  }, [initializeStore]);
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setIsAuthChecked(true);
+      if (!user && window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (currentUser) {
+      initializeStore();
+    }
+  }, [initializeStore, currentUser]);
+
+  // Show loading state while checking auth
+  if (!isAuthChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <Router>
@@ -25,8 +50,12 @@ function App() {
         {currentUser && <Navbar />}
         <main className={currentUser ? "pt-16 pb-20" : ""}>
           <Routes>
-            <Route path="/login" element={<Login />} />
+            {/* Public route */}
+            <Route path="/login" element={
+              currentUser ? <Navigate to="/" replace /> : <Login />
+            } />
             
+            {/* Protected routes */}
             <Route path="/" element={
               <ProtectedRoute>
                 <ExpenseList />
@@ -55,6 +84,11 @@ function App() {
               <ProtectedRoute>
                 <Settlement />
               </ProtectedRoute>
+            } />
+
+            {/* Catch-all route - redirect to login if not authenticated, home if authenticated */}
+            <Route path="*" element={
+              currentUser ? <Navigate to="/" replace /> : <Navigate to="/login" replace />
             } />
           </Routes>
         </main>

@@ -1,8 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail } from 'firebase/auth';
+
+interface LocationState {
+  from?: Location;
+}
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -12,6 +16,7 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const login = useUserStore(state => state.login);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,14 +28,26 @@ const Login = () => {
     try {
       const success = await login(email, password);
       if (success) {
-        navigate('/');
+        // Get the redirect path from location state, or default to home
+        const state = location.state as LocationState;
+        const from = state?.from?.pathname || '/';
+        navigate(from, { replace: true });
       } else {
         setError('Failed to authenticate. Please check your credentials.');
       }
     } catch (error) {
       console.error('Login error:', error);
       if (error instanceof Error) {
-        setError(error.message);
+        // Handle specific Firebase auth errors
+        if (error.message.includes('auth/wrong-password')) {
+          setError('Invalid password. If you forgot your password, use the reset link below.');
+        } else if (error.message.includes('auth/user-not-found')) {
+          setError('No account found with this email address.');
+        } else if (error.message.includes('auth/too-many-requests')) {
+          setError('Too many failed attempts. Please try again later or reset your password.');
+        } else {
+          setError(error.message);
+        }
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
@@ -53,10 +70,15 @@ const Login = () => {
     try {
       await sendPasswordResetEmail(auth, email);
       setMessage('Password reset email sent. Please check your inbox.');
+      setPassword(''); // Clear password field after reset request
     } catch (error) {
       console.error('Reset password error:', error);
       if (error instanceof Error) {
-        setError(error.message);
+        if (error.message.includes('auth/user-not-found')) {
+          setError('No account found with this email address.');
+        } else {
+          setError(error.message);
+        }
       } else {
         setError('Failed to send reset email. Please try again.');
       }
