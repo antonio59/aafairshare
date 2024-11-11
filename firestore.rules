@@ -2,50 +2,60 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Common function to check if user is authenticated
+    // Common functions
     function isAuthenticated() {
       return request.auth != null;
     }
 
-    // Common function to check if user is one of the partners
-    function isPartner() {
+    function isKnownUser() {
       return isAuthenticated() && 
         (request.auth.token.email == 'andypamo@gmail.com' || 
          request.auth.token.email == 'antoniojsmith@protonmail.com');
     }
 
-    // Allow partners to read and write all collections
-    match /expenses/{document=**} {
-      allow read, write: if isPartner();
+    function isValidTimestamp(timestamp) {
+      return timestamp is timestamp;
     }
 
-    match /categories/{document=**} {
-      allow read, write: if isPartner();
+    // Allow access to all collections for known users
+    match /expenses/{expenseId} {
+      allow read: if isKnownUser();
+      allow write: if isKnownUser() &&
+        request.resource.data.date is timestamp;
     }
 
-    match /categoryGroups/{document=**} {
-      allow read, write: if isPartner();
+    match /categories/{categoryId} {
+      allow read: if isKnownUser();
+      allow write: if isKnownUser();
     }
 
-    match /tags/{document=**} {
-      allow read, write: if isPartner();
+    match /categoryGroups/{groupId} {
+      allow read: if isKnownUser();
+      allow write: if isKnownUser();
     }
 
-    match /budgets/{document=**} {
-      allow read, write: if isPartner();
+    match /tags/{tagId} {
+      allow read: if isKnownUser();
+      allow write: if isKnownUser();
     }
 
-    match /recurringExpenses/{document=**} {
-      allow read, write: if isPartner();
+    match /budgets/{budgetId} {
+      allow read: if isKnownUser();
+      allow write: if isKnownUser();
     }
 
-    match /settlements/{document=**} {
-      allow read, write: if isPartner();
+    match /recurringExpenses/{expenseId} {
+      allow read: if isKnownUser();
+      allow write: if isKnownUser() &&
+        (!('lastProcessed' in request.resource.data) || 
+         request.resource.data.lastProcessed == null || 
+         isValidTimestamp(request.resource.data.lastProcessed));
     }
 
-    // Allow users to read and write their own data
-    match /users/{userId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    match /settlements/{settlementId} {
+      allow read: if isKnownUser();
+      allow write: if isKnownUser() &&
+        isValidTimestamp(request.resource.data.settledAt);
     }
 
     // Deny access to any other collections by default
