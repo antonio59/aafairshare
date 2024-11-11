@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { clearAuthCache } from '../utils/authUtils';
+import type { User } from '../types';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -12,37 +14,67 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const location = useLocation();
-  const currentUser = useUserStore(state => state.currentUser);
+  const { currentUser, setCurrentUser } = useUserStore();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const checkAuth = async () => {
+      try {
+        // Clear any stale auth state
+        await clearAuthCache();
+      } catch (error) {
+        console.error('Error clearing auth cache:', error);
+      }
+    };
+
+    checkAuth();
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setIsAuthChecked(true);
       
       if (!user) {
-        console.log('Protected route: No authenticated user');
+        console.log('No authenticated user in ProtectedRoute');
         setIsAuthenticated(false);
-        // Force redirect to login
-        window.location.href = '/login';
+        setCurrentUser(null);
         return;
       }
 
-      // Verify we have both Firebase auth and store user
-      if (!currentUser) {
-        console.log('Protected route: No store user');
-        setIsAuthenticated(false);
-        // Force redirect to login
-        window.location.href = '/login';
-        return;
-      }
+      try {
+        // Verify token
+        const token = await user.getIdToken(true);
+        console.log('Token verified for user:', user.email);
 
-      setIsAuthenticated(true);
+        // Ensure user exists in store
+        if (!currentUser) {
+          const newUser: User = {
+            id: user.uid,
+            name: user.displayName || user.email?.split('@')[0] || '',
+            email: user.email || '',
+            role: (user.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
+            preferences: {
+              currency: 'GBP',
+              favicon: '',
+              notifications: {
+                overBudget: true,
+                monthlyReminder: true,
+                monthEndReminder: true,
+                monthlyAnalytics: true,
+              },
+            },
+          };
+          setCurrentUser(newUser);
+        }
+
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('Token verification failed:', error);
+        await clearAuthCache();
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+      }
     });
 
-    // Cleanup subscription
-    return () => {
-      unsubscribe();
-    };
-  }, [currentUser]);
+    return () => unsubscribe();
+  }, [currentUser, setCurrentUser]);
 
   // Show loading state while checking auth
   if (!isAuthChecked) {
@@ -53,37 +85,11 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     );
   }
 
-  // If not authenticated, redirect to login
+  // Redirect to login if not authenticated
   if (!isAuthenticated || !currentUser || !auth.currentUser) {
-    console.log('Protected route: Redirecting to login');
-    // Save the attempted URL for redirecting back after login
+    console.log('ProtectedRoute: Redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
-
-  // Additional check for Firebase token
-  const checkToken = async () => {
-    try {
-      const token = await auth.currentUser?.getIdToken();
-      if (!token) {
-        console.log('Protected route: No valid token');
-        window.location.href = '/login';
-        return null;
-      }
-    } catch (error) {
-      console.error('Token verification failed:', error);
-      window.location.href = '/login';
-      return null;
-    }
-  };
-
-  // Verify token on mount and periodically
-  useEffect(() => {
-    if (isAuthenticated) {
-      const tokenCheck = setInterval(checkToken, 60000); // Check token every minute
-      checkToken(); // Initial check
-      return () => clearInterval(tokenCheck);
-    }
-  }, [isAuthenticated]);
 
   // Render protected content
   return <>{children}</>;
