@@ -13,6 +13,7 @@ import {
 import { FirebaseError } from 'firebase/app';
 import { db } from '../firebase';
 import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 
 // Collection references
 const expensesRef = collection(db, 'expenses');
@@ -103,6 +104,32 @@ export const goOnline = async () => {
   if (isOffline) {
     await enableNetwork(db);
     isOffline = false;
+  }
+};
+
+// Initialize default category groups
+export const initializeDefaultCategoryGroups = async () => {
+  const groups = [
+    { name: "Clothing", order: 0 },
+    { name: "Entertainment", order: 1 },
+    { name: "Food", order: 2 },
+    { name: "Health and Wellness", order: 3 },
+    { name: "Housing", order: 4 },
+    { name: "Insurance", order: 5 },
+    { name: "Miscellaneous", order: 6 },
+    { name: "Transportation", order: 7 },
+    { name: "Utilities", order: 8 }
+  ];
+
+  try {
+    for (const group of groups) {
+      const id = uuidv4();
+      const docRef = doc(categoryGroupsRef, id);
+      await setDoc(docRef, { ...group, id });
+      console.log('Added group:', group.name);
+    }
+  } catch (error) {
+    return handleFirestoreError(error, 'initialize default category groups');
   }
 };
 
