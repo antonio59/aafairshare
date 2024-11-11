@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import { ArrowLeft, Calendar, DollarSign } from 'lucide-react';
+import { ArrowLeft, Calendar } from 'lucide-react';
 import type { Expense, Category } from '../types';
 import Dropdown from './common/Dropdown';
 import TagInput from './common/TagInput';
 
-type ExpenseFormData = Omit<Expense, 'id'> & {
+// Extend the base expense type to include form-specific fields
+type ExpenseFormData = Omit<Expense, 'id' | 'amount'> & {
+  amount: string; // Handle amount as string in form state
   isRecurring: boolean;
   recurringDay: string;
 };
@@ -16,9 +18,11 @@ const ExpenseForm = () => {
   const navigate = useNavigate();
   const { addExpense, categories, categoryGroups, tags, addTag } = useExpenseStore();
   const { currentUser } = useUserStore();
+  const currencySymbol = currentUser?.preferences.currency === 'GBP' ? '£' : '$';
+
   const [formData, setFormData] = useState<ExpenseFormData>({
     description: '',
-    amount: 0,
+    amount: '',
     date: new Date().toISOString().split('T')[0],
     category: '',
     paidBy: currentUser?.role === 'partner1' ? 'Andres' : 'Antonio',
@@ -59,17 +63,33 @@ const ExpenseForm = () => {
     if (!formData.category) {
       return; // Prevent submission if no category is selected
     }
+
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount)) return;
+
     setIsSubmitting(true);
     try {
       await addExpense({
-        ...formData,
-        amount: typeof formData.amount === 'string' ? parseFloat(formData.amount) : formData.amount,
+        description: formData.description,
+        amount,
         date: new Date(formData.date).toISOString(),
+        category: formData.category,
+        paidBy: formData.paidBy,
+        split: formData.split,
+        tags: formData.tags,
       });
       navigate('/');
     } catch (error) {
       console.error('Failed to add expense:', error);
       setIsSubmitting(false);
+    }
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty value or numbers with up to 2 decimal places
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setFormData(prev => ({ ...prev, amount: value }));
     }
   };
 
@@ -169,21 +189,22 @@ const ExpenseForm = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
               <div>
                 <label className="block text-sm font-medium text-gray-900 mb-2.5">
-                  Amount (£)
+                  Amount ({currencySymbol})
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                    {currencySymbol}
+                  </span>
                   <input
-                    type="number"
+                    type="text"
                     inputMode="decimal"
-                    step="0.01"
-                    min="0"
                     value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) })}
+                    onChange={handleAmountChange}
                     onWheel={handleWheel}
-                    className={`${inputClassName} pl-12`}
+                    className={`${inputClassName} pl-8`}
                     placeholder="0.00"
                     required
+                    pattern="^\d*\.?\d{0,2}$"
                   />
                 </div>
               </div>

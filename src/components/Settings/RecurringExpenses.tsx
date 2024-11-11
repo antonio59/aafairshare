@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, X, Calendar, DollarSign } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Calendar } from 'lucide-react';
 import { useExpenseStore } from '../../store/expenseStore';
+import { useUserStore } from '../../store/userStore';
 import type { RecurringExpense } from '../../types';
 import Dropdown from '../common/Dropdown';
 import TagInput from '../common/TagInput';
@@ -18,7 +19,10 @@ interface FormData {
 }
 
 const RecurringExpenses = () => {
-  const { categories, tags, recurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense, addTag } = useExpenseStore();
+  const { categories, categoryGroups, tags, recurringExpenses, addRecurringExpense, updateRecurringExpense, deleteRecurringExpense, addTag } = useExpenseStore();
+  const { currentUser } = useUserStore();
+  const currencySymbol = currentUser?.preferences.currency === 'GBP' ? '£' : '$';
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<RecurringExpense | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -36,13 +40,16 @@ const RecurringExpenses = () => {
 
   // Convert categories for the dropdown
   const categoryOptions = useMemo(() => 
-    categories.map(cat => ({
-      value: cat.id,
-      label: cat.name,
-      icon: cat.icon,
-      group: cat.group
-    })).sort((a, b) => a.label.localeCompare(b.label)),
-    [categories]
+    categories.map(cat => {
+      const group = categoryGroups.find(g => g.id === cat.groupId);
+      return {
+        value: cat.id,
+        label: cat.name,
+        icon: cat.icon,
+        group: group?.name || 'Other'
+      };
+    }).sort((a, b) => a.label.localeCompare(b.label)),
+    [categories, categoryGroups]
   );
 
   const handleAddExpense = () => {
@@ -95,6 +102,14 @@ const RecurringExpenses = () => {
     await addTag(newTag);
   };
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty value or numbers with up to 2 decimal places
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setFormData(prev => ({ ...prev, amount: value }));
+    }
+  };
+
   // Prevent mouse wheel from changing number input
   const handleWheel = (e: React.WheelEvent<HTMLInputElement>) => {
     e.currentTarget.blur();
@@ -104,11 +119,14 @@ const RecurringExpenses = () => {
     e.preventDefault();
     if (!formData.category) return;
     
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount)) return;
+
     setIsSubmitting(true);
     try {
       const expense = {
         description: formData.description,
-        amount: parseFloat(formData.amount),
+        amount,
         category: formData.category,
         paidBy: formData.paidBy,
         split: formData.split,
@@ -132,6 +150,8 @@ const RecurringExpenses = () => {
       setIsSubmitting(false);
     }
   };
+
+  const inputClassName = "w-full px-4 py-3.5 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-base bg-white";
 
   return (
     <div className="space-y-6">
@@ -168,7 +188,7 @@ const RecurringExpenses = () => {
                     </span>
                   </div>
                   <div className="flex flex-wrap gap-2 items-center text-sm text-gray-600">
-                    <span>£{expense.amount.toFixed(2)}</span>
+                    <span>{currencySymbol}{expense.amount.toFixed(2)}</span>
                     <span>•</span>
                     <span className="capitalize">{expense.frequency}</span>
                     <span>•</span>
@@ -216,7 +236,7 @@ const RecurringExpenses = () => {
       </div>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
           <div className="bg-gray-100 rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
               <h3 className="text-lg font-semibold">
@@ -244,14 +264,14 @@ const RecurringExpenses = () => {
                 />
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-900 mb-2.5">
                     Description (Optional)
                   </label>
                   <input
                     type="text"
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className={inputClassName}
                     placeholder="Add a description..."
                   />
                 </div>
@@ -267,39 +287,40 @@ const RecurringExpenses = () => {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Amount (£)
+                    <label className="block text-sm font-medium text-gray-900 mb-2.5">
+                      Amount ({currencySymbol})
                     </label>
                     <div className="relative">
-                      <DollarSign className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                        {currencySymbol}
+                      </span>
                       <input
-                        type="number"
+                        type="text"
                         inputMode="decimal"
-                        step="0.01"
-                        min="0"
                         value={formData.amount}
-                        onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+                        onChange={handleAmountChange}
                         onWheel={handleWheel}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`${inputClassName} pl-8`}
                         placeholder="0.00"
                         required
+                        pattern="^\d*\.?\d{0,2}$"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-900 mb-2.5">
                       Start Date
                     </label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="date"
                         value={formData.startDate}
                         onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={`${inputClassName} pr-12`}
                         required
                       />
+                      <Calendar className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" size={20} />
                     </div>
                   </div>
                 </div>
@@ -309,11 +330,10 @@ const RecurringExpenses = () => {
               <div className="bg-white rounded-lg shadow-sm p-4 sm:p-6 space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-900 mb-2.5">
                       Day of Month
                     </label>
                     <div className="relative">
-                      <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                       <input
                         type="number"
                         min="1"
@@ -321,7 +341,7 @@ const RecurringExpenses = () => {
                         value={formData.dayOfMonth}
                         onChange={(e) => setFormData({ ...formData, dayOfMonth: e.target.value })}
                         onWheel={handleWheel}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className={inputClassName}
                         required
                       />
                     </div>

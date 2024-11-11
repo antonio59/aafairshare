@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
+import { useUserStore } from '../store/userStore';
 import { X, Calendar } from 'lucide-react';
 import type { Expense } from '../types';
 import Select from 'react-select';
@@ -12,9 +13,12 @@ interface ExpenseEditModalProps {
 
 const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
   const { updateExpense, categories, tags, addTag } = useExpenseStore();
+  const { currentUser } = useUserStore();
+  const currencySymbol = currentUser?.preferences.currency === 'GBP' ? '£' : '$';
+
   const [formData, setFormData] = useState({
     description: expense.description || '',
-    amount: expense.amount.toString(),
+    amount: expense.amount ? expense.amount.toString() : '',
     date: new Date(expense.date).toISOString().split('T')[0],
     category: expense.category,
     paidBy: expense.paidBy,
@@ -39,12 +43,23 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount)) return;
+
     updateExpense(expense.id, {
       ...formData,
-      amount: parseFloat(formData.amount),
+      amount,
       date: new Date(formData.date).toISOString(),
     });
     onClose();
+  };
+
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Allow empty value or numbers with up to 2 decimal places
+    if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
+      setFormData(prev => ({ ...prev, amount: value }));
+    }
   };
 
   const handleTagChange = (newValue: any) => {
@@ -204,18 +219,24 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-900 mb-2.5">
-                    Amount (£)
+                    Amount ({currencySymbol})
                   </label>
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    step="0.01"
-                    value={formData.amount}
-                    onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                    onWheel={handleWheel}
-                    className={inputClassName}
-                    required
-                  />
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
+                      {currencySymbol}
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      value={formData.amount}
+                      onChange={handleAmountChange}
+                      onWheel={handleWheel}
+                      className={`${inputClassName} pl-8`}
+                      placeholder="0.00"
+                      required
+                      pattern="^\d*\.?\d{0,2}$"
+                    />
+                  </div>
                 </div>
 
                 <div>
