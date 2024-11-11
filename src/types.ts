@@ -26,6 +26,8 @@ export interface CategoryGroup {
   id: string;
   name: string;
   order: number;
+  color?: string;
+  icon?: string;
 }
 
 export interface Category {
@@ -74,4 +76,26 @@ export interface Settlement {
   settledBy: string;
   settledAt: string;
   balance: number;
+}
+
+// Store types
+export interface Store {
+  categories: Category[];
+  categoryGroups: CategoryGroup[];
+  tags: Tag[];
+  addCategory: (category: Omit<Category, 'id'>) => Promise<void>;
+  updateCategory: (id: string, category: Partial<Category>) => Promise<void>;
+  deleteCategory: (id: string) => Promise<void>;
+  addTag: (tag: Omit<Tag, 'id'>) => Promise<void>;
+  updateTag: (id: string, tag: Partial<Tag>) => Promise<void>;
+  deleteTag: (id: string) => Promise<void>;
+  addCategoryGroup: (group: Omit<CategoryGroup, 'id'>) => Promise<void>;
+  updateCategoryGroup: (id: string, group: Partial<CategoryGroup>) => Promise<void>;
+  deleteCategoryGroup: (id: string) => Promise<void>;
+}
+
+export interface UserState {
+  currentUser: User | null;
+  updateUser: (user: Partial<User>) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
 }

@@ -29,7 +29,7 @@ const NotificationsSettings = () => {
         }
       }
 
-      updateUser(currentUser.id, {
+      updateUser({
         preferences: {
           ...currentUser.preferences,
           notifications: {

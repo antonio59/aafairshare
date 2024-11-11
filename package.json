@@ -7,12 +7,15 @@
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
     "add-categories": "ts-node --compilerOptions '{\"module\":\"commonjs\"}' src/scripts/addCategories.ts"
   },
   "dependencies": {
     "chart.js": "^4.4.6",
     "date-fns": "^4.1.0",
     "firebase": "^11.0.1",
+    "firebase-admin": "^12.7.0",
+    "lucide-react": "^0.456.0",
     "react": "^18.3.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
@@ -21,9 +24,14 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@types/dompurify": "^3.0.5",
     "@types/react": "^18.3.12",
+    "@types/react-beautiful-dnd": "^13.1.8",
     "@types/react-dom": "^18.3.1",
+    "@types/react-select": "^5.0.0",
     "@vitejs/plugin-react": "^4.3.3",
+    "exceljs": "^4.4.0",
+    "jspdf": "^2.5.2",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
   }

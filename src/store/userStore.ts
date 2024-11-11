@@ -1,6 +1,11 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from 'firebase/auth';
+import { 
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged, 
+  updatePassword as firebaseUpdatePassword 
+} from 'firebase/auth';
 import { auth } from '../firebase';
 import type { User } from '../types';
 import { clearAuthCache, handleAuthError } from '../utils/authUtils';
@@ -11,7 +16,8 @@ interface UserState {
   error: string | null;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  updateUser: (id: string, updates: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   setCurrentUser: (user: User | null) => void;
 }
 
@@ -99,21 +105,34 @@ export const useUserStore = create<UserState>()(
         }
       },
 
-      updateUser: (id: string, updates: Partial<User>) => {
+      updateUser: async (updates: Partial<User>) => {
+        const { currentUser } = get();
+        if (!currentUser) throw new Error('No user logged in');
+
         set((state) => {
           const updatedUsers = state.users.map((u) =>
-            u.id === id ? { ...u, ...updates } : u
+            u.id === currentUser.id ? { ...u, ...updates } : u
           );
-          const updatedCurrentUser = state.currentUser?.id === id 
-            ? { ...state.currentUser, ...updates }
-            : state.currentUser;
           
           return {
             users: updatedUsers,
-            currentUser: updatedCurrentUser,
+            currentUser: { ...currentUser, ...updates },
             error: null
           };
         });
+      },
+
+      updatePassword: async (newPassword: string) => {
+        const firebaseUser = auth.currentUser;
+        if (!firebaseUser) throw new Error('No user logged in');
+
+        try {
+          await firebaseUpdatePassword(firebaseUser, newPassword);
+          set({ error: null });
+        } catch (error) {
+          console.error('Failed to update password:', error);
+          throw error;
+        }
       },
     }),
     {

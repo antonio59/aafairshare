@@ -12,16 +12,21 @@ const CategoryGroupSettings = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Form data state
+  // Form data state with default values
   const [formData, setFormData] = useState({
     name: '',
-    color: '#000000',
+    color: '#6B7280', // Default color
     icon: '',
     order: 0,
   });
 
   const handleAddGroup = () => {
-    setFormData({ name: '', color: '#000000', icon: '', order: categoryGroups.length });
+    setFormData({ 
+      name: '', 
+      color: '#6B7280', // Default color
+      icon: '', 
+      order: categoryGroups.length 
+    });
     setEditingGroup(null);
     setIsModalOpen(true);
     setError(null);
@@ -31,7 +36,7 @@ const CategoryGroupSettings = () => {
   const handleEditGroup = (group: CategoryGroup) => {
     setFormData({
       name: group.name,
-      color: group.color,
+      color: group.color || '#6B7280', // Fallback to default color if undefined
       icon: group.icon || '',
       order: group.order,
     });

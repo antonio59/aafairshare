@@ -1,23 +1,48 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useUserStore } from '../../store/userStore';
-import { Plus, Edit2, Trash2, X, Calendar, Tag, AlertCircle, CheckCircle2, Loader2, Hash, Folder, Grid, Target } from 'lucide-react';
+import { 
+  Plus, 
+  Edit2, 
+  Trash2, 
+  X, 
+  Calendar, 
+  Tag, 
+  AlertCircle, 
+  CheckCircle2, 
+  Loader2, 
+  Hash, 
+  Folder, 
+  Grid, 
+  Target 
+} from 'lucide-react';
 import RecurringExpenses from './RecurringExpenses';
 import CategoryGroupSettings from './CategoryGroupSettings';
 import Budget from '../Budget';
-import type { Category, Tag as TagType } from '../../types';
+import type { Category, Tag as TagType, CategoryGroup } from '../../types';
 import Dropdown from '../common/Dropdown';
 
 // Type guard functions
-const isCategory = (item: any): item is Category => {
-  return item && 'groupId' in item;
+const isCategory = (item: unknown): item is Category => {
+  return (
+    typeof item === 'object' && 
+    item !== null && 
+    'groupId' in item && 
+    'name' in item && 
+    'color' in item
+  );
 };
 
-const isTag = (item: any): item is TagType => {
-  return item && 'categoryId' in item;
+const isTag = (item: unknown): item is TagType => {
+  return (
+    typeof item === 'object' && 
+    item !== null && 
+    'name' in item && 
+    ('categoryId' in item || (item as TagType).categoryId === undefined)
+  );
 };
 
-const ExpenseSettings = () => {
+const ExpenseSettings: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'groups' | 'categories' | 'tags' | 'recurring' | 'budget'>('groups');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Category | TagType | null>(null);
@@ -52,8 +77,7 @@ const ExpenseSettings = () => {
     setError(null);
     setSuccess(null);
   };
-
-  const handleEditItem = (item: Category | TagType) => {
+  function handleEditItem(item: Category | TagType) {
     if (!currentUser) return;
     setFormData({
       name: item.name,
@@ -64,7 +88,7 @@ const ExpenseSettings = () => {
     setIsModalOpen(true);
     setError(null);
     setSuccess(null);
-  };
+  }
 
   const handleDeleteItem = async (id: string) => {
     if (!currentUser) return;
@@ -178,7 +202,7 @@ const ExpenseSettings = () => {
 
             {categoryGroups
               .sort((a, b) => a.order - b.order)
-              .map((group) => (
+              .map((group: CategoryGroup) => (
                 <div key={group.id} className="bg-white rounded-lg shadow-sm p-4">
                   <h4 className="font-medium mb-3">{group.name}</h4>
                   <div className="space-y-2">
@@ -416,7 +440,7 @@ const ExpenseSettings = () => {
                 <Dropdown
                   label="Group"
                   value={formData.groupId}
-                  onChange={(value) => setFormData({ ...formData, groupId: value })}
+                  onChange={(value: string) => setFormData({ ...formData, groupId: value })}
                   options={categoryGroups
                     .sort((a, b) => a.order - b.order)
                     .map(group => ({
@@ -432,7 +456,7 @@ const ExpenseSettings = () => {
                 <Dropdown
                   label="Category (Optional)"
                   value={formData.categoryId}
-                  onChange={(value) => setFormData({ ...formData, categoryId: value })}
+                  onChange={(value: string) => setFormData({ ...formData, categoryId: value })}
                   options={categories
                     .filter((category): category is Category => category !== null)
                     .sort((a, b) => a.name.localeCompare(b.name))

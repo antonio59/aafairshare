@@ -28,8 +28,8 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
         .catch(error => {
           console.error('Error loading favicon:', error);
           // Clear the favicon path if it's not accessible
-          if (error.code === 'storage/object-not-found') {
-            updateUser(currentUser.id, {
+          if (error.code === 'storage/object-not-found' && currentUser) {
+            updateUser({
               preferences: {
                 ...currentUser.preferences,
                 favicon: '',
@@ -132,7 +132,7 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
 
       // Update user preferences
       console.log('Updating user preferences...');
-      await updateUser(currentUser.id, {
+      await updateUser({
         preferences: {
           ...currentUser.preferences,
           favicon: storagePath,
@@ -190,7 +190,7 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
       updateFavicon(defaultFavicon);
 
       // Update user preferences
-      await updateUser(currentUser.id, {
+      await updateUser({
         preferences: {
           ...currentUser.preferences,
           favicon: '',

@@ -17,7 +17,7 @@ const AccountSettings = () => {
     console.log('About to render FaviconSettings');
   }, []);
 
-  const handlePasswordChange = (e: React.FormEvent) => {
+  const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword !== confirmPassword) {
       setPasswordError('Passwords do not match');
@@ -29,18 +29,22 @@ const AccountSettings = () => {
     }
 
     if (currentUser) {
-      updatePassword(currentUser.id, newPassword);
-      setNewPassword('');
-      setConfirmPassword('');
-      setPasswordError('');
-      setSuccessMessage('Password updated successfully');
-      setTimeout(() => setSuccessMessage(''), 3000);
+      try {
+        await updatePassword(newPassword);
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordError('');
+        setSuccessMessage('Password updated successfully');
+        setTimeout(() => setSuccessMessage(''), 3000);
+      } catch (error) {
+        setPasswordError(error instanceof Error ? error.message : 'Failed to update password');
+      }
     }
   };
 
   const handleCurrencyChange = (currency: string) => {
     if (currentUser) {
-      updateUser(currentUser.id, {
+      updateUser({
         preferences: {
           ...currentUser.preferences,
           currency,
