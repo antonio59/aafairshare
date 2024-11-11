@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { clearAuthCache } from '../utils/authUtils';
+import { clearAuthCache, validateAuthToken } from '../utils/authUtils';
 import type { User } from '../types';
 
 interface ProtectedRouteProps {
@@ -17,63 +17,77 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const { currentUser, setCurrentUser } = useUserStore();
 
   useEffect(() => {
-    const checkAuth = async () => {
+    const checkAuthState = async () => {
       try {
-        // Clear any stale auth state
+        // Clear any stale auth cache
         await clearAuthCache();
+
+        // Set up Firebase auth state listener
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (!firebaseUser) {
+            console.log('No authenticated user');
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+            setIsAuthChecked(true);
+            return;
+          }
+
+          try {
+            // Validate token
+            const isValidToken = await validateAuthToken();
+            if (!isValidToken) {
+              console.log('Invalid token');
+              setIsAuthenticated(false);
+              setCurrentUser(null);
+              setIsAuthChecked(true);
+              return;
+            }
+
+            // Create or update user in store
+            const newUser: User = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+              email: firebaseUser.email || '',
+              role: (firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
+              preferences: {
+                currency: 'GBP',
+                favicon: '',
+                notifications: {
+                  overBudget: true,
+                  monthlyReminder: true,
+                  monthEndReminder: true,
+                  monthlyAnalytics: true,
+                },
+              },
+            };
+
+            // Update current user if not already set or different
+            if (!currentUser || currentUser.id !== newUser.id) {
+              setCurrentUser(newUser);
+            }
+
+            setIsAuthenticated(true);
+            setIsAuthChecked(true);
+          } catch (error) {
+            console.error('Authentication validation error:', error);
+            await clearAuthCache();
+            setIsAuthenticated(false);
+            setCurrentUser(null);
+            setIsAuthChecked(true);
+          }
+        });
+
+        // Cleanup subscription
+        return () => unsubscribe();
       } catch (error) {
-        console.error('Error clearing auth cache:', error);
+        console.error('Initial auth check failed:', error);
+        setIsAuthenticated(false);
+        setCurrentUser(null);
+        setIsAuthChecked(true);
       }
     };
 
-    checkAuth();
-
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setIsAuthChecked(true);
-      
-      if (!user) {
-        console.log('No authenticated user in ProtectedRoute');
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-        return;
-      }
-
-      try {
-        // Verify token
-        const token = await user.getIdToken(true);
-        console.log('Token verified for user:', user.email);
-
-        // Ensure user exists in store
-        if (!currentUser) {
-          const newUser: User = {
-            id: user.uid,
-            name: user.displayName || user.email?.split('@')[0] || '',
-            email: user.email || '',
-            role: (user.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
-            preferences: {
-              currency: 'GBP',
-              favicon: '',
-              notifications: {
-                overBudget: true,
-                monthlyReminder: true,
-                monthEndReminder: true,
-                monthlyAnalytics: true,
-              },
-            },
-          };
-          setCurrentUser(newUser);
-        }
-
-        setIsAuthenticated(true);
-      } catch (error) {
-        console.error('Token verification failed:', error);
-        await clearAuthCache();
-        setIsAuthenticated(false);
-        setCurrentUser(null);
-      }
-    });
-
-    return () => unsubscribe();
+    checkAuthState();
   }, [currentUser, setCurrentUser]);
 
   // Show loading state while checking auth

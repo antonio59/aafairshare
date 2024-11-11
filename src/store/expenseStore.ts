@@ -25,6 +25,8 @@ import {
   fetchAllData,
   type FirestoreData
 } from './firebaseOperations';
+import { auth } from '../firebase';
+import { reAuthenticateUser } from '../utils/authUtils';
 
 interface State {
   expenses: Expense[];
@@ -98,12 +100,50 @@ export const useExpenseStore = create<Store>((set, get) => ({
   // Actions
   initializeStore: async () => {
     try {
-      const data = await fetchAllData();
-      set({ 
-        ...data, 
-        initialized: true,
-        error: null 
-      });
+      // Ensure user is authenticated
+      const user = auth.currentUser;
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Attempt to fetch data
+      try {
+        const data = await fetchAllData();
+        set({ 
+          ...data, 
+          initialized: true,
+          error: null 
+        });
+      } catch (error) {
+        console.error('Failed to fetch data:', error);
+
+        // If permission denied, try re-authenticating
+        if (error instanceof Error && error.message.includes('permission-denied')) {
+          try {
+            // Attempt re-authentication with stored credentials
+            const storedEmail = user.email;
+            if (!storedEmail) {
+              throw new Error('No email found for re-authentication');
+            }
+
+            // Re-authenticate user
+            await reAuthenticateUser(storedEmail);
+
+            // Retry fetching data
+            const data = await fetchAllData();
+            set({ 
+              ...data, 
+              initialized: true,
+              error: null 
+            });
+          } catch (reAuthError) {
+            console.error('Re-authentication failed:', reAuthError);
+            throw reAuthError;
+          }
+        } else {
+          throw error;
+        }
+      }
     } catch (error) {
       console.error('Failed to initialize store:', error);
       set({ 
@@ -117,6 +157,7 @@ export const useExpenseStore = create<Store>((set, get) => ({
         initialized: true,
         error: error instanceof Error ? error.message : 'Failed to initialize store'
       });
+      throw error;
     }
   },
 
@@ -136,6 +177,7 @@ export const useExpenseStore = create<Store>((set, get) => ({
     }
   },
 
+  // [Rest of the implementation remains the same as in the previous version]
   updateCategoryGroup: async (id, updatedGroup) => {
     try {
       await updateCategoryGroupInFirestore(id, updatedGroup);

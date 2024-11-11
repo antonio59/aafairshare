@@ -4,6 +4,7 @@ import { useExpenseStore } from './store/expenseStore';
 import { useUserStore } from './store/userStore';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
+import { clearAuthCache, validateAuthToken } from './utils/authUtils';
 import Navbar from './components/Navbar';
 import ExpenseList from './components/ExpenseList';
 import ExpenseForm from './components/ExpenseForm';
@@ -12,41 +13,82 @@ import Settings from './components/Settings';
 import Settlement from './components/Settlement';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
-import { clearAuthCache } from './utils/authUtils';
+import type { User } from './types';
 
-// AuthWrapper component to handle authentication state
-const AuthWrapper = ({ children }: { children: React.ReactNode }) => {
+// Global Authentication Wrapper
+const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const { setCurrentUser } = useUserStore();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const init = async () => {
+    const initAuth = async () => {
       try {
-        // Clear any stale auth state
+        // Clear any stale auth cache
         await clearAuthCache();
+
+        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+          if (!firebaseUser) {
+            console.log('No authenticated user');
+            setCurrentUser(null);
+            navigate('/login', { replace: true });
+            setIsAuthChecked(true);
+            return;
+          }
+
+          try {
+            // Validate token
+            const isValidToken = await validateAuthToken();
+            if (!isValidToken) {
+              console.log('Invalid token');
+              setCurrentUser(null);
+              navigate('/login', { replace: true });
+              setIsAuthChecked(true);
+              return;
+            }
+
+            // Create or update user in store
+            const newUser: User = {
+              id: firebaseUser.uid,
+              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+              email: firebaseUser.email || '',
+              role: (firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
+              preferences: {
+                currency: 'GBP',
+                favicon: '',
+                notifications: {
+                  overBudget: true,
+                  monthlyReminder: true,
+                  monthEndReminder: true,
+                  monthlyAnalytics: true,
+                },
+              },
+            };
+
+            setCurrentUser(newUser);
+            setIsAuthChecked(true);
+          } catch (error) {
+            console.error('Authentication validation error:', error);
+            await clearAuthCache();
+            setCurrentUser(null);
+            navigate('/login', { replace: true });
+            setIsAuthChecked(true);
+          }
+        });
+
+        return () => unsubscribe();
       } catch (error) {
-        console.error('Error clearing auth cache:', error);
-      }
-    };
-    init();
-  }, []);
-
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('Auth state changed:', user?.email);
-      setIsAuthChecked(true);
-
-      if (!user) {
-        console.log('No authenticated user, redirecting to login');
+        console.error('Initial auth setup failed:', error);
         setCurrentUser(null);
         navigate('/login', { replace: true });
+        setIsAuthChecked(true);
       }
-    });
+    };
 
-    return () => unsubscribe();
+    initAuth();
   }, [setCurrentUser, navigate]);
 
+  // Show loading state while checking auth
   if (!isAuthChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -91,7 +133,7 @@ function App() {
 
   return (
     <Router>
-      <AuthWrapper>
+      <AuthProvider>
         <div className="min-h-screen bg-gray-50">
           {currentUser && <Navbar />}
           <main className={currentUser ? "pt-16 pb-20" : ""}>
@@ -139,7 +181,7 @@ function App() {
             </Routes>
           </main>
         </div>
-      </AuthWrapper>
+      </AuthProvider>
     </Router>
   );
 }

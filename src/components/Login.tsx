@@ -54,6 +54,9 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Firebase auth successful:', userCredential.user);
 
+      // Temporarily store password for potential re-authentication
+      localStorage.setItem('tempPassword', password);
+
       // Update store
       const success = await login(email, password);
       if (success) {
@@ -116,6 +119,7 @@ const Login = () => {
       await sendPasswordResetEmail(auth, email);
       setMessage('Password reset email sent. Please check your inbox and spam folder.');
       setPassword(''); // Clear password field after reset request
+      localStorage.removeItem('tempPassword'); // Remove stored password
     } catch (error) {
       await handleAuthError(error);
       

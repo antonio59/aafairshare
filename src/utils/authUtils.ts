@@ -1,10 +1,8 @@
 import { auth } from '../firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export const clearAuthCache = async () => {
   try {
-    // Sign out from Firebase
-    await auth.signOut();
-    
     // Clear all storage
     localStorage.clear();
     sessionStorage.clear();
@@ -18,11 +16,12 @@ export const clearAuthCache = async () => {
     });
 
     // Clear Firebase specific storage
-    localStorage.removeItem('firebase:host:aafairshare.firebaseapp.com');
-    localStorage.removeItem('firebase:authUser:AIzaSyC8zIGv9XeuAG6gP2rXPih9tixN1zq0JYo:[DEFAULT]');
-    localStorage.removeItem('user-storage');
+    const firebaseKeys = Object.keys(localStorage).filter(
+      key => key.includes('firebase') || key.includes('firebaseapp')
+    );
+    firebaseKeys.forEach(key => localStorage.removeItem(key));
 
-    // Clear any persisted Zustand stores
+    // Clear Zustand and other persisted stores
     Object.keys(localStorage).forEach(key => {
       if (key.includes('zustand') || key.includes('persist')) {
         localStorage.removeItem(key);
@@ -30,12 +29,42 @@ export const clearAuthCache = async () => {
     });
 
     console.log('Authentication cache cleared successfully');
-    
-    // Force reload to ensure clean state
-    window.location.href = '/login';
   } catch (error) {
     console.error('Error clearing auth cache:', error);
-    throw new Error('Failed to clear authentication cache');
+  }
+};
+
+export const validateAuthToken = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('No authenticated user');
+    }
+
+    // Force token refresh
+    const token = await user.getIdToken(true);
+    console.log('Token validated successfully');
+    return true;
+  } catch (error) {
+    console.error('Token validation failed:', error);
+    return false;
+  }
+};
+
+export const reAuthenticateUser = async (email: string) => {
+  try {
+    // Attempt to re-authenticate the user
+    const storedPassword = localStorage.getItem('tempPassword');
+    if (!storedPassword) {
+      throw new Error('No stored credentials');
+    }
+
+    const userCredential = await signInWithEmailAndPassword(auth, email, storedPassword);
+    console.log('User re-authenticated successfully');
+    return userCredential.user;
+  } catch (error) {
+    console.error('Re-authentication failed:', error);
+    throw error;
   }
 };
 
@@ -46,8 +75,8 @@ export const handleAuthError = async (error: unknown) => {
     if (error.message.includes('auth/invalid-credential') ||
         error.message.includes('auth/user-token-expired') ||
         error.message.includes('permission-denied')) {
-      console.log('Invalid credentials or token expired, clearing auth cache...');
-      await clearAuthCache();
+      console.log('Invalid credentials or token expired, attempting re-authentication...');
+      // You might want to add logic to re-authenticate or prompt for login
     }
   }
   
