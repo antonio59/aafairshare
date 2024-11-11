@@ -1,10 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
-import type { User } from '../types';
 
 interface LocationState {
   from?: Location;
@@ -19,7 +18,16 @@ const Login = () => {
   const [isResetting, setIsResetting] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { setCurrentUser } = useUserStore();
+  const { login, currentUser } = useUserStore();
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (currentUser && auth.currentUser) {
+      const state = location.state as LocationState;
+      const from = state?.from?.pathname || '/';
+      navigate(from, { replace: true });
+    }
+  }, [currentUser, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,32 +41,16 @@ const Login = () => {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Firebase auth successful:', userCredential.user);
 
-      // Create user object with proper role typing
-      const user: User = {
-        id: userCredential.user.uid,
-        name: userCredential.user.displayName || email.split('@')[0],
-        email: userCredential.user.email || email,
-        role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2' as const,
-        preferences: {
-          currency: 'GBP',
-          favicon: '',
-          notifications: {
-            overBudget: true,
-            monthlyReminder: true,
-            monthEndReminder: true,
-            monthlyAnalytics: true,
-          },
-        },
-      };
-
-      // Update user store
-      setCurrentUser(user);
-      console.log('User store updated:', user);
-
-      // Navigate to intended destination
-      const state = location.state as LocationState;
-      const from = state?.from?.pathname || '/';
-      navigate(from, { replace: true });
+      // Update store
+      const success = await login(email, password);
+      if (success) {
+        // Get the redirect path from location state, or default to home
+        const state = location.state as LocationState;
+        const from = state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      } else {
+        throw new Error('Failed to initialize user data');
+      }
     } catch (error) {
       console.error('Login error:', error);
       
@@ -109,7 +101,7 @@ const Login = () => {
     try {
       console.log('Sending password reset email to:', email);
       await sendPasswordResetEmail(auth, email);
-      setMessage('Password reset email sent. Please check your inbox.');
+      setMessage('Password reset email sent. Please check your inbox and spam folder.');
       setPassword(''); // Clear password field after reset request
     } catch (error) {
       console.error('Reset password error:', error);

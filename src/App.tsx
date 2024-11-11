@@ -19,28 +19,45 @@ function App() {
   const [isAuthChecked, setIsAuthChecked] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
 
+  // Force redirect to login if no auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('Auth state changed:', user?.email);
       setIsAuthChecked(true);
       
       if (!user) {
+        console.log('No authenticated user, redirecting to login');
         setCurrentUser(null);
         setIsInitializing(false);
+        // Force redirect to login
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
         return;
       }
 
       try {
         // Initialize store only after successful authentication
-        await initializeStore();
+        await initializeStore().catch(error => {
+          console.error('Store initialization failed:', error);
+          // If store initialization fails, log out the user
+          auth.signOut();
+          window.location.href = '/login';
+        });
       } catch (error) {
         console.error('Failed to initialize store:', error);
+        // On any error, log out and redirect
+        auth.signOut();
+        window.location.href = '/login';
       } finally {
         setIsInitializing(false);
       }
     });
 
-    return () => unsubscribe();
+    // Cleanup subscription
+    return () => {
+      unsubscribe();
+    };
   }, [setCurrentUser, initializeStore]);
 
   // Show loading state while checking auth and initializing
@@ -49,6 +66,18 @@ function App() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
+    );
+  }
+
+  // If no user is authenticated, only show login page
+  if (!auth.currentUser) {
+    return (
+      <Router>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
     );
   }
 
