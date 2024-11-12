@@ -8,10 +8,13 @@ import {
 import { auth } from '../firebase';
 import type { User } from '../types';
 
-interface UserState {
+interface State {
   users: User[];
   currentUser: User | null;
   error: string | null;
+}
+
+interface Actions {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -19,12 +22,16 @@ interface UserState {
   setCurrentUser: (user: User | null) => void;
 }
 
-export const useUserStore = create<UserState>()(
+const initialState: State = {
+  users: [],
+  currentUser: null,
+  error: null
+};
+
+export const useUserStore = create<State & Actions>()(
   persist(
     (set, get) => ({
-      users: [],
-      currentUser: null,
-      error: null,
+      ...initialState,
 
       setCurrentUser: (user: User | null) => {
         if (user) {

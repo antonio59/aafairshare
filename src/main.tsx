@@ -5,6 +5,14 @@ import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
 
+// Initialize stores immediately
+import { useUserStore } from './store/userStore';
+import { useExpenseStore } from './store/expenseStore';
+
+// Pre-initialize stores
+useUserStore.getState();
+useExpenseStore.getState();
+
 // Performance monitoring
 const reportWebVitals = ({ name, delta, id, value }: {
   name: string;
@@ -21,15 +29,6 @@ const reportWebVitals = ({ name, delta, id, value }: {
       delta: Math.round(delta * 100) / 100,
       id
     });
-    
-    // Example: Send to Google Analytics
-    // ga('send', 'event', {
-    //   eventCategory: 'Web Vitals',
-    //   eventAction: name,
-    //   eventValue: Math.round(value),
-    //   eventLabel: id,
-    //   nonInteraction: true,
-    // });
   }
 };
 
