@@ -3,7 +3,7 @@ import { useExpenseStore } from '../../store/expenseStore';
 import type { RecurringExpense } from '../../types';
 
 interface RecurringExpensesProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ onClose }) => {
@@ -64,14 +64,16 @@ const RecurringExpenses: React.FC<RecurringExpensesProps> = ({ onClose }) => {
         </div>
       )}
 
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-        >
-          Close
-        </button>
-      </div>
+      {onClose && (
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 };

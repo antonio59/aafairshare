@@ -4,7 +4,7 @@ import RecurringExpenses from './RecurringExpenses';
 import ImportSettings from './ImportSettings';
 
 interface ExpenseSettingsProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const ExpenseSettings: React.FC<ExpenseSettingsProps> = ({ onClose }) => {

@@ -5,7 +5,7 @@ import { useUserStore } from '../../store/userStore';
 import type { CategoryGroup } from '../../types';
 
 interface CategoryGroupSettingsProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }) => {
@@ -204,14 +204,16 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
       </DragDropContext>
 
       {/* Close button */}
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-        >
-          Close
-        </button>
-      </div>
+      {onClose && (
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -3,7 +3,7 @@ import { useExpenseStore } from '../../store/expenseStore';
 import type { Expense } from '../../types';
 
 interface ImportSettingsProps {
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const ImportSettings: React.FC<ImportSettingsProps> = ({ onClose }) => {
@@ -91,14 +91,16 @@ const ImportSettings: React.FC<ImportSettingsProps> = ({ onClose }) => {
         </button>
       </div>
 
-      <div className="mt-6 flex justify-end">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
-        >
-          Close
-        </button>
-      </div>
+      {onClose && (
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+          >
+            Close
+          </button>
+        </div>
+      )}
     </div>
   );
 };
