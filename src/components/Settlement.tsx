@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { format, subMonths, startOfMonth } from 'date-fns';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
@@ -57,10 +57,28 @@ const Settlement = () => {
     return expenses.some(expense => format(new Date(expense.date), 'yyyy-MM') === month);
   };
 
-  // A month needs settlement if it has expenses and hasn't been settled yet
-  const unsettledMonths = pastMonths.filter(month => 
-    hasExpensesInMonth(month) && !isMonthSettled(month)
-  );
+  // Check if a month has a non-zero balance
+  const hasNonZeroBalance = (month: string) => {
+    const balance = getMonthlyBalance(month);
+    return Math.abs(balance) > 0;
+  };
+
+  // A month needs settlement if it has expenses with a non-zero balance and hasn't been settled yet
+  const unsettledMonths = pastMonths.filter(month => {
+    const hasExpenses = hasExpensesInMonth(month);
+    const nonZeroBalance = hasNonZeroBalance(month);
+    const settled = isMonthSettled(month);
+    
+    // For debugging
+    console.log(`Month ${month}:`, {
+      hasExpenses,
+      nonZeroBalance,
+      settled,
+      balance: getMonthlyBalance(month)
+    });
+    
+    return hasExpenses && nonZeroBalance && !settled;
+  });
 
   return (
     <div className="container mx-auto px-4 py-8 mb-20">
