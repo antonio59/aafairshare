@@ -16,6 +16,12 @@ interface ImportSummary {
   errors: string[];
 }
 
+interface SectionColumns {
+  descriptionCol: number;
+  amountCol: number;
+  section: string;
+}
+
 const ImportSettings = () => {
   const [file, setFile] = useState<File | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,78 +48,92 @@ const ImportSettings = () => {
   };
 
   const parseSpreadsheetDate = (sheetName: string): string => {
-    // Remove any potential spaces and split by spaces
-    const parts = sheetName.trim().split(' ');
-    if (parts.length !== 2) return '';
-    
-    const [month, year] = parts;
     const monthMap: { [key: string]: string } = {
       'January': '01', 'February': '02', 'March': '03', 'April': '04',
       'May': '05', 'June': '06', 'July': '07', 'August': '08',
       'September': '09', 'October': '10', 'November': '11', 'December': '12'
     };
 
-    if (!monthMap[month] || !year) return '';
-    return `${year}-${monthMap[month]}-01`;
+    // Try to match "Month Year" format (e.g., "October 2024")
+    for (const [monthName, monthNum] of Object.entries(monthMap)) {
+      if (sheetName.startsWith(monthName)) {
+        const year = sheetName.substring(monthName.length).trim();
+        if (year.match(/^\d{4}$/)) { // Ensure year is exactly 4 digits
+          return `${year}-${monthNum}-01`;
+        }
+      }
+    }
+
+    return '';
   };
 
   const parseAmount = (value: string): number => {
+    if (!value || value.trim() === '') return 0;
     // Remove currency symbol and any non-numeric characters except decimal point and minus
-    const cleanValue = value.replace(/[^0-9.-]+/g, '');
+    const cleanValue = value.toString().replace(/[^0-9.-]+/g, '');
     const amount = parseFloat(cleanValue);
     return isNaN(amount) ? 0 : amount;
   };
 
-  const findColumnIndices = (worksheet: ExcelJS.Worksheet): { 
-    descriptionCol: number, 
-    amountCol: number 
-  } | null => {
-    let descriptionCol = 0;
-    let amountCol = 0;
+  const findSectionColumns = (worksheet: ExcelJS.Worksheet): SectionColumns[] => {
+    const sections: SectionColumns[] = [];
+    const headerRow1 = worksheet.getRow(1);
+    const headerRow2 = worksheet.getRow(2);
+    
+    let currentSection = '';
+    headerRow1.eachCell((cell, colNumber) => {
+      const value = cell.text.trim();
+      if (value) {
+        currentSection = value;
+      }
+      
+      const headerCell = headerRow2.getCell(colNumber);
+      const headerValue = headerCell.text.toLowerCase().trim();
+      
+      if (headerValue === 'description') {
+        // Look for corresponding "How Much" column
+        const nextCell = headerRow2.getCell(colNumber + 1);
+        if (nextCell && nextCell.text.toLowerCase().trim() === 'how much') {
+          sections.push({
+            descriptionCol: colNumber,
+            amountCol: colNumber + 1,
+            section: currentSection
+          });
+        }
+      }
+    });
 
-    // Check first two rows for headers
-    for (let rowNum = 1; rowNum <= 2; rowNum++) {
-      const row = worksheet.getRow(rowNum);
-      row.eachCell((cell, colNumber) => {
-        const value = cell.text.toLowerCase().trim();
-        if (value === 'description') descriptionCol = colNumber;
-        if (value === 'how much' || value === 'amount') amountCol = colNumber;
-      });
-    }
-
-    if (!descriptionCol || !amountCol) return null;
-    return { descriptionCol, amountCol };
+    return sections;
   };
 
   const processExpenseRow = (
     row: ExcelJS.Row,
-    descriptionCol: number,
-    amountCol: number,
-    section: string,
+    section: SectionColumns,
     date: string
   ): Omit<Expense, 'id'> | null => {
-    const description = row.getCell(descriptionCol).text.trim();
-    const amountText = row.getCell(amountCol).text.trim();
-    const amount = parseAmount(amountText);
+    const description = row.getCell(section.descriptionCol).text.trim();
+    const amount = parseAmount(row.getCell(section.amountCol).text);
 
     if (!description || !amount) return null;
 
     let paidBy: string;
     let split: 'equal' | 'no-split';
 
+    const sectionLower = section.section.toLowerCase();
+    
     // Handle the different section types
-    if (description.toLowerCase().includes('extras andres to antonio')) {
-      paidBy = 'Andres';
-      split = 'no-split';
-    } else if (description.toLowerCase().includes('extras antonio to andres')) {
-      paidBy = 'Antonio';
-      split = 'no-split';
-    } else if (section.toLowerCase().includes('paid by andres')) {
+    if (sectionLower === 'andres paid') {
       paidBy = 'Andres';
       split = 'equal';
-    } else if (section.toLowerCase().includes('paid by antonio')) {
+    } else if (sectionLower === 'antonio paid') {
       paidBy = 'Antonio';
       split = 'equal';
+    } else if (sectionLower === 'extras antonio to andres') {
+      paidBy = 'Antonio';
+      split = 'no-split';
+    } else if (sectionLower === 'extras andres to antonio') {
+      paidBy = 'Andres';
+      split = 'no-split';
     } else {
       return null;
     }
@@ -142,27 +162,19 @@ const ImportSettings = () => {
 
   const checkSettlement = (worksheet: ExcelJS.Worksheet): boolean => {
     let isSettled = false;
-    let foundSettlementRow = false;
 
     worksheet.eachRow((row) => {
       row.eachCell((cell) => {
         const value = cell.text.toLowerCase().trim();
         // Check for settlement indicators
-        if (
-          (value.includes('andres pay to antonio') || 
-           value.includes('antonio pay to andres') ||
-           value.includes('andres owes antonio') ||
-           value.includes('antonio owes andres'))
-        ) {
-          foundSettlementRow = true;
+        if (value.includes('andres pay antonio')) {
           // Check if the cell or amount cell is highlighted green
           if (cell.fill && isGreenFill(cell.fill)) {
             isSettled = true;
           } else {
-            // Check the amount in the next cell
-            const amountCell = row.getCell(cell.col + 1);
-            const amount = parseAmount(amountCell.text);
-            if (amount === 0 && amountCell.fill && isGreenFill(amountCell.fill)) {
+            // Check the amount
+            const amount = parseAmount(cell.text);
+            if (amount === 0) {
               isSettled = true;
             }
           }
@@ -170,7 +182,7 @@ const ImportSettings = () => {
       });
     });
 
-    return foundSettlementRow && isSettled;
+    return isSettled;
   };
 
   const handleSpreadsheetImport = async (file: File): Promise<ImportSummary> => {
@@ -195,36 +207,26 @@ const ImportSettings = () => {
         continue;
       }
 
-      const columns = findColumnIndices(worksheet);
-      if (!columns) {
+      const sections = findSectionColumns(worksheet);
+      if (sections.length === 0) {
         summary.errors.push(`Invalid sheet format in ${worksheet.name}`);
         continue;
       }
 
-      const { descriptionCol, amountCol } = columns;
       const monthExpenses: Omit<Expense, 'id'>[] = [];
 
-      // Skip the first two header rows
-      let currentSection = '';
-      worksheet.eachRow((row, rowNumber) => {
-        if (rowNumber <= 2) return; // Skip header rows
-
-        const description = row.getCell(descriptionCol).text.trim();
+      // Process each row starting from row 3 (after headers)
+      for (let rowNumber = 3; rowNumber <= worksheet.rowCount; rowNumber++) {
+        const row = worksheet.getRow(rowNumber);
         
-        // Update current section if row contains section header
-        if (description.toLowerCase().includes('paid by')) {
-          currentSection = description;
-          return;
-        }
-
-        // Process expense row
-        if (currentSection && description) {
-          const expense = processExpenseRow(row, descriptionCol, amountCol, currentSection, date);
+        // Process each section's columns
+        for (const section of sections) {
+          const expense = processExpenseRow(row, section, date);
           if (expense) {
             monthExpenses.push(expense);
           }
         }
-      });
+      }
 
       // Add all expenses for the month
       try {
