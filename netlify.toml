@@ -37,7 +37,7 @@
       script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.firebase.com https://*.google.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com;
       style-src 'self' 'unsafe-inline' data: blob: https://fonts.googleapis.com;
       font-src 'self' data: https://fonts.gstatic.com;
-      img-src 'self' data: https: https://www.google-analytics.com;
+      img-src 'self' data: blob: https: https://www.google-analytics.com;
       connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net https://*.googleapis.com https://www.google-analytics.com wss://*.firebaseio.com https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev;
       frame-src 'self' https://*.firebaseapp.com;
       manifest-src 'self' https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev;
@@ -82,11 +82,13 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Cache images
+# Specific headers for favicon and images
 [[headers]]
   for = "/*.{png,jpg,jpeg,gif,webp,svg,ico}"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+    Content-Type = "image/png"
+    Access-Control-Allow-Origin = "*"
 
 # Handle service worker routes
 [[redirects]]
@@ -98,3 +100,10 @@
   from = "/workbox-*.js"
   to = "/workbox-:splat.js"
   status = 200
+
+# Specific redirect for favicon
+[[redirects]]
+  from = "/test-favicon.png"
+  to = "/test-favicon.png"
+  status = 200
+  force = true

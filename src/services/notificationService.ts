@@ -40,8 +40,8 @@ class NotificationService {
     if (this.hasPermission) {
       try {
         new Notification(title, {
-          icon: '/favicon.ico',
-          badge: '/favicon.ico',
+          icon: '/aafairshare.png',
+          badge: '/aafairshare.png',
           ...options,
         });
       } catch (error) {

@@ -67,7 +67,6 @@ export const useUserStore = create<UserStore>((set, get) => ({
         role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
         preferences: {
           currency: 'GBP',
-          favicon: '',
           notifications: {
             overBudget: true,
             monthlyReminder: true,

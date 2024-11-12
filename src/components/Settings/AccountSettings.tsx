@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
-import FaviconSettings from './FaviconSettings';
 
 const AccountSettings = () => {
   const { currentUser, updateUser, updatePassword } = useUserStore();
@@ -12,10 +11,6 @@ const AccountSettings = () => {
   useEffect(() => {
     console.log('AccountSettings mounted, currentUser:', currentUser);
   }, [currentUser]);
-
-  useEffect(() => {
-    console.log('About to render FaviconSettings');
-  }, []);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,9 +91,6 @@ const AccountSettings = () => {
           </div>
         </div>
       </div>
-
-      {/* Favicon Settings */}
-      <FaviconSettings />
 
       {/* Password Change */}
       <div className="bg-white rounded-lg shadow p-6 space-y-4">

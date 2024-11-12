@@ -36,7 +36,6 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
             role: (firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
             preferences: {
               currency: 'GBP',
-              favicon: '',
               notifications: {
                 overBudget: true,
                 monthlyReminder: true,
