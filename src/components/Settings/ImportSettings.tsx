@@ -29,7 +29,8 @@ const ImportSettings = () => {
     addTag, 
     addRecurringExpense,
     addExpense,
-    settleMonth
+    settleMonth,
+    getMonthlyBalance
   } = useExpenseStore();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,47 +42,80 @@ const ImportSettings = () => {
   };
 
   const parseSpreadsheetDate = (sheetName: string): string => {
-    const [month, year] = sheetName.split(' ');
+    // Remove any potential spaces and split by spaces
+    const parts = sheetName.trim().split(' ');
+    if (parts.length !== 2) return '';
+    
+    const [month, year] = parts;
     const monthMap: { [key: string]: string } = {
       'January': '01', 'February': '02', 'March': '03', 'April': '04',
       'May': '05', 'June': '06', 'July': '07', 'August': '08',
       'September': '09', 'October': '10', 'November': '11', 'December': '12'
     };
+
+    if (!monthMap[month] || !year) return '';
     return `${year}-${monthMap[month]}-01`;
   };
 
-  const processExpenseRow = async (
+  const parseAmount = (value: string): number => {
+    // Remove currency symbol and any non-numeric characters except decimal point and minus
+    const cleanValue = value.replace(/[^0-9.-]+/g, '');
+    const amount = parseFloat(cleanValue);
+    return isNaN(amount) ? 0 : amount;
+  };
+
+  const findColumnIndices = (worksheet: ExcelJS.Worksheet): { 
+    descriptionCol: number, 
+    amountCol: number 
+  } | null => {
+    let descriptionCol = 0;
+    let amountCol = 0;
+
+    // Check first two rows for headers
+    for (let rowNum = 1; rowNum <= 2; rowNum++) {
+      const row = worksheet.getRow(rowNum);
+      row.eachCell((cell, colNumber) => {
+        const value = cell.text.toLowerCase().trim();
+        if (value === 'description') descriptionCol = colNumber;
+        if (value === 'how much' || value === 'amount') amountCol = colNumber;
+      });
+    }
+
+    if (!descriptionCol || !amountCol) return null;
+    return { descriptionCol, amountCol };
+  };
+
+  const processExpenseRow = (
     row: ExcelJS.Row,
+    descriptionCol: number,
+    amountCol: number,
     section: string,
     date: string
-  ): Promise<Omit<Expense, 'id'> | null> => {
-    const description = row.getCell('Description').text;
-    const amount = parseFloat(row.getCell('How Much').text);
+  ): Omit<Expense, 'id'> | null => {
+    const description = row.getCell(descriptionCol).text.trim();
+    const amountText = row.getCell(amountCol).text.trim();
+    const amount = parseAmount(amountText);
 
-    if (!description || !amount || isNaN(amount)) return null;
+    if (!description || !amount) return null;
 
     let paidBy: string;
     let split: 'equal' | 'no-split';
 
-    switch (section) {
-      case 'Andres Paid':
-        paidBy = 'Andres';
-        split = 'equal';
-        break;
-      case 'Antonio Paid':
-        paidBy = 'Antonio';
-        split = 'equal';
-        break;
-      case 'Extras Antonio to Andres':
-        paidBy = 'Antonio';
-        split = 'no-split';
-        break;
-      case 'Extras Andres to Antonio':
-        paidBy = 'Andres';
-        split = 'no-split';
-        break;
-      default:
-        return null;
+    // Handle the different section types
+    if (description.toLowerCase().includes('extras andres to antonio')) {
+      paidBy = 'Andres';
+      split = 'no-split';
+    } else if (description.toLowerCase().includes('extras antonio to andres')) {
+      paidBy = 'Antonio';
+      split = 'no-split';
+    } else if (section.toLowerCase().includes('paid by andres')) {
+      paidBy = 'Andres';
+      split = 'equal';
+    } else if (section.toLowerCase().includes('paid by antonio')) {
+      paidBy = 'Antonio';
+      split = 'equal';
+    } else {
+      return null;
     }
 
     return {
@@ -95,25 +129,48 @@ const ImportSettings = () => {
     };
   };
 
-  const checkSettlement = async (worksheet: ExcelJS.Worksheet): Promise<boolean> => {
-    const lastRows = worksheet.rowCount;
-    
-    for (let row = lastRows; row > lastRows - 2; row--) {
-      const currentRow = worksheet.getRow(row);
-      const descriptionCell = currentRow.getCell('Description');
-      const amountCell = currentRow.getCell('How Much');
-      
-      if (descriptionCell.text === 'Andres Pay Antonio' || 
-          descriptionCell.text === 'Antonio Pay Andres') {
-        // Check if the amount cell is highlighted green
-        const fill = (amountCell.fill as ExcelJS.Fill);
-        if (fill.type === 'pattern' && fill.pattern === 'solid' && 
-            fill.fgColor?.argb === 'FF00FF00') {
-          return true;
-        }
-      }
+  const isGreenFill = (fill: ExcelJS.Fill): boolean => {
+    if ('fgColor' in fill && fill.type === 'pattern') {
+      const color = (fill as any).fgColor?.argb;
+      // Check for various shades of green
+      return color === 'FF00FF00' || // Bright green
+             color === 'FF92D050' || // Light green
+             color === 'FF00B050';   // Dark green
     }
     return false;
+  };
+
+  const checkSettlement = (worksheet: ExcelJS.Worksheet): boolean => {
+    let isSettled = false;
+    let foundSettlementRow = false;
+
+    worksheet.eachRow((row) => {
+      row.eachCell((cell) => {
+        const value = cell.text.toLowerCase().trim();
+        // Check for settlement indicators
+        if (
+          (value.includes('andres pay to antonio') || 
+           value.includes('antonio pay to andres') ||
+           value.includes('andres owes antonio') ||
+           value.includes('antonio owes andres'))
+        ) {
+          foundSettlementRow = true;
+          // Check if the cell or amount cell is highlighted green
+          if (cell.fill && isGreenFill(cell.fill)) {
+            isSettled = true;
+          } else {
+            // Check the amount in the next cell
+            const amountCell = row.getCell(cell.col + 1);
+            const amount = parseAmount(amountCell.text);
+            if (amount === 0 && amountCell.fill && isGreenFill(amountCell.fill)) {
+              isSettled = true;
+            }
+          }
+        }
+      });
+    });
+
+    return foundSettlementRow && isSettled;
   };
 
   const handleSpreadsheetImport = async (file: File): Promise<ImportSummary> => {
@@ -127,61 +184,67 @@ const ImportSettings = () => {
     await workbook.xlsx.load(await file.arrayBuffer());
 
     for (const worksheet of workbook.worksheets) {
+      // Skip sheets named "Moving" or "House"
+      if (['Moving', 'House'].includes(worksheet.name)) {
+        continue;
+      }
+
       const date = parseSpreadsheetDate(worksheet.name);
-      
-      // Find header row and column indices
-      let headerRow = 1;
-      let descriptionCol = 0;
-      let amountCol = 0;
-      let sectionCol = 0;
+      if (!date) {
+        summary.errors.push(`Invalid sheet name format in ${worksheet.name}`);
+        continue;
+      }
 
-      worksheet.eachRow((row, rowNumber) => {
-        row.eachCell((cell, colNumber) => {
-          if (cell.text === 'Description') descriptionCol = colNumber;
-          if (cell.text === 'How Much') amountCol = colNumber;
-          if (cell.text === 'Section') sectionCol = colNumber;
-        });
-        if (descriptionCol && amountCol && sectionCol) headerRow = rowNumber;
-      });
-
-      if (!descriptionCol || !amountCol || !sectionCol) {
+      const columns = findColumnIndices(worksheet);
+      if (!columns) {
         summary.errors.push(`Invalid sheet format in ${worksheet.name}`);
         continue;
       }
 
-      // Process each section
-      const sections = ['Andres Paid', 'Antonio Paid', 
-                       'Extras Antonio to Andres', 'Extras Andres to Antonio'];
-      
-      worksheet.eachRow({ includeEmpty: false }, async (row, rowNumber) => {
-        if (rowNumber <= headerRow) return;
+      const { descriptionCol, amountCol } = columns;
+      const monthExpenses: Omit<Expense, 'id'>[] = [];
 
-        const section = row.getCell(sectionCol).text;
-        if (!sections.includes(section)) return;
+      // Skip the first two header rows
+      let currentSection = '';
+      worksheet.eachRow((row, rowNumber) => {
+        if (rowNumber <= 2) return; // Skip header rows
 
-        const expense = await processExpenseRow(row, section, date);
-        if (expense) {
-          try {
-            await addExpense(expense);
-            summary.success++;
-          } catch (err) {
-            summary.errors.push(
-              `Failed to import ${expense.description}: ${err}`
-            );
-            summary.skipped++;
+        const description = row.getCell(descriptionCol).text.trim();
+        
+        // Update current section if row contains section header
+        if (description.toLowerCase().includes('paid by')) {
+          currentSection = description;
+          return;
+        }
+
+        // Process expense row
+        if (currentSection && description) {
+          const expense = processExpenseRow(row, descriptionCol, amountCol, currentSection, date);
+          if (expense) {
+            monthExpenses.push(expense);
           }
-        } else {
-          summary.skipped++;
         }
       });
 
-      // Check if month is settled
-      if (await checkSettlement(worksheet)) {
-        await settleMonth(
-          date.substring(0, 7), // YYYY-MM format
-          'System Import',
-          0 // Balance will be calculated by the store
+      // Add all expenses for the month
+      try {
+        for (const expense of monthExpenses) {
+          await addExpense(expense);
+          summary.success++;
+        }
+
+        // Check if month should be settled
+        if (checkSettlement(worksheet)) {
+          const monthKey = date.substring(0, 7); // YYYY-MM format
+          const balance = getMonthlyBalance(monthKey);
+          await settleMonth(monthKey, 'System Import', balance);
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        summary.errors.push(
+          `Failed to process month ${worksheet.name}: ${errorMessage}`
         );
+        summary.skipped += monthExpenses.length;
       }
     }
 
