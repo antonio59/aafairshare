@@ -12,6 +12,7 @@ const Settlement = () => {
   const {
     getMonthlyBalance,
     isMonthSettled,
+    expenses
   } = useExpenseStore();
 
   // Generate past 12 months
@@ -51,7 +52,15 @@ const Settlement = () => {
     return amount > 0 ? 'text-green-600' : 'text-red-600';
   };
 
-  const unsettledMonths = pastMonths.filter(month => !isMonthSettled(month));
+  // Check if a month has any expenses
+  const hasExpensesInMonth = (month: string) => {
+    return expenses.some(expense => format(new Date(expense.date), 'yyyy-MM') === month);
+  };
+
+  // A month needs settlement if it has expenses and hasn't been settled yet
+  const unsettledMonths = pastMonths.filter(month => 
+    hasExpensesInMonth(month) && !isMonthSettled(month)
+  );
 
   return (
     <div className="container mx-auto px-4 py-8 mb-20">
