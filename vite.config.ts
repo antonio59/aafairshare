@@ -3,6 +3,22 @@ import react from '@vitejs/plugin-react';
 import { compression } from 'vite-plugin-compression2';
 import { VitePWA } from 'vite-plugin-pwa';
 
+// CSP Headers configuration
+const cspHeaders = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.firebase.com https://*.google.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: https: https://www.google-analytics.com",
+  "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net https://*.googleapis.com https://www.google-analytics.com wss://*.firebaseio.com",
+  "frame-src 'self' https://*.firebaseapp.com",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'",
+  "upgrade-insecure-requests"
+].join('; ');
+
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
@@ -35,6 +51,16 @@ export default defineConfig({
               statuses: [0, 200],
             },
           },
+        }, {
+          urlPattern: /^https:\/\/www\.google-analytics\.com\/.*/i,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'analytics-cache',
+            expiration: {
+              maxEntries: 50,
+              maxAgeSeconds: 60 * 60 * 24, // 1 day
+            },
+          },
         }],
       },
     }),
@@ -45,20 +71,10 @@ export default defineConfig({
     strictPort: true,
     host: true,
     headers: {
-      'Content-Security-Policy': [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://apis.google.com https://*.firebaseapp.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
-        "img-src 'self' data: https:",
-        "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net wss://*.firebaseio.com",
-        "frame-src 'self' https://*.firebaseapp.com",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-        "frame-ancestors 'none'",
-        "upgrade-insecure-requests"
-      ].join('; '),
+      'Content-Security-Policy': cspHeaders,
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
   },
 
@@ -95,20 +111,10 @@ export default defineConfig({
     port: 5173,
     strictPort: true,
     headers: {
-      'Content-Security-Policy': [
-        "default-src 'self'",
-        "script-src 'self' 'unsafe-inline' https://apis.google.com https://*.firebaseapp.com",
-        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-        "font-src 'self' https://fonts.gstatic.com",
-        "img-src 'self' data: https:",
-        "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net wss://*.firebaseio.com",
-        "frame-src 'self' https://*.firebaseapp.com",
-        "object-src 'none'",
-        "base-uri 'self'",
-        "form-action 'self'",
-        "frame-ancestors 'none'",
-        "upgrade-insecure-requests"
-      ].join('; '),
+      'Content-Security-Policy': cspHeaders,
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'DENY',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
     },
   },
 });

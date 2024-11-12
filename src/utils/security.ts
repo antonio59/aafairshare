@@ -87,11 +87,11 @@ export const validateText = (text: string, maxLength: number = 500): boolean => 
 export const getCSPHeader = (): string => {
   return [
     "default-src 'self'",
-    "script-src 'self' https://apis.google.com https://*.firebaseapp.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.firebase.com https://*.google.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: https:",
-    "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net",
+    "img-src 'self' data: https: https://www.google-analytics.com",
+    "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net https://*.googleapis.com https://www.google-analytics.com wss://*.firebaseio.com",
     "frame-src 'self' https://*.firebaseapp.com",
     "object-src 'none'",
     "base-uri 'self'",
