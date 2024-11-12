@@ -22,13 +22,7 @@ const cspHeaders = [
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
-    react({
-      babel: {
-        plugins: [
-          ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
-        ]
-      }
-    }),
+    react(), // Simplified React plugin configuration
     compression({
       algorithm: 'brotliCompress',
       exclude: [/\.(br)$/, /\.(gz)$/],
