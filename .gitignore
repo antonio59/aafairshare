@@ -25,3 +25,7 @@ dist-ssr
 
 echo "aafairshare/" >> .gitignore
 echo "aafairshare.git/" >> .gitignore
+
+echo "aafairshare" >> .gitignore
+git add .gitignore
+git commit -m "Update .gitignore to exclude nested repo"
