@@ -1,5 +1,5 @@
 import { auth } from '../firebase';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 
 export const clearAuthCache = async () => {
   try {
@@ -121,5 +121,35 @@ export const checkTokenRefreshNeeded = async (): Promise<boolean> => {
   } catch (error) {
     console.error('Error checking token refresh:', error);
     return true; // Err on the side of caution
+  }
+};
+
+// Re-authenticate user with stored credentials
+export const reAuthenticateUser = async (email: string): Promise<void> => {
+  try {
+    const user = auth.currentUser;
+    if (!user) {
+      throw new Error('No authenticated user');
+    }
+
+    // Get stored password from secure storage
+    const storedPassword = localStorage.getItem(`auth_${email}`);
+    if (!storedPassword) {
+      throw new Error('No stored credentials found');
+    }
+
+    // Create credential
+    const credential = EmailAuthProvider.credential(email, storedPassword);
+
+    // Re-authenticate
+    await reauthenticateWithCredential(user, credential);
+
+    // Force token refresh
+    await user.getIdToken(true);
+
+  } catch (error) {
+    console.error('Re-authentication failed:', error);
+    await clearAuthCache();
+    throw error;
   }
 };
