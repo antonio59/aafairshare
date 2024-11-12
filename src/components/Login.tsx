@@ -4,7 +4,7 @@ import { useUserStore } from '../store/userStore';
 import { auth } from '../firebase';
 import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
 import { FirebaseError } from 'firebase/app';
-import { clearAuthCache, handleAuthError } from '../utils/authUtils';
+import { handleAuthError } from '../utils/authUtils';
 
 interface LocationState {
   from?: Location;
@@ -20,18 +20,6 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, currentUser } = useUserStore();
-
-  // Clear auth state on mount
-  useEffect(() => {
-    const init = async () => {
-      try {
-        await clearAuthCache();
-      } catch (error) {
-        console.error('Error clearing auth cache:', error);
-      }
-    };
-    init();
-  }, []);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -50,25 +38,22 @@ const Login = () => {
     
     try {
       console.log('Attempting login with:', email);
-      // Try direct Firebase authentication first
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Firebase auth successful:', userCredential.user);
-
-      // Temporarily store password for potential re-authentication
-      localStorage.setItem('tempPassword', password);
-
-      // Update store
+      
+      // Update store first
       const success = await login(email, password);
-      if (success) {
-        // Get the redirect path from location state, or default to home
-        const state = location.state as LocationState;
-        const from = state?.from?.pathname || '/';
-        navigate(from, { replace: true });
-      } else {
+      if (!success) {
         throw new Error('Failed to initialize user data');
       }
+
+      // Store password for potential re-authentication
+      localStorage.setItem('tempPassword', password);
+
+      // Get the redirect path from location state, or default to home
+      const state = location.state as LocationState;
+      const from = state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (error) {
-      await handleAuthError(error);
+      console.error('Login error:', error);
       
       if (error instanceof FirebaseError) {
         switch (error.code) {
@@ -90,6 +75,9 @@ const Login = () => {
           case 'auth/network-request-failed':
             setError('Network error. Please check your connection and try again.');
             break;
+          case 'auth/invalid-credential':
+            setError('Invalid email or password. Please try again.');
+            break;
           default:
             setError(`Authentication error: ${error.message}`);
         }
@@ -98,6 +86,9 @@ const Login = () => {
       } else {
         setError('An unexpected error occurred. Please try again.');
       }
+
+      // Handle auth error after setting the error message
+      await handleAuthError(error);
     } finally {
       setIsLoading(false);
     }
@@ -121,7 +112,7 @@ const Login = () => {
       setPassword(''); // Clear password field after reset request
       localStorage.removeItem('tempPassword'); // Remove stored password
     } catch (error) {
-      await handleAuthError(error);
+      console.error('Password reset error:', error);
       
       if (error instanceof FirebaseError) {
         switch (error.code) {
@@ -142,6 +133,9 @@ const Login = () => {
       } else {
         setError('Failed to send reset email. Please try again.');
       }
+
+      // Handle auth error after setting the error message
+      await handleAuthError(error);
     } finally {
       setIsResetting(false);
     }

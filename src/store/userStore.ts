@@ -8,7 +8,7 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import type { User } from '../types';
-import { clearAuthCache, handleAuthError } from '../utils/authUtils';
+import { handleAuthError } from '../utils/authUtils';
 
 interface UserState {
   users: User[];
@@ -36,9 +36,18 @@ export const useUserStore = create<UserState>()(
         try {
           console.log('Attempting login for:', email);
           
-          // Authenticate with Firebase
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          console.log('Firebase auth successful:', userCredential.user);
+          // First try to get existing user credentials
+          let userCredential;
+          try {
+            userCredential = await signInWithEmailAndPassword(auth, email, password);
+            console.log('Firebase auth successful:', userCredential.user);
+            
+            // Force token refresh
+            await userCredential.user.getIdToken(true);
+          } catch (authError) {
+            console.error('Firebase auth error:', authError);
+            throw authError;
+          }
           
           // Create user object
           const user: User = {
@@ -58,7 +67,7 @@ export const useUserStore = create<UserState>()(
             },
           };
 
-          // Update users array if user doesn't exist
+          // Update users array and current user
           set((state) => {
             const existingUserIndex = state.users.findIndex(u => u.id === user.id);
             const updatedUsers = [...state.users];
@@ -85,9 +94,9 @@ export const useUserStore = create<UserState>()(
 
           return true;
         } catch (error) {
-          await handleAuthError(error);
-          set({ error: 'Invalid email or password' });
-          return false;
+          console.error('Login error:', error);
+          set({ currentUser: null, error: 'Invalid email or password' });
+          throw error;
         }
       },
 
@@ -97,9 +106,7 @@ export const useUserStore = create<UserState>()(
           set({ currentUser: null, error: null });
         } catch (error) {
           console.error('Logout error:', error);
-          set({ error: 'Failed to logout' });
-          // Still try to clear state even if there's an error
-          set({ currentUser: null });
+          set({ error: 'Failed to logout', currentUser: null });
         }
       },
 
@@ -146,6 +153,9 @@ export const useUserStore = create<UserState>()(
             if (firebaseUser) {
               console.log('Firebase user authenticated:', firebaseUser.email);
               try {
+                // Force token refresh
+                await firebaseUser.getIdToken(true);
+                
                 // Find matching user in our store
                 const user = state.users.find(u => u.id === firebaseUser.uid);
                 
@@ -173,7 +183,7 @@ export const useUserStore = create<UserState>()(
                 }
               } catch (error) {
                 console.error('Error in auth state change:', error);
-                // Don't clear auth cache here, let Firebase handle token refresh
+                state.setCurrentUser(null);
               }
             } else {
               console.log('No Firebase user');
