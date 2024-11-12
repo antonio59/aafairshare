@@ -2,32 +2,34 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <meta name="description" content="AA FairShare - Smart expense tracking and splitting for partners. Easily manage shared expenses, track budgets, and settle balances." />
-    <meta name="theme-color" content="#2563eb" />
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta property="og:title" content="AA FairShare" />
-    <meta property="og:description" content="Smart expense tracking and splitting for partners. Easily manage shared expenses, track budgets, and settle balances." />
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://aafairshare.online" />
+    <link rel="icon" type="image/png" href="/test-favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AAFairShare - Expense sharing made simple" />
+    <meta name="theme-color" content="#ffffff" />
     
-    <!-- Security Headers -->
-    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests; default-src https: 'self'; script-src https: 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.firebase.com https://*.google.com https://*.googleapis.com https://*.googletagmanager.com https://www.googletagmanager.com https://tagmanager.google.com https://ssl.google-analytics.com https://www.google-analytics.com; style-src https: 'self' 'unsafe-inline'; img-src https: data: 'self' https://*.google-analytics.com https://*.googletagmanager.com; font-src https: data: 'self'; connect-src https: wss: 'self' https://*.firebaseapp.com https://*.firebase.com https://*.google.com https://*.googleapis.com https://firestore.googleapis.com wss://*.firebaseio.com https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; frame-src https: 'self' https://*.firebaseapp.com https://*.firebase.com;">
-    <meta http-equiv="Strict-Transport-Security" content="max-age=31536000; includeSubDomains; preload">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <!-- Security headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff" />
+    <meta http-equiv="X-Frame-Options" content="DENY" />
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin" />
+    <meta http-equiv="Permissions-Policy" content="geolocation=(), camera=(), microphone=()" />
     
-    <title>AA FairShare - Smart Expense Tracking</title>
+    <!-- PWA support -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/test-favicon.png" />
+    
+    <!-- Preload critical assets -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    
+    <title>AAFairShare</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
     <noscript>
-      <div style="padding: 2rem; text-align: center; font-family: system-ui, -apple-system, sans-serif;">
-        <h1 style="margin-bottom: 1rem;">JavaScript Required</h1>
-        <p>AA FairShare requires JavaScript to run. Please enable JavaScript in your browser settings and reload the page.</p>
+      <div style="padding: 20px; text-align: center;">
+        JavaScript is required to run this application. Please enable JavaScript in your browser settings.
       </div>
     </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -1,28 +1,39 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore } from 'firebase/firestore';
-import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
+import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
+import { getAuth, setPersistence, browserSessionPersistence } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
-  apiKey: "AIzaSyC8zIGv9XeuAG6gP2rXPih9tixN1zq0JYo",
-  authDomain: "aafairshare.firebaseapp.com",
-  projectId: "aafairshare",
-  storageBucket: "aafairshare.appspot.com",
-  messagingSenderId: "326349848500",
-  appId: "1:326349848500:web:7501876b1017cb553c3ce1",
-  measurementId: "G-WRLHGN1BER"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firestore
+// Initialize Firestore with offline persistence
 const db = getFirestore(app);
+enableIndexedDbPersistence(db, {
+  forceOwnership: true
+}).catch((err) => {
+  if (err.code === 'failed-precondition') {
+    console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+  } else if (err.code === 'unimplemented') {
+    console.warn('The current browser does not support persistence.');
+  } else {
+    console.error('Failed to enable offline persistence:', err);
+  }
+});
 
-// Initialize Auth with persistence
+// Initialize Auth with session persistence (more secure than local)
 const auth = getAuth(app);
-setPersistence(auth, browserLocalPersistence).catch((error) => {
+setPersistence(auth, browserSessionPersistence).catch((error) => {
   console.error("Error setting auth persistence:", error);
 });
 
