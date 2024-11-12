@@ -37,6 +37,7 @@ interface State {
   settlements: Settlement[];
   initialized: boolean;
   error: string | null;
+  isLoading: boolean;
 }
 
 interface Actions {
@@ -66,6 +67,7 @@ interface Actions {
   getSettlementDate: (month: string) => string | null;
   getSettlementDetails: (month: string) => Settlement | null;
   getMonthlyBalance: (month: string) => number;
+  setLoading: (value: boolean) => void;
 }
 
 const initialState: State = {
@@ -77,13 +79,24 @@ const initialState: State = {
   recurringExpenses: [],
   settlements: [],
   initialized: false,
-  error: null
+  error: null,
+  isLoading: false
 };
 
-export const useExpenseStore = create<State & Actions>()((set, get) => ({
+type Store = State & Actions;
+
+const store = (set: any, get: any): Store => ({
   ...initialState,
 
+  setLoading: (value: boolean) => {
+    set({ isLoading: value });
+  },
+
   initializeStore: async () => {
+    const store = get();
+    if (store.initialized || store.isLoading) return;
+
+    store.setLoading(true);
     try {
       const user = auth.currentUser;
       if (!user) {
@@ -92,7 +105,12 @@ export const useExpenseStore = create<State & Actions>()((set, get) => ({
 
       try {
         const data = await fetchAllData();
-        set({ ...data, initialized: true, error: null });
+        set({ 
+          ...data, 
+          initialized: true,
+          error: null,
+          isLoading: false 
+        });
       } catch (error) {
         if (error instanceof Error && error.message.includes('permission-denied')) {
           try {
@@ -102,7 +120,12 @@ export const useExpenseStore = create<State & Actions>()((set, get) => ({
             }
             await reAuthenticateUser(storedEmail);
             const data = await fetchAllData();
-            set({ ...data, initialized: true, error: null });
+            set({ 
+              ...data, 
+              initialized: true,
+              error: null,
+              isLoading: false 
+            });
           } catch (reAuthError) {
             console.error('Re-authentication failed:', reAuthError);
             throw reAuthError;
@@ -113,80 +136,85 @@ export const useExpenseStore = create<State & Actions>()((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to initialize store:', error);
-      set({ ...initialState, initialized: true, error: error instanceof Error ? error.message : 'Failed to initialize store' });
+      set({ 
+        ...initialState,
+        initialized: true,
+        error: error instanceof Error ? error.message : 'Failed to initialize store',
+        isLoading: false
+      });
       throw error;
     }
   },
 
-  addExpense: async (expense) => {
+  addExpense: async (expense: Omit<Expense, 'id'>) => {
     const newExpense = { ...expense, id: uuidv4() };
     await addExpenseToFirestore(newExpense);
-    set(state => ({ expenses: [...state.expenses, newExpense], error: null }));
+    set((state: State) => ({ expenses: [...state.expenses, newExpense], error: null }));
   },
 
-  updateExpense: async (id, expense) => {
+  updateExpense: async (id: string, expense: Partial<Expense>) => {
     await updateExpenseInFirestore(id, expense);
-    set(state => ({
+    set((state: State) => ({
       expenses: state.expenses.map(e => e.id === id ? { ...e, ...expense } : e),
       error: null
     }));
   },
 
-  deleteExpense: async (id) => {
+  deleteExpense: async (id: string) => {
     await deleteExpenseFromFirestore(id);
-    set(state => ({
+    set((state: State) => ({
       expenses: state.expenses.filter(e => e.id !== id),
       error: null
     }));
   },
 
-  addCategory: async (category) => {
+  addCategory: async (category: Omit<Category, 'id'>) => {
     const newCategory = { ...category, id: uuidv4() };
     await addCategoryToFirestore(newCategory);
-    set(state => ({ categories: [...state.categories, newCategory], error: null }));
+    set((state: State) => ({ categories: [...state.categories, newCategory], error: null }));
   },
 
-  updateCategory: async (id, category) => {
+  updateCategory: async (id: string, category: Partial<Category>) => {
     await updateCategoryInFirestore(id, category);
-    set(state => ({
+    set((state: State) => ({
       categories: state.categories.map(c => c.id === id ? { ...c, ...category } : c),
       error: null
     }));
   },
 
-  deleteCategory: async (id) => {
+  deleteCategory: async (id: string) => {
     await deleteCategoryFromFirestore(id);
-    set(state => ({
+    set((state: State) => ({
       categories: state.categories.filter(c => c.id !== id),
       error: null
     }));
   },
 
-  addCategoryGroup: async (group) => {
+  addCategoryGroup: async (group: Omit<CategoryGroup, 'id'>) => {
     const newGroup = { ...group, id: uuidv4() };
     await addCategoryGroupToFirestore(newGroup);
-    set(state => ({ categoryGroups: [...state.categoryGroups, newGroup], error: null }));
+    set((state: State) => ({ categoryGroups: [...state.categoryGroups, newGroup], error: null }));
   },
 
-  updateCategoryGroup: async (id, group) => {
+  updateCategoryGroup: async (id: string, group: Partial<CategoryGroup>) => {
     await updateCategoryGroupInFirestore(id, group);
-    set(state => ({
+    set((state: State) => ({
       categoryGroups: state.categoryGroups.map(g => g.id === id ? { ...g, ...group } : g),
       error: null
     }));
   },
 
-  deleteCategoryGroup: async (id) => {
+  deleteCategoryGroup: async (id: string) => {
     await deleteCategoryGroupFromFirestore(id);
-    set(state => ({
+    set((state: State) => ({
       categoryGroups: state.categoryGroups.filter(g => g.id !== id),
       error: null
     }));
   },
 
-  addTag: async (tag) => {
+  addTag: async (tag: Omit<Tag, 'id'>) => {
     const { tags } = get();
-    const existingTag = tags.find(t => t.name.toLowerCase() === tag.name.toLowerCase());
+    const existingTag = tags.find((t: Tag) => t.name.toLowerCase() === tag.name.toLowerCase());
     
     if (existingTag) {
       if (existingTag.categoryId !== tag.categoryId) {
@@ -197,81 +225,81 @@ export const useExpenseStore = create<State & Actions>()((set, get) => ({
 
     const newTag = { ...tag, id: uuidv4() };
     await addTagToFirestore(newTag);
-    set(state => ({ tags: [...state.tags, newTag], error: null }));
+    set((state: State) => ({ tags: [...state.tags, newTag], error: null }));
   },
 
-  updateTag: async (id, tag) => {
+  updateTag: async (id: string, tag: Partial<Tag>) => {
     await updateTagInFirestore(id, tag);
-    set(state => ({
+    set((state: State) => ({
       tags: state.tags.map(t => t.id === id ? { ...t, ...tag } : t),
       error: null
     }));
   },
 
-  deleteTag: async (id) => {
+  deleteTag: async (id: string) => {
     await deleteTagFromFirestore(id);
-    set(state => ({
+    set((state: State) => ({
       tags: state.tags.filter(t => t.id !== id),
       error: null
     }));
   },
 
-  addBudget: async (budget) => {
+  addBudget: async (budget: Omit<Budget, 'id'>) => {
     const newBudget = { ...budget, id: uuidv4() };
     await addBudgetToFirestore(newBudget);
-    set(state => ({ budgets: [...state.budgets, newBudget], error: null }));
+    set((state: State) => ({ budgets: [...state.budgets, newBudget], error: null }));
   },
 
-  updateBudget: async (id, budget) => {
+  updateBudget: async (id: string, budget: Partial<Budget>) => {
     await updateBudgetInFirestore(id, budget);
-    set(state => ({
+    set((state: State) => ({
       budgets: state.budgets.map(b => b.id === id ? { ...b, ...budget } : b),
       error: null
     }));
   },
 
-  deleteBudget: async (id) => {
+  deleteBudget: async (id: string) => {
     await deleteBudgetFromFirestore(id);
-    set(state => ({
+    set((state: State) => ({
       budgets: state.budgets.filter(b => b.id !== id),
       error: null
     }));
   },
 
-  getBudgetProgress: (budget) => {
+  getBudgetProgress: (budget: Budget) => {
     const { expenses } = get();
     const currentDate = new Date();
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
 
-    const relevantExpenses = expenses.filter(expense => {
+    const relevantExpenses = expenses.filter((expense: Expense) => {
       const expenseDate = new Date(expense.date);
       return expense.category === budget.category &&
              expenseDate >= monthStart &&
              expenseDate <= monthEnd;
     });
 
-    const totalSpent = relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalSpent = relevantExpenses.reduce((sum: number, expense: Expense) => sum + expense.amount, 0);
     return (totalSpent / budget.amount) * 100;
   },
 
-  addRecurringExpense: async (expense) => {
+  addRecurringExpense: async (expense: Omit<RecurringExpense, 'id'>) => {
     const newExpense = { ...expense, id: uuidv4() };
     await addRecurringExpenseToFirestore(newExpense);
-    set(state => ({ recurringExpenses: [...state.recurringExpenses, newExpense], error: null }));
+    set((state: State) => ({ recurringExpenses: [...state.recurringExpenses, newExpense], error: null }));
   },
 
-  updateRecurringExpense: async (id, expense) => {
+  updateRecurringExpense: async (id: string, expense: Partial<RecurringExpense>) => {
     await updateRecurringExpenseInFirestore(id, expense);
-    set(state => ({
+    set((state: State) => ({
       recurringExpenses: state.recurringExpenses.map(e => e.id === id ? { ...e, ...expense } : e),
       error: null
     }));
   },
 
-  deleteRecurringExpense: async (id) => {
+  deleteRecurringExpense: async (id: string) => {
     await deleteRecurringExpenseFromFirestore(id);
-    set(state => ({
+    set((state: State) => ({
       recurringExpenses: state.recurringExpenses.filter(e => e.id !== id),
       error: null
     }));
@@ -306,7 +334,7 @@ export const useExpenseStore = create<State & Actions>()((set, get) => ({
     }
   },
 
-  settleMonth: async (month, settledBy, balance) => {
+  settleMonth: async (month: string, settledBy: string, balance: number) => {
     const settlement = {
       month,
       settledBy,
@@ -314,35 +342,35 @@ export const useExpenseStore = create<State & Actions>()((set, get) => ({
       balance,
     };
     await addSettlementToFirestore(settlement);
-    set(state => ({
-      settlements: [...state.settlements.filter(s => s.month !== month), settlement],
+    set((state: State) => ({
+      settlements: [...state.settlements.filter((s: Settlement) => s.month !== month), settlement],
       error: null
     }));
   },
 
-  isMonthSettled: (month) => {
+  isMonthSettled: (month: string) => {
     const { settlements } = get();
-    return settlements.some(s => s.month === month);
+    return settlements.some((s: Settlement) => s.month === month);
   },
 
-  getSettlementDate: (month) => {
+  getSettlementDate: (month: string) => {
     const { settlements } = get();
-    const settlement = settlements.find(s => s.month === month);
+    const settlement = settlements.find((s: Settlement) => s.month === month);
     return settlement ? settlement.settledAt : null;
   },
 
-  getSettlementDetails: (month) => {
+  getSettlementDetails: (month: string) => {
     const { settlements } = get();
-    return settlements.find(s => s.month === month) || null;
+    return settlements.find((s: Settlement) => s.month === month) || null;
   },
 
-  getMonthlyBalance: (month) => {
+  getMonthlyBalance: (month: string) => {
     const { expenses } = get();
     const monthlyExpenses = expenses.filter(
-      expense => format(new Date(expense.date), 'yyyy-MM') === month
+      (expense: Expense) => format(new Date(expense.date), 'yyyy-MM') === month
     );
 
-    return monthlyExpenses.reduce((balance, expense) => {
+    return monthlyExpenses.reduce((balance: number, expense: Expense) => {
       if (expense.split === 'equal') {
         return expense.paidBy === 'Andres'
           ? balance + expense.amount / 2
@@ -354,4 +382,6 @@ export const useExpenseStore = create<State & Actions>()((set, get) => ({
       }
     }, 0);
   }
-}));
+});
+
+export const useExpenseStore = create<Store>()(store);

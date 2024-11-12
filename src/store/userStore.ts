@@ -12,6 +12,7 @@ interface State {
   users: User[];
   currentUser: User | null;
   error: string | null;
+  isInitialized: boolean;
 }
 
 interface Actions {
@@ -20,123 +21,134 @@ interface Actions {
   updateUser: (updates: Partial<User>) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
   setCurrentUser: (user: User | null) => void;
+  setInitialized: (value: boolean) => void;
 }
 
 const initialState: State = {
   users: [],
   currentUser: null,
-  error: null
+  error: null,
+  isInitialized: false
 };
 
-export const useUserStore = create<State & Actions>()(
-  persist(
-    (set, get) => ({
-      ...initialState,
+type Store = State & Actions;
 
-      setCurrentUser: (user: User | null) => {
-        if (user) {
-          set((state) => {
-            const existingUserIndex = state.users.findIndex(u => u.id === user.id);
-            const updatedUsers = [...state.users];
-            
-            if (existingUserIndex === -1) {
-              updatedUsers.push(user);
-            } else {
-              updatedUsers[existingUserIndex] = {
-                ...updatedUsers[existingUserIndex],
-                ...user,
-                preferences: {
-                  ...updatedUsers[existingUserIndex]?.preferences,
-                  ...user.preferences
-                }
-              };
-            }
+const store = (set: any, get: any): Store => ({
+  ...initialState,
 
-            return {
-              users: updatedUsers,
-              currentUser: user,
-              error: null
-            };
-          });
+  setInitialized: (value: boolean) => {
+    set({ isInitialized: value });
+  },
+
+  setCurrentUser: (user: User | null) => {
+    if (user) {
+      set((state: State) => {
+        const existingUserIndex = state.users.findIndex(u => u.id === user.id);
+        const updatedUsers = [...state.users];
+        
+        if (existingUserIndex === -1) {
+          updatedUsers.push(user);
         } else {
-          set({ currentUser: null, error: null });
-        }
-      },
-
-      login: async (email: string, password: string) => {
-        try {
-          console.log('Attempting login for:', email);
-          
-          const userCredential = await signInWithEmailAndPassword(auth, email, password);
-          console.log('Firebase auth successful:', userCredential.user);
-          
-          // Force token refresh
-          await userCredential.user.getIdToken(true);
-          
-          // Create user object
-          const user: User = {
-            id: userCredential.user.uid,
-            name: userCredential.user.displayName || email.split('@')[0],
-            email: userCredential.user.email || email,
-            role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
+          updatedUsers[existingUserIndex] = {
+            ...updatedUsers[existingUserIndex],
+            ...user,
             preferences: {
-              currency: 'GBP',
-              favicon: '',
-              notifications: {
-                overBudget: true,
-                monthlyReminder: true,
-                monthEndReminder: true,
-                monthlyAnalytics: true,
-              },
-            },
+              ...updatedUsers[existingUserIndex]?.preferences,
+              ...user.preferences
+            }
           };
-
-          // Update store
-          get().setCurrentUser(user);
-          return true;
-        } catch (error) {
-          console.error('Login error:', error);
-          set({ currentUser: null, error: 'Invalid email or password' });
-          throw error;
         }
-      },
 
-      logout: async () => {
-        try {
-          await signOut(auth);
-          set({ currentUser: null, error: null });
-        } catch (error) {
-          console.error('Logout error:', error);
-          set({ error: 'Failed to logout', currentUser: null });
-        }
-      },
+        return {
+          users: updatedUsers,
+          currentUser: user,
+          error: null
+        };
+      });
+    } else {
+      set({ currentUser: null, error: null });
+    }
+  },
 
-      updateUser: async (updates: Partial<User>) => {
-        const { currentUser } = get();
-        if (!currentUser) throw new Error('No user logged in');
+  login: async (email: string, password: string) => {
+    try {
+      console.log('Attempting login for:', email);
+      
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      console.log('Firebase auth successful:', userCredential.user);
+      
+      // Force token refresh
+      await userCredential.user.getIdToken(true);
+      
+      // Create user object
+      const user: User = {
+        id: userCredential.user.uid,
+        name: userCredential.user.displayName || email.split('@')[0],
+        email: userCredential.user.email || email,
+        role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
+        preferences: {
+          currency: 'GBP',
+          favicon: '',
+          notifications: {
+            overBudget: true,
+            monthlyReminder: true,
+            monthEndReminder: true,
+            monthlyAnalytics: true,
+          },
+        },
+      };
 
-        const updatedUser = { ...currentUser, ...updates };
-        get().setCurrentUser(updatedUser);
-      },
+      // Update store
+      get().setCurrentUser(user);
+      return true;
+    } catch (error) {
+      console.error('Login error:', error);
+      set({ currentUser: null, error: 'Invalid email or password' });
+      throw error;
+    }
+  },
 
-      updatePassword: async (newPassword: string) => {
-        const firebaseUser = auth.currentUser;
-        if (!firebaseUser) throw new Error('No user logged in');
+  logout: async () => {
+    try {
+      await signOut(auth);
+      set({ currentUser: null, error: null });
+    } catch (error) {
+      console.error('Logout error:', error);
+      set({ error: 'Failed to logout', currentUser: null });
+    }
+  },
 
-        try {
-          await firebaseUpdatePassword(firebaseUser, newPassword);
-          set({ error: null });
-        } catch (error) {
-          console.error('Failed to update password:', error);
-          throw error;
-        }
-      },
-    }),
+  updateUser: async (updates: Partial<User>) => {
+    const { currentUser } = get();
+    if (!currentUser) throw new Error('No user logged in');
+
+    const updatedUser = { ...currentUser, ...updates };
+    get().setCurrentUser(updatedUser);
+  },
+
+  updatePassword: async (newPassword: string) => {
+    const firebaseUser = auth.currentUser;
+    if (!firebaseUser) throw new Error('No user logged in');
+
+    try {
+      await firebaseUpdatePassword(firebaseUser, newPassword);
+      set({ error: null });
+    } catch (error) {
+      console.error('Failed to update password:', error);
+      throw error;
+    }
+  },
+});
+
+export const useUserStore = create<Store>()(
+  persist(
+    store,
     {
       name: 'user-storage',
       partialize: (state) => ({
         users: state.users,
         currentUser: null, // Don't persist current user to avoid stale auth state
+        isInitialized: state.isInitialized
       }),
     }
   )

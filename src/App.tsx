@@ -1,6 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useExpenseStore } from './store/expenseStore';
 import { useUserStore } from './store/userStore';
 import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
@@ -19,7 +18,6 @@ import type { User } from './types';
 const AuthCheck = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { setCurrentUser } = useUserStore();
-  const { initializeStore } = useExpenseStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -56,7 +54,6 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         };
 
         setCurrentUser(newUser);
-        await initializeStore();
       } catch (error) {
         console.error('Auth check failed:', error);
         await clearAuthCache();
@@ -71,7 +68,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => unsubscribe();
-  }, [setCurrentUser, navigate, initializeStore]);
+  }, [setCurrentUser, navigate]);
 
   if (isLoading) {
     return (
@@ -95,13 +92,11 @@ function App() {
           {currentUser && <Navbar />}
           <main className={currentUser ? "pt-16 pb-20" : ""}>
             <Routes>
-              {/* Public route */}
               <Route 
                 path="/login" 
                 element={currentUser ? <Navigate to="/" replace /> : <Login />} 
               />
               
-              {/* Protected routes */}
               <Route 
                 path="/" 
                 element={
@@ -147,7 +142,6 @@ function App() {
                 } 
               />
 
-              {/* Catch-all route */}
               <Route 
                 path="*" 
                 element={currentUser ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} 

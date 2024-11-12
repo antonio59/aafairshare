@@ -2,16 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
+import { StoreProvider } from './store/StoreProvider';
 import './index.css';
 import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
-
-// Initialize stores immediately
-import { useUserStore } from './store/userStore';
-import { useExpenseStore } from './store/expenseStore';
-
-// Pre-initialize stores
-useUserStore.getState();
-useExpenseStore.getState();
 
 // Performance monitoring
 const reportWebVitals = ({ name, delta, id, value }: {
@@ -51,7 +44,9 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <App />
+      <StoreProvider>
+        <App />
+      </StoreProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
