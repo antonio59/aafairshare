@@ -1,6 +1,7 @@
 import type { User, Category, CategoryGroup, Tag, Budget, Expense, RecurringExpense, Settlement } from '../types';
 
 export interface UserStore {
+  users: User[];
   currentUser: User | null;
   isInitialized: boolean;
   error: string | null;

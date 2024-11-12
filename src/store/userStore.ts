@@ -1,13 +1,9 @@
-import type { StateCreator } from 'zustand';
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  updatePassword as firebaseUpdatePassword 
-} from 'firebase/auth';
+import { create } from 'zustand';
+import { signInWithEmailAndPassword, signOut, updatePassword as firebaseUpdatePassword } from 'firebase/auth';
 import { auth } from '../firebase';
 import type { User } from '../types';
 import type { UserStore } from './types';
-import { getUserStore } from './createStore';
+import { clearAuthCache } from '../utils/authUtils';
 
 const initialState = {
   users: [],
@@ -16,7 +12,7 @@ const initialState = {
   isInitialized: false
 };
 
-const createUserStore: StateCreator<UserStore> = (set, get) => ({
+export const useUserStore = create<UserStore>((set, get) => ({
   ...initialState,
 
   setInitialized: (value: boolean) => {
@@ -94,6 +90,7 @@ const createUserStore: StateCreator<UserStore> = (set, get) => ({
   logout: async () => {
     try {
       await signOut(auth);
+      await clearAuthCache();
       set({ currentUser: null, error: null });
     } catch (error) {
       console.error('Logout error:', error);
@@ -121,7 +118,4 @@ const createUserStore: StateCreator<UserStore> = (set, get) => ({
       throw error;
     }
   },
-});
-
-// Export the store hook
-export const useUserStore = getUserStore(createUserStore);
+}));
