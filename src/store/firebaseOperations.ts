@@ -10,7 +10,6 @@ import {
   enableNetwork,
   disableNetwork,
   getFirestore,
-  DocumentData,
   QueryDocumentSnapshot,
   CollectionReference
 } from 'firebase/firestore';
@@ -19,6 +18,8 @@ import { auth } from '../firebase';
 import { db } from '../firebase';
 import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import type { DocumentData } from 'firebase/firestore';
+
 
 // Firestore Data interface
 export interface FirestoreData {
