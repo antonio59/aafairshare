@@ -1,4 +1,5 @@
 import { auth } from '../firebase';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 
 export const clearAuthCache = async () => {
   try {
@@ -27,6 +28,29 @@ export const validateAuthToken = async () => {
   } catch (error) {
     console.error('Token validation failed:', error);
     return false;
+  }
+};
+
+export const reAuthenticateUser = async (email: string) => {
+  try {
+    const storedPassword = localStorage.getItem('tempPassword');
+    if (!storedPassword) {
+      throw new Error('No stored credentials for re-authentication');
+    }
+
+    // Attempt to re-authenticate
+    const userCredential = await signInWithEmailAndPassword(auth, email, storedPassword);
+    console.log('User re-authenticated successfully');
+    
+    // Get fresh token
+    await userCredential.user.getIdToken(true);
+    
+    return userCredential.user;
+  } catch (error) {
+    console.error('Re-authentication failed:', error);
+    // Clear stored credentials on failure
+    localStorage.removeItem('tempPassword');
+    throw error;
   }
 };
 
