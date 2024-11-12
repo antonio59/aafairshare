@@ -20,7 +20,6 @@ import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, S
 import { v4 as uuidv4 } from 'uuid';
 import type { DocumentData } from 'firebase/firestore';
 
-
 // Firestore Data interface
 export interface FirestoreData {
   expenses: Expense[];
@@ -60,14 +59,25 @@ const dateToTimestamp = (dateStr: string) => Timestamp.fromDate(new Date(dateStr
 const timestampToString = (timestamp: Timestamp) => timestamp.toDate().toISOString();
 
 // CRUD Operations for Category Groups
-export const addCategoryGroupToFirestore = async (group: CategoryGroup) => {
-  const docRef = doc(categoryGroupsRef, group.id);
-  await setDoc(docRef, group);
+export const addCategoryGroupToFirestore = async (group: Omit<CategoryGroup, 'id'>) => {
+  const id = uuidv4();
+  const docRef = doc(categoryGroupsRef, id);
+  const groupWithTimestamps = {
+    ...group,
+    id,
+    createdAt: dateToTimestamp(group.createdAt),
+    updatedAt: dateToTimestamp(group.updatedAt)
+  };
+  await setDoc(docRef, groupWithTimestamps);
 };
 
 export const updateCategoryGroupInFirestore = async (id: string, group: Partial<CategoryGroup>) => {
   const docRef = doc(categoryGroupsRef, id);
-  await updateDoc(docRef, group);
+  const updateData = {
+    ...group,
+    updatedAt: group.updatedAt ? dateToTimestamp(group.updatedAt) : undefined
+  };
+  await updateDoc(docRef, updateData);
 };
 
 export const deleteCategoryGroupFromFirestore = async (id: string) => {
@@ -194,7 +204,11 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       date: timestampToString(doc.data().date)
     })) as Expense[],
     categories: categories.docs.map(doc => doc.data()) as Category[],
-    categoryGroups: categoryGroups.docs.map(doc => doc.data()) as CategoryGroup[],
+    categoryGroups: categoryGroups.docs.map(doc => ({
+      ...doc.data(),
+      createdAt: timestampToString(doc.data().createdAt),
+      updatedAt: timestampToString(doc.data().updatedAt)
+    })) as CategoryGroup[],
     tags: tags.docs.map(doc => doc.data()) as Tag[],
     budgets: budgets.docs.map(doc => doc.data()) as Budget[],
     recurringExpenses: recurringExpenses.docs.map(doc => ({

@@ -28,6 +28,10 @@ export interface CategoryGroup {
   order: number;
   color?: string;
   icon?: string;
+  createdBy: string;
+  updatedBy: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface Category {
