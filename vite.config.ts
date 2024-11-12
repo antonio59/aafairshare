@@ -7,12 +7,7 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    host: true,
-    https: {
-      // Use default certificates
-      cert: undefined,
-      key: undefined,
-    },
+    host: true
   },
   build: {
     sourcemap: true,
