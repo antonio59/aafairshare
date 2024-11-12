@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
 import { storage, auth } from '../../firebase';
-import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { ref, uploadBytes, getDownloadURL, deleteObject, uploadBytesResumable } from 'firebase/storage';
 import { Image } from 'lucide-react';
 
 interface FaviconSettingsProps {}
@@ -121,10 +121,37 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
         }
       }
 
-      // Upload new favicon
+      // Upload new favicon with metadata
       console.log('Uploading new favicon...');
-      const snapshot = await uploadBytes(storageRef, file);
-      console.log('Upload completed:', snapshot);
+      const metadata = {
+        contentType: file.type,
+        customMetadata: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, HEAD, OPTIONS',
+          'Cache-Control': 'public, max-age=3600'
+        }
+      };
+      
+      const uploadTask = uploadBytesResumable(storageRef, file, metadata);
+      
+      await new Promise((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            // Progress monitoring if needed
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            console.log('Upload is ' + progress + '% done');
+          },
+          (error) => {
+            reject(error);
+          },
+          () => {
+            resolve(null);
+          }
+        );
+      });
+
+      console.log('Upload completed');
       
       console.log('Getting download URL...');
       const downloadUrl = await getDownloadURL(storageRef);
@@ -242,6 +269,7 @@ const FaviconSettings: React.FC<FaviconSettingsProps> = () => {
               src={previewUrl}
               alt="Favicon Preview"
               className="w-8 h-8 border border-gray-200 rounded"
+              crossOrigin="anonymous"
             />
           </div>
         )}
