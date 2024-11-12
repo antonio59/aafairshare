@@ -3,27 +3,58 @@
 @tailwind utilities;
 
 @layer base {
-  /* Remove number input controls */
-  input[type="number"]::-webkit-inner-spin-button,
-  input[type="number"]::-webkit-outer-spin-button {
+  :root {
+    --background-color: #F9FAFB;
+  }
+
+  html {
+    @apply h-full;
+    background-color: var(--background-color);
+  }
+  
+  body {
+    @apply h-full;
+    background-color: var(--background-color);
+  }
+
+  #root {
+    @apply min-h-screen;
+    background-color: var(--background-color);
+  }
+}
+
+@layer components {
+  .input-number {
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+  }
+
+  .input-number::-webkit-inner-spin-button,
+  .input-number::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
   }
-  input[type="number"] {
-    -moz-appearance: textfield;
+
+  .amount-input {
+    @apply select-all;
+  }
+
+  .form-input {
+    @apply px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
+      focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+  }
+
+  .app-background {
+    @apply bg-gray-50;
+  }
+
+  .page-container {
+    @apply min-h-screen bg-gray-50;
   }
 }
 
-/* Prevent number inputs from changing on mouse wheel */
-input[type="number"] {
-  @apply [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none;
-}
-
-input[type="number"].amount-input {
-  @apply select-all;
-}
-
-input, select {
-  @apply px-3 py-2 bg-white border border-gray-300 rounded-md text-sm shadow-sm placeholder-gray-400
-    focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500;
+@layer utilities {
+  .bg-gradient {
+    @apply bg-gradient-to-r from-blue-500 to-blue-600;
+  }
 }

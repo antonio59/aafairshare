@@ -1,5 +1,4 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import type { StateCreator } from 'zustand';
 import { 
   signInWithEmailAndPassword, 
   signOut, 
@@ -7,33 +6,17 @@ import {
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import type { User } from '../types';
+import type { UserStore } from './types';
+import { getUserStore } from './createStore';
 
-interface State {
-  users: User[];
-  currentUser: User | null;
-  error: string | null;
-  isInitialized: boolean;
-}
-
-interface Actions {
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<void>;
-  setCurrentUser: (user: User | null) => void;
-  setInitialized: (value: boolean) => void;
-}
-
-const initialState: State = {
+const initialState = {
   users: [],
   currentUser: null,
   error: null,
   isInitialized: false
 };
 
-type Store = State & Actions;
-
-const store = (set: any, get: any): Store => ({
+const createUserStore: StateCreator<UserStore> = (set, get) => ({
   ...initialState,
 
   setInitialized: (value: boolean) => {
@@ -42,7 +25,7 @@ const store = (set: any, get: any): Store => ({
 
   setCurrentUser: (user: User | null) => {
     if (user) {
-      set((state: State) => {
+      set((state) => {
         const existingUserIndex = state.users.findIndex(u => u.id === user.id);
         const updatedUsers = [...state.users];
         
@@ -140,16 +123,5 @@ const store = (set: any, get: any): Store => ({
   },
 });
 
-export const useUserStore = create<Store>()(
-  persist(
-    store,
-    {
-      name: 'user-storage',
-      partialize: (state) => ({
-        users: state.users,
-        currentUser: null, // Don't persist current user to avoid stale auth state
-        isInitialized: state.isInitialized
-      }),
-    }
-  )
-);
+// Export the store hook
+export const useUserStore = getUserStore(createUserStore);

@@ -1,35 +1,22 @@
 {
   "compilerOptions": {
     "target": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "module": "ESNext",
-    "jsx": "react-jsx",
-    "strict": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "moduleResolution": "Node",
+    "moduleResolution": "bundler",
     "skipLibCheck": true,
+    "allowJs": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
     "resolveJsonModule": true,
-    "baseUrl": "./",
-    "paths": {
-      "*": ["src/*"]
-    },
-    "composite": true,
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "noEmit": false,
-    "types": ["node", "react", "react-dom"],
-    "typeRoots": ["./node_modules/@types"],
-    "lib": ["DOM", "DOM.Iterable", "ESNext"]
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "**/*.spec.ts",
-    "**/*.test.ts",
-    "**/*.spec.tsx",
-    "**/*.test.tsx"
-  ]
+  "include": ["src"],
+  "references": [{ "path": "./tsconfig.node.json" }]
 }

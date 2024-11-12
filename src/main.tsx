@@ -3,8 +3,18 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { StoreProvider } from './store/StoreProvider';
+// Import styles before any components
 import './index.css';
 import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
+
+// Ensure styles are applied
+const applyStyles = () => {
+  document.documentElement.classList.add('h-full', 'bg-gray-50');
+  document.body.classList.add('h-full', 'bg-gray-50');
+};
+
+// Apply styles immediately
+applyStyles();
 
 // Performance monitoring
 const reportWebVitals = ({ name, delta, id, value }: {
@@ -27,17 +37,22 @@ const reportWebVitals = ({ name, delta, id, value }: {
 
 // Add accessibility features in development
 if (process.env.NODE_ENV !== 'production') {
-  const axe = require('@axe-core/react');
-  axe(React, ReactDOM, 1000);
+  // Dynamic import for axe-core
+  import('@axe-core/react').then(axe => {
+    axe.default(React, ReactDOM, 1000);
+  }).catch(err => {
+    console.warn('Error loading axe-core:', err);
+  });
 }
 
 // Root element with improved accessibility
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Failed to find the root element');
 
-// Ensure proper ARIA role
+// Ensure proper ARIA role and styles
 rootElement.setAttribute('role', 'application');
 rootElement.setAttribute('aria-label', 'AAFairShare Application');
+rootElement.classList.add('min-h-screen', 'bg-gray-50');
 
 const root = ReactDOM.createRoot(rootElement);
 

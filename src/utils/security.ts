@@ -83,7 +83,39 @@ export const validateText = (text: string, maxLength: number = 500): boolean => 
   return !xssPatterns.some(pattern => pattern.test(text));
 };
 
-// Generate Content Security Policy header value
+/**
+ * Generate Content Security Policy header value
+ * 
+ * CSP Directives Configuration:
+ * 
+ * 1. Core Security Directives:
+ * - default-src 'self': Restricts all fetching to same origin by default
+ * - script-src: Allows necessary JavaScript sources including Firebase and Analytics
+ * - style-src: Allows styles from same origin and Google Fonts
+ * - font-src: Allows fonts from same origin and Google Fonts
+ * - img-src: Allows images from same origin, data URIs, and Analytics
+ * 
+ * 2. Connection and Resource Directives:
+ * - connect-src: Allows connections to Firebase, Analytics, and GitHub.dev services
+ * - frame-src: Allows frames from Firebase services
+ * - manifest-src: Allows manifest files from GitHub.dev integration
+ * - worker-src: Restricts workers to same origin
+ * 
+ * 3. Security Enhancement Directives:
+ * - object-src 'none': Prevents object/embed/applet injection attacks
+ * - base-uri: Restricts base tag to same origin
+ * - form-action: Restricts form submissions to same origin
+ * - frame-ancestors: Prevents site from being embedded in frames
+ * 
+ * 4. Protocol and Mixed Content:
+ * - upgrade-insecure-requests: Forces HTTPS
+ * - block-all-mixed-content: Prevents mixed content
+ * 
+ * 5. GitHub.dev Integration:
+ * - Specific allowances for GitHub.dev domain to support authentication
+ * - Manifest loading from GitHub.dev services
+ * - WebSocket connections for real-time features
+ */
 export const getCSPHeader = (): string => {
   return [
     "default-src 'self'",
@@ -91,12 +123,15 @@ export const getCSPHeader = (): string => {
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: https://www.google-analytics.com",
-    "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net https://*.googleapis.com https://www.google-analytics.com wss://*.firebaseio.com",
+    "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net https://*.googleapis.com https://www.google-analytics.com wss://*.firebaseio.com https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
     "frame-src 'self' https://*.firebaseapp.com",
+    "manifest-src 'self' https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
+    "worker-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
-    "upgrade-insecure-requests"
+    "upgrade-insecure-requests",
+    "block-all-mixed-content"
   ].join('; ');
 };

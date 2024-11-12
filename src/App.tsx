@@ -72,7 +72,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50" role="status" aria-label="Loading">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -87,10 +87,13 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
-        <AuthCheck>
+      <div className="min-h-screen bg-gray-50 flex flex-col">
+        <header className="bg-white shadow-sm">
           {currentUser && <Navbar />}
-          <main className={currentUser ? "pt-16 pb-20" : ""}>
+        </header>
+        <AuthCheck>
+          <main id="main-content" className={`flex-grow ${currentUser ? "pt-16 pb-20" : ""} bg-gray-50`}>
+            <h1 className="sr-only">AAFairShare - Expense Sharing Made Simple</h1>
             <Routes>
               <Route 
                 path="/login" 
