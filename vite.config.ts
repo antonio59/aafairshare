@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { compression } from 'vite-plugin-compression2';
-import { VitePWA } from 'vite-plugin-pwa';
+import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa';
 import fs from 'fs';
 
 // Read manifest.json content
@@ -26,6 +26,95 @@ const cspHeaders = [
   "block-all-mixed-content"
 ].join('; ');
 
+const pwaOptions: Partial<VitePWAOptions> = {
+  strategies: 'generateSW',
+  registerType: 'prompt',
+  includeAssets: ['offline.html', 'manifest.json'],
+  manifest: manifestContent,
+  injectRegister: 'auto',
+  devOptions: {
+    enabled: true,
+    type: 'module',
+    navigateFallback: 'index.html',
+  },
+  workbox: {
+    globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+    cleanupOutdatedCaches: true,
+    sourcemap: true,
+    runtimeCaching: [
+      {
+        urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'firebase-cache',
+          expiration: {
+            maxEntries: 200,
+            maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
+          },
+          cacheableResponse: {
+            statuses: [0, 200],
+          },
+        },
+      },
+      {
+        urlPattern: /^https:\/\/fonts\.googleapis\.com/,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'google-fonts-stylesheets',
+        },
+      },
+      {
+        urlPattern: /^https:\/\/fonts\.gstatic\.com/,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'google-fonts-webfonts',
+          expiration: {
+            maxEntries: 30,
+            maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+          },
+          cacheableResponse: {
+            statuses: [0, 200],
+          },
+        },
+      },
+      {
+        urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+        handler: 'CacheFirst',
+        options: {
+          cacheName: 'images',
+          expiration: {
+            maxEntries: 60,
+            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+          },
+        },
+      },
+      {
+        urlPattern: /\.(?:js|css)$/,
+        handler: 'StaleWhileRevalidate',
+        options: {
+          cacheName: 'static-resources',
+        },
+      },
+      {
+        urlPattern: /^https:\/\/www\.google-analytics\.com\/.*/i,
+        handler: 'NetworkFirst',
+        options: {
+          cacheName: 'analytics-cache',
+          expiration: {
+            maxEntries: 50,
+            maxAgeSeconds: 60 * 60 * 24, // 1 day
+          },
+          networkTimeoutSeconds: 10,
+        },
+      }
+    ],
+    navigateFallback: 'offline.html',
+    navigateFallbackDenylist: [/^\/api\//],
+    skipWaiting: true,
+    clientsClaim: true
+  }
+};
+
 export default defineConfig({
   plugins: [
     react(),
@@ -34,98 +123,7 @@ export default defineConfig({
       exclude: [/\.(br)$/, /\.(gz)$/],
       deleteOriginalAssets: false,
     }),
-    VitePWA({
-      strategies: 'generateSW',
-      registerType: 'prompt',
-      includeAssets: [
-        'test-favicon.png',
-        'offline.html',
-        'manifest.json'
-      ],
-      manifest: manifestContent,
-      injectRegister: 'auto',
-      devOptions: {
-        enabled: true,
-        type: 'module',
-        navigateFallback: 'index.html',
-      },
-      workbox: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-        cleanupOutdatedCaches: true,
-        sourcemap: true,
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'firebase-cache',
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'google-fonts-stylesheets',
-            },
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'google-fonts-webfonts',
-              expiration: {
-                maxEntries: 30,
-                maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-          {
-            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
-            handler: 'CacheFirst',
-            options: {
-              cacheName: 'images',
-              expiration: {
-                maxEntries: 60,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-              },
-            },
-          },
-          {
-            urlPattern: /\.(?:js|css)$/,
-            handler: 'StaleWhileRevalidate',
-            options: {
-              cacheName: 'static-resources',
-            },
-          },
-          {
-            urlPattern: /^https:\/\/www\.google-analytics\.com\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'analytics-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24, // 1 day
-              },
-              networkTimeoutSeconds: 10,
-            },
-          }
-        ],
-        navigateFallback: 'offline.html',
-        navigateFallbackDenylist: [/^\/api\//],
-        skipWaiting: true,
-        clientsClaim: true
-      }
-    }),
+    VitePWA(pwaOptions),
   ],
   
   css: {
@@ -169,7 +167,7 @@ export default defineConfig({
           const info = assetInfo.name ?? '';
           const extType = info.split('.').at(1) ?? '';
           
-          if (/png|jpe?g|svg|gif|tiff|bmp|ico/i.test(extType)) {
+          if (/png|jpe?g|svg|gif|tiff|bmp/i.test(extType)) {
             return `assets/img/[name]-[hash][extname]`;
           }
           if (/css/i.test(extType)) {

@@ -82,12 +82,11 @@
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
 
-# Specific headers for favicon and images
+# Headers for images
 [[headers]]
-  for = "/*.{png,jpg,jpeg,gif,webp,svg,ico}"
+  for = "/*.{png,jpg,jpeg,gif,webp,svg}"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
-    Content-Type = "image/png"
     Access-Control-Allow-Origin = "*"
 
 # Handle service worker routes
@@ -100,10 +99,3 @@
   from = "/workbox-*.js"
   to = "/workbox-:splat.js"
   status = 200
-
-# Specific redirect for favicon
-[[redirects]]
-  from = "/test-favicon.png"
-  to = "/test-favicon.png"
-  status = 200
-  force = true
