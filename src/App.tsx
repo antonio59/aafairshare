@@ -15,81 +15,65 @@ import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import type { User } from './types';
 
-// Global Authentication Wrapper
-const AuthProvider = ({ children }: { children: React.ReactNode }) => {
-  const [isAuthChecked, setIsAuthChecked] = useState(false);
-  const { setCurrentUser } = useUserStore();
+// Separate AuthCheck component to handle auth state
+const AuthCheck = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
+  const { setCurrentUser } = useUserStore();
+  const { initializeStore } = useExpenseStore();
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = async () => {
+    const handleAuth = async (firebaseUser: any) => {
       try {
-        // Clear any stale auth cache
-        await clearAuthCache();
+        if (!firebaseUser) {
+          setCurrentUser(null);
+          navigate('/login', { replace: true });
+          return;
+        }
 
-        const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-          if (!firebaseUser) {
-            console.log('No authenticated user');
-            setCurrentUser(null);
-            navigate('/login', { replace: true });
-            setIsAuthChecked(true);
-            return;
-          }
+        const isValidToken = await validateAuthToken();
+        if (!isValidToken) {
+          setCurrentUser(null);
+          navigate('/login', { replace: true });
+          return;
+        }
 
-          try {
-            // Validate token
-            const isValidToken = await validateAuthToken();
-            if (!isValidToken) {
-              console.log('Invalid token');
-              setCurrentUser(null);
-              navigate('/login', { replace: true });
-              setIsAuthChecked(true);
-              return;
-            }
+        const newUser: User = {
+          id: firebaseUser.uid,
+          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
+          email: firebaseUser.email || '',
+          role: (firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
+          preferences: {
+            currency: 'GBP',
+            favicon: '',
+            notifications: {
+              overBudget: true,
+              monthlyReminder: true,
+              monthEndReminder: true,
+              monthlyAnalytics: true,
+            },
+          },
+        };
 
-            // Create or update user in store
-            const newUser: User = {
-              id: firebaseUser.uid,
-              name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-              email: firebaseUser.email || '',
-              role: (firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
-              preferences: {
-                currency: 'GBP',
-                favicon: '',
-                notifications: {
-                  overBudget: true,
-                  monthlyReminder: true,
-                  monthEndReminder: true,
-                  monthlyAnalytics: true,
-                },
-              },
-            };
-
-            setCurrentUser(newUser);
-            setIsAuthChecked(true);
-          } catch (error) {
-            console.error('Authentication validation error:', error);
-            await clearAuthCache();
-            setCurrentUser(null);
-            navigate('/login', { replace: true });
-            setIsAuthChecked(true);
-          }
-        });
-
-        return () => unsubscribe();
+        setCurrentUser(newUser);
+        await initializeStore();
       } catch (error) {
-        console.error('Initial auth setup failed:', error);
+        console.error('Auth check failed:', error);
+        await clearAuthCache();
         setCurrentUser(null);
         navigate('/login', { replace: true });
-        setIsAuthChecked(true);
       }
     };
 
-    initAuth();
-  }, [setCurrentUser, navigate]);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      await handleAuth(firebaseUser);
+      setIsLoading(false);
+    });
 
-  // Show loading state while checking auth
-  if (!isAuthChecked) {
+    return () => unsubscribe();
+  }, [setCurrentUser, navigate, initializeStore]);
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -100,88 +84,78 @@ const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+// Main App component
 function App() {
-  const { initializeStore } = useExpenseStore();
   const currentUser = useUserStore(state => state.currentUser);
-  const [isInitializing, setIsInitializing] = useState(true);
-
-  useEffect(() => {
-    const initApp = async () => {
-      if (currentUser && auth.currentUser) {
-        try {
-          await initializeStore();
-        } catch (error) {
-          console.error('Failed to initialize store:', error);
-          // If store initialization fails, clear auth state
-          await clearAuthCache();
-        }
-      }
-      setIsInitializing(false);
-    };
-
-    initApp();
-  }, [currentUser, initializeStore]);
-
-  // Show loading state while initializing
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
 
   return (
     <Router>
-      <AuthProvider>
-        <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50">
+        <AuthCheck>
           {currentUser && <Navbar />}
           <main className={currentUser ? "pt-16 pb-20" : ""}>
             <Routes>
               {/* Public route */}
-              <Route path="/login" element={
-                currentUser ? <Navigate to="/" replace /> : <Login />
-              } />
+              <Route 
+                path="/login" 
+                element={currentUser ? <Navigate to="/" replace /> : <Login />} 
+              />
               
               {/* Protected routes */}
-              <Route path="/" element={
-                <ProtectedRoute>
-                  <ExpenseList />
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/" 
+                element={
+                  <ProtectedRoute>
+                    <ExpenseList />
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/add" element={
-                <ProtectedRoute>
-                  <ExpenseForm />
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/add" 
+                element={
+                  <ProtectedRoute>
+                    <ExpenseForm />
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/analytics" element={
-                <ProtectedRoute>
-                  <Analytics />
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/analytics" 
+                element={
+                  <ProtectedRoute>
+                    <Analytics />
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/settings" element={
-                <ProtectedRoute>
-                  <Settings />
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/settings" 
+                element={
+                  <ProtectedRoute>
+                    <Settings />
+                  </ProtectedRoute>
+                } 
+              />
               
-              <Route path="/settlement" element={
-                <ProtectedRoute>
-                  <Settlement />
-                </ProtectedRoute>
-              } />
+              <Route 
+                path="/settlement" 
+                element={
+                  <ProtectedRoute>
+                    <Settlement />
+                  </ProtectedRoute>
+                } 
+              />
 
-              {/* Catch-all route - redirect to login if not authenticated, home if authenticated */}
-              <Route path="*" element={
-                currentUser ? <Navigate to="/" replace /> : <Navigate to="/login" replace />
-              } />
+              {/* Catch-all route */}
+              <Route 
+                path="*" 
+                element={currentUser ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} 
+              />
             </Routes>
           </main>
-        </div>
-      </AuthProvider>
+        </AuthCheck>
+      </div>
     </Router>
   );
 }
