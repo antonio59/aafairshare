@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
 import { Plus, Edit2, Trash2, X, AlertCircle, CheckCircle2, Loader2, Hash, GripVertical } from 'lucide-react';
 import type { CategoryGroup } from '../../types';
-import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable, DroppableProvided, DraggableProvided, DropResult } from "react-beautiful-dnd";
 
 const CategoryGroupSettings = () => {
   const { categoryGroups = [], addCategoryGroup, updateCategoryGroup, deleteCategoryGroup } = useExpenseStore();
