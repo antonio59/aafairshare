@@ -35,8 +35,6 @@ export const useUserStore = create<UserState>()(
       login: async (email: string, password: string) => {
         try {
           console.log('Attempting login for:', email);
-          // Clear any existing auth state
-          await clearAuthCache();
           
           // Authenticate with Firebase
           const userCredential = await signInWithEmailAndPassword(auth, email, password);
@@ -95,7 +93,7 @@ export const useUserStore = create<UserState>()(
 
       logout: async () => {
         try {
-          await clearAuthCache();
+          await signOut(auth);
           set({ currentUser: null, error: null });
         } catch (error) {
           console.error('Logout error:', error);
@@ -148,11 +146,9 @@ export const useUserStore = create<UserState>()(
             if (firebaseUser) {
               console.log('Firebase user authenticated:', firebaseUser.email);
               try {
-                // Verify token is valid
-                await firebaseUser.getIdToken(true);
-                
                 // Find matching user in our store
                 const user = state.users.find(u => u.id === firebaseUser.uid);
+                
                 if (user && user !== state.currentUser) {
                   state.setCurrentUser(user);
                 } else if (!user) {
@@ -176,8 +172,8 @@ export const useUserStore = create<UserState>()(
                   state.setCurrentUser(newUser);
                 }
               } catch (error) {
-                console.error('Error verifying token:', error);
-                await clearAuthCache();
+                console.error('Error in auth state change:', error);
+                // Don't clear auth cache here, let Firebase handle token refresh
               }
             } else {
               console.log('No Firebase user');

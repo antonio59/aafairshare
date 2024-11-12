@@ -1,12 +1,12 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
+import { getAuth, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { getAnalytics } from 'firebase/analytics';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
   apiKey: "AIzaSyC8zIGv9XeuAG6gP2rXPih9tixN1zq0JYo",
-  authDomain: "aafairshare.firebaseapp.com", // Keep Firebase domain for auth
+  authDomain: "aafairshare.firebaseapp.com",
   projectId: "aafairshare",
   storageBucket: "aafairshare.appspot.com",
   messagingSenderId: "326349848500",
@@ -20,8 +20,11 @@ const app = initializeApp(firebaseConfig);
 // Initialize Firestore
 const db = getFirestore(app);
 
-// Initialize Auth
+// Initialize Auth with persistence
 const auth = getAuth(app);
+setPersistence(auth, browserLocalPersistence).catch((error) => {
+  console.error("Error setting auth persistence:", error);
+});
 
 // Initialize Storage
 const storage = getStorage(app);
