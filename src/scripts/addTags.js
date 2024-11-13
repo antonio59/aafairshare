@@ -1,28 +1,12 @@
-import * as admin from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
-import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
-
-// Initialize Firebase Admin
-const serviceAccount = require('../../serviceAccountKey.json');
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-const db = admin.firestore();
-
-interface Tag {
-  id: string;
-  name: string;
-  categoryId?: string;
-}
+import { db } from './firebase-admin.js';
 
 const addTags = async () => {
   try {
     // Get existing tags to avoid duplicates
     const tagsSnapshot = await db.collection('tags').get();
     const existingTags = new Set(
-      tagsSnapshot.docs.map((doc: QueryDocumentSnapshot) => {
+      tagsSnapshot.docs.map((doc) => {
         const data = doc.data();
         return data.name.toLowerCase();
       })
@@ -59,7 +43,7 @@ const addTags = async () => {
     for (const tagName of newTags) {
       const normalizedName = tagName.toLowerCase();
       if (!existingTags.has(normalizedName)) {
-        const newTag: Tag = {
+        const newTag = {
           id: uuidv4(),
           name: tagName
         };

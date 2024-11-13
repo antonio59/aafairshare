@@ -1,43 +1,20 @@
-import * as admin from 'firebase-admin';
 import { v4 as uuidv4 } from 'uuid';
-import { QueryDocumentSnapshot } from 'firebase-admin/firestore';
-
-// Initialize Firebase Admin
-const serviceAccount = require('../../serviceAccountKey.json');
-
-admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount)
-});
-
-const db = admin.firestore();
-
-interface CategoryGroup {
-  id: string;
-  name: string;
-  order: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  groupId: string;
-  color: string;
-}
+import { db } from './firebase-admin.js';
 
 const addCategories = async () => {
   try {
     // Get all category groups
     const groupsSnapshot = await db.collection('categoryGroups').get();
-    const groups = new Map<string, string>(); // Map group name to ID
-    groupsSnapshot.docs.forEach((doc: QueryDocumentSnapshot) => {
-      const data = doc.data() as CategoryGroup;
+    const groups = new Map(); // Map group name to ID
+    groupsSnapshot.docs.forEach((doc) => {
+      const data = doc.data();
       groups.set(data.name, data.id);
     });
 
     // Get existing categories to avoid duplicates
     const categoriesSnapshot = await db.collection('categories').get();
     const existingCategories = new Set(
-      categoriesSnapshot.docs.map((doc: QueryDocumentSnapshot) => {
+      categoriesSnapshot.docs.map((doc) => {
         const data = doc.data();
         return `${data.groupId}-${data.name}`;
       })
@@ -64,10 +41,9 @@ const addCategories = async () => {
         { name: 'Groceries', color: '#2E7D32' },
         { name: 'Takeout/Delivery', color: '#1B5E20' }
       ],
-      'Health and Wellness': [
-        { name: 'Health Supplements', color: '#009688' }
-      ],
+      'Health and Wellness': [],
       'Housing': [
+        { name: 'Council Tax', color: '#795548' },
         { name: 'Furniture/Appliances', color: '#6D4C41' },
         { name: 'House Maintenance/Repairs', color: '#5D4037' },
         { name: 'Rent', color: '#4E342E' }
@@ -81,13 +57,18 @@ const addCategories = async () => {
       'Miscellaneous': [
         { name: 'Donations', color: '#9E9E9E' },
         { name: 'Gifts', color: '#757575' },
-        { name: 'Other', color: '#616161' }
+        { name: 'Other Miscellaneous Expenses', color: '#616161' }
       ],
       'Transportation': [
         { name: 'Flights', color: '#FF9800' },
         { name: 'Gasoline', color: '#F57C00' },
         { name: 'Public Transportation', color: '#EF6C00' },
         { name: 'Ride-hailing Services', color: '#E65100' }
+      ],
+      'Utilities': [
+        { name: 'Energy', color: '#2196F3' },
+        { name: 'Internet', color: '#1976D2' },
+        { name: 'Water', color: '#0D47A1' }
       ]
     };
 
@@ -102,7 +83,7 @@ const addCategories = async () => {
       for (const category of categories) {
         const categoryKey = `${groupId}-${category.name}`;
         if (!existingCategories.has(categoryKey)) {
-          const newCategory: Category = {
+          const newCategory = {
             id: uuidv4(),
             name: category.name,
             groupId: groupId,
