@@ -3,13 +3,14 @@ import CategoryGroupSettings from './CategoryGroupSettings';
 import TagSettings from './TagSettings';
 import RecurringExpenses from './RecurringExpenses';
 import ExportButton from '../common/ExportButton';
+import Budget from '../Budget';
 
 interface ExpenseSettingsProps {
   onClose?: () => void;
 }
 
 const ExpenseSettings: React.FC<ExpenseSettingsProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = React.useState<'categories' | 'tags' | 'recurring'>('categories');
+  const [activeTab, setActiveTab] = React.useState<'categories' | 'tags' | 'recurring' | 'budgets'>('categories');
 
   return (
     <div className="p-4">
@@ -52,6 +53,16 @@ const ExpenseSettings: React.FC<ExpenseSettingsProps> = ({ onClose }) => {
           >
             Recurring Expenses
           </button>
+          <button
+            className={`pb-2 px-1 ${
+              activeTab === 'budgets'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('budgets')}
+          >
+            Budgets
+          </button>
         </div>
       </div>
 
@@ -59,6 +70,7 @@ const ExpenseSettings: React.FC<ExpenseSettingsProps> = ({ onClose }) => {
         {activeTab === 'categories' && <CategoryGroupSettings onClose={onClose} />}
         {activeTab === 'tags' && <TagSettings onClose={onClose} />}
         {activeTab === 'recurring' && <RecurringExpenses onClose={onClose} />}
+        {activeTab === 'budgets' && <Budget />}
       </div>
     </div>
   );
