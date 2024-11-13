@@ -14,10 +14,17 @@ import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import type { User } from './types';
 
+// Loading component
+const LoadingSpinner = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50" role="status" aria-label="Loading">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+  </div>
+);
+
 // Separate AuthCheck component to handle auth state
 const AuthCheck = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
-  const { setCurrentUser } = useUserStore();
+  const { setCurrentUser, setInitialized } = useUserStore();
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +32,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
       try {
         if (!firebaseUser) {
           setCurrentUser(null);
+          setInitialized(true);
           navigate('/login', { replace: true });
           return;
         }
@@ -32,6 +40,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         const isValidToken = await validateAuthToken();
         if (!isValidToken) {
           setCurrentUser(null);
+          setInitialized(true);
           navigate('/login', { replace: true });
           return;
         }
@@ -53,28 +62,27 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         };
 
         setCurrentUser(newUser);
+        setInitialized(true);
       } catch (error) {
         console.error('Auth check failed:', error);
         await clearAuthCache();
         setCurrentUser(null);
+        setInitialized(true);
         navigate('/login', { replace: true });
+      } finally {
+        setIsLoading(false);
       }
     };
 
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       await handleAuth(firebaseUser);
-      setIsLoading(false);
     });
 
     return () => unsubscribe();
-  }, [setCurrentUser, navigate]);
+  }, [setCurrentUser, setInitialized, navigate]);
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50" role="status" aria-label="Loading">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return <LoadingSpinner />;
   }
 
   return <>{children}</>;
@@ -86,13 +94,15 @@ function App() {
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
-        <header className="bg-white shadow-sm">
-          {currentUser && <Navbar />}
-        </header>
+      <main role="main" className="min-h-screen bg-gray-50">
+        {currentUser && (
+          <header role="banner" className="fixed top-0 left-0 right-0 bg-white shadow-sm z-10">
+            <Navbar />
+          </header>
+        )}
+        <h1 className="sr-only">AAFairShare - Expense Sharing Made Simple</h1>
         <AuthCheck>
-          <main id="main-content" className={`flex-grow ${currentUser ? "pt-16 pb-20" : ""} bg-gray-50`}>
-            <h1 className="sr-only">AAFairShare - Expense Sharing Made Simple</h1>
+          <div className={`${currentUser ? "pt-16 pb-20" : ""}`}>
             <Routes>
               <Route 
                 path="/login" 
@@ -149,9 +159,9 @@ function App() {
                 element={currentUser ? <Navigate to="/" replace /> : <Navigate to="/login" replace />} 
               />
             </Routes>
-          </main>
+          </div>
         </AuthCheck>
-      </div>
+      </main>
     </Router>
   );
 }

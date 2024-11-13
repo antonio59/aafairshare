@@ -1,8 +1,23 @@
 [
   {
-    "origin": ["https://aafairshare.online"],
+    "origin": [
+      "https://aafairshare.online",
+      "http://localhost:5173",
+      "http://127.0.0.1:5173",
+      "https://*.github.dev",
+      "https://*.app.github.dev",
+      "https://github.dev",
+      "https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev"
+    ],
     "method": ["GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"],
-    "responseHeader": ["Content-Type", "Access-Control-Allow-Origin"],
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin",
+      "Content-Length",
+      "Accept",
+      "Authorization",
+      "X-Custom-Header"
+    ],
     "maxAgeSeconds": 3600
   }
 ]

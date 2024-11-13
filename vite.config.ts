@@ -7,23 +7,17 @@ import fs from 'fs';
 // Read manifest.json content
 const manifestContent = JSON.parse(fs.readFileSync('./public/manifest.json', 'utf-8'));
 
-// CSP Headers configuration
+// CSP Headers configuration - with GitHub Codespaces support
 const cspHeaders = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.firebase.com https://*.google.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com",
-  "style-src 'self' 'unsafe-inline' data: blob: https://fonts.googleapis.com",
-  "font-src 'self' data: https://fonts.gstatic.com",
-  "img-src 'self' data: https: https://www.google-analytics.com",
-  "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net https://*.googleapis.com https://www.google-analytics.com wss://*.firebaseio.com https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
-  "frame-src 'self' https://*.firebaseapp.com",
-  "manifest-src 'self' https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https://*.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app",
+  "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com https://*.firebasestorage.app https://*.github.dev https://*.app.github.dev https://github.dev https://storage.googleapis.com",
   "worker-src 'self' blob:",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-ancestors 'none'",
-  "upgrade-insecure-requests",
-  "block-all-mixed-content"
+  "frame-src 'self' https://*.firebaseapp.com https://*.firebase.com",
+  "manifest-src 'self' https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev https://github.dev",
 ].join('; ');
 
 const pwaOptions: Partial<VitePWAOptions> = {
@@ -31,7 +25,7 @@ const pwaOptions: Partial<VitePWAOptions> = {
   registerType: 'prompt',
   includeAssets: ['offline.html', 'manifest.json'],
   manifest: manifestContent,
-  injectRegister: 'auto',
+  injectRegister: 'script',
   devOptions: {
     enabled: true,
     type: 'module',
@@ -42,20 +36,6 @@ const pwaOptions: Partial<VitePWAOptions> = {
     cleanupOutdatedCaches: true,
     sourcemap: true,
     runtimeCaching: [
-      {
-        urlPattern: /^https:\/\/firestore\.googleapis\.com\/.*/i,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'firebase-cache',
-          expiration: {
-            maxEntries: 200,
-            maxAgeSeconds: 60 * 60 * 24 * 7, // 1 week
-          },
-          cacheableResponse: {
-            statuses: [0, 200],
-          },
-        },
-      },
       {
         urlPattern: /^https:\/\/fonts\.googleapis\.com/,
         handler: 'StaleWhileRevalidate',
@@ -72,44 +52,17 @@ const pwaOptions: Partial<VitePWAOptions> = {
             maxEntries: 30,
             maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
           },
-          cacheableResponse: {
-            statuses: [0, 200],
-          },
-        },
-      },
-      {
-        urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
-        handler: 'CacheFirst',
-        options: {
-          cacheName: 'images',
-          expiration: {
-            maxEntries: 60,
-            maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-          },
         },
       },
       {
         urlPattern: /\.(?:js|css)$/,
-        handler: 'StaleWhileRevalidate',
+        handler: 'NetworkFirst',
         options: {
           cacheName: 'static-resources',
         },
-      },
-      {
-        urlPattern: /^https:\/\/www\.google-analytics\.com\/.*/i,
-        handler: 'NetworkFirst',
-        options: {
-          cacheName: 'analytics-cache',
-          expiration: {
-            maxEntries: 50,
-            maxAgeSeconds: 60 * 60 * 24, // 1 day
-          },
-          networkTimeoutSeconds: 10,
-        },
       }
     ],
-    navigateFallback: 'offline.html',
-    navigateFallbackDenylist: [/^\/api\//],
+    navigateFallback: 'index.html',
     skipWaiting: true,
     clientsClaim: true
   }
@@ -143,9 +96,10 @@ export default defineConfig({
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Access-Control-Allow-Origin': 'https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization, X-Custom-Header',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
     },
     fs: {
@@ -209,9 +163,10 @@ export default defineConfig({
       'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Access-Control-Allow-Origin': 'https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev',
-      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization, X-Custom-Header',
+      'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
     },
   }

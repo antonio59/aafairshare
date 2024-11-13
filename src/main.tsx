@@ -49,9 +49,7 @@ if (process.env.NODE_ENV !== 'production') {
 const rootElement = document.getElementById('root');
 if (!rootElement) throw new Error('Failed to find the root element');
 
-// Ensure proper ARIA role and styles
-rootElement.setAttribute('role', 'application');
-rootElement.setAttribute('aria-label', 'AAFairShare Application');
+// Add styles but don't set role (let landmarks handle structure)
 rootElement.classList.add('min-h-screen', 'bg-gray-50');
 
 const root = ReactDOM.createRoot(rootElement);

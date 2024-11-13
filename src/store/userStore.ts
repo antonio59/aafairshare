@@ -41,11 +41,12 @@ export const useUserStore = create<UserStore>((set, get) => ({
         return {
           users: updatedUsers,
           currentUser: user,
-          error: null
+          error: null,
+          isInitialized: true
         };
       });
     } else {
-      set({ currentUser: null, error: null });
+      set({ currentUser: null, error: null, isInitialized: true });
     }
   },
 
@@ -81,7 +82,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       return true;
     } catch (error) {
       console.error('Login error:', error);
-      set({ currentUser: null, error: 'Invalid email or password' });
+      set({ currentUser: null, error: 'Invalid email or password', isInitialized: true });
       throw error;
     }
   },
@@ -90,10 +91,10 @@ export const useUserStore = create<UserStore>((set, get) => ({
     try {
       await signOut(auth);
       await clearAuthCache();
-      set({ currentUser: null, error: null });
+      set({ currentUser: null, error: null, isInitialized: true });
     } catch (error) {
       console.error('Logout error:', error);
-      set({ error: 'Failed to logout', currentUser: null });
+      set({ error: 'Failed to logout', currentUser: null, isInitialized: true });
     }
   },
 
