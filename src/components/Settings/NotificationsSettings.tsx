@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
-import { Bell, BellOff, AlertCircle, Calendar, PieChart, XCircle, Clock, Mail, MessageSquare } from 'lucide-react';
+import { Bell, BellOff, AlertCircle, Calendar, MessageSquare, Mail, Clock, Info, XCircle } from 'lucide-react';
 import type { NotificationPreferences, TimedNotificationSetting, ChanneledNotificationSetting, BudgetNotificationSetting } from '../../types';
 
-type NotificationKey = keyof NotificationPreferences;
+type NotificationKey = keyof Omit<NotificationPreferences, 'globalEnabled'>;
 
 interface NotificationSetting {
   key: NotificationKey;
@@ -14,16 +14,12 @@ interface NotificationSetting {
   hasChannels?: boolean;
 }
 
-const isTimedNotification = (key: NotificationKey): key is 'monthlyReminder' | 'monthEndReminder' | 'monthlyAnalytics' => {
-  return ['monthlyReminder', 'monthEndReminder', 'monthlyAnalytics'].includes(key);
+const isTimedNotification = (key: NotificationKey): key is 'monthlyReminder' => {
+  return key === 'monthlyReminder';
 };
 
-const isChanneledNotification = (key: NotificationKey): key is 'settlementNotifications' => {
-  return key === 'settlementNotifications';
-};
-
-const isBudgetNotification = (key: NotificationKey): key is 'overBudget' => {
-  return key === 'overBudget';
+const isChanneledNotification = (key: NotificationKey): key is 'settlementNotifications' | 'overBudget' => {
+  return key === 'settlementNotifications' || key === 'overBudget';
 };
 
 const NotificationsSettings = () => {
@@ -39,11 +35,35 @@ const NotificationsSettings = () => {
 
   if (!currentUser) return null;
 
+  const handleGlobalToggle = async () => {
+    if (!currentUser) return;
+
+    if (!currentUser.preferences.notifications.globalEnabled) {
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        setPermissionStatus(permission);
+        if (permission !== 'granted') {
+          setShowPermissionAlert(true);
+          return;
+        }
+      }
+    }
+
+    updateUser({
+      preferences: {
+        ...currentUser.preferences,
+        notifications: {
+          ...currentUser.preferences.notifications,
+          globalEnabled: !currentUser.preferences.notifications.globalEnabled
+        }
+      }
+    });
+  };
+
   const handleToggle = async (key: NotificationKey, subKey: string = 'enabled') => {
     if (!currentUser) return;
 
-    // If enabling any notification and permission is not granted
-    if (permissionStatus !== 'granted') {
+    if (!currentUser.preferences.notifications.globalEnabled && subKey === 'enabled') {
       if ('Notification' in window) {
         const permission = await Notification.requestPermission();
         setPermissionStatus(permission);
@@ -55,25 +75,20 @@ const NotificationsSettings = () => {
     }
 
     const notifications = { ...currentUser.preferences.notifications };
+    const setting = { ...notifications[key] };
 
     if (isChanneledNotification(key)) {
-      const setting = { ...notifications[key] };
+      const channelSetting = setting as ChanneledNotificationSetting;
       if (subKey === 'enabled' || subKey === 'inAppEnabled' || subKey === 'emailEnabled') {
-        setting[subKey] = !setting[subKey];
+        channelSetting[subKey] = !channelSetting[subKey];
       }
-      notifications[key] = setting;
+      notifications[key] = channelSetting;
     } else if (isTimedNotification(key)) {
-      const setting = { ...notifications[key] };
+      const timedSetting = setting as TimedNotificationSetting;
       if (subKey === 'enabled') {
-        setting.enabled = !setting.enabled;
+        timedSetting.enabled = !timedSetting.enabled;
       }
-      notifications[key] = setting;
-    } else if (isBudgetNotification(key)) {
-      const setting = { ...notifications[key] };
-      if (subKey === 'enabled') {
-        setting.enabled = !setting.enabled;
-      }
-      notifications[key] = setting;
+      notifications[key] = timedSetting;
     }
 
     updateUser({
@@ -88,7 +103,8 @@ const NotificationsSettings = () => {
     if (!currentUser || !isTimedNotification(key)) return;
 
     const notifications = { ...currentUser.preferences.notifications };
-    const setting = { ...notifications[key], time };
+    const setting = { ...notifications[key] } as TimedNotificationSetting;
+    setting.time = time;
     notifications[key] = setting;
 
     updateUser({
@@ -105,27 +121,13 @@ const NotificationsSettings = () => {
       label: 'Over Budget Alerts',
       description: 'Get notified when you exceed your budget limits',
       icon: <AlertCircle className="w-5 h-5 text-red-500" />,
-      hasTime: false
+      hasChannels: true
     },
     {
       key: 'monthlyReminder',
-      label: 'Monthly Reminders',
-      description: 'Receive reminders to add your expenses at the start of each month',
-      icon: <Bell className="w-5 h-5 text-blue-500" />,
-      hasTime: true
-    },
-    {
-      key: 'monthEndReminder',
-      label: 'Month End Reminders',
-      description: 'Get notified when it\'s time to settle expenses at month end',
-      icon: <Calendar className="w-5 h-5 text-green-500" />,
-      hasTime: true
-    },
-    {
-      key: 'monthlyAnalytics',
-      label: 'Monthly Analytics',
-      description: 'Receive monthly spending analysis reports',
-      icon: <PieChart className="w-5 h-5 text-purple-500" />,
+      label: 'Monthly Expense Reminder',
+      description: 'Receive reminders to add your expenses on the last day of each month',
+      icon: <Calendar className="w-5 h-5 text-blue-500" />,
       hasTime: true
     },
     {
@@ -137,20 +139,15 @@ const NotificationsSettings = () => {
     }
   ];
 
-  const getNotificationTime = (key: NotificationKey): string => {
+  const getNotificationSetting = (key: NotificationKey) => {
+    const setting = currentUser.preferences.notifications[key];
     if (isTimedNotification(key)) {
-      const setting = currentUser.preferences.notifications[key];
-      return setting.time || '09:00';
+      return setting as TimedNotificationSetting;
     }
-    return '09:00';
-  };
-
-  const isChannelEnabled = (key: NotificationKey, channel: 'inAppEnabled' | 'emailEnabled'): boolean => {
     if (isChanneledNotification(key)) {
-      const setting = currentUser.preferences.notifications[key];
-      return setting[channel];
+      return setting as ChanneledNotificationSetting;
     }
-    return false;
+    return setting;
   };
 
   return (
@@ -162,17 +159,18 @@ const NotificationsSettings = () => {
             Choose which notifications you'd like to receive and customize their delivery
           </p>
         </div>
-        {permissionStatus === 'granted' ? (
-          <div className="flex items-center gap-2 text-green-600 bg-green-50 px-3 py-1 rounded-full">
-            <Bell className="w-4 h-4" />
-            <span className="text-sm">Notifications enabled</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-gray-600 bg-gray-100 px-3 py-1 rounded-full">
-            <BellOff className="w-4 h-4" />
-            <span className="text-sm">Notifications disabled</span>
-          </div>
-        )}
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            checked={currentUser.preferences.notifications.globalEnabled}
+            onChange={handleGlobalToggle}
+            className="sr-only peer"
+          />
+          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+          <span className="ml-3 text-sm font-medium text-gray-900">
+            {currentUser.preferences.notifications.globalEnabled ? 'Notifications Enabled' : 'Notifications Disabled'}
+          </span>
+        </label>
       </div>
 
       {showPermissionAlert && permissionStatus !== 'granted' && (
@@ -194,70 +192,76 @@ const NotificationsSettings = () => {
       )}
 
       <div className="bg-white rounded-lg shadow divide-y">
-        {notifications.map(({ key, label, description, icon, hasTime, hasChannels }) => (
-          <div key={key} className="p-4 space-y-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3">
-                {icon}
-                <div>
-                  <h4 className="text-sm font-medium text-gray-900">{label}</h4>
-                  <p className="text-sm text-gray-500">{description}</p>
+        {notifications.map(({ key, label, description, icon, hasTime, hasChannels }) => {
+          const setting = getNotificationSetting(key);
+          return (
+            <div key={key} className="p-4 space-y-4">
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3">
+                  {icon}
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-900">{label}</h4>
+                    <p className="text-sm text-gray-500">{description}</p>
+                  </div>
                 </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={setting.enabled}
+                    onChange={() => handleToggle(key)}
+                    className="sr-only peer"
+                    disabled={!currentUser.preferences.notifications.globalEnabled}
+                  />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+                </label>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={currentUser.preferences.notifications[key].enabled}
-                  onChange={() => handleToggle(key)}
-                  className="sr-only peer"
-                  disabled={permissionStatus !== 'granted'}
-                />
-                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
-              </label>
+
+              {hasTime && isTimedNotification(key) && setting.enabled && (
+                <div className="flex items-center gap-2 ml-8 pl-3">
+                  <Clock className="w-4 h-4 text-gray-400" />
+                  <input
+                    type="time"
+                    value={(setting as TimedNotificationSetting).time || '17:00'}
+                    onChange={(e) => handleTimeChange(key, e.target.value)}
+                    className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    disabled={!currentUser.preferences.notifications.globalEnabled}
+                  />
+                </div>
+              )}
+
+              {hasChannels && isChanneledNotification(key) && setting.enabled && (
+                <div className="ml-8 pl-3 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={(setting as ChanneledNotificationSetting).inAppEnabled}
+                        onChange={() => handleToggle(key, 'inAppEnabled')}
+                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        disabled={!currentUser.preferences.notifications.globalEnabled}
+                      />
+                      <MessageSquare className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">In-app notifications</span>
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={(setting as ChanneledNotificationSetting).emailEnabled}
+                        onChange={() => handleToggle(key, 'emailEnabled')}
+                        className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                        disabled={!currentUser.preferences.notifications.globalEnabled}
+                      />
+                      <Mail className="w-4 h-4 text-gray-400" />
+                      <span className="text-sm text-gray-600">Email notifications</span>
+                    </label>
+                  </div>
+                </div>
+              )}
             </div>
-
-            {hasTime && currentUser.preferences.notifications[key].enabled && isTimedNotification(key) && (
-              <div className="flex items-center gap-2 ml-8 pl-3">
-                <Clock className="w-4 h-4 text-gray-400" />
-                <input
-                  type="time"
-                  value={getNotificationTime(key)}
-                  onChange={(e) => handleTimeChange(key, e.target.value)}
-                  className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                />
-              </div>
-            )}
-
-            {hasChannels && currentUser.preferences.notifications[key].enabled && isChanneledNotification(key) && (
-              <div className="ml-8 pl-3 space-y-3">
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isChannelEnabled(key, 'inAppEnabled')}
-                      onChange={() => handleToggle(key, 'inAppEnabled')}
-                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                    <MessageSquare className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">In-app notifications</span>
-                  </label>
-                </div>
-                <div className="flex items-center gap-4">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={isChannelEnabled(key, 'emailEnabled')}
-                      onChange={() => handleToggle(key, 'emailEnabled')}
-                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-                    />
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm text-gray-600">Email notifications</span>
-                  </label>
-                </div>
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="text-sm text-gray-500">
@@ -266,9 +270,7 @@ const NotificationsSettings = () => {
         </p>
         <ul className="list-disc list-inside mt-2 space-y-1">
           <li>Over budget alerts are sent in real-time when limits are exceeded</li>
-          <li>Monthly reminders are sent at your specified time on the 1st of each month</li>
-          <li>Month-end reminders are sent at your specified time in the last 3 days</li>
-          <li>Analytics reports are sent at your specified time on the 1st of each month</li>
+          <li>Monthly reminders are sent at your specified time on the last day of each month</li>
           <li>Settlement notifications are sent immediately when expenses are marked as settled</li>
         </ul>
       </div>

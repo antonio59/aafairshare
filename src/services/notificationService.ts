@@ -1,7 +1,7 @@
 import { useUserStore } from '../store/userStore';
 import { useExpenseStore } from '../store/expenseStore';
-import { format, startOfMonth, endOfMonth, isWithinInterval, parse, isSameDay } from 'date-fns';
-import type { NotificationAlert, Budget } from '../types';
+import { format, startOfMonth, endOfMonth, isWithinInterval, isLastDayOfMonth } from 'date-fns';
+import type { NotificationAlert } from '../types';
 
 class NotificationService {
   private static instance: NotificationService;
@@ -83,30 +83,16 @@ class NotificationService {
 
   private async checkAllNotifications(): Promise<void> {
     const { currentUser } = useUserStore.getState();
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.preferences.notifications.globalEnabled) return;
 
     const { notifications } = currentUser.preferences;
     const now = new Date();
 
-    // Monthly Reminder
+    // Monthly Reminder (last day of month)
     if (notifications.monthlyReminder.enabled && 
-        now.getDate() === 1 && 
+        isLastDayOfMonth(now) && 
         this.isTimeToNotify(notifications.monthlyReminder.time)) {
       this.showMonthlyReminder();
-    }
-
-    // Month End Reminder
-    if (notifications.monthEndReminder.enabled && 
-        now.getDate() >= 28 && 
-        this.isTimeToNotify(notifications.monthEndReminder.time)) {
-      this.showMonthEndReminder();
-    }
-
-    // Monthly Analytics
-    if (notifications.monthlyAnalytics.enabled && 
-        now.getDate() === 1 && 
-        this.isTimeToNotify(notifications.monthlyAnalytics.time)) {
-      this.showMonthlyAnalytics();
     }
 
     // Over Budget Check (runs every hour during the day)
@@ -119,64 +105,14 @@ class NotificationService {
 
   private async showMonthlyReminder(): Promise<void> {
     const currentMonth = format(new Date(), 'MMMM yyyy');
+    const nextMonth = format(new Date(new Date().setMonth(new Date().getMonth() + 1)), 'MMMM');
     const alertId = `monthly-reminder-${currentMonth}`;
 
     const alert: NotificationAlert = {
       id: alertId,
       type: 'monthlyReminder',
       title: 'Monthly Expense Reminder',
-      message: `Please enter all household expenses for ${currentMonth} before we begin ${format(new Date(), 'MMMM')}.`,
-      timestamp: new Date().toISOString()
-    };
-
-    this.alerts.push(alert);
-    await this.showNotification(alert.title, {
-      body: alert.message,
-      tag: alertId,
-    });
-  }
-
-  private async showMonthEndReminder(): Promise<void> {
-    const currentMonth = format(new Date(), 'MMMM');
-    const alertId = `month-end-${currentMonth}`;
-
-    const alert: NotificationAlert = {
-      id: alertId,
-      type: 'monthEndReminder',
-      title: 'Month End Settlement Reminder',
-      message: `Time to settle expenses for ${currentMonth}! Review and settle your shared expenses.`,
-      timestamp: new Date().toISOString()
-    };
-
-    this.alerts.push(alert);
-    await this.showNotification(alert.title, {
-      body: alert.message,
-      tag: alertId,
-    });
-  }
-
-  private async showMonthlyAnalytics(): Promise<void> {
-    const { expenses } = useExpenseStore.getState();
-    const lastMonth = new Date();
-    lastMonth.setMonth(lastMonth.getMonth() - 1);
-    
-    const start = startOfMonth(lastMonth);
-    const end = endOfMonth(lastMonth);
-    
-    const monthlyExpenses = expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
-      return isWithinInterval(expenseDate, { start, end });
-    });
-
-    const total = monthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    const monthName = format(lastMonth, 'MMMM yyyy');
-    const alertId = `monthly-analytics-${monthName}`;
-
-    const alert: NotificationAlert = {
-      id: alertId,
-      type: 'monthlyReminder',
-      title: 'Monthly Spending Analysis',
-      message: `Your total spending for ${monthName} was £${total.toFixed(2)}. Check the analytics page for more details!`,
+      message: `Please enter all household expenses for ${currentMonth} before we begin ${nextMonth}.`,
       timestamp: new Date().toISOString()
     };
 
@@ -230,10 +166,20 @@ class NotificationService {
         };
 
         this.alerts.push(alert);
-        await this.showNotification(alert.title, {
-          body: alert.message,
-          tag: alertId,
-        });
+
+        // Send in-app notification
+        if (currentUser.preferences.notifications.overBudget.inAppEnabled) {
+          await this.showNotification(alert.title, {
+            body: alert.message,
+            tag: alertId,
+          });
+        }
+
+        // Send email notification
+        if (currentUser.preferences.notifications.overBudget.emailEnabled) {
+          // Email sending logic would go here
+          console.log('Sending over budget email notification');
+        }
       }
     });
   }

@@ -13,21 +13,16 @@ const initialState = {
 };
 
 const defaultNotificationPreferences: NotificationPreferences = {
+  globalEnabled: true,
   overBudget: {
     enabled: true,
+    emailEnabled: true,
+    inAppEnabled: true,
     dismissedAlerts: []
   },
   monthlyReminder: {
     enabled: true,
-    time: '09:00'
-  },
-  monthEndReminder: {
-    enabled: true,
-    time: '10:00'
-  },
-  monthlyAnalytics: {
-    enabled: true,
-    time: '11:00'
+    time: '17:00' // Set to 5 PM on last day of month
   },
   settlementNotifications: {
     enabled: true,
@@ -71,7 +66,23 @@ export const useUserStore = create<UserStore>((set, get) => ({
               notifications: {
                 ...defaultNotificationPreferences,
                 ...updatedUsers[existingUserIndex]?.preferences?.notifications,
-                ...user.preferences?.notifications
+                ...user.preferences?.notifications,
+                // Ensure each notification type has all required properties
+                overBudget: {
+                  ...defaultNotificationPreferences.overBudget,
+                  ...updatedUsers[existingUserIndex]?.preferences?.notifications?.overBudget,
+                  ...user.preferences?.notifications?.overBudget
+                },
+                monthlyReminder: {
+                  ...defaultNotificationPreferences.monthlyReminder,
+                  ...updatedUsers[existingUserIndex]?.preferences?.notifications?.monthlyReminder,
+                  ...user.preferences?.notifications?.monthlyReminder
+                },
+                settlementNotifications: {
+                  ...defaultNotificationPreferences.settlementNotifications,
+                  ...updatedUsers[existingUserIndex]?.preferences?.notifications?.settlementNotifications,
+                  ...user.preferences?.notifications?.settlementNotifications
+                }
               }
             }
           };
@@ -158,13 +169,30 @@ export const useUserStore = create<UserStore>((set, get) => ({
       preferences: {
         ...currentUser.preferences,
         ...updates.preferences,
-        notifications: {
+        notifications: updates.preferences?.notifications ? {
           ...defaultNotificationPreferences,
           ...currentUser.preferences.notifications,
-          ...updates.preferences?.notifications
-        }
+          ...updates.preferences.notifications,
+          // Ensure each notification type has all required properties
+          overBudget: {
+            ...defaultNotificationPreferences.overBudget,
+            ...currentUser.preferences.notifications.overBudget,
+            ...updates.preferences.notifications.overBudget
+          },
+          monthlyReminder: {
+            ...defaultNotificationPreferences.monthlyReminder,
+            ...currentUser.preferences.notifications.monthlyReminder,
+            ...updates.preferences.notifications.monthlyReminder
+          },
+          settlementNotifications: {
+            ...defaultNotificationPreferences.settlementNotifications,
+            ...currentUser.preferences.notifications.settlementNotifications,
+            ...updates.preferences.notifications.settlementNotifications
+          }
+        } : currentUser.preferences.notifications
       }
     };
+
     get().setCurrentUser(updatedUser);
   },
 

@@ -23,21 +23,16 @@ const LoadingSpinner = () => (
 
 // Default notification preferences
 const defaultNotificationPreferences: NotificationPreferences = {
+  globalEnabled: true,
   overBudget: {
     enabled: true,
+    emailEnabled: true,
+    inAppEnabled: true,
     dismissedAlerts: []
   },
   monthlyReminder: {
     enabled: true,
-    time: '09:00'
-  },
-  monthEndReminder: {
-    enabled: true,
-    time: '10:00'
-  },
-  monthlyAnalytics: {
-    enabled: true,
-    time: '11:00'
+    time: '17:00' // Set to 5 PM on last day of month
   },
   settlementNotifications: {
     enabled: true,

@@ -23,15 +23,17 @@ export interface ChanneledNotificationSetting extends BaseNotificationSetting {
   inAppEnabled: boolean;
 }
 
-export interface BudgetNotificationSetting extends BaseNotificationSetting {
+// Updated to include email and in-app options
+export interface BudgetNotificationSetting extends ChanneledNotificationSetting {
   dismissedAlerts?: string[];
 }
 
 export interface NotificationPreferences {
+  // Global notification toggle
+  globalEnabled: boolean;
+  // Updated notification types
   overBudget: BudgetNotificationSetting;
   monthlyReminder: TimedNotificationSetting;
-  monthEndReminder: TimedNotificationSetting;
-  monthlyAnalytics: TimedNotificationSetting;
   settlementNotifications: ChanneledNotificationSetting;
 }
 
@@ -124,7 +126,7 @@ export interface UserState {
 
 export interface NotificationAlert {
   id: string;
-  type: 'overBudget' | 'monthlyReminder' | 'monthEndReminder' | 'settlement';
+  type: 'overBudget' | 'monthlyReminder' | 'settlement';
   title: string;
   message: string;
   timestamp: string;
