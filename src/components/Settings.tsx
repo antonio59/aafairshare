@@ -43,7 +43,7 @@ const Settings = () => {
       case 'account':
         return 'Manage your account preferences and settings';
       case 'expense':
-        return 'Configure categories, tags, and expense settings';
+        return 'Manage categories and their groups, tags, and recurring expenses';
       case 'notifications':
         return 'Customize your notification preferences';
       case 'import':

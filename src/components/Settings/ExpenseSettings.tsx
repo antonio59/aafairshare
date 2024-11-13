@@ -1,5 +1,6 @@
 import React from 'react';
 import CategoryGroupSettings from './CategoryGroupSettings';
+import TagSettings from './TagSettings';
 import RecurringExpenses from './RecurringExpenses';
 import ImportSettings from './ImportSettings';
 
@@ -8,7 +9,7 @@ interface ExpenseSettingsProps {
 }
 
 const ExpenseSettings: React.FC<ExpenseSettingsProps> = ({ onClose }) => {
-  const [activeTab, setActiveTab] = React.useState<'categories' | 'recurring' | 'import'>('categories');
+  const [activeTab, setActiveTab] = React.useState<'categories' | 'tags' | 'recurring' | 'import'>('categories');
 
   return (
     <div className="p-4">
@@ -24,6 +25,16 @@ const ExpenseSettings: React.FC<ExpenseSettingsProps> = ({ onClose }) => {
             onClick={() => setActiveTab('categories')}
           >
             Categories
+          </button>
+          <button
+            className={`pb-2 px-1 ${
+              activeTab === 'tags'
+                ? 'border-b-2 border-blue-500 text-blue-600'
+                : 'text-gray-500 hover:text-gray-700'
+            }`}
+            onClick={() => setActiveTab('tags')}
+          >
+            Tags
           </button>
           <button
             className={`pb-2 px-1 ${
@@ -50,6 +61,7 @@ const ExpenseSettings: React.FC<ExpenseSettingsProps> = ({ onClose }) => {
 
       <div className="mt-4">
         {activeTab === 'categories' && <CategoryGroupSettings onClose={onClose} />}
+        {activeTab === 'tags' && <TagSettings onClose={onClose} />}
         {activeTab === 'recurring' && <RecurringExpenses onClose={onClose} />}
         {activeTab === 'import' && <ImportSettings onClose={onClose} />}
       </div>
