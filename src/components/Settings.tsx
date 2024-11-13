@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { User, Bell, FileUp, FileText, DollarSign, Settings as SettingsIcon } from 'lucide-react';
+import { User, Bell, FileText, DollarSign, Settings as SettingsIcon } from 'lucide-react';
 import AccountSettings from './Settings/AccountSettings';
 import ExpenseSettings from './Settings/ExpenseSettings';
 import NotificationsSettings from './Settings/NotificationsSettings';
 import DocumentationSettings from './Settings/DocumentationSettings';
-import ImportSettings from './Settings/ImportSettings';
 
 const Settings = () => {
   const location = useLocation();
@@ -29,7 +28,6 @@ const Settings = () => {
     { id: 'account', label: 'Account', icon: <User className="w-5 h-5" /> },
     { id: 'expense', label: 'Expense', icon: <DollarSign className="w-5 h-5" /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-    { id: 'import', label: 'Import', icon: <FileUp className="w-5 h-5" /> },
     { id: 'documentation', label: 'Documentation', icon: <FileText className="w-5 h-5" /> },
   ];
 
@@ -46,8 +44,6 @@ const Settings = () => {
         return 'Manage categories and their groups, tags, and recurring expenses';
       case 'notifications':
         return 'Customize your notification preferences';
-      case 'import':
-        return 'Import and export your expense data';
       case 'documentation':
         return 'Learn how to use AA FairShare';
       default:
@@ -63,8 +59,6 @@ const Settings = () => {
         return <ExpenseSettings />;
       case 'notifications':
         return <NotificationsSettings />;
-      case 'import':
-        return <ImportSettings />;
       case 'documentation':
         return <DocumentationSettings />;
       default:
