@@ -1,11 +1,15 @@
+// Import styles first
+import './index.css';
+
+// Then React and other dependencies
 import React from 'react';
 import ReactDOM from 'react-dom/client';
+import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
+
+// Then components
 import App from './App';
 import ErrorBoundary from './components/ErrorBoundary';
 import { StoreProvider } from './store/StoreProvider';
-// Import styles before any components
-import './index.css';
-import { onCLS, onFID, onFCP, onLCP, onTTFB } from 'web-vitals';
 
 // Ensure styles are applied
 const applyStyles = () => {
@@ -54,14 +58,13 @@ rootElement.classList.add('min-h-screen', 'bg-gray-50');
 
 const root = ReactDOM.createRoot(rootElement);
 
+// Render with strict mode disabled to prevent double initialization
 root.render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <StoreProvider>
-        <App />
-      </StoreProvider>
-    </ErrorBoundary>
-  </React.StrictMode>
+  <ErrorBoundary>
+    <StoreProvider>
+      <App />
+    </StoreProvider>
+  </ErrorBoundary>
 );
 
 // Initialize performance monitoring

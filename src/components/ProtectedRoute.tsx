@@ -7,20 +7,16 @@ interface ProtectedRouteProps {
 
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const location = useLocation();
-  const { currentUser, isInitialized } = useUserStore();
+  const currentUser = useUserStore(state => state.currentUser);
+  const isInitialized = useUserStore(state => state.isInitialized);
 
-  // Show loading state while checking auth
+  // Don't redirect until we know the auth state
   if (!isInitialized) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+    return null;
   }
 
   // Redirect to login if not authenticated
   if (!currentUser) {
-    console.log('ProtectedRoute: Redirecting to login');
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

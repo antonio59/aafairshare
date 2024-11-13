@@ -1,54 +1,18 @@
 {
-  "name": "AAFairShare",
+  "name": "AA FairShare",
   "short_name": "AAFairShare",
-  "description": "Expense sharing made simple",
-  "start_url": "/",
-  "scope": "/",
+  "description": "Expense Sharing Made Simple",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#F9FAFB",
-  "theme_color": "#F9FAFB",
-  "orientation": "portrait",
+  "background_color": "#f9fafb",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any"
+      "src": "favicon.ico",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/x-icon"
     }
-  ],
-  "shortcuts": [
-    {
-      "name": "Add Expense",
-      "short_name": "Add",
-      "description": "Add a new expense",
-      "url": "/add"
-    },
-    {
-      "name": "View Analytics",
-      "short_name": "Analytics",
-      "description": "View expense analytics",
-      "url": "/analytics"
-    }
-  ],
-  "categories": ["finance", "utilities"],
-  "dir": "ltr",
-  "lang": "en",
-  "prefer_related_applications": false,
-  "related_applications": [],
-  "iarc_rating_id": "",
-  "share_target": {
-    "action": "/add",
-    "method": "POST",
-    "enctype": "multipart/form-data",
-    "params": {
-      "title": "description",
-      "text": "amount",
-      "files": [
-        {
-          "name": "receipts",
-          "accept": ["image/*"]
-        }
-      ]
-    }
-  }
+  ]
 }

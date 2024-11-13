@@ -17,6 +17,16 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
   setInitialized: (value: boolean) => {
     set({ isInitialized: value });
+    
+    // Force initialization after a timeout
+    if (!value) {
+      setTimeout(() => {
+        const { isInitialized } = get();
+        if (!isInitialized) {
+          set({ isInitialized: true });
+        }
+      }, 1000); // Force initialization after 1 second
+    }
   },
 
   setCurrentUser: (user: User | null) => {
@@ -42,11 +52,15 @@ export const useUserStore = create<UserStore>((set, get) => ({
           users: updatedUsers,
           currentUser: user,
           error: null,
-          isInitialized: true
+          isInitialized: true // Set initialized when user is set
         };
       });
     } else {
-      set({ currentUser: null, error: null, isInitialized: true });
+      set({ 
+        currentUser: null, 
+        error: null,
+        isInitialized: true // Set initialized when user is cleared
+      });
     }
   },
 
@@ -82,7 +96,11 @@ export const useUserStore = create<UserStore>((set, get) => ({
       return true;
     } catch (error) {
       console.error('Login error:', error);
-      set({ currentUser: null, error: 'Invalid email or password', isInitialized: true });
+      set({ 
+        currentUser: null, 
+        error: 'Invalid email or password',
+        isInitialized: true // Set initialized on error
+      });
       throw error;
     }
   },
@@ -91,10 +109,18 @@ export const useUserStore = create<UserStore>((set, get) => ({
     try {
       await signOut(auth);
       await clearAuthCache();
-      set({ currentUser: null, error: null, isInitialized: true });
+      set({ 
+        currentUser: null, 
+        error: null,
+        isInitialized: true // Set initialized after logout
+      });
     } catch (error) {
       console.error('Logout error:', error);
-      set({ error: 'Failed to logout', currentUser: null, isInitialized: true });
+      set({ 
+        error: 'Failed to logout', 
+        currentUser: null,
+        isInitialized: true // Set initialized on error
+      });
     }
   },
 

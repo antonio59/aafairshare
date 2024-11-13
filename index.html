@@ -6,11 +6,20 @@
     <meta name="description" content="AAFairShare - Expense sharing made simple" />
     <meta name="theme-color" content="#F9FAFB" />
     
+    <!-- Base URL for GitHub Codespaces -->
+    <base href="/" />
+    
     <!-- Prevent browsers from requesting favicon -->
     <link rel="icon" href="data:,">
     
     <!-- PWA support -->
-    <link rel="manifest" href="/manifest.json" />
+    <link rel="manifest" crossorigin="use-credentials" href="./manifest.json" />
+    <link rel="apple-touch-icon" href="./favicon.ico" />
+    
+    <!-- Preconnect to important domains -->
+    <link rel="preconnect" href="https://storage.googleapis.com">
+    <link rel="preconnect" href="https://firestore.googleapis.com">
+    <link rel="preconnect" href="https://identitytoolkit.googleapis.com">
     
     <title>AAFairShare</title>
     <style>
@@ -57,10 +66,23 @@
         }
       }
     </style>
+    <!-- Prevent FOUC -->
+    <script>
+      // Hide content until styles are loaded
+      document.documentElement.style.visibility = 'hidden';
+      window.addEventListener('load', function() {
+        document.documentElement.style.visibility = '';
+      });
+    </script>
   </head>
   <body class="h-full">
     <div id="root"></div>
     <div class="loading" role="status" aria-label="Loading..."></div>
     <script type="module" src="/src/main.tsx"></script>
+    <noscript>
+      <div style="padding: 2rem; text-align: center;">
+        Please enable JavaScript to use AAFairShare.
+      </div>
+    </noscript>
   </body>
 </html>

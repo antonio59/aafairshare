@@ -8,18 +8,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const setUserInitialized = useUserStore(state => state.setInitialized);
   const { initializeStore, initialized: expenseInitialized } = useExpenseStore();
 
+  // Initialize user store immediately
   useEffect(() => {
-    // Ensure user store is marked as initialized
     if (!userInitialized) {
       setUserInitialized(true);
     }
   }, [userInitialized, setUserInitialized]);
 
+  // Initialize expense store only when user is available
   useEffect(() => {
     let mounted = true;
 
     const initializeStores = async () => {
-      // If no user or expense store is already initialized, we're done
       if (!currentUser || expenseInitialized) {
         return;
       }
@@ -27,11 +27,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       try {
         await initializeStore();
       } catch (error) {
-        console.error('Failed to initialize stores:', error);
+        console.error('Failed to initialize expense store:', error);
       }
     };
 
-    if (userInitialized) {
+    if (userInitialized && currentUser) {
       initializeStores();
     }
 
@@ -40,7 +40,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [currentUser, userInitialized, expenseInitialized, initializeStore]);
 
-  return <>{children}</>;
+  // Render children directly without any wrapping div
+  return children;
 };
 
 export default StoreProvider;

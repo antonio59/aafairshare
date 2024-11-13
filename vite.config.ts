@@ -9,30 +9,28 @@ const manifestContent = JSON.parse(fs.readFileSync('./public/manifest.json', 'ut
 
 // CSP Headers configuration - with GitHub Codespaces support
 const cspHeaders = [
-  "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com",
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "default-src 'self' https://*.github.dev https://*.app.github.dev",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.github.dev https://*.app.github.dev",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.github.dev https://*.app.github.dev",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://*.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app",
+  "img-src 'self' data: blob: https://*.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app https://*.github.dev https://*.app.github.dev",
   "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com https://*.firebasestorage.app https://*.github.dev https://*.app.github.dev https://github.dev https://storage.googleapis.com",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://*.firebaseapp.com https://*.firebase.com",
-  "manifest-src 'self' https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev https://github.dev",
+  "frame-src 'self' https://*.firebaseapp.com https://*.firebase.com https://*.github.dev https://*.app.github.dev",
+  "manifest-src 'self' https://*.github.dev https://*.app.github.dev",
 ].join('; ');
 
 const pwaOptions: Partial<VitePWAOptions> = {
-  strategies: 'generateSW',
-  registerType: 'prompt',
-  includeAssets: ['offline.html', 'manifest.json'],
-  manifest: manifestContent,
-  injectRegister: 'script',
-  devOptions: {
-    enabled: true,
-    type: 'module',
-    navigateFallback: 'index.html',
+  registerType: 'autoUpdate',
+  includeAssets: ['offline.html'],
+  manifest: {
+    ...manifestContent,
+    start_url: './',
+    scope: './',
+    id: '/',
   },
   workbox: {
-    globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
+    globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
     cleanupOutdatedCaches: true,
     sourcemap: true,
     runtimeCaching: [
@@ -64,13 +62,27 @@ const pwaOptions: Partial<VitePWAOptions> = {
     ],
     navigateFallback: 'index.html',
     skipWaiting: true,
-    clientsClaim: true
+    clientsClaim: true,
+    navigationPreload: true
+  },
+  devOptions: {
+    enabled: true,
+    type: 'module',
+    navigateFallback: 'index.html',
   }
 };
 
 export default defineConfig({
   plugins: [
-    react(),
+    react({
+      jsxRuntime: 'automatic',
+      jsxImportSource: 'react',
+      babel: {
+        plugins: [
+          ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
+        ]
+      }
+    }),
     compression({
       algorithm: 'brotliCompress',
       exclude: [/\.(br)$/, /\.(gz)$/],
@@ -94,13 +106,16 @@ export default defineConfig({
     headers: {
       'Content-Security-Policy': cspHeaders,
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
+      'X-Frame-Options': 'SAMEORIGIN',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization, X-Custom-Header',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
     },
     fs: {
       strict: false,
@@ -131,14 +146,11 @@ export default defineConfig({
         },
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        manualChunks: (id: string) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'react-vendor';
-            if (id.includes('firebase')) return 'firebase-vendor';
-            if (id.includes('chart')) return 'chart-vendor';
-            if (id.includes('zustand')) return 'zustand-vendor';
-            return 'vendor';
-          }
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          'chart-vendor': ['chart.js', 'react-chartjs-2'],
+          'zustand-vendor': ['zustand']
         }
       }
     },
@@ -161,13 +173,16 @@ export default defineConfig({
     headers: {
       'Content-Security-Policy': cspHeaders,
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
+      'X-Frame-Options': 'SAMEORIGIN',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
       'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization, X-Custom-Header',
       'Access-Control-Allow-Credentials': 'true',
       'Access-Control-Max-Age': '86400',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
     },
   }
 });

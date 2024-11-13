@@ -25,15 +25,20 @@ const LoadingSpinner = () => (
 const AuthCheck = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { setCurrentUser, setInitialized } = useUserStore();
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
     const handleAuth = async (firebaseUser: any) => {
       try {
         if (!firebaseUser) {
           setCurrentUser(null);
           setInitialized(true);
-          navigate('/login', { replace: true });
+          if (mounted) {
+            navigate('/login', { replace: true });
+          }
           return;
         }
 
@@ -41,7 +46,9 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         if (!isValidToken) {
           setCurrentUser(null);
           setInitialized(true);
-          navigate('/login', { replace: true });
+          if (mounted) {
+            navigate('/login', { replace: true });
+          }
           return;
         }
 
@@ -68,19 +75,36 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         await clearAuthCache();
         setCurrentUser(null);
         setInitialized(true);
-        navigate('/login', { replace: true });
-      } finally {
-        setIsLoading(false);
+        if (mounted) {
+          navigate('/login', { replace: true });
+        }
       }
     };
 
+    // Set a loading timeout
+    setIsLoading(true);
+    timeoutId = setTimeout(() => {
+      if (mounted) {
+        setIsLoading(false);
+      }
+    }, 1000); // Show loading for max 1 second
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       await handleAuth(firebaseUser);
+      if (mounted) {
+        setIsLoading(false);
+        clearTimeout(timeoutId);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+      unsubscribe();
+    };
   }, [setCurrentUser, setInitialized, navigate]);
 
+  // Only show loading spinner for the first second
   if (isLoading) {
     return <LoadingSpinner />;
   }
@@ -91,6 +115,12 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 // Main App component
 function App() {
   const currentUser = useUserStore(state => state.currentUser);
+  const isInitialized = useUserStore(state => state.isInitialized);
+
+  // Show loading spinner only during initial load and for max 1 second
+  if (!isInitialized) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <Router>
