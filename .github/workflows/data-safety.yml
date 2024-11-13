@@ -1,0 +1,175 @@
+name: Data Safety Checks
+
+on:
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/**'
+      - 'firestore.rules'
+      - '.firebaserc'
+      - 'firebase.json'
+
+jobs:
+  data-safety-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Check for Dangerous Operations
+        run: |
+          # Check for direct collection deletions
+          if grep -r "deleteCollection\|collection.delete()" ./src; then
+            echo "⚠️ WARNING: Found potential collection deletion operations"
+            exit 1
+          fi
+          
+          # Check for batch operations without proper checks
+          if grep -r "writeBatch\|batch.commit()" ./src; then
+            echo "⚠️ Review required: Found batch operations"
+            exit 1
+          fi
+          
+          # Check for recursive deletes
+          if grep -r "recursiveDelete\|recursive: true" ./src; then
+            echo "⚠️ WARNING: Found potential recursive deletion operations"
+            exit 1
+          fi
+
+      - name: Verify Firestore Rules
+        run: |
+          # Check if rules file exists
+          if [ ! -f "firestore.rules" ]; then
+            echo "❌ firestore.rules file is missing"
+            exit 1
+          fi
+          
+          # Check for overly permissive rules
+          if grep -E "allow (read|write): if true" firestore.rules; then
+            echo "❌ Found overly permissive Firestore rules"
+            exit 1
+          fi
+          
+          # Check for proper authentication checks
+          if ! grep -E "request.auth != null" firestore.rules; then
+            echo "⚠️ WARNING: Missing authentication checks in Firestore rules"
+            exit 1
+          fi
+
+      - name: Check for Data Migration Scripts
+        run: |
+          # Look for migration scripts
+          migration_files=$(find ./src -type f -name "*migration*.ts" -o -name "*migration*.js")
+          if [ ! -z "$migration_files" ]; then
+            echo "⚠️ Review required: Found data migration scripts:"
+            echo "$migration_files"
+            echo "Please ensure these scripts have proper safeguards"
+            exit 1
+          fi
+
+      - name: Verify Backup Implementation
+        run: |
+          # Check for backup utility
+          if [ ! -f "src/utils/backup.ts" ]; then
+            echo "❌ Backup utility is missing"
+            exit 1
+          fi
+          
+          # Check for logging implementation
+          if [ ! -f "src/utils/logging.ts" ]; then
+            echo "❌ Logging utility is missing"
+            exit 1
+          fi
+
+      - name: Check for Environment Variables
+        run: |
+          required_vars=(
+            "VITE_FIREBASE_API_KEY"
+            "VITE_FIREBASE_AUTH_DOMAIN"
+            "VITE_FIREBASE_PROJECT_ID"
+            "VITE_FIREBASE_STORAGE_BUCKET"
+            "VITE_FIREBASE_MESSAGING_SENDER_ID"
+            "VITE_FIREBASE_APP_ID"
+          )
+          
+          missing_vars=0
+          for var in "${required_vars[@]}"; do
+            if ! grep -q "$var" .env.example 2>/dev/null; then
+              echo "❌ Missing required environment variable: $var"
+              missing_vars=1
+            fi
+          done
+          
+          if [ $missing_vars -eq 1 ]; then
+            exit 1
+          fi
+
+  test-data-integrity:
+    runs-on: ubuntu-latest
+    needs: data-safety-check
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          
+      - name: Install Dependencies
+        run: npm ci
+        
+      - name: Run Data Integrity Tests
+        run: |
+          # Create test file if it doesn't exist
+          if [ ! -f "src/__tests__/data-integrity.test.ts" ]; then
+            mkdir -p src/__tests__
+            cat > src/__tests__/data-integrity.test.ts << 'EOL'
+            import { fetchAllData } from '../store/firebaseOperations';
+            import { auth } from '../firebase';
+            
+            describe('Data Integrity Tests', () => {
+              beforeAll(async () => {
+                // Setup test environment
+              });
+            
+              test('categories should maintain referential integrity', async () => {
+                const data = await fetchAllData();
+                // Verify category relationships
+                data.expenses.forEach(expense => {
+                  expect(data.categories.some(cat => cat.id === expense.category))
+                    .toBe(true);
+                });
+              });
+            
+              test('no orphaned data should exist', async () => {
+                const data = await fetchAllData();
+                // Check for orphaned tags
+                data.tags.forEach(tag => {
+                  expect(data.categories.some(cat => cat.id === tag.categoryId))
+                    .toBe(true);
+                });
+              });
+            
+              test('required fields should exist', async () => {
+                const data = await fetchAllData();
+                // Verify required fields
+                data.expenses.forEach(expense => {
+                  expect(expense).toHaveProperty('id');
+                  expect(expense).toHaveProperty('amount');
+                  expect(expense).toHaveProperty('category');
+                  expect(expense).toHaveProperty('date');
+                });
+              });
+            });
+            EOL
+          fi
+          
+          # Run the tests
+          npm test src/__tests__/data-integrity.test.ts
