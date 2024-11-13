@@ -2,17 +2,37 @@ export interface User {
   id: string;
   name: string;
   email: string;
-  password?: string; // Make password optional since we're using Firebase Auth
+  password?: string;
   role: 'partner1' | 'partner2';
   preferences: {
     currency: string;
-    notifications: {
-      overBudget: boolean;
-      monthlyReminder: boolean;
-      monthEndReminder: boolean;
-      monthlyAnalytics: boolean;
-    };
+    notifications: NotificationPreferences;
   };
+}
+
+export interface BaseNotificationSetting {
+  enabled: boolean;
+}
+
+export interface TimedNotificationSetting extends BaseNotificationSetting {
+  time?: string;
+}
+
+export interface ChanneledNotificationSetting extends BaseNotificationSetting {
+  emailEnabled: boolean;
+  inAppEnabled: boolean;
+}
+
+export interface BudgetNotificationSetting extends BaseNotificationSetting {
+  dismissedAlerts?: string[];
+}
+
+export interface NotificationPreferences {
+  overBudget: BudgetNotificationSetting;
+  monthlyReminder: TimedNotificationSetting;
+  monthEndReminder: TimedNotificationSetting;
+  monthlyAnalytics: TimedNotificationSetting;
+  settlementNotifications: ChanneledNotificationSetting;
 }
 
 export interface Tag {
@@ -81,7 +101,6 @@ export interface Settlement {
   balance: number;
 }
 
-// Store types
 export interface Store {
   categories: Category[];
   categoryGroups: CategoryGroup[];
@@ -101,4 +120,15 @@ export interface UserState {
   currentUser: User | null;
   updateUser: (user: Partial<User>) => Promise<void>;
   updatePassword: (newPassword: string) => Promise<void>;
+}
+
+export interface NotificationAlert {
+  id: string;
+  type: 'overBudget' | 'monthlyReminder' | 'monthEndReminder' | 'settlement';
+  title: string;
+  message: string;
+  timestamp: string;
+  category?: string;
+  amount?: number;
+  dismissed?: boolean;
 }

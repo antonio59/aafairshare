@@ -1,6 +1,30 @@
 import { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
-import { Bell, BellOff, AlertCircle, Calendar, PieChart, XCircle } from 'lucide-react';
+import { Bell, BellOff, AlertCircle, Calendar, PieChart, XCircle, Clock, Mail, MessageSquare } from 'lucide-react';
+import type { NotificationPreferences, TimedNotificationSetting, ChanneledNotificationSetting, BudgetNotificationSetting } from '../../types';
+
+type NotificationKey = keyof NotificationPreferences;
+
+interface NotificationSetting {
+  key: NotificationKey;
+  label: string;
+  description: string;
+  icon: JSX.Element;
+  hasTime?: boolean;
+  hasChannels?: boolean;
+}
+
+const isTimedNotification = (key: NotificationKey): key is 'monthlyReminder' | 'monthEndReminder' | 'monthlyAnalytics' => {
+  return ['monthlyReminder', 'monthEndReminder', 'monthlyAnalytics'].includes(key);
+};
+
+const isChanneledNotification = (key: NotificationKey): key is 'settlementNotifications' => {
+  return key === 'settlementNotifications';
+};
+
+const isBudgetNotification = (key: NotificationKey): key is 'overBudget' => {
+  return key === 'overBudget';
+};
 
 const NotificationsSettings = () => {
   const { currentUser, updateUser } = useUserStore();
@@ -15,58 +39,119 @@ const NotificationsSettings = () => {
 
   if (!currentUser) return null;
 
-  const handleToggle = async (key: keyof typeof currentUser.preferences.notifications) => {
-    if (currentUser) {
-      // If enabling any notification and permission is not granted
-      if (!currentUser.preferences.notifications[key] && permissionStatus !== 'granted') {
-        if ('Notification' in window) {
-          const permission = await Notification.requestPermission();
-          setPermissionStatus(permission);
-          if (permission !== 'granted') {
-            setShowPermissionAlert(true);
-            return;
-          }
+  const handleToggle = async (key: NotificationKey, subKey: string = 'enabled') => {
+    if (!currentUser) return;
+
+    // If enabling any notification and permission is not granted
+    if (permissionStatus !== 'granted') {
+      if ('Notification' in window) {
+        const permission = await Notification.requestPermission();
+        setPermissionStatus(permission);
+        if (permission !== 'granted') {
+          setShowPermissionAlert(true);
+          return;
         }
       }
-
-      updateUser({
-        preferences: {
-          ...currentUser.preferences,
-          notifications: {
-            ...currentUser.preferences.notifications,
-            [key]: !currentUser.preferences.notifications[key],
-          },
-        },
-      });
     }
+
+    const notifications = { ...currentUser.preferences.notifications };
+
+    if (isChanneledNotification(key)) {
+      const setting = { ...notifications[key] };
+      if (subKey === 'enabled' || subKey === 'inAppEnabled' || subKey === 'emailEnabled') {
+        setting[subKey] = !setting[subKey];
+      }
+      notifications[key] = setting;
+    } else if (isTimedNotification(key)) {
+      const setting = { ...notifications[key] };
+      if (subKey === 'enabled') {
+        setting.enabled = !setting.enabled;
+      }
+      notifications[key] = setting;
+    } else if (isBudgetNotification(key)) {
+      const setting = { ...notifications[key] };
+      if (subKey === 'enabled') {
+        setting.enabled = !setting.enabled;
+      }
+      notifications[key] = setting;
+    }
+
+    updateUser({
+      preferences: {
+        ...currentUser.preferences,
+        notifications
+      }
+    });
   };
 
-  const notifications = [
+  const handleTimeChange = (key: NotificationKey, time: string) => {
+    if (!currentUser || !isTimedNotification(key)) return;
+
+    const notifications = { ...currentUser.preferences.notifications };
+    const setting = { ...notifications[key], time };
+    notifications[key] = setting;
+
+    updateUser({
+      preferences: {
+        ...currentUser.preferences,
+        notifications
+      }
+    });
+  };
+
+  const notifications: NotificationSetting[] = [
     {
-      key: 'overBudget' as const,
+      key: 'overBudget',
       label: 'Over Budget Alerts',
       description: 'Get notified when you exceed your budget limits',
       icon: <AlertCircle className="w-5 h-5 text-red-500" />,
+      hasTime: false
     },
     {
-      key: 'monthlyReminder' as const,
+      key: 'monthlyReminder',
       label: 'Monthly Reminders',
       description: 'Receive reminders to add your expenses at the start of each month',
       icon: <Bell className="w-5 h-5 text-blue-500" />,
+      hasTime: true
     },
     {
-      key: 'monthEndReminder' as const,
+      key: 'monthEndReminder',
       label: 'Month End Reminders',
       description: 'Get notified when it\'s time to settle expenses at month end',
       icon: <Calendar className="w-5 h-5 text-green-500" />,
+      hasTime: true
     },
     {
-      key: 'monthlyAnalytics' as const,
+      key: 'monthlyAnalytics',
       label: 'Monthly Analytics',
       description: 'Receive monthly spending analysis reports',
       icon: <PieChart className="w-5 h-5 text-purple-500" />,
+      hasTime: true
     },
+    {
+      key: 'settlementNotifications',
+      label: 'Settlement Notifications',
+      description: 'Get notified when expenses are marked as settled',
+      icon: <MessageSquare className="w-5 h-5 text-orange-500" />,
+      hasChannels: true
+    }
   ];
+
+  const getNotificationTime = (key: NotificationKey): string => {
+    if (isTimedNotification(key)) {
+      const setting = currentUser.preferences.notifications[key];
+      return setting.time || '09:00';
+    }
+    return '09:00';
+  };
+
+  const isChannelEnabled = (key: NotificationKey, channel: 'inAppEnabled' | 'emailEnabled'): boolean => {
+    if (isChanneledNotification(key)) {
+      const setting = currentUser.preferences.notifications[key];
+      return setting[channel];
+    }
+    return false;
+  };
 
   return (
     <div className="space-y-6">
@@ -74,7 +159,7 @@ const NotificationsSettings = () => {
         <div>
           <h3 className="text-lg font-medium text-gray-900">Notification Preferences</h3>
           <p className="text-sm text-gray-500 mt-1">
-            Choose which notifications you'd like to receive
+            Choose which notifications you'd like to receive and customize their delivery
           </p>
         </div>
         {permissionStatus === 'granted' ? (
@@ -109,38 +194,82 @@ const NotificationsSettings = () => {
       )}
 
       <div className="bg-white rounded-lg shadow divide-y">
-        {notifications.map(({ key, label, description, icon }) => (
-          <div key={key} className="p-4 flex items-center justify-between hover:bg-gray-50 transition-colors">
-            <div className="flex items-start gap-3">
-              {icon}
-              <div>
-                <h4 className="text-sm font-medium text-gray-900">{label}</h4>
-                <p className="text-sm text-gray-500">{description}</p>
+        {notifications.map(({ key, label, description, icon, hasTime, hasChannels }) => (
+          <div key={key} className="p-4 space-y-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-3">
+                {icon}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-900">{label}</h4>
+                  <p className="text-sm text-gray-500">{description}</p>
+                </div>
               </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={currentUser.preferences.notifications[key].enabled}
+                  onChange={() => handleToggle(key)}
+                  className="sr-only peer"
+                  disabled={permissionStatus !== 'granted'}
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
+              </label>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={currentUser.preferences.notifications[key]}
-                onChange={() => handleToggle(key)}
-                className="sr-only peer"
-                disabled={permissionStatus !== 'granted'}
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed"></div>
-            </label>
+
+            {hasTime && currentUser.preferences.notifications[key].enabled && isTimedNotification(key) && (
+              <div className="flex items-center gap-2 ml-8 pl-3">
+                <Clock className="w-4 h-4 text-gray-400" />
+                <input
+                  type="time"
+                  value={getNotificationTime(key)}
+                  onChange={(e) => handleTimeChange(key, e.target.value)}
+                  className="text-sm border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                />
+              </div>
+            )}
+
+            {hasChannels && currentUser.preferences.notifications[key].enabled && isChanneledNotification(key) && (
+              <div className="ml-8 pl-3 space-y-3">
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isChannelEnabled(key, 'inAppEnabled')}
+                      onChange={() => handleToggle(key, 'inAppEnabled')}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <MessageSquare className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">In-app notifications</span>
+                  </label>
+                </div>
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={isChannelEnabled(key, 'emailEnabled')}
+                      onChange={() => handleToggle(key, 'emailEnabled')}
+                      className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                    />
+                    <Mail className="w-4 h-4 text-gray-400" />
+                    <span className="text-sm text-gray-600">Email notifications</span>
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>
 
       <div className="text-sm text-gray-500">
         <p>
-          Notifications will be sent during business hours (9 AM - 6 PM) and include:
+          Notification delivery times:
         </p>
         <ul className="list-disc list-inside mt-2 space-y-1">
-          <li>Monthly reminders on the 1st of each month</li>
-          <li>Month-end settlement reminders in the last 3 days</li>
-          <li>Monthly analytics reports on the 1st of each month</li>
-          <li>Real-time alerts when you exceed your budget</li>
+          <li>Over budget alerts are sent in real-time when limits are exceeded</li>
+          <li>Monthly reminders are sent at your specified time on the 1st of each month</li>
+          <li>Month-end reminders are sent at your specified time in the last 3 days</li>
+          <li>Analytics reports are sent at your specified time on the 1st of each month</li>
+          <li>Settlement notifications are sent immediately when expenses are marked as settled</li>
         </ul>
       </div>
     </div>

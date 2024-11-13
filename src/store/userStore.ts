@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { signInWithEmailAndPassword, signOut, updatePassword as firebaseUpdatePassword } from 'firebase/auth';
 import { auth } from '../firebase';
-import type { User } from '../types';
+import type { User, NotificationPreferences } from '../types';
 import type { UserStore } from './types';
 import { clearAuthCache } from '../utils/authUtils';
 
@@ -10,6 +10,30 @@ const initialState = {
   currentUser: null,
   error: null,
   isInitialized: false
+};
+
+const defaultNotificationPreferences: NotificationPreferences = {
+  overBudget: {
+    enabled: true,
+    dismissedAlerts: []
+  },
+  monthlyReminder: {
+    enabled: true,
+    time: '09:00'
+  },
+  monthEndReminder: {
+    enabled: true,
+    time: '10:00'
+  },
+  monthlyAnalytics: {
+    enabled: true,
+    time: '11:00'
+  },
+  settlementNotifications: {
+    enabled: true,
+    emailEnabled: true,
+    inAppEnabled: true
+  }
 };
 
 export const useUserStore = create<UserStore>((set, get) => ({
@@ -43,7 +67,12 @@ export const useUserStore = create<UserStore>((set, get) => ({
             ...user,
             preferences: {
               ...updatedUsers[existingUserIndex]?.preferences,
-              ...user.preferences
+              ...user.preferences,
+              notifications: {
+                ...defaultNotificationPreferences,
+                ...updatedUsers[existingUserIndex]?.preferences?.notifications,
+                ...user.preferences?.notifications
+              }
             }
           };
         }
@@ -52,14 +81,14 @@ export const useUserStore = create<UserStore>((set, get) => ({
           users: updatedUsers,
           currentUser: user,
           error: null,
-          isInitialized: true // Set initialized when user is set
+          isInitialized: true
         };
       });
     } else {
       set({ 
         currentUser: null, 
         error: null,
-        isInitialized: true // Set initialized when user is cleared
+        isInitialized: true
       });
     }
   },
@@ -74,7 +103,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       // Force token refresh
       await userCredential.user.getIdToken(true);
       
-      // Create user object
+      // Create user object with default notification preferences
       const user: User = {
         id: userCredential.user.uid,
         name: userCredential.user.displayName || email.split('@')[0],
@@ -82,12 +111,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
         role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
         preferences: {
           currency: 'GBP',
-          notifications: {
-            overBudget: true,
-            monthlyReminder: true,
-            monthEndReminder: true,
-            monthlyAnalytics: true,
-          },
+          notifications: defaultNotificationPreferences
         },
       };
 
@@ -99,7 +123,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       set({ 
         currentUser: null, 
         error: 'Invalid email or password',
-        isInitialized: true // Set initialized on error
+        isInitialized: true
       });
       throw error;
     }
@@ -112,14 +136,14 @@ export const useUserStore = create<UserStore>((set, get) => ({
       set({ 
         currentUser: null, 
         error: null,
-        isInitialized: true // Set initialized after logout
+        isInitialized: true
       });
     } catch (error) {
       console.error('Logout error:', error);
       set({ 
         error: 'Failed to logout', 
         currentUser: null,
-        isInitialized: true // Set initialized on error
+        isInitialized: true
       });
     }
   },
@@ -128,7 +152,19 @@ export const useUserStore = create<UserStore>((set, get) => ({
     const { currentUser } = get();
     if (!currentUser) throw new Error('No user logged in');
 
-    const updatedUser = { ...currentUser, ...updates };
+    const updatedUser = {
+      ...currentUser,
+      ...updates,
+      preferences: {
+        ...currentUser.preferences,
+        ...updates.preferences,
+        notifications: {
+          ...defaultNotificationPreferences,
+          ...currentUser.preferences.notifications,
+          ...updates.preferences?.notifications
+        }
+      }
+    };
     get().setCurrentUser(updatedUser);
   },
 
