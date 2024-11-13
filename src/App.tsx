@@ -12,7 +12,7 @@ import Settings from './components/Settings';
 import Settlement from './components/Settlement';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
-import type { User } from './types';
+import type { User, NotificationPreferences } from './types';
 
 // Loading component
 const LoadingSpinner = () => (
@@ -20,6 +20,31 @@ const LoadingSpinner = () => (
     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
   </div>
 );
+
+// Default notification preferences
+const defaultNotificationPreferences: NotificationPreferences = {
+  overBudget: {
+    enabled: true,
+    dismissedAlerts: []
+  },
+  monthlyReminder: {
+    enabled: true,
+    time: '09:00'
+  },
+  monthEndReminder: {
+    enabled: true,
+    time: '10:00'
+  },
+  monthlyAnalytics: {
+    enabled: true,
+    time: '11:00'
+  },
+  settlementNotifications: {
+    enabled: true,
+    emailEnabled: true,
+    inAppEnabled: true
+  }
+};
 
 // Separate AuthCheck component to handle auth state
 const AuthCheck = ({ children }: { children: React.ReactNode }) => {
@@ -59,12 +84,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
           role: (firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
           preferences: {
             currency: 'GBP',
-            notifications: {
-              overBudget: true,
-              monthlyReminder: true,
-              monthEndReminder: true,
-              monthlyAnalytics: true,
-            },
+            notifications: defaultNotificationPreferences
           },
         };
 
