@@ -96,9 +96,11 @@ const ExpenseList = () => {
                         £{expense.amount.toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-base text-gray-900 mb-2 break-words">
-                      {expense.description || 'Untitled Expense'}
-                    </p>
+                    {expense.description && (
+                      <p className="text-base text-gray-900 mb-2 break-words">
+                        {expense.description}
+                      </p>
+                    )}
                   </div>
                   <div className="flex gap-1">
                     <button
