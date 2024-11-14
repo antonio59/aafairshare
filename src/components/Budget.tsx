@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { useExpenseStore } from '@/store/expenseStore';
+import { useExpenseStore } from '../store/expenseStore';
 import { PlusCircle, Edit2, Trash2 } from 'lucide-react';
-import type { Budget as BudgetType, CategoryGroup, Category } from '@/types';
-import Dropdown from '@/components/common/Dropdown';
-import BudgetHistory from '@/components/Budget/BudgetHistory';
-import BudgetReport from '@/components/Budget/BudgetReport';
+import type { Budget as BudgetType, CategoryGroup, Category } from '../types';
+import Dropdown from '../components/common/Dropdown';
+import BudgetHistory from './Budget/BudgetHistory';
+import BudgetReport from './Budget/BudgetReport';
 
 interface NewBudget {
   category: string;
@@ -48,12 +48,9 @@ const Budget: React.FC = () => {
         };
       })
       .sort((a, b) => {
-        // First sort by group name
         const groupA = a.group || '';
         const groupB = b.group || '';
         const groupCompare = groupA.localeCompare(groupB);
-        
-        // If groups are the same, sort by label
         if (groupCompare === 0) {
           return a.label.localeCompare(b.label);
         }
@@ -122,7 +119,7 @@ const Budget: React.FC = () => {
         return <BudgetReport />;
       default:
         return (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {budgets.map((budget) => {
               const progress = getBudgetProgress(budget);
               const category = categories.find(c => c.id === budget.category);
@@ -131,35 +128,35 @@ const Budget: React.FC = () => {
               return (
                 <div
                   key={budget.id}
-                  className="bg-white p-6 rounded-lg shadow-md"
+                  className="bg-white p-4 sm:p-6 rounded-lg shadow-md"
                 >
                   <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold">{category?.name || 'Unknown Category'}</h3>
-                      <p className="text-gray-600">
+                    <div className="flex-1 mr-4">
+                      <h3 className="text-lg font-semibold break-words">{category?.name || 'Unknown Category'}</h3>
+                      <p className="text-gray-600 mt-1">
                         Budget: £{budget.amount.toFixed(2)} ({budget.period})
                       </p>
                       {group && (
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-gray-500 mt-1">
                           Group: {group.name}
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-shrink-0">
                       <button
                         onClick={() => {
                           setSelectedBudget(budget);
                           setShowEditModal(true);
                         }}
-                        className="text-blue-500 hover:text-blue-600"
+                        className="w-10 h-10 flex items-center justify-center text-blue-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                       >
-                        <Edit2 size={18} />
+                        <Edit2 size={20} />
                       </button>
                       <button
                         onClick={() => handleDeleteBudget(budget.id)}
-                        className="text-red-500 hover:text-red-600"
+                        className="w-10 h-10 flex items-center justify-center text-red-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                       >
-                        <Trash2 size={18} />
+                        <Trash2 size={20} />
                       </button>
                     </div>
                   </div>
@@ -184,52 +181,39 @@ const Budget: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Budget Management</h1>
-          <div className="flex border border-gray-300 rounded-lg overflow-hidden">
-            <button
-              onClick={() => setActiveTab('budgets')}
-              className={`px-4 py-2 ${
-                activeTab === 'budgets'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Budgets
-            </button>
-            <button
-              onClick={() => setActiveTab('history')}
-              className={`px-4 py-2 ${
-                activeTab === 'history'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              History
-            </button>
-            <button
-              onClick={() => setActiveTab('report')}
-              className={`px-4 py-2 ${
-                activeTab === 'report'
-                  ? 'bg-blue-500 text-white'
-                  : 'text-gray-600 hover:bg-gray-100'
-              }`}
-            >
-              Report
-            </button>
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold">Budget Management</h1>
+        
+        <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row border border-gray-300 rounded-lg overflow-hidden">
+            {['budgets', 'history', 'report'].map((tab) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as TabType)}
+                className={`px-4 py-3 sm:py-2 text-base capitalize ${
+                  activeTab === tab
+                    ? 'bg-blue-500 text-white'
+                    : 'text-gray-600 hover:bg-gray-100'
+                } ${
+                  tab !== 'budgets' ? 'border-t sm:border-t-0 sm:border-l border-gray-300' : ''
+                }`}
+              >
+                {tab}
+              </button>
+            ))}
           </div>
+          
+          {activeTab === 'budgets' && (
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="flex items-center justify-center gap-2 bg-blue-500 text-white px-4 py-3 sm:py-2 rounded-lg hover:bg-blue-600 transition-colors min-h-[48px] sm:min-h-0"
+            >
+              <PlusCircle size={20} />
+              <span>Add Budget</span>
+            </button>
+          )}
         </div>
-        {activeTab === 'budgets' && (
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-          >
-            <PlusCircle size={20} />
-            Add Budget
-          </button>
-        )}
       </div>
 
       {renderContent()}
@@ -237,7 +221,7 @@ const Budget: React.FC = () => {
       {/* Add Budget Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Add New Budget</h2>
             {error && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
@@ -268,7 +252,7 @@ const Budget: React.FC = () => {
                     ...newBudget,
                     amount: e.target.value,
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -283,7 +267,7 @@ const Budget: React.FC = () => {
                     ...newBudget,
                     period: e.target.value as 'monthly' | 'quarterly' | 'yearly',
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="monthly">Monthly</option>
@@ -292,20 +276,20 @@ const Budget: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
                     setError(null);
                   }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                  className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors order-1 sm:order-2"
                 >
                   Add Budget
                 </button>
@@ -318,7 +302,7 @@ const Budget: React.FC = () => {
       {/* Edit Budget Modal */}
       {showEditModal && selectedBudget && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-4">Edit Budget</h2>
             {error && (
               <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
@@ -352,7 +336,7 @@ const Budget: React.FC = () => {
                     ...selectedBudget,
                     amount: parseFloat(e.target.value),
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
               </div>
@@ -367,7 +351,7 @@ const Budget: React.FC = () => {
                     ...selectedBudget,
                     period: e.target.value as 'monthly' | 'quarterly' | 'yearly',
                   })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 >
                   <option value="monthly">Monthly</option>
@@ -376,7 +360,7 @@ const Budget: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex justify-end gap-2 pt-4">
+              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
                 <button
                   type="button"
                   onClick={() => {
@@ -384,13 +368,13 @@ const Budget: React.FC = () => {
                     setSelectedBudget(null);
                     setError(null);
                   }}
-                  className="px-4 py-2 text-gray-600 hover:text-gray-800"
+                  className="px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                  className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors order-1 sm:order-2"
                 >
                   Save Changes
                 </button>

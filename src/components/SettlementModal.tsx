@@ -43,29 +43,30 @@ const SettlementModal = ({ months, balance, onClose }: SettlementModalProps) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
-        <div className="flex justify-between items-center p-6 border-b">
-          <h3 className="text-xl font-semibold">Confirm Settlement</h3>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-center p-4 sm:p-6 border-b sticky top-0 bg-white z-10">
+          <h3 className="text-lg sm:text-xl font-semibold">Confirm Settlement</h3>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 transition-colors"
+            className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
           >
-            <X className="w-6 h-6" />
+            <X className="w-5 h-5" />
+            <span className="sr-only">Close</span>
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="mb-6">
-            <h4 className="font-medium mb-2">Settlement Details</h4>
+            <h4 className="font-medium mb-3">Settlement Details</h4>
             <div className="bg-gray-50 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between mb-2">
                 <span className="text-gray-600">Amount</span>
-                <span className={`font-medium ${getBalanceColor(balance)}`}>
+                <span className={`font-medium ${getBalanceColor(balance)} text-lg`}>
                   £{Math.abs(balance).toFixed(2)}
                 </span>
               </div>
-              <p className={`text-sm ${getBalanceColor(balance)}`}>
+              <p className={`text-base ${getBalanceColor(balance)}`}>
                 {formatBalance(balance)}
               </p>
             </div>
@@ -80,29 +81,29 @@ const SettlementModal = ({ months, balance, onClose }: SettlementModalProps) => 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Add any notes about this settlement..."
-              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base"
               rows={3}
             />
           </div>
 
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
-            <p className="text-yellow-800 text-sm">
+            <p className="text-yellow-800 text-base">
               This action cannot be undone. Once settled, these months will be marked as completed
               and moved to the settlement history.
             </p>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-lg">
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 p-4 sm:p-6 border-t bg-gray-50 rounded-b-lg sticky bottom-0">
           <button
             onClick={onClose}
-            className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
+            className="w-full sm:w-auto px-4 py-3 text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors min-h-[48px]"
           >
             Cancel
           </button>
           <button
             onClick={handleSettle}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="w-full sm:w-auto px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors min-h-[48px]"
           >
             Confirm Settlement
           </button>
