@@ -97,10 +97,17 @@ export interface Expense {
 }
 
 export interface Settlement {
+  id: string;  // Added unique ID for each settlement
   month: string;
   settledBy: string;
   settledAt: string;
   balance: number;
+  categoryGroups: {  // Added to track settlements by category groups
+    groupId: string;
+    amount: number;
+  }[];
+  expenses: string[];  // Added to track which expenses were included
+  notes?: string;  // Added for optional settlement notes
 }
 
 export interface Store {

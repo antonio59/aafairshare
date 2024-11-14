@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { X, Check, AlertTriangle } from 'lucide-react';
+import { useState } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import { format } from 'date-fns';
+import { X } from 'lucide-react';
 
 interface SettlementModalProps {
   months: string[];
@@ -11,22 +10,31 @@ interface SettlementModalProps {
 }
 
 const SettlementModal = ({ months, balance, onClose }: SettlementModalProps) => {
-  const { settleMonth } = useExpenseStore();
+  const [notes, setNotes] = useState('');
   const { currentUser } = useUserStore();
-  const [isSettling, setIsSettling] = useState(false);
+  const { settleMonth } = useExpenseStore();
 
   const handleSettle = async () => {
-    setIsSettling(true);
+    if (!currentUser) return;
+
     try {
       for (const month of months) {
-        await settleMonth(month, currentUser?.name || '', balance);
+        await settleMonth(month, currentUser.name, balance);
       }
       onClose();
     } catch (error) {
-      console.error('Failed to settle months:', error);
-    } finally {
-      setIsSettling(false);
+      console.error('Failed to settle:', error);
     }
+  };
+
+  const formatBalance = (amount: number) => {
+    const absAmount = Math.abs(amount);
+    if (amount > 0) {
+      return `Antonio owes Andres £${absAmount.toFixed(2)}`;
+    } else if (amount < 0) {
+      return `Andres owes Antonio £${absAmount.toFixed(2)}`;
+    }
+    return 'No balance to settle';
   };
 
   const getBalanceColor = (amount: number) => {
@@ -35,94 +43,68 @@ const SettlementModal = ({ months, balance, onClose }: SettlementModalProps) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Confirm Settlement</h2>
-          <button 
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+        <div className="flex justify-between items-center p-6 border-b">
+          <h3 className="text-xl font-semibold">Confirm Settlement</h3>
+          <button
             onClick={onClose}
-            disabled={isSettling}
-            className="text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+            className="text-gray-500 hover:text-gray-700 transition-colors"
           >
-            <X className="w-5 h-5" />
+            <X className="w-6 h-6" />
           </button>
         </div>
 
-        {/* Content */}
-        <div className="p-6 space-y-6">
-          {/* Warning Message */}
-          <div className="flex items-start gap-3 bg-yellow-50 text-yellow-800 p-4 rounded-lg">
-            <AlertTriangle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-            <div>
-              <p className="font-medium">Important Note</p>
-              <p className="text-sm mt-1">
-                This action cannot be undone. Make sure all parties have agreed to the settlement before proceeding.
+        <div className="p-6">
+          <div className="mb-6">
+            <h4 className="font-medium mb-2">Settlement Details</h4>
+            <div className="bg-gray-50 rounded-lg p-4">
+              <div className="flex justify-between items-center mb-2">
+                <span className="text-gray-600">Amount</span>
+                <span className={`font-medium ${getBalanceColor(balance)}`}>
+                  £{Math.abs(balance).toFixed(2)}
+                </span>
+              </div>
+              <p className={`text-sm ${getBalanceColor(balance)}`}>
+                {formatBalance(balance)}
               </p>
             </div>
           </div>
 
-          {/* Months List */}
-          <div>
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Selected Months</h3>
-            <div className="bg-gray-50 rounded-lg divide-y divide-gray-200">
-              {months.map(month => (
-                <div key={month} className="p-3 flex justify-between items-center">
-                  <span className="text-gray-900">
-                    {format(new Date(month + '-01'), 'MMMM yyyy')}
-                  </span>
-                  <span className={getBalanceColor(balance)}>
-                    £{Math.abs(balance).toFixed(2)}
-                  </span>
-                </div>
-              ))}
-            </div>
+          <div className="mb-6">
+            <label htmlFor="notes" className="block font-medium mb-2">
+              Notes (Optional)
+            </label>
+            <textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Add any notes about this settlement..."
+              className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              rows={3}
+            />
           </div>
 
-          {/* Total Balance */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <div className="flex justify-between items-center mb-1">
-              <span className="font-medium text-gray-900">Total Balance</span>
-              <span className={`font-bold ${getBalanceColor(balance)}`}>
-                £{Math.abs(balance).toFixed(2)}
-              </span>
-            </div>
-            <p className={`text-sm ${getBalanceColor(balance)}`}>
-              {balance > 0 
-                ? 'Antonio will pay Andres'
-                : balance < 0
-                  ? 'Andres will pay Antonio'
-                  : 'No payment needed'
-              }
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+            <p className="text-yellow-800 text-sm">
+              This action cannot be undone. Once settled, these months will be marked as completed
+              and moved to the settlement history.
             </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-3 px-6 py-4 bg-gray-50 rounded-b-lg border-t border-gray-200">
+        <div className="flex justify-end gap-3 p-6 border-t bg-gray-50 rounded-b-lg">
           <button
             onClick={onClose}
-            disabled={isSettling}
-            className="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+            className="px-4 py-2 text-gray-700 hover:text-gray-900 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleSettle}
-            disabled={isSettling}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
-            {isSettling ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                <span>Settling...</span>
-              </>
-            ) : (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Confirm Settlement</span>
-              </>
-            )}
+            Confirm Settlement
           </button>
         </div>
       </div>

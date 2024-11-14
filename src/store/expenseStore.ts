@@ -356,12 +356,37 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   },
 
   settleMonth: async (month, settledBy, balance) => {
-    const settlement = {
+    const { expenses, categoryGroups } = get();
+    
+    // Get expenses for the month
+    const monthlyExpenses = expenses.filter(
+      expense => format(new Date(expense.date), 'yyyy-MM') === month
+    );
+
+    // Calculate amounts by category group
+    const groupAmounts = monthlyExpenses.reduce((acc, expense) => {
+      const category = get().categories.find(c => c.id === expense.category);
+      if (category) {
+        const groupId = category.groupId;
+        acc[groupId] = (acc[groupId] || 0) + expense.amount;
+      }
+      return acc;
+    }, {} as Record<string, number>);
+
+    // Create settlement object
+    const settlement: Settlement = {
+      id: uuidv4(),
       month,
       settledBy,
       settledAt: new Date().toISOString(),
       balance,
+      categoryGroups: Object.entries(groupAmounts).map(([groupId, amount]) => ({
+        groupId,
+        amount
+      })),
+      expenses: monthlyExpenses.map(e => e.id)
     };
+
     await addSettlementToFirestore(settlement);
     set(state => ({
       settlements: [...state.settlements.filter(s => s.month !== month), settlement],
