@@ -129,14 +129,10 @@ function App() {
   return (
     <Router>
       <main role="main" className="min-h-screen bg-gray-50">
-        {currentUser && (
-          <header role="banner" className="fixed top-0 left-0 right-0 bg-white shadow-sm z-10">
-            <Navbar />
-          </header>
-        )}
+        {currentUser && <Navbar />}
         <h1 className="sr-only">AAFairShare - Expense Sharing Made Simple</h1>
         <AuthCheck>
-          <div className={`${currentUser ? "pt-16 pb-20" : ""}`}>
+          <div className={`${currentUser ? "mt-14 mb-16 px-4" : ""}`}>
             <Routes>
               <Route 
                 path="/login" 
