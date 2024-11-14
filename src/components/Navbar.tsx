@@ -1,11 +1,14 @@
 import { Home, PlusCircle, BarChart3, Settings, Wallet, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useUserStore } from '@/store/userStore';
+import { useUserStore } from '../store/userStore';
+import { useState } from 'react';
+import SettingsComponent from './Settings';
 
 const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { currentUser, logout } = useUserStore();
+  const [showSettings, setShowSettings] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -17,11 +20,6 @@ const Navbar = () => {
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   ];
 
-  // Secondary navigation items (shown in dropdown/menu)
-  const secondaryNavItems = [
-    { path: '/settings', icon: Settings, label: 'Settings' },
-  ];
-
   const handleLogout = () => {
     try {
       logout();
@@ -29,6 +27,11 @@ const Navbar = () => {
     } catch (error) {
       console.error('Failed to logout:', error);
     }
+  };
+
+  const handleSettingsClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowSettings(!showSettings);
   };
 
   return (
@@ -49,6 +52,20 @@ const Navbar = () => {
                   {currentUser?.role === 'partner1' ? 'Partner 1' : 'Partner 2'}
                 </span>
               </div>
+              <button
+                onClick={handleSettingsClick}
+                className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-colors ${
+                  showSettings
+                    ? 'bg-blue-50 text-blue-600'
+                    : 'text-gray-600 hover:bg-gray-50 hover:text-blue-600'
+                }`}
+                aria-label="Settings"
+              >
+                <Settings className="w-5 h-5" />
+                <span className="text-sm font-medium hidden sm:inline">
+                  Settings
+                </span>
+              </button>
               <button
                 onClick={handleLogout}
                 className="p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
@@ -96,31 +113,34 @@ const Navbar = () => {
         </div>
       </nav>
 
-      {/* Secondary Navigation (Shown in Header Dropdown) */}
-      <div className="fixed top-16 right-4 z-50">
-        <div className="flex gap-2">
-          {secondaryNavItems.map(({ path, icon: Icon, label }) => {
-            const active = isActive(path);
-            return (
-              <Link
-                key={path}
-                to={path}
-                className={`flex items-center gap-2 py-2 px-3 rounded-lg transition-colors ${
-                  active
-                    ? 'bg-blue-50 text-blue-600'
-                    : 'bg-white text-gray-600 hover:bg-gray-50 hover:text-blue-600'
-                } shadow-sm border border-gray-200`}
-                aria-label={label}
-              >
-                <Icon className="w-5 h-5" />
-                <span className="text-sm font-medium hidden sm:inline">
-                  {label}
-                </span>
-              </Link>
-            );
-          })}
+      {/* Settings Panel */}
+      {showSettings && (
+        <div className="fixed inset-0 z-[60] overflow-y-auto">
+          <div className="min-h-screen px-4 text-center">
+            {/* Background overlay */}
+            <div 
+              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+              onClick={() => setShowSettings(false)}
+            ></div>
+
+            {/* Settings panel */}
+            <div className="inline-block w-full max-w-5xl my-8 text-left align-middle transition-all transform bg-white shadow-xl rounded-lg">
+              <div className="relative">
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="absolute top-4 right-4 text-gray-400 hover:text-gray-500"
+                >
+                  <span className="sr-only">Close</span>
+                  <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+                <SettingsComponent />
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content Padding */}
       <div className="pb-[80px] pt-[64px]" />

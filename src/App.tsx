@@ -1,18 +1,17 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useUserStore } from '@/store/userStore';
-import { auth } from '@/firebase';
+import { useUserStore } from './store/userStore';
+import { auth } from './firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { clearAuthCache, validateAuthToken } from '@/utils/authUtils';
-import Navbar from '@/components/Navbar';
-import ExpenseList from '@/components/ExpenseList';
-import ExpenseForm from '@/components/ExpenseForm';
-import Analytics from '@/components/Analytics';
-import Settings from '@/components/Settings';
-import Settlement from '@/components/Settlement';
-import Login from '@/components/Login';
-import ProtectedRoute from '@/components/ProtectedRoute';
-import type { User, NotificationPreferences } from '@/types';
+import { clearAuthCache, validateAuthToken } from './utils/authUtils';
+import Navbar from './components/Navbar';
+import ExpenseList from './components/ExpenseList';
+import ExpenseForm from './components/ExpenseForm';
+import Analytics from './components/Analytics';
+import Settlement from './components/Settlement';
+import Login from './components/Login';
+import ProtectedRoute from './components/ProtectedRoute';
+import type { User, NotificationPreferences } from './types';
 
 // Loading component
 const LoadingSpinner = () => (
@@ -43,7 +42,6 @@ const defaultNotificationPreferences: NotificationPreferences = {
 
 // Separate AuthCheck component to handle auth state
 const AuthCheck = ({ children }: { children: React.ReactNode }) => {
-  const navigate = useNavigate();
   const { setCurrentUser, setInitialized } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,9 +54,6 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         if (!firebaseUser) {
           setCurrentUser(null);
           setInitialized(true);
-          if (mounted) {
-            navigate('/login', { replace: true });
-          }
           return;
         }
 
@@ -66,9 +61,6 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         if (!isValidToken) {
           setCurrentUser(null);
           setInitialized(true);
-          if (mounted) {
-            navigate('/login', { replace: true });
-          }
           return;
         }
 
@@ -90,9 +82,6 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         await clearAuthCache();
         setCurrentUser(null);
         setInitialized(true);
-        if (mounted) {
-          navigate('/login', { replace: true });
-        }
       }
     };
 
@@ -117,7 +106,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
       clearTimeout(timeoutId);
       unsubscribe();
     };
-  }, [setCurrentUser, setInitialized, navigate]);
+  }, [setCurrentUser, setInitialized]);
 
   // Only show loading spinner for the first second
   if (isLoading) {
@@ -177,15 +166,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Analytics />
-                  </ProtectedRoute>
-                } 
-              />
-              
-              <Route 
-                path="/settings" 
-                element={
-                  <ProtectedRoute>
-                    <Settings />
                   </ProtectedRoute>
                 } 
               />
