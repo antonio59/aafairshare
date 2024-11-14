@@ -1,6 +1,6 @@
-import { Home, PlusCircle, BarChart3, Settings, Wallet, LogOut, PieChart } from 'lucide-react';
+import { Home, PlusCircle, BarChart3, Settings, Wallet, LogOut } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useUserStore } from '../store/userStore';
+import { useUserStore } from '@/store/userStore';
 
 const Navbar = () => {
   const location = useLocation();
@@ -13,13 +13,12 @@ const Navbar = () => {
   const primaryNavItems = [
     { path: '/', icon: Home, label: 'Home' },
     { path: '/add', icon: PlusCircle, label: 'Add' },
-    { path: '/budget', icon: PieChart, label: 'Budget' },
+    { path: '/settlement', icon: Wallet, label: 'Settlement' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   ];
 
   // Secondary navigation items (shown in dropdown/menu)
   const secondaryNavItems = [
-    { path: '/settlement', icon: Wallet, label: 'Settlement' },
     { path: '/settings', icon: Settings, label: 'Settings' },
   ];
 

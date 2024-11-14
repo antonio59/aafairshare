@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { User, Bell, FileText, DollarSign, Settings as SettingsIcon } from 'lucide-react';
-import AccountSettings from './Settings/AccountSettings';
-import ExpenseSettings from './Settings/ExpenseSettings';
-import NotificationsSettings from './Settings/NotificationsSettings';
-import DocumentationSettings from './Settings/DocumentationSettings';
+import AccountSettings from '@/components/Settings/AccountSettings';
+import ExpenseSettings from '@/components/Settings/ExpenseSettings';
+import NotificationsSettings from '@/components/Settings/NotificationsSettings';
+import DocumentationSettings from '@/components/Settings/DocumentationSettings';
 
 const Settings = () => {
   const location = useLocation();
@@ -67,32 +67,32 @@ const Settings = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="flex items-center gap-3 mb-6">
+    <div className="max-w-5xl mx-auto px-4 sm:px-6">
+      <div className="flex items-center gap-3 mb-6 mt-4">
         <SettingsIcon className="w-8 h-8 text-gray-700" />
         <h1 className="text-2xl font-bold text-gray-900">{getTabHeading()}</h1>
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="border-b">
-          <nav className="-mb-px flex overflow-x-auto">
+          <nav className="-mb-px flex overflow-x-auto scrollbar-hide">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => handleTabChange(tab.id)}
-                className={`flex items-center gap-2 px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
+                className={`flex-shrink-0 flex items-center gap-2 px-4 sm:px-6 py-4 text-sm font-medium whitespace-nowrap transition-colors border-b-2 ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 bg-blue-50'
                     : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 hover:bg-gray-50'
                 }`}
               >
                 {tab.icon}
-                {tab.label}
+                <span className="hidden sm:inline">{tab.label}</span>
               </button>
             ))}
           </nav>
         </div>
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           <div className="mb-6">
             <h2 className="text-lg font-medium text-gray-900">
               {tabs.find(t => t.id === activeTab)?.label} Settings

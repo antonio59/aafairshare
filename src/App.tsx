@@ -1,19 +1,18 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useUserStore } from './store/userStore';
-import { auth } from './firebase';
+import { useUserStore } from '@/store/userStore';
+import { auth } from '@/firebase';
 import { onAuthStateChanged } from 'firebase/auth';
-import { clearAuthCache, validateAuthToken } from './utils/authUtils';
-import Navbar from './components/Navbar';
-import ExpenseList from './components/ExpenseList';
-import ExpenseForm from './components/ExpenseForm';
-import Analytics from './components/Analytics';
-import Settings from './components/Settings';
-import Settlement from './components/Settlement';
-import Budget from './components/Budget';
-import Login from './components/Login';
-import ProtectedRoute from './components/ProtectedRoute';
-import type { User, NotificationPreferences } from './types';
+import { clearAuthCache, validateAuthToken } from '@/utils/authUtils';
+import Navbar from '@/components/Navbar';
+import ExpenseList from '@/components/ExpenseList';
+import ExpenseForm from '@/components/ExpenseForm';
+import Analytics from '@/components/Analytics';
+import Settings from '@/components/Settings';
+import Settlement from '@/components/Settlement';
+import Login from '@/components/Login';
+import ProtectedRoute from '@/components/ProtectedRoute';
+import type { User, NotificationPreferences } from '@/types';
 
 // Loading component
 const LoadingSpinner = () => (
@@ -196,15 +195,6 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Settlement />
-                  </ProtectedRoute>
-                } 
-              />
-
-              <Route 
-                path="/budget" 
-                element={
-                  <ProtectedRoute>
-                    <Budget />
                   </ProtectedRoute>
                 } 
               />
