@@ -1,11 +1,18 @@
 import { create } from 'zustand';
 import { signInWithEmailAndPassword, signOut, updatePassword as firebaseUpdatePassword } from 'firebase/auth';
 import { auth } from '../firebase';
-import type { User, NotificationPreferences } from '../types';
-import type { UserStore } from './types';
+import type { User, NotificationPreferences, UserStore } from '../types';
+
 import { clearAuthCache } from '../utils/authUtils';
 
-const initialState = {
+interface UserState {
+  users: User[];
+  currentUser: User | null;
+  error: string | null;
+  isInitialized: boolean;
+}
+
+const initialState: UserState = {
   users: [],
   currentUser: null,
   error: null,
@@ -50,7 +57,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
   setCurrentUser: (user: User | null) => {
     if (user) {
-      set((state) => {
+      set((state: UserState) => {
         const existingUserIndex = state.users.findIndex(u => u.id === user.id);
         const updatedUsers = [...state.users];
         

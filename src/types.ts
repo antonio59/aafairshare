@@ -152,6 +152,19 @@ export interface Store {
   deleteCategoryGroup: (id: string) => Promise<void>;
 }
 
+export interface UserStore {
+  users: User[];
+  currentUser: User | null;
+  error: string | null;
+  isInitialized: boolean;
+  setInitialized: (value: boolean) => void;
+  setCurrentUser: (user: User | null) => void;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => Promise<void>;
+  updateUser: (updates: Partial<User>) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
+}
+
 export interface UserState {
   currentUser: User | null;
   updateUser: (user: Partial<User>) => Promise<void>;
