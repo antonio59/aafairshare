@@ -174,23 +174,23 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   };
 
   return (
-    <div className="p-4 max-w-lg mx-auto">
-      <h2 className="text-xl font-bold mb-6 text-center">Categories</h2>
+    <div className="p-3 md:p-4 w-full max-w-lg mx-auto">
+      <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6 text-center">Categories</h2>
       
       {/* Add new group form */}
-      <form onSubmit={handleAddGroup} className="mb-8">
+      <form onSubmit={handleAddGroup} className="mb-6 md:mb-8">
         <div className="flex flex-col gap-3">
           <input
             type="text"
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
             placeholder="New group name"
-            className="form-input w-full min-h-[48px] text-base px-4"
+            className="form-input w-full h-12 md:h-14 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-colors"
           />
           <button
             type="submit"
             disabled={!newGroupName.trim()}
-            className="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 min-h-[48px] text-base flex items-center justify-center gap-2"
+            className="w-full h-12 md:h-14 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-base flex items-center justify-center gap-2 transition-colors shadow-sm"
           >
             <Plus className="w-5 h-5" />
             <span>Add Group</span>
@@ -217,39 +217,40 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      className="bg-white rounded-lg shadow-sm overflow-hidden"
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-shadow hover:shadow-md"
                     >
                       {/* Group header */}
                       <div
                         {...provided.dragHandleProps}
-                        className="flex flex-col gap-2 p-4 bg-gray-50 border-b"
+                        className="flex flex-col gap-3 p-3 md:p-4 bg-gray-50 border-b"
                       >
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-3">
                           <button
                             onClick={() => toggleGroup(group.id)}
-                            className="p-2 hover:bg-gray-200 rounded-lg min-w-[40px] min-h-[40px] flex items-center justify-center flex-shrink-0"
+                            className="w-12 h-12 hover:bg-gray-200 active:bg-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
+                            aria-label={expandedGroups.has(group.id) ? "Collapse group" : "Expand group"}
                           >
                             {expandedGroups.has(group.id) ? (
-                              <ChevronDown className="w-5 h-5" />
+                              <ChevronDown className="w-6 h-6" />
                             ) : (
-                              <ChevronRight className="w-5 h-5" />
+                              <ChevronRight className="w-6 h-6" />
                             )}
                           </button>
                           
                           {editingGroup === group.id ? (
                             <div className="flex-1">
-                              <div className="flex flex-col gap-2">
+                              <div className="flex flex-col gap-3">
                                 <input
                                   type="text"
                                   value={editedGroupName}
                                   onChange={(e) => setEditedGroupName(e.target.value)}
-                                  className="form-input w-full min-h-[48px] text-base px-4"
+                                  className="form-input w-full h-12 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                   autoFocus
                                 />
                                 <div className="flex gap-2">
                                   <button
                                     onClick={() => handleUpdateGroup(group.id)}
-                                    className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[48px] flex items-center justify-center gap-2"
+                                    className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
                                   >
                                     <Save className="w-5 h-5" />
                                     <span>Save</span>
@@ -259,7 +260,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                       setEditingGroup(null);
                                       setEditedGroupName('');
                                     }}
-                                    className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 min-h-[48px] flex items-center justify-center gap-2"
+                                    className="flex-1 h-12 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
                                   >
                                     <X className="w-5 h-5" />
                                     <span>Cancel</span>
@@ -269,21 +270,21 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                             </div>
                           ) : (
                             <>
-                              <span className="flex-1 font-medium text-base">{group.name}</span>
-                              <div className="flex gap-1">
+                              <span className="flex-1 font-medium text-base md:text-lg">{group.name}</span>
+                              <div className="flex gap-2">
                                 <button
                                   onClick={() => {
                                     setEditingGroup(group.id);
                                     setEditedGroupName(group.name);
                                   }}
-                                  className="w-10 h-10 flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg"
+                                  className="w-12 h-12 flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors"
                                   aria-label="Edit group"
                                 >
                                   <Edit2 className="w-5 h-5" />
                                 </button>
                                 <button
                                   onClick={() => handleDeleteGroup(group.id)}
-                                  className="w-10 h-10 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg"
+                                  className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors"
                                   aria-label="Delete group"
                                 >
                                   <Trash2 className="w-5 h-5" />
@@ -296,36 +297,36 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
 
                       {/* Categories */}
                       {expandedGroups.has(group.id) && (
-                        <div className="p-4 space-y-4">
+                        <div className="p-3 md:p-4 space-y-3">
                           {/* Categories list */}
                           {categories
                             .filter(cat => cat.groupId === group.id)
                             .map(category => (
                               <div
                                 key={category.id}
-                                className="flex flex-col gap-3 p-4 bg-gray-50 rounded-lg"
+                                className="flex flex-col gap-3 p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-200"
                               >
                                 {editingCategory === category.id ? (
                                   <div className="flex flex-col gap-3">
-                                    <div className="flex gap-2">
+                                    <div className="flex flex-col md:flex-row gap-3">
                                       <input
                                         type="text"
                                         value={editedCategoryName}
                                         onChange={(e) => setEditedCategoryName(e.target.value)}
-                                        className="form-input flex-1 min-h-[48px] text-base px-4"
+                                        className="form-input flex-1 h-12 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                         placeholder="Category name"
                                       />
                                       <input
                                         type="color"
                                         value={editedCategoryColor}
                                         onChange={(e) => setEditedCategoryColor(e.target.value)}
-                                        className="form-input w-20 min-h-[48px]"
+                                        className="form-input w-full md:w-20 h-12 rounded-lg shadow-sm border border-gray-300"
                                       />
                                     </div>
                                     <div className="flex gap-2">
                                       <button
                                         onClick={() => handleUpdateCategory(category.id)}
-                                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[48px] flex items-center justify-center gap-2"
+                                        className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
                                       >
                                         <Save className="w-5 h-5" />
                                         <span>Save</span>
@@ -336,7 +337,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                           setEditedCategoryName('');
                                           setEditedCategoryColor('');
                                         }}
-                                        className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 min-h-[48px] flex items-center justify-center gap-2"
+                                        className="flex-1 h-12 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
                                       >
                                         <X className="w-5 h-5" />
                                         <span>Cancel</span>
@@ -346,25 +347,25 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                 ) : (
                                   <div className="flex items-center gap-3">
                                     <div
-                                      className="w-6 h-6 rounded-full flex-shrink-0"
+                                      className="w-8 h-8 rounded-full flex-shrink-0"
                                       style={{ backgroundColor: category.color }}
                                     />
-                                    <span className="flex-1 text-base">{category.name}</span>
-                                    <div className="flex gap-1">
+                                    <span className="flex-1 text-base md:text-lg">{category.name}</span>
+                                    <div className="flex gap-2">
                                       <button
                                         onClick={() => {
                                           setEditingCategory(category.id);
                                           setEditedCategoryName(category.name);
                                           setEditedCategoryColor(category.color);
                                         }}
-                                        className="w-10 h-10 flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg"
+                                        className="w-12 h-12 flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors"
                                         aria-label="Edit category"
                                       >
                                         <Edit2 className="w-5 h-5" />
                                       </button>
                                       <button
                                         onClick={() => handleDeleteCategory(category.id)}
-                                        className="w-10 h-10 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg"
+                                        className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors"
                                         aria-label="Delete category"
                                       >
                                         <Trash2 className="w-5 h-5" />
@@ -377,18 +378,18 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
 
                           {/* Add category form */}
                           {addingCategoryToGroup === group.id ? (
-                            <div className="flex flex-col gap-3 p-4 bg-gray-50 rounded-lg">
+                            <div className="flex flex-col gap-3 p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-200">
                               <input
                                 type="text"
                                 value={newCategoryName}
                                 onChange={(e) => setNewCategoryName(e.target.value)}
-                                className="form-input w-full min-h-[48px] text-base px-4"
+                                className="form-input w-full h-12 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
                                 placeholder="New category name"
                               />
                               <div className="flex gap-2">
                                 <button
                                   onClick={() => handleAddCategory(group.id)}
-                                  className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 min-h-[48px] flex items-center justify-center gap-2"
+                                  className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
                                 >
                                   <Plus className="w-5 h-5" />
                                   <span>Add</span>
@@ -398,7 +399,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                     setAddingCategoryToGroup(null);
                                     setNewCategoryName('');
                                   }}
-                                  className="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 min-h-[48px] flex items-center justify-center gap-2"
+                                  className="flex-1 h-12 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
                                 >
                                   <X className="w-5 h-5" />
                                   <span>Cancel</span>
@@ -408,7 +409,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                           ) : (
                             <button
                               onClick={() => setAddingCategoryToGroup(group.id)}
-                              className="w-full px-4 py-3 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg transition-colors flex items-center justify-center gap-2"
+                              className="w-full h-12 text-blue-600 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
                               <Plus className="w-5 h-5" />
                               <span>Add Category</span>
@@ -428,10 +429,10 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
 
       {/* Close button */}
       {onClose && (
-        <div className="mt-8 flex justify-end">
+        <div className="mt-6 md:mt-8">
           <button
             onClick={onClose}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 min-h-[48px] text-base"
+            className="w-full h-12 md:h-14 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 text-base transition-colors shadow-sm"
           >
             Close
           </button>
