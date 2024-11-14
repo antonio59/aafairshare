@@ -1,19 +1,15 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Edit2, Trash2 } from 'lucide-react';
 import { useExpenseStore } from '../store/expenseStore';
-import { Plus, Edit2, Trash2, FileSpreadsheet, FileText } from 'lucide-react';
 import ExpenseEditModal from './ExpenseEditModal';
 import MonthSelector from './MonthSelector';
 import type { Expense } from '../types';
 import { format } from 'date-fns';
-import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 const ExpenseList = () => {
-  const navigate = useNavigate();
   const { expenses, categories, tags, deleteExpense } = useExpenseStore();
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(format(new Date(), 'yyyy-MM'));
-  const [isExporting, setIsExporting] = useState<'excel' | 'pdf' | null>(null);
 
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
@@ -22,28 +18,6 @@ const ExpenseList = () => {
       } catch (error) {
         console.error('Failed to delete expense:', error);
       }
-    }
-  };
-
-  const handleExportExcel = async () => {
-    setIsExporting('excel');
-    try {
-      await exportToExcel(monthlyExpenses, categories, tags, selectedMonth);
-    } catch (error) {
-      console.error('Failed to export to Excel:', error);
-    } finally {
-      setIsExporting(null);
-    }
-  };
-
-  const handleExportPDF = () => {
-    setIsExporting('pdf');
-    try {
-      exportToPDF(monthlyExpenses, categories, tags, selectedMonth);
-    } catch (error) {
-      console.error('Failed to export to PDF:', error);
-    } finally {
-      setIsExporting(null);
     }
   };
 
@@ -90,45 +64,6 @@ const ExpenseList = () => {
     <div className="container mx-auto px-4 py-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleExportExcel}
-            disabled={isExporting !== null}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isExporting === 'excel'
-                ? 'bg-green-100 text-green-800 cursor-wait'
-                : 'bg-green-600 text-white hover:bg-green-700'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            title="Export to Excel"
-          >
-            <FileSpreadsheet size={18} />
-            <span className="hidden sm:inline">
-              {isExporting === 'excel' ? 'Exporting...' : 'Excel'}
-            </span>
-          </button>
-          <button
-            onClick={handleExportPDF}
-            disabled={isExporting !== null}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
-              isExporting === 'pdf'
-                ? 'bg-red-100 text-red-800 cursor-wait'
-                : 'bg-red-600 text-white hover:bg-red-700'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-            title="Export to PDF"
-          >
-            <FileText size={18} />
-            <span className="hidden sm:inline">
-              {isExporting === 'pdf' ? 'Exporting...' : 'PDF'}
-            </span>
-          </button>
-          <button
-            onClick={() => navigate('/add')}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={18} />
-            <span>Add</span>
-          </button>
-        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
