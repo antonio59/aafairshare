@@ -92,6 +92,7 @@ const TagSettings: React.FC<TagSettingsProps> = ({ onClose }) => {
                 />
                 <div className="flex gap-2">
                   <button
+                    type="button"
                     onClick={() => handleUpdateTag(tag.id)}
                     className="flex-1 sm:flex-none h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 px-4 transition-colors"
                   >
@@ -99,6 +100,7 @@ const TagSettings: React.FC<TagSettingsProps> = ({ onClose }) => {
                     <span>Save</span>
                   </button>
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingTag(null);
                       setEditedName('');
@@ -126,6 +128,7 @@ const TagSettings: React.FC<TagSettingsProps> = ({ onClose }) => {
                 </div>
                 <div className="flex gap-2 flex-shrink-0">
                   <button
+                    type="button"
                     onClick={() => {
                       setEditingTag(tag.id);
                       setEditedName(tag.name);
@@ -137,12 +140,9 @@ const TagSettings: React.FC<TagSettingsProps> = ({ onClose }) => {
                   </button>
                   <button
                     type="button"
+                    role="button"
                     onClick={() => handleDeleteTag(tag.id)}
-                    onTouchEnd={(e) => {
-                      e.preventDefault();
-                      handleDeleteTag(tag.id);
-                    }}
-                    className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation"
+                    className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors cursor-pointer"
                     aria-label="Delete tag"
                   >
                     <Trash2 className="w-5 h-5" />
@@ -164,6 +164,7 @@ const TagSettings: React.FC<TagSettingsProps> = ({ onClose }) => {
       {onClose && (
         <div className="mt-6 md:mt-8">
           <button
+            type="button"
             onClick={onClose}
             className="w-full h-12 md:h-14 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 text-base transition-colors"
           >

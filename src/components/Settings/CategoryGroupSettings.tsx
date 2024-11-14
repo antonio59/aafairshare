@@ -227,6 +227,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                       >
                         <div className="flex items-center gap-3 min-w-0">
                           <button
+                            type="button"
                             onClick={() => toggleGroup(group.id)}
                             className="w-12 h-12 hover:bg-gray-200 active:bg-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
                             aria-label={expandedGroups.has(group.id) ? "Collapse group" : "Expand group"}
@@ -250,6 +251,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                 />
                                 <div className="flex gap-2">
                                   <button
+                                    type="button"
                                     onClick={() => handleUpdateGroup(group.id)}
                                     className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
                                   >
@@ -257,6 +259,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                     <span>Save</span>
                                   </button>
                                   <button
+                                    type="button"
                                     onClick={() => {
                                       setEditingGroup(null);
                                       setEditedGroupName('');
@@ -287,6 +290,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setEditingGroup(group.id);
                                     setEditedGroupName(group.name);
@@ -298,12 +302,9 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                 </button>
                                 <button
                                   type="button"
+                                  role="button"
                                   onClick={() => handleDeleteGroup(group.id)}
-                                  onTouchEnd={(e) => {
-                                    e.preventDefault();
-                                    handleDeleteGroup(group.id);
-                                  }}
-                                  className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation"
+                                  className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors cursor-pointer"
                                   aria-label="Delete group"
                                 >
                                   <Trash2 className="w-5 h-5" />
@@ -344,6 +345,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                     </div>
                                     <div className="flex gap-2">
                                       <button
+                                        type="button"
                                         onClick={() => handleUpdateCategory(category.id)}
                                         className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
                                       >
@@ -351,6 +353,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                         <span>Save</span>
                                       </button>
                                       <button
+                                        type="button"
                                         onClick={() => {
                                           setEditingCategory(null);
                                           setEditedCategoryName('');
@@ -385,6 +388,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                     </div>
                                     <div className="flex gap-2 flex-shrink-0">
                                       <button
+                                        type="button"
                                         onClick={() => {
                                           setEditingCategory(category.id);
                                           setEditedCategoryName(category.name);
@@ -397,12 +401,9 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                       </button>
                                       <button
                                         type="button"
+                                        role="button"
                                         onClick={() => handleDeleteCategory(category.id)}
-                                        onTouchEnd={(e) => {
-                                          e.preventDefault();
-                                          handleDeleteCategory(category.id);
-                                        }}
-                                        className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation"
+                                        className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors cursor-pointer"
                                         aria-label="Delete category"
                                       >
                                         <Trash2 className="w-5 h-5" />
@@ -425,6 +426,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                               />
                               <div className="flex gap-2">
                                 <button
+                                  type="button"
                                   onClick={() => handleAddCategory(group.id)}
                                   className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
                                 >
@@ -432,6 +434,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                   <span>Add</span>
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => {
                                     setAddingCategoryToGroup(null);
                                     setNewCategoryName('');
@@ -445,6 +448,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                             </div>
                           ) : (
                             <button
+                              type="button"
                               onClick={() => setAddingCategoryToGroup(group.id)}
                               className="w-full h-12 text-blue-600 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors flex items-center justify-center gap-2"
                             >
@@ -468,6 +472,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
       {onClose && (
         <div className="mt-6 md:mt-8">
           <button
+            type="button"
             onClick={onClose}
             className="w-full h-12 md:h-14 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 text-base transition-colors"
           >
