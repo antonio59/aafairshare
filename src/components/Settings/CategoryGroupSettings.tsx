@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { useExpenseStore } from '@/store/expenseStore';
-import { useUserStore } from '@/store/userStore';
-import type { CategoryGroup, Category } from '@/types';
+import { useExpenseStore } from '../../store/expenseStore';
+import { useUserStore } from '../../store/userStore';
+import type { CategoryGroup, Category } from '../../types';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { generateUniqueColor } from '../../utils/colorUtils';
 
 interface CategoryGroupSettingsProps {
   onClose?: () => void;
@@ -29,7 +30,6 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   
   // Category state
   const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryColor, setNewCategoryColor] = useState('#000000');
   const [addingCategoryToGroup, setAddingCategoryToGroup] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editedCategoryName, setEditedCategoryName] = useState('');
@@ -112,13 +112,12 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     try {
       const newCategory = {
         name: newCategoryName.trim(),
-        color: newCategoryColor,
+        color: generateUniqueColor(categories), // Automatically generate a unique color
         groupId: groupId
       };
       console.log('Adding new category:', newCategory);
       await addCategory(newCategory);
       setNewCategoryName('');
-      setNewCategoryColor('#000000');
       setAddingCategoryToGroup(null);
     } catch (error) {
       console.error('Failed to add category:', error);
@@ -375,12 +374,6 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                 className="form-input flex-1"
                                 placeholder="New category name"
                               />
-                              <input
-                                type="color"
-                                value={newCategoryColor}
-                                onChange={(e) => setNewCategoryColor(e.target.value)}
-                                className="form-input w-20"
-                              />
                               <button
                                 onClick={() => handleAddCategory(group.id)}
                                 className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
@@ -391,7 +384,6 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                 onClick={() => {
                                   setAddingCategoryToGroup(null);
                                   setNewCategoryName('');
-                                  setNewCategoryColor('#000000');
                                 }}
                                 className="px-3 py-1 bg-gray-600 text-white rounded hover:bg-gray-700"
                               >
