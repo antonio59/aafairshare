@@ -273,7 +273,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                             <>
                               <div className="flex-1 min-w-0">
                                 <span 
-                                  className="font-medium text-base md:text-lg truncate block"
+                                  className="font-medium text-base md:text-lg break-words block"
                                   title={group.name}
                                 >
                                   {group.name}
@@ -362,7 +362,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                          onMouseEnter={() => setShowTooltip(category.id)}
                                          onMouseLeave={() => setShowTooltip(null)}
                                     >
-                                      <span className="block truncate text-base md:text-lg" title={category.name}>
+                                      <span className="block break-words text-base md:text-lg" title={category.name}>
                                         {category.name}
                                       </span>
                                       {showTooltip === category.id && (
