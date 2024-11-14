@@ -23,15 +23,12 @@ export interface ChanneledNotificationSetting extends BaseNotificationSetting {
   inAppEnabled: boolean;
 }
 
-// Updated to include email and in-app options
 export interface BudgetNotificationSetting extends ChanneledNotificationSetting {
   dismissedAlerts?: string[];
 }
 
 export interface NotificationPreferences {
-  // Global notification toggle
   globalEnabled: boolean;
-  // Updated notification types
   overBudget: BudgetNotificationSetting;
   monthlyReminder: TimedNotificationSetting;
   settlementNotifications: ChanneledNotificationSetting;
@@ -84,6 +81,36 @@ export interface Budget {
   period: 'monthly' | 'quarterly' | 'yearly';
 }
 
+export type BudgetActionType = 'created' | 'increased' | 'decreased' | 'deleted';
+
+export interface BudgetHistory {
+  id: string;
+  budgetId: string;
+  actionType: BudgetActionType;
+  category: string;
+  oldValue?: number;
+  newValue?: number;
+  timestamp: string;
+  userId: string;
+  userName: string;
+}
+
+export interface BudgetReport {
+  startDate: string;
+  endDate: string;
+  changes: {
+    created: number;
+    increased: number;
+    decreased: number;
+    deleted: number;
+  };
+  categoryTrends: {
+    categoryId: string;
+    name: string;
+    percentageChange: number;
+  }[];
+}
+
 export interface Expense {
   id: string;
   description?: string;
@@ -97,17 +124,17 @@ export interface Expense {
 }
 
 export interface Settlement {
-  id: string;  // Added unique ID for each settlement
+  id: string;
   month: string;
   settledBy: string;
   settledAt: string;
   balance: number;
-  categoryGroups: {  // Added to track settlements by category groups
+  categoryGroups: {
     groupId: string;
     amount: number;
   }[];
-  expenses: string[];  // Added to track which expenses were included
-  notes?: string;  // Added for optional settlement notes
+  expenses: string[];
+  notes?: string;
 }
 
 export interface Store {

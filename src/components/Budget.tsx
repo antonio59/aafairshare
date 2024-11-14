@@ -3,6 +3,8 @@ import { useExpenseStore } from '../store/expenseStore';
 import { PlusCircle, Edit2, Trash2 } from 'lucide-react';
 import type { Budget as BudgetType, CategoryGroup, Category } from '../types';
 import Dropdown from './common/Dropdown';
+import BudgetHistory from './Budget/BudgetHistory';
+import BudgetReport from './Budget/BudgetReport';
 
 interface NewBudget {
   category: string;
@@ -10,11 +12,14 @@ interface NewBudget {
   period: 'monthly' | 'quarterly' | 'yearly';
 }
 
+type TabType = 'budgets' | 'history' | 'report';
+
 const Budget = () => {
   const { budgets, addBudget, updateBudget: editBudget, deleteBudget, getBudgetProgress, categories, categoryGroups } = useExpenseStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedBudget, setSelectedBudget] = useState<BudgetType | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('budgets');
   const [newBudget, setNewBudget] = useState<NewBudget>({
     category: '',
     amount: '',
@@ -102,76 +107,125 @@ const Budget = () => {
     }
   };
 
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'history':
+        return <BudgetHistory />;
+      case 'report':
+        return <BudgetReport />;
+      default:
+        return (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {budgets.map((budget) => {
+              const progress = getBudgetProgress(budget);
+              const category = categories.find(c => c.id === budget.category);
+              const group = category ? categoryGroups.find((g: CategoryGroup) => g.id === category.groupId) : null;
+              
+              return (
+                <div
+                  key={budget.id}
+                  className="bg-white p-6 rounded-lg shadow-md"
+                >
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">{category?.name || 'Unknown Category'}</h3>
+                      <p className="text-gray-600">
+                        Budget: £{budget.amount.toFixed(2)} ({budget.period})
+                      </p>
+                      {group && (
+                        <p className="text-sm text-gray-500">
+                          Group: {group.name}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedBudget(budget);
+                          setShowEditModal(true);
+                        }}
+                        className="text-blue-500 hover:text-blue-600"
+                      >
+                        <Edit2 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteBudget(budget.id)}
+                        className="text-red-500 hover:text-red-600"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="w-full bg-gray-200 rounded-full h-2.5">
+                    <div
+                      className={`h-2.5 rounded-full ${
+                        progress > 100 ? 'bg-red-500' : 'bg-blue-500'
+                      }`}
+                      style={{ width: `${Math.min(progress, 100)}%` }}
+                    ></div>
+                  </div>
+                  <p className="mt-2 text-sm text-gray-600">
+                    {progress.toFixed(1)}% used
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        );
+    }
+  };
+
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Budget Management</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
-        >
-          <PlusCircle size={20} />
-          Add Budget
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgets.map((budget) => {
-          const progress = getBudgetProgress(budget);
-          const category = categories.find(c => c.id === budget.category);
-          const group = category ? categoryGroups.find((g: CategoryGroup) => g.id === category.groupId) : null;
-          
-          return (
-            <div
-              key={budget.id}
-              className="bg-white p-6 rounded-lg shadow-md"
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl font-bold">Budget Management</h1>
+          <div className="flex border border-gray-300 rounded-lg overflow-hidden">
+            <button
+              onClick={() => setActiveTab('budgets')}
+              className={`px-4 py-2 ${
+                activeTab === 'budgets'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
             >
-              <div className="flex justify-between items-start mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold">{category?.name || 'Unknown Category'}</h3>
-                  <p className="text-gray-600">
-                    Budget: £{budget.amount.toFixed(2)} ({budget.period})
-                  </p>
-                  {group && (
-                    <p className="text-sm text-gray-500">
-                      Group: {group.name}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedBudget(budget);
-                      setShowEditModal(true);
-                    }}
-                    className="text-blue-500 hover:text-blue-600"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteBudget(budget.id)}
-                    className="text-red-500 hover:text-red-600"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className={`h-2.5 rounded-full ${
-                    progress > 100 ? 'bg-red-500' : 'bg-blue-500'
-                  }`}
-                  style={{ width: `${Math.min(progress, 100)}%` }}
-                ></div>
-              </div>
-              <p className="mt-2 text-sm text-gray-600">
-                {progress.toFixed(1)}% used
-              </p>
-            </div>
-          );
-        })}
+              Budgets
+            </button>
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-4 py-2 ${
+                activeTab === 'history'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              History
+            </button>
+            <button
+              onClick={() => setActiveTab('report')}
+              className={`px-4 py-2 ${
+                activeTab === 'report'
+                  ? 'bg-blue-500 text-white'
+                  : 'text-gray-600 hover:bg-gray-100'
+              }`}
+            >
+              Report
+            </button>
+          </div>
+        </div>
+        {activeTab === 'budgets' && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center gap-2 bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+          >
+            <PlusCircle size={20} />
+            Add Budget
+          </button>
+        )}
       </div>
+
+      {renderContent()}
 
       {/* Add Budget Modal */}
       {showAddModal && (

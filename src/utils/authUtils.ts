@@ -13,7 +13,8 @@ export const clearAuthCache = async () => {
       ...Object.keys(localStorage).filter(key => 
         key.includes('firebase') || 
         key.includes('firebaseapp') ||
-        key.includes('auth')
+        key.includes('auth') ||
+        key === 'tempPassword'
       )
     ];
 
@@ -133,7 +134,7 @@ export const reAuthenticateUser = async (email: string): Promise<void> => {
     }
 
     // Get stored password from secure storage
-    const storedPassword = localStorage.getItem(`auth_${email}`);
+    const storedPassword = localStorage.getItem('tempPassword');
     if (!storedPassword) {
       throw new Error('No stored credentials found');
     }

@@ -1,7 +1,18 @@
 import type { StateCreator } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
-import { format, isAfter, addMonths, startOfDay } from 'date-fns';
-import type { Expense, RecurringExpense, Budget, Settlement } from '../types';
+import { format, isAfter, addMonths, startOfDay, parseISO, isWithinInterval } from 'date-fns';
+import type { 
+  Expense, 
+  RecurringExpense, 
+  Budget, 
+  Settlement, 
+  BudgetHistory, 
+  BudgetReport, 
+  BudgetActionType,
+  Category,
+  CategoryGroup,
+  Tag
+} from '../types';
 import {
   addExpenseToFirestore,
   updateExpenseInFirestore,
@@ -22,6 +33,7 @@ import {
   updateRecurringExpenseInFirestore,
   deleteRecurringExpenseFromFirestore,
   addSettlementToFirestore,
+  addBudgetHistoryToFirestore,
   fetchAllData
 } from './firebaseOperations';
 import { auth } from '../firebase';
@@ -29,22 +41,21 @@ import { reAuthenticateUser } from '../utils/authUtils';
 import type { ExpenseStore } from './types';
 import { getExpenseStore } from './createStore';
 
-// Extended initial state with lastFetchTimestamp
 const initialState = {
-  expenses: [],
-  categories: [],
-  categoryGroups: [],
-  tags: [],
-  budgets: [],
-  recurringExpenses: [],
-  settlements: [],
+  expenses: [] as Expense[],
+  categories: [] as Category[],
+  categoryGroups: [] as CategoryGroup[],
+  tags: [] as Tag[],
+  budgets: [] as Budget[],
+  budgetHistory: [] as BudgetHistory[],
+  recurringExpenses: [] as RecurringExpense[],
+  settlements: [] as Settlement[],
   initialized: false,
-  error: null,
+  error: null as string | null,
   isLoading: false,
   lastFetchTimestamp: null as number | null
 };
 
-// Cooldown period between fetches (5 seconds)
 const FETCH_COOLDOWN = 5000;
 
 const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
@@ -58,7 +69,6 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     const store = get();
     if (store.isLoading) return;
 
-    // Check if we've fetched recently
     const now = Date.now();
     if (store.lastFetchTimestamp && (now - store.lastFetchTimestamp < FETCH_COOLDOWN)) {
       console.log('Skipping fetch due to cooldown');
@@ -72,20 +82,19 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
         throw new Error('User not authenticated');
       }
 
-      // Keep existing data while fetching
       const existingData = {
         expenses: store.expenses,
         categories: store.categories,
         categoryGroups: store.categoryGroups,
         tags: store.tags,
         budgets: store.budgets,
+        budgetHistory: store.budgetHistory,
         recurringExpenses: store.recurringExpenses,
         settlements: store.settlements,
       };
 
       try {
         const data = await fetchAllData();
-        // Only update if we got valid data
         if (data && Object.keys(data).length > 0) {
           set({ 
             ...data, 
@@ -133,32 +142,29 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
             }
           } catch (reAuthError) {
             console.error('Re-authentication failed:', reAuthError);
-            // Keep existing data on error
             set({
               ...existingData,
               error: 'Failed to refresh data',
               isLoading: false,
               initialized: true,
-              lastFetchTimestamp: store.lastFetchTimestamp // Keep old timestamp on error
+              lastFetchTimestamp: store.lastFetchTimestamp
             });
           }
         } else {
           console.error('Failed to fetch data:', error);
-          // Keep existing data on error
           set({
             ...existingData,
             error: 'Failed to refresh data',
             isLoading: false,
             initialized: true,
-            lastFetchTimestamp: store.lastFetchTimestamp // Keep old timestamp on error
+            lastFetchTimestamp: store.lastFetchTimestamp
           });
         }
       }
     } catch (error) {
       console.error('Store initialization failed:', error);
-      // On critical error, keep existing data
       set({ 
-        ...get(), // Keep all existing state
+        ...get(),
         initialized: true,
         error: error instanceof Error ? error.message : 'Failed to initialize store',
         isLoading: false
@@ -166,7 +172,204 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     }
   },
 
-  // Rest of the store methods remain unchanged
+  // Budget History operations
+  getBudgetHistory: (filters) => {
+    const { budgetHistory } = get();
+    let filteredHistory = [...budgetHistory];
+
+    if (filters) {
+      if (filters.startDate || filters.endDate) {
+        filteredHistory = filteredHistory.filter(history => {
+          const historyDate = parseISO(history.timestamp);
+          return isWithinInterval(historyDate, {
+            start: filters.startDate ? parseISO(filters.startDate) : new Date(0),
+            end: filters.endDate ? parseISO(filters.endDate) : new Date()
+          });
+        });
+      }
+
+      if (filters.actionTypes && filters.actionTypes.length > 0) {
+        filteredHistory = filteredHistory.filter(history =>
+          filters.actionTypes?.includes(history.actionType)
+        );
+      }
+
+      if (filters.categories && filters.categories.length > 0) {
+        filteredHistory = filteredHistory.filter(history =>
+          filters.categories?.includes(history.category)
+        );
+      }
+    }
+
+    return filteredHistory.sort((a, b) => 
+      new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    );
+  },
+
+  generateBudgetReport: (startDate, endDate) => {
+    const { budgetHistory, categories } = get();
+    
+    const historyInRange = budgetHistory.filter(history => {
+      const historyDate = parseISO(history.timestamp);
+      return isWithinInterval(historyDate, {
+        start: parseISO(startDate),
+        end: parseISO(endDate)
+      });
+    });
+
+    // Count changes
+    const changes = historyInRange.reduce((acc, history) => {
+      acc[history.actionType]++;
+      return acc;
+    }, {
+      created: 0,
+      increased: 0,
+      decreased: 0,
+      deleted: 0
+    });
+
+    // Calculate category trends
+    const categoryChanges = new Map<string, { oldTotal: number; newTotal: number }>();
+    
+    historyInRange.forEach(history => {
+      const current = categoryChanges.get(history.category) || { oldTotal: 0, newTotal: 0 };
+      
+      if (history.actionType === 'created') {
+        current.newTotal += history.newValue || 0;
+      } else if (history.actionType === 'deleted') {
+        current.oldTotal += history.oldValue || 0;
+      } else {
+        current.oldTotal += history.oldValue || 0;
+        current.newTotal += history.newValue || 0;
+      }
+      
+      categoryChanges.set(history.category, current);
+    });
+
+    const categoryTrends = Array.from(categoryChanges.entries()).map(([categoryId, values]) => {
+      const category = categories.find(c => c.id === categoryId);
+      const percentageChange = values.oldTotal === 0 
+        ? 100 
+        : ((values.newTotal - values.oldTotal) / values.oldTotal) * 100;
+
+      return {
+        categoryId,
+        name: category?.name || 'Unknown Category',
+        percentageChange
+      };
+    });
+
+    return {
+      startDate,
+      endDate,
+      changes,
+      categoryTrends
+    };
+  },
+
+  // Budget operations with history tracking
+  addBudget: async (budget) => {
+    const newBudget = { ...budget, id: uuidv4() };
+    await addBudgetToFirestore(newBudget);
+
+    // Create history entry
+    const history: BudgetHistory = {
+      id: uuidv4(),
+      budgetId: newBudget.id,
+      actionType: 'created',
+      category: newBudget.category,
+      newValue: newBudget.amount,
+      timestamp: new Date().toISOString(),
+      userId: auth.currentUser?.uid || '',
+      userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+    };
+    await addBudgetHistoryToFirestore(history);
+
+    set(state => ({ 
+      budgets: [...state.budgets, newBudget],
+      budgetHistory: [...state.budgetHistory, history],
+      error: null 
+    }));
+  },
+
+  updateBudget: async (id, budget) => {
+    const currentBudget = get().budgets.find(b => b.id === id);
+    if (!currentBudget) return;
+
+    await updateBudgetInFirestore(id, budget);
+
+    // Create history entry if amount changed
+    if (budget.amount !== undefined && budget.amount !== currentBudget.amount) {
+      const history: BudgetHistory = {
+        id: uuidv4(),
+        budgetId: id,
+        actionType: budget.amount > currentBudget.amount ? 'increased' : 'decreased',
+        category: currentBudget.category,
+        oldValue: currentBudget.amount,
+        newValue: budget.amount,
+        timestamp: new Date().toISOString(),
+        userId: auth.currentUser?.uid || '',
+        userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+      };
+      await addBudgetHistoryToFirestore(history);
+
+      set(state => ({
+        budgets: state.budgets.map(b => b.id === id ? { ...b, ...budget } : b),
+        budgetHistory: [...state.budgetHistory, history],
+        error: null
+      }));
+    } else {
+      set(state => ({
+        budgets: state.budgets.map(b => b.id === id ? { ...b, ...budget } : b),
+        error: null
+      }));
+    }
+  },
+
+  deleteBudget: async (id) => {
+    const currentBudget = get().budgets.find(b => b.id === id);
+    if (!currentBudget) return;
+
+    await deleteBudgetFromFirestore(id);
+
+    // Create history entry
+    const history: BudgetHistory = {
+      id: uuidv4(),
+      budgetId: id,
+      actionType: 'deleted',
+      category: currentBudget.category,
+      oldValue: currentBudget.amount,
+      timestamp: new Date().toISOString(),
+      userId: auth.currentUser?.uid || '',
+      userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+    };
+    await addBudgetHistoryToFirestore(history);
+
+    set(state => ({
+      budgets: state.budgets.filter(b => b.id !== id),
+      budgetHistory: [...state.budgetHistory, history],
+      error: null
+    }));
+  },
+
+  getBudgetProgress: (budget: Budget) => {
+    const { expenses } = get();
+    const currentDate = new Date();
+    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+    const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+
+    const relevantExpenses = expenses.filter(expense => {
+      const expenseDate = new Date(expense.date);
+      return expense.category === budget.category &&
+             expenseDate >= monthStart &&
+             expenseDate <= monthEnd;
+    });
+
+    const totalSpent = relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+    return (totalSpent / budget.amount) * 100;
+  },
+
+  // Expense operations
   addExpense: async (expense) => {
     const newExpense = { ...expense, id: uuidv4() };
     await addExpenseToFirestore(newExpense);
@@ -189,6 +392,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     }));
   },
 
+  // Category operations
   addCategory: async (category) => {
     const newCategory = { ...category, id: uuidv4() };
     await addCategoryToFirestore(newCategory);
@@ -211,6 +415,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     }));
   },
 
+  // Category Group operations
   addCategoryGroup: async (group) => {
     const newGroup = { ...group, id: uuidv4() };
     await addCategoryGroupToFirestore(newGroup);
@@ -233,6 +438,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     }));
   },
 
+  // Tag operations
   addTag: async (tag) => {
     const { tags } = get();
     const existingTag = tags.find(t => t.name.toLowerCase() === tag.name.toLowerCase());
@@ -265,45 +471,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     }));
   },
 
-  addBudget: async (budget) => {
-    const newBudget = { ...budget, id: uuidv4() };
-    await addBudgetToFirestore(newBudget);
-    set(state => ({ budgets: [...state.budgets, newBudget], error: null }));
-  },
-
-  updateBudget: async (id, budget) => {
-    await updateBudgetInFirestore(id, budget);
-    set(state => ({
-      budgets: state.budgets.map(b => b.id === id ? { ...b, ...budget } : b),
-      error: null
-    }));
-  },
-
-  deleteBudget: async (id) => {
-    await deleteBudgetFromFirestore(id);
-    set(state => ({
-      budgets: state.budgets.filter(b => b.id !== id),
-      error: null
-    }));
-  },
-
-  getBudgetProgress: (budget: Budget) => {
-    const { expenses } = get();
-    const currentDate = new Date();
-    const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
-
-    const relevantExpenses = expenses.filter(expense => {
-      const expenseDate = new Date(expense.date);
-      return expense.category === budget.category &&
-             expenseDate >= monthStart &&
-             expenseDate <= monthEnd;
-    });
-
-    const totalSpent = relevantExpenses.reduce((sum, expense) => sum + expense.amount, 0);
-    return (totalSpent / budget.amount) * 100;
-  },
-
+  // Recurring Expense operations
   addRecurringExpense: async (expense) => {
     const newExpense = { ...expense, id: uuidv4() };
     await addRecurringExpenseToFirestore(newExpense);
@@ -355,15 +523,14 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     }
   },
 
+  // Settlement operations
   settleMonth: async (month, settledBy, balance) => {
     const { expenses, categoryGroups } = get();
     
-    // Get expenses for the month
     const monthlyExpenses = expenses.filter(
       expense => format(new Date(expense.date), 'yyyy-MM') === month
     );
 
-    // Calculate amounts by category group
     const groupAmounts = monthlyExpenses.reduce((acc, expense) => {
       const category = get().categories.find(c => c.id === expense.category);
       if (category) {
@@ -373,7 +540,6 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
       return acc;
     }, {} as Record<string, number>);
 
-    // Create settlement object
     const settlement: Settlement = {
       id: uuidv4(),
       month,

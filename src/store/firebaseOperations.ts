@@ -11,12 +11,24 @@ import {
   disableNetwork,
   getFirestore,
   QueryDocumentSnapshot,
-  CollectionReference
+  CollectionReference,
+  query,
+  where,
+  getDoc
 } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { auth } from '../firebase';
 import { db } from '../firebase';
-import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
+import type { 
+  Expense, 
+  Category, 
+  CategoryGroup, 
+  Tag, 
+  Budget, 
+  RecurringExpense, 
+  Settlement,
+  BudgetHistory
+} from '../types';
 import { v4 as uuidv4 } from 'uuid';
 import type { DocumentData } from 'firebase/firestore';
 
@@ -27,6 +39,7 @@ export interface FirestoreData {
   categoryGroups: CategoryGroup[];
   tags: Tag[];
   budgets: Budget[];
+  budgetHistory: BudgetHistory[];
   recurringExpenses: RecurringExpense[];
   settlements: Settlement[];
 }
@@ -37,6 +50,7 @@ let categoriesRef: CollectionReference<DocumentData>;
 let categoryGroupsRef: CollectionReference<DocumentData>;
 let tagsRef: CollectionReference<DocumentData>;
 let budgetsRef: CollectionReference<DocumentData>;
+let budgetHistoryRef: CollectionReference<DocumentData>;
 let recurringExpensesRef: CollectionReference<DocumentData>;
 let settlementsRef: CollectionReference<DocumentData>;
 
@@ -53,6 +67,7 @@ const initializeCollections = () => {
   categoryGroupsRef = collection(db, `users/${userId}/categoryGroups`);
   tagsRef = collection(db, `users/${userId}/tags`);
   budgetsRef = collection(db, `users/${userId}/budgets`);
+  budgetHistoryRef = collection(db, `users/${userId}/budgetHistory`);
   recurringExpensesRef = collection(db, `users/${userId}/recurringExpenses`);
   settlementsRef = collection(db, `users/${userId}/settlements`);
 };
@@ -62,12 +77,12 @@ const dateToTimestamp = (dateStr: string) => Timestamp.fromDate(new Date(dateStr
 const timestampToString = (timestamp: Timestamp) => timestamp.toDate().toISOString();
 
 // Safe data conversion functions
-const safeTimestampToString = (timestamp: any): string | null => {
+const safeTimestampToString = (timestamp: any): string | undefined => {
   try {
-    return timestamp instanceof Timestamp ? timestampToString(timestamp) : null;
+    return timestamp instanceof Timestamp ? timestampToString(timestamp) : undefined;
   } catch (error) {
     console.error('Error converting timestamp:', error);
-    return null;
+    return undefined;
   }
 };
 
@@ -80,51 +95,83 @@ const safeDocumentData = (doc: QueryDocumentSnapshot<DocumentData>) => {
   }
 };
 
-// Validation functions
-const validateRecurringExpense = (data: any): boolean => {
-  return (
-    data !== null &&
-    typeof data === 'object' &&
-    typeof data.id === 'string' &&
-    typeof data.amount === 'number' &&
-    typeof data.category === 'string' &&
-    typeof data.paidBy === 'string' &&
-    (data.split === 'equal' || data.split === 'no-split') &&
-    typeof data.startDate === 'string' &&
-    (data.frequency === 'monthly' || data.frequency === 'quarterly' || data.frequency === 'yearly') &&
-    typeof data.dayOfMonth === 'number' &&
-    Array.isArray(data.tags)
-  );
+// Budget History Operations
+export const addBudgetHistoryToFirestore = async (history: BudgetHistory) => {
+  initializeCollections();
+  const docRef = doc(budgetHistoryRef, history.id);
+  await setDoc(docRef, {
+    ...history,
+    timestamp: dateToTimestamp(history.timestamp)
+  });
 };
 
-// CRUD Operations for Category Groups
-export const addCategoryGroupToFirestore = async (group: Omit<CategoryGroup, 'id'>) => {
+// CRUD Operations for Budgets with History Tracking
+export const addBudgetToFirestore = async (budget: Budget) => {
   initializeCollections();
-  const id = uuidv4();
-  const docRef = doc(categoryGroupsRef, id);
-  const groupWithTimestamps = {
-    ...group,
-    id,
-    createdAt: dateToTimestamp(group.createdAt),
-    updatedAt: dateToTimestamp(group.updatedAt)
+  const docRef = doc(budgetsRef, budget.id);
+  await setDoc(docRef, budget);
+
+  // Add to history
+  const history: BudgetHistory = {
+    id: uuidv4(),
+    budgetId: budget.id,
+    actionType: 'created',
+    category: budget.category,
+    newValue: budget.amount,
+    timestamp: new Date().toISOString(),
+    userId: auth.currentUser?.uid || '',
+    userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
   };
-  await setDoc(docRef, groupWithTimestamps);
+  await addBudgetHistoryToFirestore(history);
 };
 
-export const updateCategoryGroupInFirestore = async (id: string, group: Partial<CategoryGroup>) => {
+export const updateBudgetInFirestore = async (id: string, budget: Partial<Budget>) => {
   initializeCollections();
-  const docRef = doc(categoryGroupsRef, id);
-  const updateData = {
-    ...group,
-    updatedAt: group.updatedAt ? dateToTimestamp(group.updatedAt) : undefined
-  };
-  await updateDoc(docRef, updateData);
+  const docRef = doc(budgetsRef, id);
+  
+  // Get current budget for comparison
+  const docSnap = await getDoc(docRef);
+  const currentBudget = docSnap.data() as Budget;
+  await updateDoc(docRef, budget);
+
+  // Add to history if amount changed
+  if (budget.amount !== undefined && budget.amount !== currentBudget.amount) {
+    const history: BudgetHistory = {
+      id: uuidv4(),
+      budgetId: id,
+      actionType: budget.amount > currentBudget.amount ? 'increased' : 'decreased',
+      category: currentBudget.category,
+      oldValue: currentBudget.amount,
+      newValue: budget.amount,
+      timestamp: new Date().toISOString(),
+      userId: auth.currentUser?.uid || '',
+      userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+    };
+    await addBudgetHistoryToFirestore(history);
+  }
 };
 
-export const deleteCategoryGroupFromFirestore = async (id: string) => {
+export const deleteBudgetFromFirestore = async (id: string) => {
   initializeCollections();
-  const docRef = doc(categoryGroupsRef, id);
+  const docRef = doc(budgetsRef, id);
+  
+  // Get current budget for history
+  const docSnap = await getDoc(docRef);
+  const currentBudget = docSnap.data() as Budget;
   await deleteDoc(docRef);
+
+  // Add to history
+  const history: BudgetHistory = {
+    id: uuidv4(),
+    budgetId: id,
+    actionType: 'deleted',
+    category: currentBudget.category,
+    oldValue: currentBudget.amount,
+    timestamp: new Date().toISOString(),
+    userId: auth.currentUser?.uid || '',
+    userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+  };
+  await addBudgetHistoryToFirestore(history);
 };
 
 // CRUD Operations for Categories
@@ -146,6 +193,25 @@ export const deleteCategoryFromFirestore = async (id: string) => {
   await deleteDoc(docRef);
 };
 
+// CRUD Operations for Category Groups
+export const addCategoryGroupToFirestore = async (group: CategoryGroup) => {
+  initializeCollections();
+  const docRef = doc(categoryGroupsRef, group.id);
+  await setDoc(docRef, group);
+};
+
+export const updateCategoryGroupInFirestore = async (id: string, group: Partial<CategoryGroup>) => {
+  initializeCollections();
+  const docRef = doc(categoryGroupsRef, id);
+  await updateDoc(docRef, group);
+};
+
+export const deleteCategoryGroupFromFirestore = async (id: string) => {
+  initializeCollections();
+  const docRef = doc(categoryGroupsRef, id);
+  await deleteDoc(docRef);
+};
+
 // CRUD Operations for Tags
 export const addTagToFirestore = async (tag: Tag) => {
   initializeCollections();
@@ -162,25 +228,6 @@ export const updateTagInFirestore = async (id: string, tag: Partial<Tag>) => {
 export const deleteTagFromFirestore = async (id: string) => {
   initializeCollections();
   const docRef = doc(tagsRef, id);
-  await deleteDoc(docRef);
-};
-
-// CRUD Operations for Budgets
-export const addBudgetToFirestore = async (budget: Budget) => {
-  initializeCollections();
-  const docRef = doc(budgetsRef, budget.id);
-  await setDoc(docRef, budget);
-};
-
-export const updateBudgetInFirestore = async (id: string, budget: Partial<Budget>) => {
-  initializeCollections();
-  const docRef = doc(budgetsRef, id);
-  await updateDoc(docRef, budget);
-};
-
-export const deleteBudgetFromFirestore = async (id: string) => {
-  initializeCollections();
-  const docRef = doc(budgetsRef, id);
   await deleteDoc(docRef);
 };
 
@@ -249,16 +296,15 @@ export const addSettlementToFirestore = async (settlement: Settlement) => {
 // Fetch all data with improved error handling and data validation
 export const fetchAllData = async (): Promise<FirestoreData> => {
   try {
-    // Initialize collections with current user context
     initializeCollections();
 
-    // Fetch all collections in parallel with error handling
     const [
       expensesSnapshot,
       categoriesSnapshot,
       categoryGroupsSnapshot,
       tagsSnapshot,
       budgetsSnapshot,
+      budgetHistorySnapshot,
       recurringExpensesSnapshot,
       settlementsSnapshot
     ] = await Promise.all([
@@ -267,6 +313,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       getDocs(categoryGroupsRef),
       getDocs(tagsRef),
       getDocs(budgetsRef),
+      getDocs(budgetHistoryRef),
       getDocs(recurringExpensesRef),
       getDocs(settlementsRef)
     ]);
@@ -276,10 +323,12 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       .map(doc => {
         const data = safeDocumentData(doc);
         if (!data || !data.date) return null;
+        const date = safeTimestampToString(data.date);
+        if (!date) return null;
         return {
           ...data,
           id: doc.id,
-          date: safeTimestampToString(data.date) || new Date().toISOString()
+          date
         };
       })
       .filter((expense): expense is Expense => expense !== null);
@@ -289,14 +338,32 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       .map(doc => {
         const data = safeDocumentData(doc);
         if (!data) return null;
+        const createdAt = safeTimestampToString(data.createdAt);
+        const updatedAt = safeTimestampToString(data.updatedAt);
+        if (!createdAt || !updatedAt) return null;
         return {
           ...data,
           id: doc.id,
-          createdAt: safeTimestampToString(data.createdAt) || new Date().toISOString(),
-          updatedAt: safeTimestampToString(data.updatedAt) || new Date().toISOString()
+          createdAt,
+          updatedAt
         };
       })
       .filter((group): group is CategoryGroup => group !== null);
+
+    // Process budget history
+    const budgetHistory = budgetHistorySnapshot.docs
+      .map(doc => {
+        const data = safeDocumentData(doc);
+        if (!data || !data.timestamp) return null;
+        const timestamp = safeTimestampToString(data.timestamp);
+        if (!timestamp) return null;
+        return {
+          ...data,
+          id: doc.id,
+          timestamp
+        };
+      })
+      .filter((history): history is BudgetHistory => history !== null);
 
     // Process other collections
     const categories = categoriesSnapshot.docs
@@ -311,19 +378,33 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       .map(doc => ({ ...safeDocumentData(doc), id: doc.id }))
       .filter((budget): budget is Budget => budget !== null);
 
-    // Process recurring expenses with validation
     const recurringExpenses = recurringExpensesSnapshot.docs
       .map(doc => {
         const data = safeDocumentData(doc);
         if (!data) return null;
+        
+        // Ensure all required fields are present
+        if (!data.amount || !data.category || !data.paidBy || !data.split || 
+            !data.startDate || !data.frequency || !data.dayOfMonth || !Array.isArray(data.tags)) {
+          return null;
+        }
 
-        const processedData = {
-          ...data,
+        const lastProcessed = data.lastProcessed ? safeTimestampToString(data.lastProcessed) : undefined;
+        
+        const expense: RecurringExpense = {
           id: doc.id,
-          lastProcessed: data.lastProcessed ? safeTimestampToString(data.lastProcessed) : undefined
+          description: data.description,
+          amount: data.amount,
+          category: data.category,
+          paidBy: data.paidBy,
+          split: data.split,
+          startDate: data.startDate,
+          frequency: data.frequency,
+          dayOfMonth: data.dayOfMonth,
+          tags: data.tags,
+          lastProcessed
         };
-
-        return validateRecurringExpense(processedData) ? processedData as RecurringExpense : null;
+        return expense;
       })
       .filter((expense): expense is RecurringExpense => expense !== null);
 
@@ -331,9 +412,11 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       .map(doc => {
         const data = safeDocumentData(doc);
         if (!data) return null;
+        const settledAt = safeTimestampToString(data.settledAt);
+        if (!settledAt) return null;
         return {
           ...data,
-          settledAt: safeTimestampToString(data.settledAt) || new Date().toISOString()
+          settledAt
         };
       })
       .filter((settlement): settlement is Settlement => settlement !== null);
@@ -344,6 +427,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       categoryGroups,
       tags,
       budgets,
+      budgetHistory,
       recurringExpenses,
       settlements
     };
