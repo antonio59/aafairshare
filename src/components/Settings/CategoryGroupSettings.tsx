@@ -271,13 +271,19 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                             </div>
                           ) : (
                             <>
-                              <div className="flex-1 min-w-0">
-                                <span 
-                                  className="font-medium text-base md:text-lg break-words block"
-                                  title={group.name}
-                                >
+                              <div 
+                                className="flex-1 min-w-0 relative"
+                                onMouseEnter={() => setShowTooltip(`group-${group.id}`)}
+                                onMouseLeave={() => setShowTooltip(null)}
+                              >
+                                <span className="font-medium text-base md:text-lg truncate block">
                                   {group.name}
                                 </span>
+                                {showTooltip === `group-${group.id}` && (
+                                  <div className="absolute z-10 bg-gray-900 text-white px-2 py-1 rounded text-sm whitespace-nowrap top-full left-0 mt-1">
+                                    {group.name}
+                                  </div>
+                                )}
                               </div>
                               <div className="flex gap-2 flex-shrink-0">
                                 <button
@@ -291,8 +297,13 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                   <Edit2 className="w-5 h-5" />
                                 </button>
                                 <button
+                                  type="button"
                                   onClick={() => handleDeleteGroup(group.id)}
-                                  className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors"
+                                  onTouchEnd={(e) => {
+                                    e.preventDefault();
+                                    handleDeleteGroup(group.id);
+                                  }}
+                                  className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation"
                                   aria-label="Delete group"
                                 >
                                   <Trash2 className="w-5 h-5" />
@@ -358,11 +369,12 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                       className="w-8 h-8 rounded-full flex-shrink-0"
                                       style={{ backgroundColor: category.color }}
                                     />
-                                    <div className="flex-1 min-w-0 relative"
-                                         onMouseEnter={() => setShowTooltip(category.id)}
-                                         onMouseLeave={() => setShowTooltip(null)}
+                                    <div 
+                                      className="flex-1 min-w-0 relative"
+                                      onMouseEnter={() => setShowTooltip(category.id)}
+                                      onMouseLeave={() => setShowTooltip(null)}
                                     >
-                                      <span className="block break-words text-base md:text-lg" title={category.name}>
+                                      <span className="block truncate text-base md:text-lg">
                                         {category.name}
                                       </span>
                                       {showTooltip === category.id && (
@@ -384,8 +396,13 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                         <Edit2 className="w-5 h-5" />
                                       </button>
                                       <button
+                                        type="button"
                                         onClick={() => handleDeleteCategory(category.id)}
-                                        className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors"
+                                        onTouchEnd={(e) => {
+                                          e.preventDefault();
+                                          handleDeleteCategory(category.id);
+                                        }}
+                                        className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors touch-manipulation"
                                         aria-label="Delete category"
                                       >
                                         <Trash2 className="w-5 h-5" />
