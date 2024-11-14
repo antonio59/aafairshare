@@ -27,6 +27,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editedGroupName, setEditedGroupName] = useState('');
+  const [showTooltip, setShowTooltip] = useState<string | null>(null);
   
   // Category state
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -185,12 +186,12 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
             placeholder="New group name"
-            className="form-input w-full h-12 md:h-14 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 transition-colors"
+            className="form-input w-full h-12 md:h-14 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
           />
           <button
             type="submit"
             disabled={!newGroupName.trim()}
-            className="w-full h-12 md:h-14 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-base flex items-center justify-center gap-2 transition-colors shadow-sm"
+            className="w-full h-12 md:h-14 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-base flex items-center justify-center gap-2 transition-colors"
           >
             <Plus className="w-5 h-5" />
             <span>Add Group</span>
@@ -217,14 +218,14 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                     <div
                       ref={provided.innerRef}
                       {...provided.draggableProps}
-                      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden transition-shadow hover:shadow-md"
+                      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
                     >
                       {/* Group header */}
                       <div
                         {...provided.dragHandleProps}
                         className="flex flex-col gap-3 p-3 md:p-4 bg-gray-50 border-b"
                       >
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           <button
                             onClick={() => toggleGroup(group.id)}
                             className="w-12 h-12 hover:bg-gray-200 active:bg-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
@@ -238,7 +239,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                           </button>
                           
                           {editingGroup === group.id ? (
-                            <div className="flex-1">
+                            <div className="flex-1 min-w-0">
                               <div className="flex flex-col gap-3">
                                 <input
                                   type="text"
@@ -270,8 +271,15 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                             </div>
                           ) : (
                             <>
-                              <span className="flex-1 font-medium text-base md:text-lg">{group.name}</span>
-                              <div className="flex gap-2">
+                              <div className="flex-1 min-w-0">
+                                <span 
+                                  className="font-medium text-base md:text-lg truncate block"
+                                  title={group.name}
+                                >
+                                  {group.name}
+                                </span>
+                              </div>
+                              <div className="flex gap-2 flex-shrink-0">
                                 <button
                                   onClick={() => {
                                     setEditingGroup(group.id);
@@ -345,13 +353,25 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
                                     </div>
                                   </div>
                                 ) : (
-                                  <div className="flex items-center gap-3">
+                                  <div className="flex items-center gap-3 min-w-0">
                                     <div
                                       className="w-8 h-8 rounded-full flex-shrink-0"
                                       style={{ backgroundColor: category.color }}
                                     />
-                                    <span className="flex-1 text-base md:text-lg">{category.name}</span>
-                                    <div className="flex gap-2">
+                                    <div className="flex-1 min-w-0 relative"
+                                         onMouseEnter={() => setShowTooltip(category.id)}
+                                         onMouseLeave={() => setShowTooltip(null)}
+                                    >
+                                      <span className="block truncate text-base md:text-lg" title={category.name}>
+                                        {category.name}
+                                      </span>
+                                      {showTooltip === category.id && (
+                                        <div className="absolute z-10 bg-gray-900 text-white px-2 py-1 rounded text-sm whitespace-nowrap top-full left-0 mt-1">
+                                          {category.name}
+                                        </div>
+                                      )}
+                                    </div>
+                                    <div className="flex gap-2 flex-shrink-0">
                                       <button
                                         onClick={() => {
                                           setEditingCategory(category.id);
@@ -432,7 +452,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
         <div className="mt-6 md:mt-8">
           <button
             onClick={onClose}
-            className="w-full h-12 md:h-14 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 text-base transition-colors shadow-sm"
+            className="w-full h-12 md:h-14 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 text-base transition-colors"
           >
             Close
           </button>
