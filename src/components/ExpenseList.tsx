@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Edit2, Trash2 } from 'lucide-react';
+import { Edit2, Trash2, Calendar, User, Split } from 'lucide-react';
 import { useExpenseStore } from '../store/expenseStore';
 import ExpenseEditModal from './ExpenseEditModal';
 import MonthSelector from './MonthSelector';
@@ -61,9 +61,9 @@ const ExpenseList = () => {
   }, [monthlyExpenses]);
 
   return (
-    <div className="container mx-auto px-4 py-6">
+    <div className="container mx-auto px-4 py-6 max-w-4xl">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Expenses</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Expenses</h1>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
@@ -84,46 +84,62 @@ const ExpenseList = () => {
             return (
               <div
                 key={expense.id}
-                className="flex flex-col py-4 px-4 hover:bg-gray-50 transition-colors"
+                className="p-4 hover:bg-gray-50 transition-colors"
               >
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-medium text-blue-600">{category?.name}</span>
-                    {expenseTags && expenseTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {expenseTags.map((tag, index) => (
-                          <span key={index} className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+                <div className="flex justify-between items-start gap-4 mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-medium text-blue-600 truncate">
+                        {category?.name}
+                      </span>
+                      <span className="font-semibold text-lg text-gray-900">
+                        £{expense.amount.toFixed(2)}
+                      </span>
+                    </div>
+                    <p className="text-base text-gray-900 mb-2 break-words">
+                      {expense.description || 'Untitled Expense'}
+                    </p>
                   </div>
-                  <span className="font-semibold text-lg text-gray-900">£{expense.amount.toFixed(2)}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600">
-                  <span>{format(new Date(expense.date), 'MMM d, yyyy')}</span>
-                  <span className="hidden sm:inline text-gray-300">•</span>
-                  <span>{expense.description || 'Untitled Expense'}</span>
-                  <span className="hidden sm:inline text-gray-300">•</span>
-                  <span>Paid by {expense.paidBy}</span>
-                  <span className="hidden sm:inline text-gray-300">•</span>
-                  <span>{expense.split === 'equal' ? 'Equal Split' : 'No Split'}</span>
-                  <div className="flex-grow flex justify-end gap-2 mt-2 sm:mt-0">
+                  <div className="flex gap-1">
                     <button
                       onClick={() => setEditingExpense(expense)}
-                      className="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                      className="w-10 h-10 flex items-center justify-center text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
                       aria-label="Edit expense"
                     >
-                      <Edit2 size={16} />
+                      <Edit2 className="w-5 h-5" />
                     </button>
                     <button
                       onClick={() => handleDelete(expense.id)}
-                      className="p-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                      className="w-10 h-10 flex items-center justify-center text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
                       aria-label="Delete expense"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 className="w-5 h-5" />
                     </button>
+                  </div>
+                </div>
+
+                {expenseTags && expenseTags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-3">
+                    {expenseTags.map((tag, index) => (
+                      <span key={index} className="text-sm bg-blue-50 text-blue-700 px-2 py-1 rounded-lg">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    <span>{format(new Date(expense.date), 'MMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <User className="w-4 h-4" />
+                    <span>Paid by {expense.paidBy}</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Split className="w-4 h-4" />
+                    <span>{expense.split === 'equal' ? 'Equal Split' : 'No Split'}</span>
                   </div>
                 </div>
               </div>
@@ -139,9 +155,9 @@ const ExpenseList = () => {
 
       {/* Monthly Summary */}
       {monthlyExpenses.length > 0 && (
-        <div className="mt-6 bg-white rounded-lg shadow-sm p-6">
+        <div className="mt-6 bg-white rounded-lg shadow-sm p-4 sm:p-6">
           <h2 className="text-lg font-semibold mb-4 text-gray-900">Monthly Summary</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div className="space-y-3 p-4 bg-gray-50 rounded-lg">
               <h3 className="font-medium text-gray-900">Andres</h3>
               <div className="flex justify-between items-center">
@@ -165,18 +181,19 @@ const ExpenseList = () => {
               </div>
             </div>
           </div>
+
           <div className="mt-6 pt-4 border-t">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-2 mb-4">
               <span className="font-medium text-gray-900">Total Spent:</span>
               <span className="font-bold text-xl text-gray-900">£{monthlyTotals.total.toFixed(2)}</span>
             </div>
             <div className="p-4 rounded-lg bg-blue-50">
               {monthlyTotals.andresPaid > monthlyTotals.andresShare ? (
-                <p className="text-blue-800 font-medium text-center text-lg">
+                <p className="text-blue-800 font-medium text-center text-lg break-words">
                   Antonio owes Andres £{(monthlyTotals.andresPaid - monthlyTotals.andresShare).toFixed(2)}
                 </p>
               ) : (
-                <p className="text-blue-800 font-medium text-center text-lg">
+                <p className="text-blue-800 font-medium text-center text-lg break-words">
                   Andres owes Antonio £{(monthlyTotals.antonioShare - monthlyTotals.antonioPaid).toFixed(2)}
                 </p>
               )}
