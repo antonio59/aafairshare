@@ -181,3 +181,10 @@ export interface NotificationAlert {
   amount?: number;
   dismissed?: boolean;
 }
+
+export interface BudgetHistoryFilters {
+  startDate?: string;
+  endDate?: string;
+  actionTypes?: BudgetActionType[];
+  categories?: string[];
+}

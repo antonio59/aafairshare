@@ -1,14 +1,20 @@
 import React, { useState, useMemo } from 'react';
-import { useExpenseStore } from '../../store/expenseStore';
+import { useExpenseStore } from '@/store/expenseStore';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Download } from 'lucide-react';
+import type { BudgetReport as BudgetReportType } from '@/types';
+
+interface ChartDataPoint {
+  name: string;
+  change: number;
+}
 
 const BudgetReport: React.FC = () => {
   const { generateBudgetReport, categories } = useExpenseStore();
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  const report = useMemo(() => {
+  const report = useMemo((): BudgetReportType | null => {
     if (!startDate || !endDate) return null;
     return generateBudgetReport(startDate, endDate);
   }, [generateBudgetReport, startDate, endDate]);
@@ -48,7 +54,7 @@ const BudgetReport: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const chartData = useMemo(() => {
+  const chartData = useMemo((): ChartDataPoint[] => {
     if (!report) return [];
     return report.categoryTrends.map(trend => ({
       name: categories.find(c => c.id === trend.categoryId)?.name || 'Unknown',

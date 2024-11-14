@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
-import { useUserStore } from './userStore';
-import { useExpenseStore } from './expenseStore';
+import { useUserStore } from '@/store/userStore';
+import { useExpenseStore } from '@/store/expenseStore';
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const currentUser = useUserStore(state => state.currentUser);

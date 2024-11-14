@@ -12,7 +12,7 @@ import type {
   Category,
   CategoryGroup,
   Tag
-} from '../types';
+} from '@/types';
 import {
   addExpenseToFirestore,
   updateExpenseInFirestore,
@@ -35,11 +35,11 @@ import {
   addSettlementToFirestore,
   addBudgetHistoryToFirestore,
   fetchAllData
-} from './firebaseOperations';
-import { auth } from '../firebase';
-import { reAuthenticateUser } from '../utils/authUtils';
-import type { ExpenseStore } from './types';
-import { getExpenseStore } from './createStore';
+} from '@/store/firebaseOperations';
+import { auth } from '@/firebase';
+import { reAuthenticateUser } from '@/utils/authUtils';
+import type { ExpenseStore } from '@/store/types';
+import { getExpenseStore } from '@/store/createStore';
 
 const initialState = {
   expenses: [] as Expense[],

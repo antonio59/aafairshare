@@ -6,19 +6,11 @@ import {
   getDocs,
   updateDoc,
   Timestamp,
-  FirestoreError,
-  enableNetwork,
-  disableNetwork,
-  getFirestore,
   QueryDocumentSnapshot,
   CollectionReference,
-  query,
-  where,
   getDoc
 } from 'firebase/firestore';
-import { FirebaseError } from 'firebase/app';
-import { auth } from '../firebase';
-import { db } from '../firebase';
+import { auth, db } from '@/firebase';
 import type { 
   Expense, 
   Category, 
@@ -28,7 +20,7 @@ import type {
   RecurringExpense, 
   Settlement,
   BudgetHistory
-} from '../types';
+} from '@/types';
 import { v4 as uuidv4 } from 'uuid';
 import type { DocumentData } from 'firebase/firestore';
 

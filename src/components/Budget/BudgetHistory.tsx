@@ -1,19 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { format } from 'date-fns';
-import { useExpenseStore } from '../../store/expenseStore';
+import { useExpenseStore } from '@/store/expenseStore';
 import { Download, Filter } from 'lucide-react';
-import type { BudgetActionType } from '../../types';
-
-interface FilterState {
-  startDate: string;
-  endDate: string;
-  actionTypes: BudgetActionType[];
-  categories: string[];
-}
+import type { BudgetActionType, BudgetHistoryFilters } from '@/types';
 
 const BudgetHistory: React.FC = () => {
   const { getBudgetHistory, generateBudgetReport, categories } = useExpenseStore();
-  const [filters, setFilters] = useState<FilterState>({
+  const [filters, setFilters] = useState<BudgetHistoryFilters>({
     startDate: '',
     endDate: '',
     actionTypes: [],
@@ -62,7 +55,7 @@ const BudgetHistory: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const getActionColor = (action: BudgetActionType) => {
+  const getActionColor = (action: BudgetActionType): string => {
     switch (action) {
       case 'created':
         return 'text-green-600';

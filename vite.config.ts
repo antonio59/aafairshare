@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { compression } from 'vite-plugin-compression2';
 import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa';
 import fs from 'fs';
+import path from 'path';
 
 // Read manifest.json content
 const manifestContent = JSON.parse(fs.readFileSync('./public/manifest.json', 'utf-8'));
@@ -91,6 +92,12 @@ export default defineConfig({
     VitePWA(pwaOptions),
   ],
   
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
+
   css: {
     postcss: './postcss.config.js',
     modules: {

@@ -1,9 +1,8 @@
 import { create } from 'zustand';
 import { signInWithEmailAndPassword, signOut, updatePassword as firebaseUpdatePassword } from 'firebase/auth';
-import { auth } from '../firebase';
-import type { User, NotificationPreferences, UserStore } from '../types';
-
-import { clearAuthCache } from '../utils/authUtils';
+import { auth } from '@/firebase';
+import type { User, NotificationPreferences, UserStore } from '@/types';
+import { clearAuthCache } from '@/utils/authUtils';
 
 interface UserState {
   users: User[];

@@ -1,17 +1,19 @@
 import React, { useRef, useState, useEffect } from 'react';
 import type { KeyboardEvent } from 'react';
 import { ChevronDown, Search } from 'lucide-react';
-import { useClickOutside } from '../../utils/useClickOutside';
+import { useClickOutside } from '@/utils/useClickOutside';
+
+interface DropdownOption {
+  label: string;
+  value: string;
+  icon?: string;
+  group?: string;
+}
 
 interface DropdownProps {
   value: string;
   onChange: (value: string) => void;
-  options: Array<{
-    label: string;
-    value: string;
-    icon?: string;
-    group?: string;
-  }>;
+  options: DropdownOption[];
   placeholder?: string;
   className?: string;
   error?: string;
@@ -20,7 +22,11 @@ interface DropdownProps {
   groupBy?: boolean;
 }
 
-export default function Dropdown({
+interface GroupedOptions {
+  [key: string]: DropdownOption[];
+}
+
+const Dropdown: React.FC<DropdownProps> = ({
   value,
   onChange,
   options,
@@ -30,7 +36,7 @@ export default function Dropdown({
   required,
   label,
   groupBy = false,
-}: DropdownProps) {
+}) => {
   const [isOpen, setIsOpen] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -59,7 +65,7 @@ export default function Dropdown({
           ...groups,
           [group]: [...(groups[group] || []), option],
         };
-      }, {} as Record<string, typeof options>)
+      }, {} as GroupedOptions)
     : null;
 
   // Flatten grouped options for keyboard navigation
@@ -180,7 +186,7 @@ export default function Dropdown({
                   <div className="sticky top-0 px-4 py-2 bg-gray-100 text-sm font-semibold text-gray-800 cursor-default select-none">
                     {group}
                   </div>
-                  {groupOptions.map((option, optionIndex) => {
+                  {groupOptions.map((option) => {
                     const flatIndex = flattenedOptions.findIndex(o => o.value === option.value);
                     return (
                       <button
@@ -238,4 +244,6 @@ export default function Dropdown({
       )}
     </div>
   );
-}
+};
+
+export default Dropdown;

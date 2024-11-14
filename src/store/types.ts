@@ -7,8 +7,9 @@ import type {
   RecurringExpense, 
   Settlement,
   BudgetHistory,
-  BudgetReport
-} from '../types';
+  BudgetReport,
+  BudgetHistoryFilters
+} from '@/types';
 
 export interface ExpenseStore {
   expenses: Expense[];
@@ -35,12 +36,7 @@ export interface ExpenseStore {
   getBudgetProgress: (budget: Budget) => number;
 
   // Budget History operations
-  getBudgetHistory: (filters?: {
-    startDate?: string;
-    endDate?: string;
-    actionTypes?: string[];
-    categories?: string[];
-  }) => BudgetHistory[];
+  getBudgetHistory: (filters?: BudgetHistoryFilters) => BudgetHistory[];
   generateBudgetReport: (startDate: string, endDate: string) => BudgetReport;
 
   // Category operations

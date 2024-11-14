@@ -1,7 +1,8 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { StateCreator } from 'zustand';
-import type { UserStore, ExpenseStore } from './types';
+import type { UserStore } from '@/types';
+import type { ExpenseStore } from './types';
 
 // Create store instances with proper typing
 export const createUserStore = (

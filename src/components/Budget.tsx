@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { useExpenseStore } from '../store/expenseStore';
+import { useExpenseStore } from '@/store/expenseStore';
 import { PlusCircle, Edit2, Trash2 } from 'lucide-react';
-import type { Budget as BudgetType, CategoryGroup, Category } from '../types';
-import Dropdown from './common/Dropdown';
-import BudgetHistory from './Budget/BudgetHistory';
-import BudgetReport from './Budget/BudgetReport';
+import type { Budget as BudgetType, CategoryGroup, Category } from '@/types';
+import Dropdown from '@/components/common/Dropdown';
+import BudgetHistory from '@/components/Budget/BudgetHistory';
+import BudgetReport from '@/components/Budget/BudgetReport';
 
 interface NewBudget {
   category: string;
@@ -14,7 +14,14 @@ interface NewBudget {
 
 type TabType = 'budgets' | 'history' | 'report';
 
-const Budget = () => {
+interface CategoryOption {
+  value: string;
+  label: string;
+  icon?: string;
+  group: string;
+}
+
+const Budget: React.FC = () => {
   const { budgets, addBudget, updateBudget: editBudget, deleteBudget, getBudgetProgress, categories, categoryGroups } = useExpenseStore();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -28,7 +35,7 @@ const Budget = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Convert categories for the dropdown with proper grouping
-  const categoryOptions = useMemo(() => 
+  const categoryOptions = useMemo((): CategoryOption[] => 
     categories
       .filter((cat): cat is Category => cat !== null)
       .map(cat => {
