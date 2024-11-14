@@ -29,6 +29,7 @@ import { reAuthenticateUser } from '../utils/authUtils';
 import type { ExpenseStore } from './types';
 import { getExpenseStore } from './createStore';
 
+// Extended initial state with lastFetchTimestamp
 const initialState = {
   expenses: [],
   categories: [],
@@ -39,8 +40,12 @@ const initialState = {
   settlements: [],
   initialized: false,
   error: null,
-  isLoading: false
+  isLoading: false,
+  lastFetchTimestamp: null as number | null
 };
+
+// Cooldown period between fetches (5 seconds)
+const FETCH_COOLDOWN = 5000;
 
 const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   ...initialState,
@@ -51,7 +56,14 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
   initializeStore: async () => {
     const store = get();
-    if (store.initialized || store.isLoading) return;
+    if (store.isLoading) return;
+
+    // Check if we've fetched recently
+    const now = Date.now();
+    if (store.lastFetchTimestamp && (now - store.lastFetchTimestamp < FETCH_COOLDOWN)) {
+      console.log('Skipping fetch due to cooldown');
+      return;
+    }
 
     store.setLoading(true);
     try {
@@ -60,14 +72,38 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
         throw new Error('User not authenticated');
       }
 
+      // Keep existing data while fetching
+      const existingData = {
+        expenses: store.expenses,
+        categories: store.categories,
+        categoryGroups: store.categoryGroups,
+        tags: store.tags,
+        budgets: store.budgets,
+        recurringExpenses: store.recurringExpenses,
+        settlements: store.settlements,
+      };
+
       try {
         const data = await fetchAllData();
-        set({ 
-          ...data, 
-          initialized: true,
-          error: null,
-          isLoading: false 
-        });
+        // Only update if we got valid data
+        if (data && Object.keys(data).length > 0) {
+          set({ 
+            ...data, 
+            initialized: true,
+            error: null,
+            isLoading: false,
+            lastFetchTimestamp: now
+          });
+        } else {
+          console.warn('Received empty data from Firebase, keeping existing data');
+          set({
+            ...existingData,
+            initialized: true,
+            error: null,
+            isLoading: false,
+            lastFetchTimestamp: now
+          });
+        }
       } catch (error) {
         if (error instanceof Error && error.message.includes('permission-denied')) {
           try {
@@ -77,32 +113,60 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
             }
             await reAuthenticateUser(storedEmail);
             const data = await fetchAllData();
-            set({ 
-              ...data, 
-              initialized: true,
-              error: null,
-              isLoading: false 
-            });
+            if (data && Object.keys(data).length > 0) {
+              set({ 
+                ...data, 
+                initialized: true,
+                error: null,
+                isLoading: false,
+                lastFetchTimestamp: now
+              });
+            } else {
+              console.warn('Received empty data after re-auth, keeping existing data');
+              set({
+                ...existingData,
+                initialized: true,
+                error: null,
+                isLoading: false,
+                lastFetchTimestamp: now
+              });
+            }
           } catch (reAuthError) {
             console.error('Re-authentication failed:', reAuthError);
-            throw reAuthError;
+            // Keep existing data on error
+            set({
+              ...existingData,
+              error: 'Failed to refresh data',
+              isLoading: false,
+              initialized: true,
+              lastFetchTimestamp: store.lastFetchTimestamp // Keep old timestamp on error
+            });
           }
         } else {
-          throw error;
+          console.error('Failed to fetch data:', error);
+          // Keep existing data on error
+          set({
+            ...existingData,
+            error: 'Failed to refresh data',
+            isLoading: false,
+            initialized: true,
+            lastFetchTimestamp: store.lastFetchTimestamp // Keep old timestamp on error
+          });
         }
       }
     } catch (error) {
-      console.error('Failed to initialize store:', error);
+      console.error('Store initialization failed:', error);
+      // On critical error, keep existing data
       set({ 
-        ...initialState,
+        ...get(), // Keep all existing state
         initialized: true,
         error: error instanceof Error ? error.message : 'Failed to initialize store',
         isLoading: false
       });
-      throw error;
     }
   },
 
+  // Rest of the store methods remain unchanged
   addExpense: async (expense) => {
     const newExpense = { ...expense, id: uuidv4() };
     await addExpenseToFirestore(newExpense);
@@ -341,5 +405,4 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   }
 });
 
-// Export the store hook
 export const useExpenseStore = getExpenseStore(createExpenseStore);

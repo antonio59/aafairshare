@@ -16,30 +16,16 @@ service cloud.firestore {
              request.auth.token.email == "antoniojsmith@protonmail.com";
     }
 
+    // User-specific collections
+    match /users/{userId}/{collection}/{docId} {
+      allow read: if isAuthenticated() && isOwner(userId) && isPartner();
+      allow write: if isAuthenticated() && isOwner(userId) && isPartner();
+    }
+
     // User profiles
     match /users/{userId} {
       allow read: if isAuthenticated();
       allow write: if isOwner(userId);
-    }
-
-    // Expenses
-    match /expenses/{expenseId} {
-      allow read: if isAuthenticated() && isPartner();
-      allow create: if isAuthenticated() && isPartner();
-      allow update, delete: if isAuthenticated() && isPartner() && 
-        (resource.data.createdBy == request.auth.uid);
-    }
-
-    // Budget settings
-    match /budgets/{budgetId} {
-      allow read: if isAuthenticated() && isPartner();
-      allow write: if isAuthenticated() && isPartner();
-    }
-
-    // Categories
-    match /categories/{categoryId} {
-      allow read: if isAuthenticated();
-      allow write: if isAuthenticated() && isPartner();
     }
 
     // Settings

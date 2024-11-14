@@ -18,6 +18,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Initialize expense store only when user is available
   useEffect(() => {
     let mounted = true;
+    let retryCount = 0;
+    const maxRetries = 3;
+    const retryDelay = 1000; // 1 second
 
     const initializeStores = async () => {
       if (!currentUser || expenseInitialized) {
@@ -28,6 +31,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await initializeStore();
       } catch (error) {
         console.error('Failed to initialize expense store:', error);
+        
+        // Retry logic
+        if (retryCount < maxRetries && mounted) {
+          retryCount++;
+          console.log(`Retrying initialization (${retryCount}/${maxRetries})...`);
+          setTimeout(initializeStores, retryDelay);
+        }
       }
     };
 

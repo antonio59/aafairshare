@@ -24,6 +24,7 @@ export interface ExpenseStore {
   initialized: boolean;
   error: string | null;
   isLoading: boolean;
+  lastFetchTimestamp: number | null;
 
   // Initialization
   setLoading: (value: boolean) => void;
