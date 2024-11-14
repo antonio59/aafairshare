@@ -96,6 +96,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
       try {
         const data = await fetchAllData();
         if (data && Object.keys(data).length > 0) {
+          console.log('Fetched data:', data);
           set({ 
             ...data, 
             initialized: true,
@@ -123,6 +124,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
             await reAuthenticateUser(storedEmail);
             const data = await fetchAllData();
             if (data && Object.keys(data).length > 0) {
+              console.log('Fetched data after re-auth:', data);
               set({ 
                 ...data, 
                 initialized: true,
@@ -395,11 +397,13 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   // Category operations
   addCategory: async (category) => {
     const newCategory = { ...category, id: uuidv4() };
+    console.log('Adding new category:', newCategory);
     await addCategoryToFirestore(newCategory);
     set(state => ({ categories: [...state.categories, newCategory], error: null }));
   },
 
   updateCategory: async (id, category) => {
+    console.log('Updating category:', id, category);
     await updateCategoryInFirestore(id, category);
     set(state => ({
       categories: state.categories.map(c => c.id === id ? { ...c, ...category } : c),
@@ -408,6 +412,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   },
 
   deleteCategory: async (id) => {
+    console.log('Deleting category:', id);
     await deleteCategoryFromFirestore(id);
     set(state => ({
       categories: state.categories.filter(c => c.id !== id),
@@ -418,11 +423,13 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   // Category Group operations
   addCategoryGroup: async (group) => {
     const newGroup = { ...group, id: uuidv4() };
+    console.log('Adding new category group:', newGroup);
     await addCategoryGroupToFirestore(newGroup);
     set(state => ({ categoryGroups: [...state.categoryGroups, newGroup], error: null }));
   },
 
   updateCategoryGroup: async (id, group) => {
+    console.log('Updating category group:', id, group);
     await updateCategoryGroupInFirestore(id, group);
     set(state => ({
       categoryGroups: state.categoryGroups.map(g => g.id === id ? { ...g, ...group } : g),
@@ -431,6 +438,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   },
 
   deleteCategoryGroup: async (id) => {
+    console.log('Deleting category group:', id);
     await deleteCategoryGroupFromFirestore(id);
     set(state => ({
       categoryGroups: state.categoryGroups.filter(g => g.id !== id),

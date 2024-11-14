@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-import { useExpenseStore } from '../../store/expenseStore';
-import { useUserStore } from '../../store/userStore';
-import type { CategoryGroup, Category } from '../../types';
+import { useExpenseStore } from '@/store/expenseStore';
+import { useUserStore } from '@/store/userStore';
+import type { CategoryGroup, Category } from '@/types';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 
 interface CategoryGroupSettingsProps {
@@ -36,8 +36,13 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   const [editedCategoryColor, setEditedCategoryColor] = useState('');
 
   useEffect(() => {
+    console.log('CategoryGroups updated:', categoryGroups);
     setGroups(categoryGroups);
   }, [categoryGroups]);
+
+  useEffect(() => {
+    console.log('Current Categories:', categories);
+  }, [categories]);
 
   const toggleGroup = (groupId: string) => {
     const newExpanded = new Set(expandedGroups);
@@ -63,6 +68,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     } as const;
 
     try {
+      console.log('Adding new group:', newGroup);
       await addCategoryGroup(newGroup);
       setNewGroupName('');
     } catch (error) {
@@ -80,6 +86,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     } as const;
 
     try {
+      console.log('Updating group:', groupId, updates);
       await updateCategoryGroup(groupId, updates);
       setEditingGroup(null);
       setEditedGroupName('');
@@ -92,6 +99,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     if (!window.confirm('Are you sure you want to delete this category group and all its categories?')) return;
 
     try {
+      console.log('Deleting group:', groupId);
       await deleteCategoryGroup(groupId);
     } catch (error) {
       console.error('Failed to delete category group:', error);
@@ -102,11 +110,13 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     if (!newCategoryName.trim()) return;
 
     try {
-      await addCategory({
+      const newCategory = {
         name: newCategoryName.trim(),
         color: newCategoryColor,
         groupId: groupId
-      });
+      };
+      console.log('Adding new category:', newCategory);
+      await addCategory(newCategory);
       setNewCategoryName('');
       setNewCategoryColor('#000000');
       setAddingCategoryToGroup(null);
@@ -119,10 +129,12 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     if (!editedCategoryName.trim()) return;
 
     try {
-      await updateCategory(categoryId, {
+      const updates = {
         name: editedCategoryName.trim(),
         color: editedCategoryColor
-      });
+      };
+      console.log('Updating category:', categoryId, updates);
+      await updateCategory(categoryId, updates);
       setEditingCategory(null);
       setEditedCategoryName('');
       setEditedCategoryColor('');
@@ -135,6 +147,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     if (!window.confirm('Are you sure you want to delete this category?')) return;
 
     try {
+      console.log('Deleting category:', categoryId);
       await deleteCategory(categoryId);
     } catch (error) {
       console.error('Failed to delete category:', error);
@@ -158,6 +171,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     setGroups(updatedGroups);
 
     try {
+      console.log('Updating group orders:', updatedGroups);
       for (const group of updatedGroups) {
         const updates = {
           order: group.order,

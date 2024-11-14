@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useExpenseStore } from '../store/expenseStore';
-import { useUserStore } from '../store/userStore';
+import { useExpenseStore } from '@/store/expenseStore';
+import { useUserStore } from '@/store/userStore';
 import { ArrowLeft, Calendar, HelpCircle } from 'lucide-react';
-import type { Expense, Category } from '../types';
-import Dropdown from './common/Dropdown';
-import TagInput from './common/TagInput';
+import type { Expense, Category } from '@/types';
+import Dropdown from '@/components/common/Dropdown';
+import TagInput from '@/components/common/TagInput';
 
 // Extend the base expense type to include form-specific fields
 type ExpenseFormData = Omit<Expense, 'id' | 'amount'> & {
@@ -33,16 +33,33 @@ const ExpenseForm = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Convert categories for the dropdown with proper deduplication
+  useEffect(() => {
+    console.log('Available Categories:', categories);
+    console.log('Available Category Groups:', categoryGroups);
+  }, [categories, categoryGroups]);
+
+  // Convert categories for the dropdown with proper deduplication and filtering
   const categoryOptions = categories
-    .filter((cat): cat is Category => cat !== null)
-    .map(cat => {
+    .filter((cat): cat is Category => {
+      if (!cat) {
+        console.warn('Found null category');
+        return false;
+      }
       const group = categoryGroups.find(g => g.id === cat.groupId);
+      if (!group) {
+        console.warn('Category without valid group:', cat);
+        return false;
+      }
+      return true;
+    })
+    .map(cat => {
+      const group = categoryGroups.find(g => g.id === cat.groupId)!;
+      console.log('Mapping category:', cat.name, 'to group:', group.name);
       return {
         value: cat.id,
         label: cat.name,
         icon: cat.icon,
-        group: group?.name || 'Other'
+        group: group.name
       };
     })
     .sort((a, b) => {
@@ -69,6 +86,7 @@ const ExpenseForm = () => {
 
     setIsSubmitting(true);
     try {
+      console.log('Submitting expense with category:', formData.category);
       await addExpense({
         description: formData.description,
         amount,
@@ -176,7 +194,10 @@ const ExpenseForm = () => {
               />
               <Dropdown
                 value={formData.category}
-                onChange={(value) => setFormData(prev => ({ ...prev, category: value }))}
+                onChange={(value) => {
+                  console.log('Selected category:', value);
+                  setFormData(prev => ({ ...prev, category: value }));
+                }}
                 options={categoryOptions}
                 placeholder="Select a category"
                 required

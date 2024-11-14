@@ -8,7 +8,8 @@ import {
   Timestamp,
   QueryDocumentSnapshot,
   CollectionReference,
-  getDoc
+  getDoc,
+  writeBatch
 } from 'firebase/firestore';
 import { auth, db } from '@/firebase';
 import type { 
@@ -89,204 +90,317 @@ const safeDocumentData = (doc: QueryDocumentSnapshot<DocumentData>) => {
 
 // Budget History Operations
 export const addBudgetHistoryToFirestore = async (history: BudgetHistory) => {
-  initializeCollections();
-  const docRef = doc(budgetHistoryRef, history.id);
-  await setDoc(docRef, {
-    ...history,
-    timestamp: dateToTimestamp(history.timestamp)
-  });
+  console.log('Adding budget history to Firestore:', history);
+  try {
+    initializeCollections();
+    const docRef = doc(budgetHistoryRef, history.id);
+    await setDoc(docRef, {
+      ...history,
+      timestamp: dateToTimestamp(history.timestamp)
+    });
+    console.log('Budget history added successfully:', history.id);
+  } catch (error) {
+    console.error('Error adding budget history to Firestore:', error);
+    throw error;
+  }
 };
 
-// CRUD Operations for Budgets with History Tracking
+// Budget Operations
 export const addBudgetToFirestore = async (budget: Budget) => {
-  initializeCollections();
-  const docRef = doc(budgetsRef, budget.id);
-  await setDoc(docRef, budget);
-
-  // Add to history
-  const history: BudgetHistory = {
-    id: uuidv4(),
-    budgetId: budget.id,
-    actionType: 'created',
-    category: budget.category,
-    newValue: budget.amount,
-    timestamp: new Date().toISOString(),
-    userId: auth.currentUser?.uid || '',
-    userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
-  };
-  await addBudgetHistoryToFirestore(history);
+  console.log('Adding budget to Firestore:', budget);
+  try {
+    initializeCollections();
+    const docRef = doc(budgetsRef, budget.id);
+    await setDoc(docRef, budget);
+    console.log('Budget added successfully:', budget.id);
+  } catch (error) {
+    console.error('Error adding budget to Firestore:', error);
+    throw error;
+  }
 };
 
 export const updateBudgetInFirestore = async (id: string, budget: Partial<Budget>) => {
-  initializeCollections();
-  const docRef = doc(budgetsRef, id);
-  
-  // Get current budget for comparison
-  const docSnap = await getDoc(docRef);
-  const currentBudget = docSnap.data() as Budget;
-  await updateDoc(docRef, budget);
-
-  // Add to history if amount changed
-  if (budget.amount !== undefined && budget.amount !== currentBudget.amount) {
-    const history: BudgetHistory = {
-      id: uuidv4(),
-      budgetId: id,
-      actionType: budget.amount > currentBudget.amount ? 'increased' : 'decreased',
-      category: currentBudget.category,
-      oldValue: currentBudget.amount,
-      newValue: budget.amount,
-      timestamp: new Date().toISOString(),
-      userId: auth.currentUser?.uid || '',
-      userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
-    };
-    await addBudgetHistoryToFirestore(history);
+  console.log('Updating budget in Firestore:', id, budget);
+  try {
+    initializeCollections();
+    const docRef = doc(budgetsRef, id);
+    await updateDoc(docRef, budget);
+    console.log('Budget updated successfully:', id);
+  } catch (error) {
+    console.error('Error updating budget in Firestore:', error);
+    throw error;
   }
 };
 
 export const deleteBudgetFromFirestore = async (id: string) => {
-  initializeCollections();
-  const docRef = doc(budgetsRef, id);
-  
-  // Get current budget for history
-  const docSnap = await getDoc(docRef);
-  const currentBudget = docSnap.data() as Budget;
-  await deleteDoc(docRef);
-
-  // Add to history
-  const history: BudgetHistory = {
-    id: uuidv4(),
-    budgetId: id,
-    actionType: 'deleted',
-    category: currentBudget.category,
-    oldValue: currentBudget.amount,
-    timestamp: new Date().toISOString(),
-    userId: auth.currentUser?.uid || '',
-    userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
-  };
-  await addBudgetHistoryToFirestore(history);
+  console.log('Deleting budget from Firestore:', id);
+  try {
+    initializeCollections();
+    const docRef = doc(budgetsRef, id);
+    await deleteDoc(docRef);
+    console.log('Budget deleted successfully:', id);
+  } catch (error) {
+    console.error('Error deleting budget from Firestore:', error);
+    throw error;
+  }
 };
 
-// CRUD Operations for Categories
+// Category Operations
 export const addCategoryToFirestore = async (category: Category) => {
-  initializeCollections();
-  const docRef = doc(categoriesRef, category.id);
-  await setDoc(docRef, category);
+  console.log('Adding category to Firestore:', category);
+  try {
+    initializeCollections();
+    const docRef = doc(categoriesRef, category.id);
+    await setDoc(docRef, category);
+    console.log('Category added successfully:', category.id);
+  } catch (error) {
+    console.error('Error adding category to Firestore:', error);
+    throw error;
+  }
 };
 
 export const updateCategoryInFirestore = async (id: string, category: Partial<Category>) => {
-  initializeCollections();
-  const docRef = doc(categoriesRef, id);
-  await updateDoc(docRef, category);
+  console.log('Updating category in Firestore:', id, category);
+  try {
+    initializeCollections();
+    const docRef = doc(categoriesRef, id);
+    await updateDoc(docRef, category);
+    console.log('Category updated successfully:', id);
+  } catch (error) {
+    console.error('Error updating category in Firestore:', error);
+    throw error;
+  }
 };
 
 export const deleteCategoryFromFirestore = async (id: string) => {
-  initializeCollections();
-  const docRef = doc(categoriesRef, id);
-  await deleteDoc(docRef);
+  console.log('Deleting category from Firestore:', id);
+  try {
+    initializeCollections();
+    const docRef = doc(categoriesRef, id);
+    await deleteDoc(docRef);
+    console.log('Category deleted successfully:', id);
+  } catch (error) {
+    console.error('Error deleting category from Firestore:', error);
+    throw error;
+  }
 };
 
-// CRUD Operations for Category Groups
+// Category Group Operations
 export const addCategoryGroupToFirestore = async (group: CategoryGroup) => {
-  initializeCollections();
-  const docRef = doc(categoryGroupsRef, group.id);
-  await setDoc(docRef, group);
+  console.log('Adding category group to Firestore:', group);
+  try {
+    initializeCollections();
+    const docRef = doc(categoryGroupsRef, group.id);
+    await setDoc(docRef, {
+      ...group,
+      createdAt: dateToTimestamp(group.createdAt),
+      updatedAt: dateToTimestamp(group.updatedAt)
+    });
+    console.log('Category group added successfully:', group.id);
+  } catch (error) {
+    console.error('Error adding category group to Firestore:', error);
+    throw error;
+  }
 };
 
 export const updateCategoryGroupInFirestore = async (id: string, group: Partial<CategoryGroup>) => {
-  initializeCollections();
-  const docRef = doc(categoryGroupsRef, id);
-  await updateDoc(docRef, group);
+  console.log('Updating category group in Firestore:', id, group);
+  try {
+    initializeCollections();
+    const docRef = doc(categoryGroupsRef, id);
+    const updateData = {
+      ...group,
+      updatedAt: group.updatedAt ? dateToTimestamp(group.updatedAt) : undefined
+    };
+    await updateDoc(docRef, updateData);
+    console.log('Category group updated successfully:', id);
+  } catch (error) {
+    console.error('Error updating category group in Firestore:', error);
+    throw error;
+  }
 };
 
 export const deleteCategoryGroupFromFirestore = async (id: string) => {
-  initializeCollections();
-  const docRef = doc(categoryGroupsRef, id);
-  await deleteDoc(docRef);
+  console.log('Deleting category group from Firestore:', id);
+  try {
+    initializeCollections();
+    const batch = writeBatch(db);
+
+    // Delete the category group
+    const groupRef = doc(categoryGroupsRef, id);
+    batch.delete(groupRef);
+
+    // Delete all categories in the group
+    const categoriesSnapshot = await getDocs(categoriesRef);
+    categoriesSnapshot.docs.forEach(doc => {
+      const category = doc.data() as Category;
+      if (category.groupId === id) {
+        batch.delete(doc.ref);
+      }
+    });
+
+    await batch.commit();
+    console.log('Category group and associated categories deleted successfully:', id);
+  } catch (error) {
+    console.error('Error deleting category group from Firestore:', error);
+    throw error;
+  }
 };
 
-// CRUD Operations for Tags
+// Tag Operations
 export const addTagToFirestore = async (tag: Tag) => {
-  initializeCollections();
-  const docRef = doc(tagsRef, tag.id);
-  await setDoc(docRef, tag);
+  console.log('Adding tag to Firestore:', tag);
+  try {
+    initializeCollections();
+    const docRef = doc(tagsRef, tag.id);
+    await setDoc(docRef, tag);
+    console.log('Tag added successfully:', tag.id);
+  } catch (error) {
+    console.error('Error adding tag to Firestore:', error);
+    throw error;
+  }
 };
 
 export const updateTagInFirestore = async (id: string, tag: Partial<Tag>) => {
-  initializeCollections();
-  const docRef = doc(tagsRef, id);
-  await updateDoc(docRef, tag);
+  console.log('Updating tag in Firestore:', id, tag);
+  try {
+    initializeCollections();
+    const docRef = doc(tagsRef, id);
+    await updateDoc(docRef, tag);
+    console.log('Tag updated successfully:', id);
+  } catch (error) {
+    console.error('Error updating tag in Firestore:', error);
+    throw error;
+  }
 };
 
 export const deleteTagFromFirestore = async (id: string) => {
-  initializeCollections();
-  const docRef = doc(tagsRef, id);
-  await deleteDoc(docRef);
+  console.log('Deleting tag from Firestore:', id);
+  try {
+    initializeCollections();
+    const docRef = doc(tagsRef, id);
+    await deleteDoc(docRef);
+    console.log('Tag deleted successfully:', id);
+  } catch (error) {
+    console.error('Error deleting tag from Firestore:', error);
+    throw error;
+  }
 };
 
-// CRUD Operations for Recurring Expenses
-export const addRecurringExpenseToFirestore = async (expense: RecurringExpense) => {
-  initializeCollections();
-  const docRef = doc(recurringExpensesRef, expense.id);
-  await setDoc(docRef, {
-    ...expense,
-    lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : null
-  });
-};
-
-export const updateRecurringExpenseInFirestore = async (id: string, expense: Partial<RecurringExpense>) => {
-  initializeCollections();
-  const docRef = doc(recurringExpensesRef, id);
-  const updateData = {
-    ...expense,
-    lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : undefined
-  };
-  await updateDoc(docRef, updateData);
-};
-
-export const deleteRecurringExpenseFromFirestore = async (id: string) => {
-  initializeCollections();
-  const docRef = doc(recurringExpensesRef, id);
-  await deleteDoc(docRef);
-};
-
-// CRUD Operations for Expenses
+// Expense Operations
 export const addExpenseToFirestore = async (expense: Expense) => {
-  initializeCollections();
-  const docRef = doc(expensesRef, expense.id);
-  await setDoc(docRef, {
-    ...expense,
-    date: dateToTimestamp(expense.date)
-  });
+  console.log('Adding expense to Firestore:', expense);
+  try {
+    initializeCollections();
+    const docRef = doc(expensesRef, expense.id);
+    await setDoc(docRef, {
+      ...expense,
+      date: dateToTimestamp(expense.date)
+    });
+    console.log('Expense added successfully:', expense.id);
+  } catch (error) {
+    console.error('Error adding expense to Firestore:', error);
+    throw error;
+  }
 };
 
 export const updateExpenseInFirestore = async (id: string, expense: Partial<Expense>) => {
-  initializeCollections();
-  const docRef = doc(expensesRef, id);
-  const updateData = {
-    ...expense,
-    date: expense.date ? dateToTimestamp(expense.date) : undefined
-  };
-  await updateDoc(docRef, updateData);
+  console.log('Updating expense in Firestore:', id, expense);
+  try {
+    initializeCollections();
+    const docRef = doc(expensesRef, id);
+    const updateData = {
+      ...expense,
+      date: expense.date ? dateToTimestamp(expense.date) : undefined
+    };
+    await updateDoc(docRef, updateData);
+    console.log('Expense updated successfully:', id);
+  } catch (error) {
+    console.error('Error updating expense in Firestore:', error);
+    throw error;
+  }
 };
 
 export const deleteExpenseFromFirestore = async (id: string) => {
-  initializeCollections();
-  const docRef = doc(expensesRef, id);
-  await deleteDoc(docRef);
+  console.log('Deleting expense from Firestore:', id);
+  try {
+    initializeCollections();
+    const docRef = doc(expensesRef, id);
+    await deleteDoc(docRef);
+    console.log('Expense deleted successfully:', id);
+  } catch (error) {
+    console.error('Error deleting expense from Firestore:', error);
+    throw error;
+  }
 };
 
-// CRUD Operations for Settlements
+// Recurring Expense Operations
+export const addRecurringExpenseToFirestore = async (expense: RecurringExpense) => {
+  console.log('Adding recurring expense to Firestore:', expense);
+  try {
+    initializeCollections();
+    const docRef = doc(recurringExpensesRef, expense.id);
+    await setDoc(docRef, {
+      ...expense,
+      lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : null
+    });
+    console.log('Recurring expense added successfully:', expense.id);
+  } catch (error) {
+    console.error('Error adding recurring expense to Firestore:', error);
+    throw error;
+  }
+};
+
+export const updateRecurringExpenseInFirestore = async (id: string, expense: Partial<RecurringExpense>) => {
+  console.log('Updating recurring expense in Firestore:', id, expense);
+  try {
+    initializeCollections();
+    const docRef = doc(recurringExpensesRef, id);
+    const updateData = {
+      ...expense,
+      lastProcessed: expense.lastProcessed ? dateToTimestamp(expense.lastProcessed) : undefined
+    };
+    await updateDoc(docRef, updateData);
+    console.log('Recurring expense updated successfully:', id);
+  } catch (error) {
+    console.error('Error updating recurring expense in Firestore:', error);
+    throw error;
+  }
+};
+
+export const deleteRecurringExpenseFromFirestore = async (id: string) => {
+  console.log('Deleting recurring expense from Firestore:', id);
+  try {
+    initializeCollections();
+    const docRef = doc(recurringExpensesRef, id);
+    await deleteDoc(docRef);
+    console.log('Recurring expense deleted successfully:', id);
+  } catch (error) {
+    console.error('Error deleting recurring expense from Firestore:', error);
+    throw error;
+  }
+};
+
+// Settlement Operations
 export const addSettlementToFirestore = async (settlement: Settlement) => {
-  initializeCollections();
-  const docRef = doc(settlementsRef, settlement.month);
-  await setDoc(docRef, {
-    ...settlement,
-    settledAt: dateToTimestamp(settlement.settledAt)
-  });
+  console.log('Adding settlement to Firestore:', settlement);
+  try {
+    initializeCollections();
+    const docRef = doc(settlementsRef, settlement.month);
+    await setDoc(docRef, {
+      ...settlement,
+      settledAt: dateToTimestamp(settlement.settledAt)
+    });
+    console.log('Settlement added successfully:', settlement.month);
+  } catch (error) {
+    console.error('Error adding settlement to Firestore:', error);
+    throw error;
+  }
 };
 
 // Fetch all data with improved error handling and data validation
 export const fetchAllData = async (): Promise<FirestoreData> => {
+  console.log('Fetching all data from Firestore');
   try {
     initializeCollections();
 
@@ -310,7 +424,55 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       getDocs(settlementsRef)
     ]);
 
-    // Process expenses with validation
+    // Process category groups with validation
+    const categoryGroups = categoryGroupsSnapshot.docs
+      .map(doc => {
+        const data = safeDocumentData(doc);
+        if (!data) {
+          console.warn('Invalid category group data:', doc.id);
+          return null;
+        }
+        const createdAt = safeTimestampToString(data.createdAt);
+        const updatedAt = safeTimestampToString(data.updatedAt);
+        if (!createdAt || !updatedAt) {
+          console.warn('Invalid timestamps in category group:', doc.id);
+          return null;
+        }
+        return {
+          ...data,
+          id: doc.id,
+          createdAt,
+          updatedAt
+        };
+      })
+      .filter((group): group is CategoryGroup => group !== null);
+
+    console.log('Fetched category groups:', categoryGroups);
+
+    // Process categories with validation
+    const categories = categoriesSnapshot.docs
+      .map(doc => {
+        const data = safeDocumentData(doc);
+        if (!data || !data.groupId || !data.name || !data.color) {
+          console.warn('Invalid category data:', doc.id);
+          return null;
+        }
+        // Verify the category's group exists
+        const groupExists = categoryGroups.some(group => group.id === data.groupId);
+        if (!groupExists) {
+          console.warn('Category references non-existent group:', doc.id, data.groupId);
+          return null;
+        }
+        return {
+          ...data,
+          id: doc.id
+        };
+      })
+      .filter((category): category is Category => category !== null);
+
+    console.log('Fetched categories:', categories);
+
+    // Process other collections
     const expenses = expensesSnapshot.docs
       .map(doc => {
         const data = safeDocumentData(doc);
@@ -325,24 +487,14 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       })
       .filter((expense): expense is Expense => expense !== null);
 
-    // Process category groups with validation
-    const categoryGroups = categoryGroupsSnapshot.docs
-      .map(doc => {
-        const data = safeDocumentData(doc);
-        if (!data) return null;
-        const createdAt = safeTimestampToString(data.createdAt);
-        const updatedAt = safeTimestampToString(data.updatedAt);
-        if (!createdAt || !updatedAt) return null;
-        return {
-          ...data,
-          id: doc.id,
-          createdAt,
-          updatedAt
-        };
-      })
-      .filter((group): group is CategoryGroup => group !== null);
+    const tags = tagsSnapshot.docs
+      .map(doc => ({ ...safeDocumentData(doc), id: doc.id }))
+      .filter((tag): tag is Tag => tag !== null);
 
-    // Process budget history
+    const budgets = budgetsSnapshot.docs
+      .map(doc => ({ ...safeDocumentData(doc), id: doc.id }))
+      .filter((budget): budget is Budget => budget !== null);
+
     const budgetHistory = budgetHistorySnapshot.docs
       .map(doc => {
         const data = safeDocumentData(doc);
@@ -357,46 +509,16 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       })
       .filter((history): history is BudgetHistory => history !== null);
 
-    // Process other collections
-    const categories = categoriesSnapshot.docs
-      .map(doc => ({ ...safeDocumentData(doc), id: doc.id }))
-      .filter((category): category is Category => category !== null);
-
-    const tags = tagsSnapshot.docs
-      .map(doc => ({ ...safeDocumentData(doc), id: doc.id }))
-      .filter((tag): tag is Tag => tag !== null);
-
-    const budgets = budgetsSnapshot.docs
-      .map(doc => ({ ...safeDocumentData(doc), id: doc.id }))
-      .filter((budget): budget is Budget => budget !== null);
-
     const recurringExpenses = recurringExpensesSnapshot.docs
       .map(doc => {
         const data = safeDocumentData(doc);
         if (!data) return null;
-        
-        // Ensure all required fields are present
-        if (!data.amount || !data.category || !data.paidBy || !data.split || 
-            !data.startDate || !data.frequency || !data.dayOfMonth || !Array.isArray(data.tags)) {
-          return null;
-        }
-
         const lastProcessed = data.lastProcessed ? safeTimestampToString(data.lastProcessed) : undefined;
-        
-        const expense: RecurringExpense = {
+        return {
+          ...data,
           id: doc.id,
-          description: data.description,
-          amount: data.amount,
-          category: data.category,
-          paidBy: data.paidBy,
-          split: data.split,
-          startDate: data.startDate,
-          frequency: data.frequency,
-          dayOfMonth: data.dayOfMonth,
-          tags: data.tags,
           lastProcessed
-        };
-        return expense;
+        } as RecurringExpense;
       })
       .filter((expense): expense is RecurringExpense => expense !== null);
 
@@ -413,6 +535,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       })
       .filter((settlement): settlement is Settlement => settlement !== null);
 
+    console.log('Fetch completed successfully');
     return {
       expenses,
       categories,
@@ -424,7 +547,7 @@ export const fetchAllData = async (): Promise<FirestoreData> => {
       settlements
     };
   } catch (error) {
-    console.error('Error fetching data:', error);
+    console.error('Error fetching data from Firestore:', error);
     throw error;
   }
 };
