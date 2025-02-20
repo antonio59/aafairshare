@@ -1,5 +1,14 @@
 name: Security Scan
 
+# Workflow permissions
+permissions:
+  contents: read
+  security-events: write
+  actions: write
+  checks: write
+  issues: write
+  pull-requests: write
+
 on:
   schedule:
     - cron: '0 0 * * *'  # Run daily at midnight
@@ -13,26 +22,35 @@ on:
 jobs:
   verify-secrets:
     runs-on: ubuntu-latest
+    outputs:
+      missing_secrets: ${{ steps.check-secrets.outputs.missing }}
     steps:
       - name: Check Required Secrets
+        id: check-secrets
         run: |
+          missing_secrets=()
+          
           if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
-            echo "Error: SUPABASE_URL is not set"
-            exit 1
+            missing_secrets+=("SUPABASE_URL")
           fi
           if [ -z "${{ secrets.SUPABASE_SERVICE_KEY }}" ]; then
-            echo "Error: SUPABASE_SERVICE_KEY is not set"
-            exit 1
+            missing_secrets+=("SUPABASE_SERVICE_KEY")
           fi
           if [ -z "${{ secrets.MASTER_ENCRYPTION_KEY }}" ]; then
-            echo "Error: MASTER_ENCRYPTION_KEY is not set"
-            exit 1
+            missing_secrets+=("MASTER_ENCRYPTION_KEY")
           fi
           if [ -z "${{ secrets.SNYK_TOKEN }}" ]; then
-            echo "Error: SNYK_TOKEN is not set"
+            missing_secrets+=("SNYK_TOKEN")
+          fi
+          
+          if [ ${#missing_secrets[@]} -ne 0 ]; then
+            echo "::error::Missing required secrets: ${missing_secrets[*]}"
+            echo "missing=${missing_secrets[*]}" >> $GITHUB_OUTPUT
             exit 1
           fi
+          
           echo "All required secrets are properly configured"
+          echo "missing=" >> $GITHUB_OUTPUT
 
   security-scan:
     needs: verify-secrets
@@ -47,21 +65,53 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        id: install
         run: |
           npm install -g npm@latest
           npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Run Snyk Security Scan
+        id: snyk
         uses: snyk/actions/node@master
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high
+          args: --severity-threshold=high --json > snyk-results.json
+
+      - name: Process Snyk Results
+        if: always() && steps.snyk.outcome == 'failure'
+        run: |
+          echo "::warning::Snyk found security vulnerabilities. Check snyk-results.json for details."
 
       - name: Run npm audit
+        id: audit
         continue-on-error: true
-        run: npm audit --audit-level=high
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Create Security Report
+        if: always()
+        run: |
+          echo "## Security Scan Results" > security-report.md
+          echo "### Snyk Scan" >> security-report.md
+          if [ -f snyk-results.json ]; then
+            echo '```' >> security-report.md
+            cat snyk-results.json >> security-report.md
+            echo '```' >> security-report.md
+          fi
+          echo "### NPM Audit" >> security-report.md
+          if [ -f npm-audit.json ]; then
+            echo '```' >> security-report.md
+            cat npm-audit.json >> security-report.md
+            echo '```' >> security-report.md
+          fi
+
+      - name: Upload Security Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: security-report
+          path: security-report.md
 
   dependency-updates:
     needs: verify-secrets
@@ -76,17 +126,46 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        id: install
         run: |
-          npm install -g npm@latest
+          npm install -g npm@latest npm-check-updates
           npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
-      - name: Check for vulnerable dependencies
-        continue-on-error: true
-        run: npm audit
+      - name: Check for updates
+        id: ncu
+        run: |
+          echo "## Dependency Update Report" > dependency-report.md
+          echo "### Available Updates" >> dependency-report.md
+          echo '```' >> dependency-report.md
+          ncu >> dependency-report.md || true
+          echo '```' >> dependency-report.md
 
-      - name: Check outdated dependencies
+      - name: Check for vulnerable dependencies
+        id: audit
         continue-on-error: true
-        run: npm outdated
+        run: |
+          echo "### Security Audit" >> dependency-report.md
+          echo '```' >> dependency-report.md
+          npm audit >> dependency-report.md || true
+          echo '```' >> dependency-report.md
+
+      - name: Create Issue for Updates
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('dependency-report.md', 'utf8');
+            const today = new Date().toISOString().split('T')[0];
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📦 Dependency Updates Available - ${today}`,
+              body: report,
+              labels: ['dependencies', 'automated'],
+              assignees: ['antonio59']
+            });
 
   code-scanning:
     needs: verify-secrets
@@ -95,6 +174,7 @@ jobs:
       security-events: write
       actions: read
       contents: read
+      issues: write
     steps:
       - uses: actions/checkout@v3
 
@@ -105,6 +185,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
+        id: install
         run: |
           npm install -g npm@latest
           npm ci --legacy-peer-deps || npm install --legacy-peer-deps
@@ -113,12 +194,41 @@ jobs:
         uses: github/codeql-action/init@v2
         with:
           languages: javascript
+          queries: security-and-quality
+
+      - name: Build Project
+        run: npm run build
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:javascript"
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Process CodeQL Results
+        if: always()
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: results.sarif
+
+      - name: Create CodeQL Report
+        if: always()
+        run: |
+          echo "## CodeQL Analysis Results" > codeql-report.md
+          if [ -f results.sarif ]; then
+            echo "### Found Issues" >> codeql-report.md
+            echo '```' >> codeql-report.md
+            cat results.sarif >> codeql-report.md
+            echo '```' >> codeql-report.md
+          else
+            echo "No issues found." >> codeql-report.md
+          fi
+
+      - name: Upload CodeQL Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: codeql-report
+          path: codeql-report.md
 
       - name: Run npm audit
         run: npm audit
