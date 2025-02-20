@@ -7,8 +7,33 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
+  verify-secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check Required Secrets
+        run: |
+          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
+            echo "Error: SUPABASE_URL is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SUPABASE_SERVICE_KEY }}" ]; then
+            echo "Error: SUPABASE_SERVICE_KEY is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.MASTER_ENCRYPTION_KEY }}" ]; then
+            echo "Error: MASTER_ENCRYPTION_KEY is not set"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SNYK_TOKEN }}" ]; then
+            echo "Error: SNYK_TOKEN is not set"
+            exit 1
+          fi
+          echo "All required secrets are properly configured"
+
   security-scan:
     runs-on: ubuntu-latest
     steps:
