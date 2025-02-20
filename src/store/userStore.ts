@@ -41,18 +41,6 @@ const initialState: UserState = {
   isInitialized: false
 };
 
-
-  monthlyReminder: {
-    enabled: true,
-    time: '17:00' // Set to 5 PM on last day of month
-  },
-  settlementNotifications: {
-    enabled: true,
-    emailEnabled: true,
-    inAppEnabled: true
-  }
-};
-
 export const useUserStore = create<UserStore>((set, get) => ({
   ...initialState,
 
