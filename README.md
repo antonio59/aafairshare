@@ -4,8 +4,6 @@
 
 AA FairShare is a modern, secure expense sharing application built with React and Vite. It helps users track, manage, and split expenses with friends and family, featuring real-time updates, PDF exports, and comprehensive notification systems.
 
-[Edit in StackBlitz next generation editor ⚡️](https://stackblitz.com/~/github.com/antonio59/aafairshare)
-
 ## Features
 
 - 🔐 Secure authentication with Supabase
