@@ -1,18 +1,16 @@
-import { AuthError } from '@supabase/supabase-js';
+import { AuthError, User } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 
-export class EmailAuthProvider {
-  static async reauthenticateWithCredential(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    });
-    if (error) throw error;
-    return data;
-  }
-}
-
 export const auth = supabase.auth;
+
+export const reauthenticateWithPassword = async (email: string, password: string) => {
+  const { data, error } = await auth.signInWithPassword({
+    email,
+    password
+  });
+  if (error) throw error;
+  return data;
+};
 
 export const clearAuthCache = async () => {
   try {
@@ -109,20 +107,19 @@ export const handleAuthError = async (error: unknown) => {
   throw error;
 };
 
-// Utility function to check if token needs refresh
+// Utility function to check if session needs refresh
 export const checkTokenRefreshNeeded = async (): Promise<boolean> => {
   try {
-    const user = auth.currentUser;
-    if (!user) return false;
+    const { data: { session } } = await auth.getSession();
+    if (!session) return false;
 
-    const decodedToken = await user.getIdTokenResult();
-    const expirationTime = new Date(decodedToken.expirationTime).getTime();
+    const expirationTime = new Date(session.expires_at!).getTime();
     const currentTime = new Date().getTime();
 
-    // Return true if token expires in less than 5 minutes
+    // Return true if session expires in less than 5 minutes
     return (expirationTime - currentTime) < 5 * 60 * 1000;
   } catch (error) {
-    console.error('Error checking token refresh:', error);
+    console.error('Error checking session refresh:', error);
     return true; // Err on the side of caution
   }
 };
@@ -130,8 +127,8 @@ export const checkTokenRefreshNeeded = async (): Promise<boolean> => {
 // Re-authenticate user with stored credentials
 export const reAuthenticateUser = async (email: string): Promise<void> => {
   try {
-    const user = auth.currentUser;
-    if (!user) {
+    const { data: { session } } = await auth.getSession();
+    if (!session?.user) {
       throw new Error('No authenticated user');
     }
 
@@ -141,14 +138,11 @@ export const reAuthenticateUser = async (email: string): Promise<void> => {
       throw new Error('No stored credentials found');
     }
 
-    // Create credential
-    const credential = EmailAuthProvider.credential(email, storedPassword);
-
     // Re-authenticate
-    await reauthenticateWithCredential(user, credential);
+    await reauthenticateWithPassword(email, storedPassword);
 
-    // Force token refresh
-    await user.getIdToken(true);
+    // Refresh session
+    await auth.refreshSession();
 
   } catch (error) {
     console.error('Re-authentication failed:', error);

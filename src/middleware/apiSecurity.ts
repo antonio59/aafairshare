@@ -1,4 +1,6 @@
 import { auditLog, AuditLogType } from '../utils/auditLogger';
+import { supabase } from '../supabase';
+import type { User } from '@supabase/supabase-js';
 
 const API_RATE_LIMIT = 100; // requests per window
 const API_RATE_WINDOW = 60 * 1000; // 1 minute window

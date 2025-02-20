@@ -15,7 +15,13 @@ export class EncryptionService {
    * @param data - Data to encrypt
    * @param masterKey - Master encryption key (from environment variable)
    */
-  static async encrypt(data: string, masterKey: string): Promise<string> {
+  static async encrypt(data: string | undefined | null, masterKey: string): Promise<string> {
+    if (!data) {
+      throw new Error('Data to encrypt cannot be null or undefined');
+    }
+    if (!masterKey) {
+      throw new Error('Master key cannot be empty');
+    }
     try {
       // Generate a random salt
       const salt = randomBytes(this.saltLength);
@@ -47,7 +53,8 @@ export class EncryptionService {
 
       return Buffer.from(result).toString('base64');
     } catch (error) {
-      throw new Error('Encryption failed');
+      console.error('Encryption error:', error);
+      throw new Error(`Encryption failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

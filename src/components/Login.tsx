@@ -22,12 +22,15 @@ const Login = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    const session = supabase.auth.getSession();
-    if (currentUser && session) {
-      const state = location.state as LocationState;
-      const from = state?.from?.pathname || '/';
-      navigate(from, { replace: true });
-    }
+    const checkSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (currentUser && session) {
+        const state = location.state as LocationState;
+        const from = state?.from?.pathname || '/';
+        navigate(from, { replace: true });
+      }
+    };
+    checkSession();
   }, [currentUser, navigate, location]);
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -4,6 +4,24 @@ import { supabase } from '@/supabase';
 import { clearAuthCache, auth, EmailAuthProvider } from '@/utils/authUtils';
 import { AuthError } from '@supabase/supabase-js';
 
+export const defaultNotificationPreferences: NotificationPreferences = {
+  globalEnabled: true,
+  overBudget: {
+    enabled: true,
+    threshold: 80,
+    channels: ['email', 'push']
+  },
+  settlementNotifications: {
+    enabled: true,
+    channels: ['email', 'push']
+  },
+  monthlyReminder: {
+    enabled: true,
+    day: 1,
+    channels: ['email']
+  }
+};
+
 interface UserState {
   users: User[];
   currentUser: User | null;
