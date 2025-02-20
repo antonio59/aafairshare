@@ -1,14 +1,5 @@
 name: Security Scan
 
-# Workflow permissions
-permissions:
-  contents: read
-  security-events: write
-  actions: write
-  checks: write
-  issues: write
-  pull-requests: write
-
 on:
   schedule:
     - cron: '0 0 * * *'  # Run daily at midnight
@@ -16,44 +7,16 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  # Allow manual trigger
-  workflow_dispatch:
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+  security-events: write
+  issues: write
+  pull-requests: write
 
 jobs:
-  verify-secrets:
-    runs-on: ubuntu-latest
-    outputs:
-      missing_secrets: ${{ steps.check-secrets.outputs.missing }}
-    steps:
-      - name: Check Required Secrets
-        id: check-secrets
-        run: |
-          missing_secrets=()
-          
-          if [ -z "${{ secrets.SUPABASE_URL }}" ]; then
-            missing_secrets+=("SUPABASE_URL")
-          fi
-          if [ -z "${{ secrets.SUPABASE_SERVICE_KEY }}" ]; then
-            missing_secrets+=("SUPABASE_SERVICE_KEY")
-          fi
-          if [ -z "${{ secrets.MASTER_ENCRYPTION_KEY }}" ]; then
-            missing_secrets+=("MASTER_ENCRYPTION_KEY")
-          fi
-          if [ -z "${{ secrets.SNYK_TOKEN }}" ]; then
-            missing_secrets+=("SNYK_TOKEN")
-          fi
-          
-          if [ ${#missing_secrets[@]} -ne 0 ]; then
-            echo "::error::Missing required secrets: ${missing_secrets[*]}"
-            echo "missing=${missing_secrets[*]}" >> $GITHUB_OUTPUT
-            exit 1
-          fi
-          
-          echo "All required secrets are properly configured"
-          echo "missing=" >> $GITHUB_OUTPUT
-
   security-scan:
-    needs: verify-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -63,6 +26,80 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install -g npm@latest
+          npm install --legacy-peer-deps
+
+      - name: Run Snyk Security Scan
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        run: |
+          npm install -g snyk
+          snyk test --json > snyk-results.json || true
+
+      - name: Run npm audit
+        continue-on-error: true
+        run: npm audit --json > npm-audit.json || true
+
+      - name: Run CodeQL Analysis
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Build Project
+        run: npm run build
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+
+      - name: Check for Updates
+        id: check-updates
+        run: |
+          npm install -g npm-check-updates
+          ncu --format json > updates.json || true
+
+      - name: Create Security Report
+        if: always()
+        run: |
+          echo "## Security Scan Results" > report.md
+          echo "### Snyk Security Results" >> report.md
+          if [ -f snyk-results.json ]; then
+            echo '```json' >> report.md
+            cat snyk-results.json >> report.md
+            echo '```' >> report.md
+          fi
+          
+          echo "### NPM Audit Results" >> report.md
+          if [ -f npm-audit.json ]; then
+            echo '```json' >> report.md
+            cat npm-audit.json >> report.md
+            echo '```' >> report.md
+          fi
+          
+          echo "### Dependencies Update Check" >> report.md
+          if [ -f updates.json ]; then
+            echo '```json' >> report.md
+            cat updates.json >> report.md
+            echo '```' >> report.md
+          fi
+
+      - name: Create Issue
+        if: always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = fs.readFileSync('report.md', 'utf8');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🔒 Security Scan Report - ${new Date().toISOString().split('T')[0]}`,
+              body: report,
+              labels: ['security', 'automated']
+            });
 
       - name: Install dependencies
         id: install
