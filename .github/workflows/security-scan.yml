@@ -24,12 +24,12 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
           cache: 'npm'
 
       - name: Install dependencies
         run: |
-          npm install -g npm@latest npm-check-updates snyk
+          npm install -g npm@10.2.4 npm-check-updates@^16.14.15 snyk
           npm install --legacy-peer-deps
 
       - name: Run Security Scans
