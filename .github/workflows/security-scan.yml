@@ -29,20 +29,20 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm install -g npm@latest
+          npm install -g npm@latest npm-check-updates snyk
           npm install --legacy-peer-deps
 
-      - name: Run Snyk Security Scan
+      - name: Run Security Scans
         continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         run: |
-          npm install -g snyk
+          # Run Snyk scan
           snyk test --json > snyk-results.json || true
-
-      - name: Run npm audit
-        continue-on-error: true
-        run: npm audit --json > npm-audit.json || true
+          # Run npm audit
+          npm audit --json > npm-audit.json || true
+          # Check for updates
+          ncu --format json > updates.json || true
 
       - name: Run CodeQL Analysis
         uses: github/codeql-action/init@v2
@@ -55,16 +55,11 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v2
 
-      - name: Check for Updates
-        id: check-updates
-        run: |
-          npm install -g npm-check-updates
-          ncu --format json > updates.json || true
-
       - name: Create Security Report
         if: always()
         run: |
           echo "## Security Scan Results" > report.md
+          
           echo "### Snyk Security Results" >> report.md
           if [ -f snyk-results.json ]; then
             echo '```json' >> report.md
@@ -93,118 +88,15 @@ jobs:
           script: |
             const fs = require('fs');
             const report = fs.readFileSync('report.md', 'utf8');
-            await github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: `🔒 Security Scan Report - ${new Date().toISOString().split('T')[0]}`,
-              body: report,
-              labels: ['security', 'automated']
-            });
-
-      - name: Install dependencies
-        id: install
-        run: |
-          npm install -g npm@latest
-          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-
-      - name: Run Snyk Security Scan
-        id: snyk
-        uses: snyk/actions/node@master
-        continue-on-error: true
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-        with:
-          args: --severity-threshold=high --json > snyk-results.json
-
-      - name: Process Snyk Results
-        if: always() && steps.snyk.outcome == 'failure'
-        run: |
-          echo "::warning::Snyk found security vulnerabilities. Check snyk-results.json for details."
-
-      - name: Run npm audit
-        id: audit
-        continue-on-error: true
-        run: npm audit --json > npm-audit.json || true
-
-      - name: Create Security Report
-        if: always()
-        run: |
-          echo "## Security Scan Results" > security-report.md
-          echo "### Snyk Scan" >> security-report.md
-          if [ -f snyk-results.json ]; then
-            echo '```' >> security-report.md
-            cat snyk-results.json >> security-report.md
-            echo '```' >> security-report.md
-          fi
-          echo "### NPM Audit" >> security-report.md
-          if [ -f npm-audit.json ]; then
-            echo '```' >> security-report.md
-            cat npm-audit.json >> security-report.md
-            echo '```' >> security-report.md
-          fi
-
-      - name: Upload Security Report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: security-report
-          path: security-report.md
-
-  dependency-updates:
-    needs: verify-secrets
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        id: install
-        run: |
-          npm install -g npm@latest npm-check-updates
-          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
-
-      - name: Check for updates
-        id: ncu
-        run: |
-          echo "## Dependency Update Report" > dependency-report.md
-          echo "### Available Updates" >> dependency-report.md
-          echo '```' >> dependency-report.md
-          ncu >> dependency-report.md || true
-          echo '```' >> dependency-report.md
-
-      - name: Check for vulnerable dependencies
-        id: audit
-        continue-on-error: true
-        run: |
-          echo "### Security Audit" >> dependency-report.md
-          echo '```' >> dependency-report.md
-          npm audit >> dependency-report.md || true
-          echo '```' >> dependency-report.md
-
-      - name: Create Issue for Updates
-        if: always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const report = fs.readFileSync('dependency-report.md', 'utf8');
             const today = new Date().toISOString().split('T')[0];
             
             await github.rest.issues.create({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              title: `📦 Dependency Updates Available - ${today}`,
+              title: `🔒 Security Scan Report - ${today}`,
               body: report,
-              labels: ['dependencies', 'automated'],
-              assignees: ['antonio59']
+              labels: ['security', 'automated']
             });
-
-  code-scanning:
     needs: verify-secrets
     runs-on: ubuntu-latest
     permissions:
