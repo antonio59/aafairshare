@@ -35,6 +35,7 @@ jobs:
           echo "All required secrets are properly configured"
 
   security-scan:
+    needs: verify-secrets
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -44,6 +45,77 @@ jobs:
         with:
           node-version: '18'
           cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install -g npm@latest
+          npm ci
+
+      - name: Run Snyk Security Scan
+        uses: snyk/actions/node@master
+        continue-on-error: true
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --severity-threshold=high
+
+      - name: Run npm audit
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+  dependency-updates:
+    needs: verify-secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install -g npm@latest
+          npm ci
+
+      - name: Check for vulnerable dependencies
+        continue-on-error: true
+        run: npm audit
+
+      - name: Check outdated dependencies
+        continue-on-error: true
+        run: npm outdated
+
+  code-scanning:
+    needs: verify-secrets
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      actions: read
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: |
+          npm install -g npm@latest
+          npm ci
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: javascript
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
 
       - name: Install dependencies
         run: npm ci
