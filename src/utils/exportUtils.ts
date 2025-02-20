@@ -1,8 +1,8 @@
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 import type { Expense, Category, Tag } from '../types';
-import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import pdfMake from 'pdfmake/build/pdfmake';
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 
 interface MonthlyTotals {
   andresPaid: number;
@@ -138,21 +138,19 @@ export const exportToExcel = async (
   window.URL.revokeObjectURL(url);
 };
 
+// Initialize pdfmake with fonts
+pdfMake.vfs = pdfFonts.pdfMake.vfs;
+
 export const exportToPDF = (
   expenses: Expense[],
   categories: Category[],
   tags: Tag[],
   month: string
 ) => {
-  const doc = new jsPDF();
   const monthName = format(new Date(month + '-01'), 'MMMM yyyy');
 
-  // Add title
-  doc.setFontSize(16);
-  doc.text(`Expenses - ${monthName}`, 14, 15);
-
   // Prepare data for table
-  const tableData = expenses.map(expense => {
+  const tableBody = expenses.map(expense => {
     const category = categories.find(c => c?.id === expense.category);
     const expenseTags = expense.tags?.map(tagId => 
       tags.find(t => t.id === tagId)?.name
@@ -169,58 +167,69 @@ export const exportToPDF = (
     ];
   });
 
-  // Add expenses table
-  (doc as any).autoTable({
-    startY: 25,
-    head: [['Date', 'Category', 'Description', 'Amount', 'Paid By', 'Split', 'Tags']],
-    body: tableData,
-    styles: {
-      fontSize: 8
-    },
-    columnStyles: {
-      0: { cellWidth: 20 }, // Date
-      1: { cellWidth: 25 }, // Category
-      2: { cellWidth: 35 }, // Description
-      3: { cellWidth: 20 }, // Amount
-      4: { cellWidth: 20 }, // Paid By
-      5: { cellWidth: 20 }, // Split
-      6: { cellWidth: 40 }  // Tags
-    }
-  });
-
   // Calculate totals
   const totals = calculateMonthlyTotals(expenses);
 
-  // Add summary
-  const finalY = (doc as any).lastAutoTable.finalY || 25;
-  doc.setFontSize(12);
-  doc.text('Monthly Summary', 14, finalY + 15);
-
-  const summaryData = [
-    ['Andres paid:', `£${totals.andresPaid.toFixed(2)}`],
-    ['Antonio paid:', `£${totals.antonioPaid.toFixed(2)}`],
-    ['Andres share:', `£${totals.andresShare.toFixed(2)}`],
-    ['Antonio share:', `£${totals.antonioShare.toFixed(2)}`],
-    ['Total:', `£${totals.total.toFixed(2)}`],
-  ];
-
-  (doc as any).autoTable({
-    startY: finalY + 20,
-    body: summaryData,
-    theme: 'plain',
+  // Create document definition
+  const docDefinition = {
+    content: [
+      { text: `Expenses - ${monthName}`, style: 'header' },
+      {
+        table: {
+          headerRows: 1,
+          widths: ['auto', 'auto', '*', 'auto', 'auto', 'auto', '*'],
+          body: [
+            ['Date', 'Category', 'Description', 'Amount', 'Paid By', 'Split', 'Tags'],
+            ...tableBody
+          ]
+        },
+        layout: 'lightHorizontalLines'
+      },
+      { text: '\nMonthly Summary', style: 'subheader' },
+      {
+        table: {
+          widths: ['*', 'auto'],
+          body: [
+            ['Andres paid:', `£${totals.andresPaid.toFixed(2)}`],
+            ['Antonio paid:', `£${totals.antonioPaid.toFixed(2)}`],
+            ['Andres share:', `£${totals.andresShare.toFixed(2)}`],
+            ['Antonio share:', `£${totals.antonioShare.toFixed(2)}`],
+            ['Total:', `£${totals.total.toFixed(2)}`]
+          ]
+        },
+        layout: 'noBorders'
+      },
+      {
+        text: '\n' + (totals.andresPaid > totals.andresShare
+          ? `Antonio owes Andres £${(totals.andresPaid - totals.andresShare).toFixed(2)}`
+          : `Andres owes Antonio £${(totals.antonioShare - totals.antonioPaid).toFixed(2)}`),
+        style: 'balance'
+      }
+    ],
     styles: {
+      header: {
+        fontSize: 18,
+        bold: true,
+        margin: [0, 0, 0, 10]
+      },
+      subheader: {
+        fontSize: 14,
+        bold: true,
+        margin: [0, 20, 0, 5]
+      },
+      balance: {
+        fontSize: 12,
+        bold: true,
+        margin: [0, 8, 0, 0]
+      }
+    },
+    defaultStyle: {
       fontSize: 10
     }
-  });
+  };
 
-  // Add balance
-  const balanceText = totals.andresPaid > totals.andresShare
-    ? `Antonio owes Andres £${(totals.andresPaid - totals.andresShare).toFixed(2)}`
-    : `Andres owes Antonio £${(totals.antonioShare - totals.antonioPaid).toFixed(2)}`;
+  // Generate and download PDF
+  const monthNameFile = format(new Date(month + '-01'), 'MMMM_yyyy');
+  pdfMake.createPdf(docDefinition).download(`Expenses_${monthNameFile}.pdf`);
 
-  doc.setFontSize(12);
-  doc.text(balanceText, 14, (doc as any).lastAutoTable.finalY + 15);
-
-  // Save file
-  doc.save(`Expenses_${monthName}.pdf`);
 };

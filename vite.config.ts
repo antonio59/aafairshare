@@ -4,6 +4,7 @@ import { compression } from 'vite-plugin-compression2';
 import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa';
 import fs from 'fs';
 import path from 'path';
+import * as esbuild from 'esbuild';
 
 // Read manifest.json content
 const manifestContent = JSON.parse(fs.readFileSync('./public/manifest.json', 'utf-8'));
@@ -109,34 +110,61 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: true,
-    host: true,
+    host: 'localhost',
+    origin: 'http://localhost:5173',
     headers: {
       'Content-Security-Policy': cspHeaders,
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'SAMEORIGIN',
+      'X-Frame-Options': 'DENY',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization, X-Custom-Header',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400',
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'cross-origin'
+      'Cross-Origin-Resource-Policy': 'same-origin',
+      'Permissions-Policy': 'accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=()'
     },
     fs: {
-      strict: false,
-      allow: ['..'],
+      strict: true,
+      allow: ['.'],
+      deny: [
+        '.env',
+        '.env.*',
+        '*.{pem,crt,key}',
+        'node_modules/.cache',
+        '.git',
+        '.github',
+        '.vscode',
+        'coverage'
+      ]
     },
+    cors: false,
+    hmr: {
+      protocol: 'wss',
+      host: 'localhost',
+      clientPort: 443,
+      overlay: false
+    },
+    watch: {
+      ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**']
+    },
+    middlewareMode: false
   },
 
   build: {
     target: 'esnext',
-    modulePreload: true,
-    sourcemap: true,
-    minify: 'terser',
+    modulePreload: {
+      polyfill: true,
+      resolveDependencies: (url: string, deps: string[], { hostId, hostType }: any) => deps
+    },
+    sourcemap: process.env.NODE_ENV !== 'production',
+    minify: 'esbuild',
     cssCodeSplit: true,
     cssMinify: true,
+    reportCompressedSize: true,
+    chunkSizeWarningLimit: 1000,
+    assetsInlineLimit: 4096,
+    emptyOutDir: true,
+    manifest: true,
+    ssrManifest: true,
     rollupOptions: {
       output: {
         assetFileNames: (assetInfo: { name?: string }) => {
@@ -158,20 +186,84 @@ export default defineConfig({
           'supabase-vendor': ['@supabase/supabase-js'],
           'chart-vendor': ['chart.js', 'react-chartjs-2'],
           'zustand-vendor': ['zustand']
-        }
+        },
+        format: 'es',
+        generatedCode: {
+          constBindings: true,
+          objectShorthand: true
+        },
+        compact: true,
+        preserveModules: false,
+        strict: true,
+        sanitizeFileName: true
+      },
+      treeshake: {
+        moduleSideEffects: false,
+        propertyReadSideEffects: false,
+        tryCatchDeoptimization: false
       }
     },
-    terserOptions: {
-      compress: {
-        drop_console: false,
-        drop_debugger: true,
-      },
-    },
+    commonjsOptions: {
+      strictRequires: true,
+      transformMixedEsModules: true
+    }
   },
 
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', 'zustand'],
-    exclude: ['@jridgewell/sourcemap-codec']
+    exclude: ['@jridgewell/sourcemap-codec'],
+    esbuildOptions: {
+      target: 'esnext',
+      platform: 'browser',
+      supported: {
+        'dynamic-import': true,
+        'import-meta': true
+      },
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
+      },
+      minify: true,
+      minifyIdentifiers: true,
+      minifySyntax: true,
+      minifyWhitespace: true,
+      treeShaking: true,
+      drop: ['debugger', 'console'],
+      pure: ['console.log', 'console.debug', 'console.info'],
+      sourcemap: true,
+      sourcesContent: false,
+      format: 'esm',
+      mainFields: ['browser', 'module', 'main'],
+      conditions: ['browser', 'import', 'default'],
+      banner: {
+        js: '// This bundle is optimized and secured with esbuild'
+      }
+    }
+  },
+
+  server: {
+    strictPort: true,
+    hmr: {
+      protocol: 'wss',
+      clientPort: 443
+    },
+    headers: {
+      'Content-Security-Policy': cspHeaders,
+      'X-Content-Type-Options': 'nosniff',
+      'X-Frame-Options': 'SAMEORIGIN',
+      'Referrer-Policy': 'strict-origin-when-cross-origin',
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+      'Cross-Origin-Resource-Policy': 'cross-origin'
+    },
+    fs: {
+      strict: true,
+      allow: ['.'],
+      deny: ['.env', '.env.*', '*.{pem,crt,key}', 'node_modules/.cache']
+    },
+    origin: 'http://localhost:5173',
+    cors: false,
+    proxy: null,
+    middlewareMode: false
   },
 
   preview: {

@@ -41,14 +41,7 @@ const initialState: UserState = {
   isInitialized: false
 };
 
-const defaultNotificationPreferences: NotificationPreferences = {
-  globalEnabled: true,
-  overBudget: {
-    enabled: true,
-    emailEnabled: true,
-    inAppEnabled: true,
-    dismissedAlerts: []
-  },
+
   monthlyReminder: {
     enabled: true,
     time: '17:00' // Set to 5 PM on last day of month
