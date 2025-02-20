@@ -1,12 +1,11 @@
 export interface User {
   id: string;
-  name: string;
   email: string;
-  password?: string;
-  role: 'partner1' | 'partner2';
-  preferences: {
+  notificationPreferences: NotificationPreferences;
+  role?: 'partner1' | 'partner2';
+  name?: string;
+  preferences?: {
     currency: string;
-    notifications: NotificationPreferences;
   };
 }
 
@@ -161,8 +160,8 @@ export interface UserStore {
   setCurrentUser: (user: User | null) => void;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  updateUser: (updates: Partial<User>) => Promise<void>;
-  updatePassword: (newPassword: string) => Promise<void>;
+  updateUser: (updates: Partial<User>) => Promise<boolean>;
+  updatePassword: (newPassword: string) => Promise<boolean>;
 }
 
 export interface UserState {

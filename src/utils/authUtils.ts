@@ -1,4 +1,18 @@
+import { AuthError } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
+
+export class EmailAuthProvider {
+  static async reauthenticateWithCredential(email: string, password: string) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    if (error) throw error;
+    return data;
+  }
+}
+
+export const auth = supabase.auth;
 
 export const clearAuthCache = async () => {
   try {

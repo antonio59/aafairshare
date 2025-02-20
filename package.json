@@ -4,6 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "security-scan": "snyk test && npm audit",
+    "audit-fix": "npm audit fix",
+    "security:full": "npm run security-scan && npm run lint && npm run typecheck",
+    "backup": "tsx scripts/createBackup.ts",
+    "backup:test": "tsx scripts/testBackup.ts",
     "dev": "NODE_ENV=development vite",
     "build": "NODE_ENV=production tsc --project tsconfig.json && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -15,6 +20,12 @@
     "prebuild": "npm run clean"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.39.3",
+    "helmet": "^7.1.0",
+    "xss": "^1.0.14",
+    "sanitize-html": "^2.11.0",
+    "rate-limiter-flexible": "^4.0.0",
+    "validator": "^13.11.0",
     "chart.js": "^4.4.6",
     "date-fns": "^4.1.0",
     "google-auth-library": "^9.14.2",
@@ -31,6 +42,9 @@
     "zustand": "^5.0.1"
   },
   "devDependencies": {
+    "@types/sanitize-html": "^2.9.5",
+    "@types/validator": "^13.11.8",
+    "snyk": "^1.1268.0",
     "@axe-core/react": "^4.10.1",
     "@babel/core": "^7.26.0",
     "@babel/plugin-transform-react-jsx": "^7.25.9",

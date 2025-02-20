@@ -3,6 +3,9 @@ import { useEffect, useState } from 'react';
 import { useUserStore } from './store/userStore';
 import { supabase } from './supabase';
 import { clearAuthCache, validateAuthToken } from './utils/authUtils';
+import { applySecurityHeaders } from './middleware/security';
+import { updateLastActivity, startSessionTimeout } from './utils/securityUtils';
+import { auditLog, AuditLogType } from './utils/auditLogger';
 import Navbar from './components/Navbar';
 import ExpenseList from './components/ExpenseList';
 import ExpenseForm from './components/ExpenseForm';
@@ -41,12 +44,25 @@ const defaultNotificationPreferences: NotificationPreferences = {
 
 // Separate AuthCheck component to handle auth state
 const AuthCheck = ({ children }: { children: React.ReactNode }) => {
-  const { setCurrentUser, setInitialized } = useUserStore();
+  const { setCurrentUser, setInitialized, logout } = useUserStore();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
+
+    // Apply security headers
+    applySecurityHeaders();
+
+    // Setup session timeout
+    startSessionTimeout(async () => {
+      await auditLog(
+        AuditLogType.SECURITY_EVENT,
+        'Session timeout',
+        { message: 'User session timed out due to inactivity' }
+      );
+      logout();
+    });
 
     const handleAuth = async (session: any) => {
       try {
@@ -54,6 +70,17 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
           setCurrentUser(null);
           setInitialized(true);
           return;
+        }
+
+        // Validate token
+        const isValid = await validateAuthToken();
+        if (!isValid) {
+          await auditLog(
+            AuditLogType.SECURITY_EVENT,
+            'Invalid auth token',
+            { userId: session.user.id }
+          );
+          throw new Error('Invalid auth token');
         }
 
         // Get user profile from Supabase
@@ -64,7 +91,11 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
           .single();
 
         if (profileError) {
-          console.error('Error fetching user profile:', profileError);
+          await auditLog(
+            AuditLogType.AUTH_FAILURE,
+            'Profile fetch failed',
+            { userId: session.user.id, error: profileError.message }
+          );
           setCurrentUser(null);
           setInitialized(true);
           return;
@@ -83,8 +114,22 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 
         setCurrentUser(newUser);
         setInitialized(true);
+
+        // Update last activity timestamp
+        updateLastActivity();
+
+        // Log successful authentication
+        await auditLog(
+          AuditLogType.AUTH_SUCCESS,
+          'User authenticated',
+          { userId: newUser.id, email: newUser.email }
+        );
       } catch (error) {
-        console.error('Auth check failed:', error);
+        await auditLog(
+          AuditLogType.AUTH_FAILURE,
+          'Auth check failed',
+          { error: error instanceof Error ? error.message : 'Unknown error' }
+        );
         await clearAuthCache();
         setCurrentUser(null);
         setInitialized(true);

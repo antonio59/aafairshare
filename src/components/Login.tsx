@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { supabase } from '../supabase';
+import { checkRateLimit, validateInput, updateLastActivity } from '../utils/securityUtils';
+import { auditLog, AuditLogType } from '../utils/auditLogger';
 
 interface LocationState {
   from?: Location;
@@ -35,23 +37,48 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log('Attempting login with:', email);
-      
-      // Update store first
+      // Validate inputs
+      if (!validateInput.email(email)) {
+        throw new Error('Invalid email format');
+      }
+      if (!validateInput.password(password)) {
+        throw new Error('Invalid password format');
+      }
+
+      // Check rate limiting
+      const rateLimit = checkRateLimit(email);
+      if (!rateLimit.allowed) {
+        throw new Error(`Too many login attempts. Please try again in ${Math.ceil(rateLimit.waitMs! / 1000)} seconds`);
+      }
+
+      // Attempt login
       const success = await login(email, password);
       if (!success) {
         throw new Error('Failed to initialize user data');
       }
 
-      // Store password for potential re-authentication
-      localStorage.setItem('tempPassword', password);
+      // Log successful login
+      await auditLog(
+        AuditLogType.AUTH_SUCCESS,
+        'User login',
+        { email }
+      );
+
+      // Update activity timestamp
+      updateLastActivity();
 
       // Get the redirect path from location state, or default to home
       const state = location.state as LocationState;
       const from = state?.from?.pathname || '/';
       navigate(from, { replace: true });
     } catch (error) {
-      console.error('Login error:', error);
+      // Log failed login attempt
+      await auditLog(
+        AuditLogType.AUTH_FAILURE,
+        'Failed login attempt',
+        { email, error: error instanceof Error ? error.message : 'Unknown error' }
+      );
+
       setError(error instanceof Error ? error.message : 'An error occurred during login');
     } finally {
       setIsLoading(false);
@@ -65,20 +92,43 @@ const Login = () => {
       return;
     }
 
+    if (!validateInput.email(email)) {
+      setError('Invalid email format');
+      return;
+    }
+
     setIsResetting(true);
     setError('');
     setMessage('');
 
     try {
+      // Check rate limiting for password reset
+      const rateLimit = checkRateLimit(`${email}_reset`);
+      if (!rateLimit.allowed) {
+        throw new Error(`Too many reset attempts. Please try again in ${Math.ceil(rateLimit.waitMs! / 1000)} seconds`);
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password',
       });
 
       if (error) throw error;
 
+      // Log password reset request
+      await auditLog(
+        AuditLogType.PASSWORD_RESET,
+        'Password reset requested',
+        { email }
+      );
+
       setMessage('Password reset email sent. Please check your inbox.');
     } catch (error) {
-      console.error('Password reset error:', error);
+      await auditLog(
+        AuditLogType.SECURITY_EVENT,
+        'Failed password reset attempt',
+        { email, error: error instanceof Error ? error.message : 'Unknown error' }
+      );
+
       setError(error instanceof Error ? error.message : 'Failed to send reset email');
     } finally {
       setIsResetting(false);
