@@ -1,0 +1,7 @@
+version: v1.25.0
+ignore:
+  GHSA-67mh-4wv8-2f99:
+    - '*':
+        reason: 'Development only vulnerability, mitigated through secure server configuration'
+        expires: 2026-02-20T23:26:40.000Z
+patch: {}
