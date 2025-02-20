@@ -14,10 +14,10 @@ const cspHeaders = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.github.dev https://*.app.github.dev",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://*.github.dev https://*.app.github.dev",
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob: https://*.googleapis.com https://storage.googleapis.com https://*.firebasestorage.app https://*.github.dev https://*.app.github.dev",
-  "connect-src 'self' https://*.firebaseio.com https://*.googleapis.com https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com wss://*.firebaseio.com https://*.firebasestorage.app https://*.github.dev https://*.app.github.dev https://github.dev https://storage.googleapis.com",
+  "img-src 'self' data: blob: https://*.supabase.co https://*.github.dev https://*.app.github.dev",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.github.dev https://*.app.github.dev https://github.dev",
   "worker-src 'self' blob:",
-  "frame-src 'self' https://*.firebaseapp.com https://*.firebase.com https://*.github.dev https://*.app.github.dev",
+  "frame-src 'self' https://*.supabase.co https://*.github.dev https://*.app.github.dev",
   "manifest-src 'self' https://*.github.dev https://*.app.github.dev",
 ].join('; ');
 
@@ -155,7 +155,7 @@ export default defineConfig({
         entryFileNames: 'assets/js/[name]-[hash].js',
         manualChunks: {
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'firebase-vendor': ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage'],
+          'supabase-vendor': ['@supabase/supabase-js'],
           'chart-vendor': ['chart.js', 'react-chartjs-2'],
           'zustand-vendor': ['zustand']
         }
@@ -170,7 +170,7 @@ export default defineConfig({
   },
 
   optimizeDeps: {
-    include: ['react', 'react-dom', 'react-router-dom', 'firebase/app', 'firebase/auth', 'firebase/firestore', 'zustand'],
+    include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', 'zustand'],
     exclude: ['@jridgewell/sourcemap-codec']
   },
 

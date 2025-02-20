@@ -1,7 +1,4 @@
-import { getAuth, createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
-import app from '../firebase';
-
-const auth = getAuth(app);
+import { supabase } from '../supabase';
 
 const users = [
   {
@@ -22,30 +19,40 @@ const setupAuth = async () => {
       console.log(`Processing user: ${user.email}`);
       
       // Try to create the user
-      try {
-        const userCredential = await createUserWithEmailAndPassword(auth, user.email, user.tempPassword);
-        console.log(`Created new user: ${user.email} with UID: ${userCredential.user.uid}`);
-      } catch (error: any) {
-        if (error.code === 'auth/email-already-in-use') {
-          console.log(`User already exists: ${user.email}`);
-          
-          // Try to sign in with temp password to verify account exists and is accessible
-          try {
-            await signInWithEmailAndPassword(auth, user.email, user.tempPassword);
-            console.log(`Successfully verified existing user: ${user.email}`);
-          } catch (signInError) {
-            console.log(`Could not verify existing user: ${user.email}. Will send reset email.`);
+      const { data: existingUser, error: checkError } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', user.email)
+        .single();
+
+      if (!existingUser) {
+        const { data, error } = await supabase.auth.signUp({
+          email: user.email,
+          password: user.tempPassword,
+          options: {
+            data: {
+              role: user.role
+            }
           }
-        } else {
+        });
+
+        if (error) {
           console.error(`Error creating user ${user.email}:`, error);
           continue;
         }
+
+        console.log(`Created new user: ${user.email} with ID: ${data.user?.id}`);
+      } else {
+        console.log(`User already exists: ${user.email}`);
       }
 
       // Send password reset email
-      await sendPasswordResetEmail(auth, user.email);
-      console.log(`Password reset email sent to: ${user.email}`);
-      
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(user.email);
+      if (resetError) {
+        console.error(`Error sending reset email to ${user.email}:`, resetError);
+      } else {
+        console.log(`Password reset email sent to: ${user.email}`);
+      }
     } catch (error) {
       console.error(`Error processing ${user.email}:`, error);
     }
@@ -57,7 +64,10 @@ const resetAllPasswords = async () => {
   for (const user of users) {
     try {
       console.log(`Sending reset email to: ${user.email}`);
-      await sendPasswordResetEmail(auth, user.email);
+      const { error } = await supabase.auth.resetPasswordForEmail(user.email);
+      if (error) {
+        throw error;
+      }
       console.log(`Password reset email sent to: ${user.email}`);
     } catch (error) {
       console.error(`Failed to send reset email to ${user.email}:`, error);
@@ -70,9 +80,15 @@ const verifyUsers = async () => {
   for (const user of users) {
     try {
       console.log(`Verifying access for: ${user.email}`);
-      await signInWithEmailAndPassword(auth, user.email, user.tempPassword);
+      const { error } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: user.tempPassword
+      });
+      if (error) {
+        throw error;
+      }
       console.log(`Successfully verified access for: ${user.email}`);
-      await auth.signOut();
+      await supabase.auth.signOut();
     } catch (error) {
       console.error(`Failed to verify access for ${user.email}:`, error);
     }

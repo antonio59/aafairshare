@@ -1,10 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
-import { auth } from '../firebase';
-import { sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
-import { FirebaseError } from 'firebase/app';
-import { handleAuthError } from '../utils/authUtils';
+import { supabase } from '../supabase';
 
 interface LocationState {
   from?: Location;
@@ -23,7 +20,8 @@ const Login = () => {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (currentUser && auth.currentUser) {
+    const session = supabase.auth.getSession();
+    if (currentUser && session) {
       const state = location.state as LocationState;
       const from = state?.from?.pathname || '/';
       navigate(from, { replace: true });
@@ -54,88 +52,34 @@ const Login = () => {
       navigate(from, { replace: true });
     } catch (error) {
       console.error('Login error:', error);
-      
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case 'auth/invalid-email':
-            setError('Invalid email address format.');
-            break;
-          case 'auth/user-disabled':
-            setError('This account has been disabled. Please contact support.');
-            break;
-          case 'auth/user-not-found':
-            setError('No account found with this email address.');
-            break;
-          case 'auth/wrong-password':
-            setError('Invalid password. Please try again or use the reset password link.');
-            break;
-          case 'auth/too-many-requests':
-            setError('Too many failed attempts. Please try again later or reset your password.');
-            break;
-          case 'auth/network-request-failed':
-            setError('Network error. Please check your connection and try again.');
-            break;
-          case 'auth/invalid-credential':
-            setError('Invalid email or password. Please try again.');
-            break;
-          default:
-            setError(`Authentication error: ${error.message}`);
-        }
-      } else if (error instanceof Error) {
-        setError(`Unexpected error: ${error.message}`);
-      } else {
-        setError('An unexpected error occurred. Please try again.');
-      }
-
-      // Handle auth error after setting the error message
-      await handleAuthError(error);
+      setError(error instanceof Error ? error.message : 'An error occurred during login');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleResetPassword = async (e: React.MouseEvent) => {
+  const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email) {
-      setError('Please enter your email address first');
+      setError('Please enter your email address');
       return;
     }
 
+    setIsResetting(true);
     setError('');
     setMessage('');
-    setIsResetting(true);
 
     try {
-      console.log('Sending password reset email to:', email);
-      await sendPasswordResetEmail(auth, email);
-      setMessage('Password reset email sent. Please check your inbox and spam folder.');
-      setPassword(''); // Clear password field after reset request
-      localStorage.removeItem('tempPassword'); // Remove stored password
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/reset-password',
+      });
+
+      if (error) throw error;
+
+      setMessage('Password reset email sent. Please check your inbox.');
     } catch (error) {
       console.error('Password reset error:', error);
-      
-      if (error instanceof FirebaseError) {
-        switch (error.code) {
-          case 'auth/invalid-email':
-            setError('Invalid email address format.');
-            break;
-          case 'auth/user-not-found':
-            setError('No account found with this email address.');
-            break;
-          case 'auth/too-many-requests':
-            setError('Too many requests. Please try again later.');
-            break;
-          default:
-            setError(`Reset password error: ${error.message}`);
-        }
-      } else if (error instanceof Error) {
-        setError(`Unexpected error: ${error.message}`);
-      } else {
-        setError('Failed to send reset email. Please try again.');
-      }
-
-      // Handle auth error after setting the error message
-      await handleAuthError(error);
+      setError(error instanceof Error ? error.message : 'Failed to send reset email');
     } finally {
       setIsResetting(false);
     }
@@ -202,14 +146,15 @@ const Login = () => {
 
           <div className="flex items-center justify-between">
             <div className="text-sm">
-              <a
-                href="#"
-                onClick={handleResetPassword}
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                disabled={isResetting}
                 className="font-medium text-blue-600 hover:text-blue-500"
                 style={{ pointerEvents: isLoading || isResetting ? 'none' : 'auto' }}
               >
                 {isResetting ? 'Sending reset email...' : 'Forgot your password?'}
-              </a>
+              </button>
             </div>
           </div>
 

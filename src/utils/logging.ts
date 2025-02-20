@@ -1,4 +1,4 @@
-import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
+import { supabase } from '../supabase';
 
 interface LogEntry {
   action: string;

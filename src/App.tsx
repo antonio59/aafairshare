@@ -1,8 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useUserStore } from './store/userStore';
-import { auth } from './firebase';
-import { onAuthStateChanged } from 'firebase/auth';
+import { supabase } from './supabase';
 import { clearAuthCache, validateAuthToken } from './utils/authUtils';
 import Navbar from './components/Navbar';
 import ExpenseList from './components/ExpenseList';
@@ -49,29 +48,36 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
 
-    const handleAuth = async (firebaseUser: any) => {
+    const handleAuth = async (session: any) => {
       try {
-        if (!firebaseUser) {
+        if (!session?.user) {
           setCurrentUser(null);
           setInitialized(true);
           return;
         }
 
-        const isValidToken = await validateAuthToken();
-        if (!isValidToken) {
+        // Get user profile from Supabase
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profileError) {
+          console.error('Error fetching user profile:', profileError);
           setCurrentUser(null);
           setInitialized(true);
           return;
         }
 
         const newUser: User = {
-          id: firebaseUser.uid,
-          name: firebaseUser.displayName || firebaseUser.email?.split('@')[0] || '',
-          email: firebaseUser.email || '',
-          role: (firebaseUser.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
+          id: session.user.id,
+          name: session.user.email?.split('@')[0] || '',
+          email: session.user.email || '',
+          role: (session.user.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
           preferences: {
             currency: 'GBP',
-            notifications: defaultNotificationPreferences
+            notifications: profile?.notification_preferences || defaultNotificationPreferences
           },
         };
 
@@ -93,8 +99,8 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
       }
     }, 1000); // Show loading for max 1 second
 
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      await handleAuth(firebaseUser);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+      await handleAuth(session);
       if (mounted) {
         setIsLoading(false);
         clearTimeout(timeoutId);
@@ -104,7 +110,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
-      unsubscribe();
+      subscription?.unsubscribe();
     };
   }, [setCurrentUser, setInitialized]);
 

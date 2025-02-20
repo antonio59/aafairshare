@@ -90,14 +90,14 @@ export const validateText = (text: string, maxLength: number = 500): boolean => 
  * 
  * 1. Core Security Directives:
  * - default-src 'self': Restricts all fetching to same origin by default
- * - script-src: Allows necessary JavaScript sources including Firebase and Analytics
+ * - script-src: Allows necessary JavaScript sources including Supabase and Analytics
  * - style-src: Allows styles from same origin and Google Fonts
  * - font-src: Allows fonts from same origin and Google Fonts
  * - img-src: Allows images from same origin, data URIs, and Analytics
  * 
  * 2. Connection and Resource Directives:
- * - connect-src: Allows connections to Firebase, Analytics, and GitHub.dev services
- * - frame-src: Allows frames from Firebase services
+ * - connect-src: Allows connections to Supabase, Analytics, and GitHub.dev services
+ * - frame-src: Allows frames from Supabase services
  * - manifest-src: Allows manifest files from GitHub.dev integration
  * - worker-src: Restricts workers to same origin
  * 
@@ -119,12 +119,12 @@ export const validateText = (text: string, maxLength: number = 500): boolean => 
 export const getCSPHeader = (): string => {
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.firebaseapp.com https://*.firebase.com https://*.google.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.google.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
     "img-src 'self' data: https: https://www.google-analytics.com",
-    "connect-src 'self' https://*.firebaseio.com https://*.cloudfunctions.net https://*.googleapis.com https://www.google-analytics.com wss://*.firebaseio.com https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
-    "frame-src 'self' https://*.firebaseapp.com",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
+    "frame-src 'self' https://*.supabase.co",
     "manifest-src 'self' https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
     "worker-src 'self'",
     "object-src 'none'",

@@ -1,7 +1,6 @@
 import { create } from 'zustand';
-import { signInWithEmailAndPassword, signOut, updatePassword as firebaseUpdatePassword } from 'firebase/auth';
-import { auth } from '@/firebase';
 import type { User, NotificationPreferences, UserStore } from '@/types';
+import { supabase } from '@/supabase';
 import { clearAuthCache } from '@/utils/authUtils';
 
 interface UserState {
@@ -50,168 +49,115 @@ export const useUserStore = create<UserStore>((set, get) => ({
         if (!isInitialized) {
           set({ isInitialized: true });
         }
-      }, 1000); // Force initialization after 1 second
+      }, 5000);
     }
   },
 
   setCurrentUser: (user: User | null) => {
-    if (user) {
-      set((state: UserState) => {
-        const existingUserIndex = state.users.findIndex(u => u.id === user.id);
-        const updatedUsers = [...state.users];
-        
-        if (existingUserIndex === -1) {
-          updatedUsers.push(user);
-        } else {
-          updatedUsers[existingUserIndex] = {
-            ...updatedUsers[existingUserIndex],
-            ...user,
-            preferences: {
-              ...updatedUsers[existingUserIndex]?.preferences,
-              ...user.preferences,
-              notifications: {
-                ...defaultNotificationPreferences,
-                ...updatedUsers[existingUserIndex]?.preferences?.notifications,
-                ...user.preferences?.notifications,
-                // Ensure each notification type has all required properties
-                overBudget: {
-                  ...defaultNotificationPreferences.overBudget,
-                  ...updatedUsers[existingUserIndex]?.preferences?.notifications?.overBudget,
-                  ...user.preferences?.notifications?.overBudget
-                },
-                monthlyReminder: {
-                  ...defaultNotificationPreferences.monthlyReminder,
-                  ...updatedUsers[existingUserIndex]?.preferences?.notifications?.monthlyReminder,
-                  ...user.preferences?.notifications?.monthlyReminder
-                },
-                settlementNotifications: {
-                  ...defaultNotificationPreferences.settlementNotifications,
-                  ...updatedUsers[existingUserIndex]?.preferences?.notifications?.settlementNotifications,
-                  ...user.preferences?.notifications?.settlementNotifications
-                }
-              }
-            }
-          };
-        }
-
-        return {
-          users: updatedUsers,
-          currentUser: user,
-          error: null,
-          isInitialized: true
-        };
-      });
-    } else {
-      set({ 
-        currentUser: null, 
-        error: null,
-        isInitialized: true
-      });
-    }
+    set({ currentUser: user });
   },
 
   login: async (email: string, password: string) => {
     try {
-      console.log('Attempting login for:', email);
-      
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Firebase auth successful:', userCredential.user);
-      
-      // Force token refresh
-      await userCredential.user.getIdToken(true);
-      
-      // Create user object with default notification preferences
-      const user: User = {
-        id: userCredential.user.uid,
-        name: userCredential.user.displayName || email.split('@')[0],
-        email: userCredential.user.email || email,
-        role: email.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2',
-        preferences: {
-          currency: 'GBP',
-          notifications: defaultNotificationPreferences
-        },
-      };
+      const { data: { user }, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      // Update store
-      get().setCurrentUser(user);
-      return true;
+      if (error) throw error;
+
+      if (user) {
+        // Fetch additional user data from your profiles table if needed
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        const userData: User = {
+          id: user.id,
+          email: user.email!,
+          notificationPreferences: profile?.notification_preferences || defaultNotificationPreferences,
+          // Add any other user fields you need
+        };
+
+        set({ currentUser: userData, error: null });
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Login error:', error);
-      set({ 
-        currentUser: null, 
-        error: 'Invalid email or password',
-        isInitialized: true
-      });
-      throw error;
+      set({ error: error instanceof Error ? error.message : 'Failed to login' });
+      return false;
     }
   },
 
   logout: async () => {
     try {
-      await signOut(auth);
-      await clearAuthCache();
-      set({ 
-        currentUser: null, 
-        error: null,
-        isInitialized: true
-      });
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+
+      set({ currentUser: null, error: null });
+      clearAuthCache();
     } catch (error) {
       console.error('Logout error:', error);
-      set({ 
-        error: 'Failed to logout', 
-        currentUser: null,
-        isInitialized: true
-      });
+      set({ error: error instanceof Error ? error.message : 'Failed to logout' });
     }
   },
 
   updateUser: async (updates: Partial<User>) => {
     const { currentUser } = get();
-    if (!currentUser) throw new Error('No user logged in');
+    if (!currentUser) {
+      set({ error: 'No user logged in' });
+      return false;
+    }
 
-    const updatedUser = {
-      ...currentUser,
-      ...updates,
-      preferences: {
-        ...currentUser.preferences,
-        ...updates.preferences,
-        notifications: updates.preferences?.notifications ? {
-          ...defaultNotificationPreferences,
-          ...currentUser.preferences.notifications,
-          ...updates.preferences.notifications,
-          // Ensure each notification type has all required properties
-          overBudget: {
-            ...defaultNotificationPreferences.overBudget,
-            ...currentUser.preferences.notifications.overBudget,
-            ...updates.preferences.notifications.overBudget
-          },
-          monthlyReminder: {
-            ...defaultNotificationPreferences.monthlyReminder,
-            ...currentUser.preferences.notifications.monthlyReminder,
-            ...updates.preferences.notifications.monthlyReminder
-          },
-          settlementNotifications: {
-            ...defaultNotificationPreferences.settlementNotifications,
-            ...currentUser.preferences.notifications.settlementNotifications,
-            ...updates.preferences.notifications.settlementNotifications
-          }
-        } : currentUser.preferences.notifications
+    try {
+      // Update auth email if it's being changed
+      if (updates.email) {
+        const { error } = await supabase.auth.updateUser({
+          email: updates.email
+        });
+        if (error) throw error;
       }
-    };
 
-    get().setCurrentUser(updatedUser);
+      // Update profile data
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          notification_preferences: updates.notificationPreferences,
+          // Add other profile fields here
+        })
+        .eq('id', currentUser.id);
+
+      if (profileError) throw profileError;
+
+      set({
+        currentUser: { ...currentUser, ...updates },
+        error: null
+      });
+      return true;
+    } catch (error) {
+      console.error('Update user error:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to update user' });
+      return false;
+    }
   },
 
   updatePassword: async (newPassword: string) => {
-    const firebaseUser = auth.currentUser;
-    if (!firebaseUser) throw new Error('No user logged in');
-
     try {
-      await firebaseUpdatePassword(firebaseUser, newPassword);
-      set({ error: null });
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+
+      if (error) throw error;
+      return true;
     } catch (error) {
-      console.error('Failed to update password:', error);
-      throw error;
+      console.error('Update password error:', error);
+      set({ error: error instanceof Error ? error.message : 'Failed to update password' });
+      return false;
     }
-  },
+  }
 }));

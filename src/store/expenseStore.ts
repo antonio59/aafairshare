@@ -14,29 +14,29 @@ import type {
   Tag
 } from '@/types';
 import {
-  addExpenseToFirestore,
-  updateExpenseInFirestore,
-  deleteExpenseFromFirestore,
-  addCategoryToFirestore,
-  updateCategoryInFirestore,
-  deleteCategoryFromFirestore,
-  addCategoryGroupToFirestore,
-  updateCategoryGroupInFirestore,
-  deleteCategoryGroupFromFirestore,
-  addTagToFirestore,
-  updateTagInFirestore,
-  deleteTagFromFirestore,
-  addBudgetToFirestore,
-  updateBudgetInFirestore,
-  deleteBudgetFromFirestore,
-  addRecurringExpenseToFirestore,
-  updateRecurringExpenseInFirestore,
-  deleteRecurringExpenseFromFirestore,
-  addSettlementToFirestore,
-  addBudgetHistoryToFirestore,
+  addExpense,
+  updateExpense,
+  deleteExpense,
+  addCategory,
+  updateCategory,
+  deleteCategory,
+  addCategoryGroup,
+  updateCategoryGroup,
+  deleteCategoryGroup,
+  addTag,
+  updateTag,
+  deleteTag,
+  addBudget,
+  updateBudget,
+  deleteBudget,
+  addRecurringExpense,
+  updateRecurringExpense,
+  deleteRecurringExpense,
+  addSettlement,
+  addBudgetHistory,
   fetchAllData
-} from '@/store/firebaseOperations';
-import { auth } from '@/firebase';
+} from '@/store/supabaseOperations';
+import { supabase } from '@/supabase';
 import { reAuthenticateUser } from '@/utils/authUtils';
 import type { ExpenseStore } from '@/store/types';
 import { getExpenseStore } from '@/store/createStore';
@@ -77,7 +77,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
     store.setLoading(true);
     try {
-      const user = auth.currentUser;
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         throw new Error('User not authenticated');
       }
@@ -105,7 +105,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
             lastFetchTimestamp: now
           });
         } else {
-          console.warn('Received empty data from Firebase, keeping existing data');
+          console.warn('Received empty data from database, keeping existing data');
           set({
             ...existingData,
             initialized: true,
@@ -272,7 +272,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   // Budget operations with history tracking
   addBudget: async (budget) => {
     const newBudget = { ...budget, id: uuidv4() };
-    await addBudgetToFirestore(newBudget);
+    await addBudget(newBudget);
 
     // Create history entry
     const history: BudgetHistory = {
@@ -282,10 +282,10 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
       category: newBudget.category,
       newValue: newBudget.amount,
       timestamp: new Date().toISOString(),
-      userId: auth.currentUser?.uid || '',
-      userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+      userId: (await supabase.auth.getUser()).data.user?.id || '',
+      userName: (await supabase.auth.getUser()).data.user?.email || 'Unknown User'
     };
-    await addBudgetHistoryToFirestore(history);
+    await addBudgetHistory(history);
 
     set(state => ({ 
       budgets: [...state.budgets, newBudget],
@@ -298,10 +298,11 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     const currentBudget = get().budgets.find(b => b.id === id);
     if (!currentBudget) return;
 
-    await updateBudgetInFirestore(id, budget);
+    await updateBudget(id, budget);
 
     // Create history entry if amount changed
     if (budget.amount !== undefined && budget.amount !== currentBudget.amount) {
+      const { data: { user } } = await supabase.auth.getUser();
       const history: BudgetHistory = {
         id: uuidv4(),
         budgetId: id,
@@ -310,10 +311,10 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
         oldValue: currentBudget.amount,
         newValue: budget.amount,
         timestamp: new Date().toISOString(),
-        userId: auth.currentUser?.uid || '',
-        userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+        userId: user?.id || '',
+        userName: user?.email || 'Unknown User'
       };
-      await addBudgetHistoryToFirestore(history);
+      await addBudgetHistory(history);
 
       set(state => ({
         budgets: state.budgets.map(b => b.id === id ? { ...b, ...budget } : b),
@@ -332,7 +333,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     const currentBudget = get().budgets.find(b => b.id === id);
     if (!currentBudget) return;
 
-    await deleteBudgetFromFirestore(id);
+    await deleteBudget(id);
 
     // Create history entry
     const history: BudgetHistory = {
@@ -342,10 +343,10 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
       category: currentBudget.category,
       oldValue: currentBudget.amount,
       timestamp: new Date().toISOString(),
-      userId: auth.currentUser?.uid || '',
-      userName: auth.currentUser?.displayName || auth.currentUser?.email || 'Unknown User'
+      userId: (await supabase.auth.getUser()).data.user?.id || '',
+      userName: (await supabase.auth.getUser()).data.user?.email || 'Unknown User'
     };
-    await addBudgetHistoryToFirestore(history);
+    await addBudgetHistory(history);
 
     set(state => ({
       budgets: state.budgets.filter(b => b.id !== id),
@@ -374,12 +375,12 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   // Expense operations
   addExpense: async (expense) => {
     const newExpense = { ...expense, id: uuidv4() };
-    await addExpenseToFirestore(newExpense);
+    await addExpense(newExpense);
     set(state => ({ expenses: [...state.expenses, newExpense], error: null }));
   },
 
   updateExpense: async (id, expense) => {
-    await updateExpenseInFirestore(id, expense);
+    await updateExpense(id, expense);
     set(state => ({
       expenses: state.expenses.map(e => e.id === id ? { ...e, ...expense } : e),
       error: null
@@ -387,7 +388,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   },
 
   deleteExpense: async (id) => {
-    await deleteExpenseFromFirestore(id);
+    await deleteExpense(id);
     set(state => ({
       expenses: state.expenses.filter(e => e.id !== id),
       error: null
@@ -398,13 +399,13 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   addCategory: async (category) => {
     const newCategory = { ...category, id: uuidv4() };
     console.log('Adding new category:', newCategory);
-    await addCategoryToFirestore(newCategory);
+    await addCategory(newCategory);
     set(state => ({ categories: [...state.categories, newCategory], error: null }));
   },
 
   updateCategory: async (id, category) => {
     console.log('Updating category:', id, category);
-    await updateCategoryInFirestore(id, category);
+    await updateCategory(id, category);
     set(state => ({
       categories: state.categories.map(c => c.id === id ? { ...c, ...category } : c),
       error: null
@@ -413,7 +414,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
   deleteCategory: async (id) => {
     console.log('Deleting category:', id);
-    await deleteCategoryFromFirestore(id);
+    await deleteCategory(id);
     set(state => ({
       categories: state.categories.filter(c => c.id !== id),
       error: null
@@ -424,13 +425,13 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   addCategoryGroup: async (group) => {
     const newGroup = { ...group, id: uuidv4() };
     console.log('Adding new category group:', newGroup);
-    await addCategoryGroupToFirestore(newGroup);
+    await addCategoryGroup(newGroup);
     set(state => ({ categoryGroups: [...state.categoryGroups, newGroup], error: null }));
   },
 
   updateCategoryGroup: async (id, group) => {
     console.log('Updating category group:', id, group);
-    await updateCategoryGroupInFirestore(id, group);
+    await updateCategoryGroup(id, group);
     set(state => ({
       categoryGroups: state.categoryGroups.map(g => g.id === id ? { ...g, ...group } : g),
       error: null
@@ -439,7 +440,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
   deleteCategoryGroup: async (id) => {
     console.log('Deleting category group:', id);
-    await deleteCategoryGroupFromFirestore(id);
+    await deleteCategoryGroup(id);
     set(state => ({
       categoryGroups: state.categoryGroups.filter(g => g.id !== id),
       error: null
@@ -459,12 +460,12 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     }
 
     const newTag = { ...tag, id: uuidv4() };
-    await addTagToFirestore(newTag);
+    await addTag(newTag);
     set(state => ({ tags: [...state.tags, newTag], error: null }));
   },
 
   updateTag: async (id, tag) => {
-    await updateTagInFirestore(id, tag);
+    await updateTag(id, tag);
     set(state => ({
       tags: state.tags.map(t => t.id === id ? { ...t, ...tag } : t),
       error: null
@@ -472,7 +473,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   },
 
   deleteTag: async (id) => {
-    await deleteTagFromFirestore(id);
+    await deleteTag(id);
     set(state => ({
       tags: state.tags.filter(t => t.id !== id),
       error: null
@@ -482,12 +483,12 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   // Recurring Expense operations
   addRecurringExpense: async (expense) => {
     const newExpense = { ...expense, id: uuidv4() };
-    await addRecurringExpenseToFirestore(newExpense);
+    await addRecurringExpense(newExpense);
     set(state => ({ recurringExpenses: [...state.recurringExpenses, newExpense], error: null }));
   },
 
   updateRecurringExpense: async (id, expense) => {
-    await updateRecurringExpenseInFirestore(id, expense);
+    await updateRecurringExpense(id, expense);
     set(state => ({
       recurringExpenses: state.recurringExpenses.map(e => e.id === id ? { ...e, ...expense } : e),
       error: null
@@ -495,7 +496,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
   },
 
   deleteRecurringExpense: async (id) => {
-    await deleteRecurringExpenseFromFirestore(id);
+    await deleteRecurringExpense(id);
     set(state => ({
       recurringExpenses: state.recurringExpenses.filter(e => e.id !== id),
       error: null
@@ -561,7 +562,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
       expenses: monthlyExpenses.map(e => e.id)
     };
 
-    await addSettlementToFirestore(settlement);
+    await addSettlement(settlement);
     set(state => ({
       settlements: [...state.settlements.filter(s => s.month !== month), settlement],
       error: null

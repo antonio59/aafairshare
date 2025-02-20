@@ -1,18 +1,15 @@
-import { auth } from '../firebase';
-import { signInWithEmailAndPassword, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
+import { supabase } from '../supabase';
 
 export const clearAuthCache = async () => {
   try {
-    // Clear all Firebase and authentication related storage
+    // Clear all Supabase and authentication related storage
     const itemsToClear = [
       ...Object.keys(sessionStorage).filter(key => 
-        key.includes('firebase') || 
-        key.includes('firebaseapp') ||
+        key.includes('supabase') || 
         key.includes('auth')
       ),
       ...Object.keys(localStorage).filter(key => 
-        key.includes('firebase') || 
-        key.includes('firebaseapp') ||
+        key.includes('supabase') || 
         key.includes('auth') ||
         key === 'tempPassword'
       )
@@ -28,17 +25,10 @@ export const clearAuthCache = async () => {
       }
     });
 
-    // Clear any existing auth tokens
-    const user = auth.currentUser;
-    if (user) {
-      try {
-        await user.getIdToken(true); // Force token refresh
-      } catch (e) {
-        console.warn('Failed to refresh token:', e);
-      }
-    }
+    // Sign out from Supabase
+    await supabase.auth.signOut();
 
-    console.log('Firebase auth cache cleared successfully');
+    console.log('Auth cache cleared successfully');
   } catch (error) {
     console.error('Error clearing auth cache:', error);
     throw error; // Propagate error for handling
@@ -47,25 +37,23 @@ export const clearAuthCache = async () => {
 
 export const validateAuthToken = async () => {
   try {
-    const user = auth.currentUser;
-    if (!user) {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error || !session) {
       return false;
     }
 
-    // Get current token
-    const token = await user.getIdToken();
-    if (!token) {
-      return false;
-    }
-
-    // Verify token expiration
-    const decodedToken = await user.getIdTokenResult();
-    const expirationTime = new Date(decodedToken.expirationTime).getTime();
+    // Check if session is expired
+    const expirationTime = new Date(session.expires_at!).getTime();
     const currentTime = new Date().getTime();
 
-    // If token is close to expiration (within 5 minutes), refresh it
+    // If session is expired or close to expiration (within 5 minutes), refresh it
     if (expirationTime - currentTime < 5 * 60 * 1000) {
-      await user.getIdToken(true); // Force token refresh
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.error('Session refresh failed:', refreshError);
+        await clearAuthCache();
+        return false;
+      }
     }
 
     return true;

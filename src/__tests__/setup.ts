@@ -1,21 +1,15 @@
-import { initializeApp } from 'firebase/app';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
-import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import { createClient } from '@supabase/supabase-js';
 
-const testConfig = {
-  apiKey: 'test-api-key',
-  projectId: 'test-project',
-  authDomain: 'test-project.firebaseapp.com'
-};
-
-// Initialize Firebase with test config
-const app = initializeApp(testConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// Connect to Firebase emulators
-connectFirestoreEmulator(db, 'localhost', 8080);
-connectAuthEmulator(auth, 'http://localhost:9099');
+// Create Supabase test client
+export const supabase = createClient(
+  'http://localhost:54321', // Local Supabase instance
+  'test-anon-key', // Test anon key
+  {
+    auth: {
+      persistSession: false // Don't persist auth state in tests
+    }
+  }
+);
 
 // Extend Jest matchers
 expect.extend({

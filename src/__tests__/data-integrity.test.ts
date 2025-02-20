@@ -1,26 +1,11 @@
-import { fetchAllData } from '../store/firebaseOperations';
-import { auth } from '../firebase';
-import { initializeApp } from 'firebase/app';
-import { connectFirestoreEmulator, getFirestore } from 'firebase/firestore';
-import { connectAuthEmulator, getAuth } from 'firebase/auth';
+import { fetchAllData } from '../store/supabaseOperations';
+import { supabase } from '../supabase';
 import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
-
-const testConfig = {
-  apiKey: 'test-api-key',
-  projectId: 'test-project',
-  authDomain: 'test-project.firebaseapp.com'
-};
 
 describe('Data Integrity Tests', () => {
   beforeAll(async () => {
-    // Initialize Firebase with test config
-    const app = initializeApp(testConfig);
-    const db = getFirestore(app);
-    const auth = getAuth(app);
-
-    // Connect to Firebase emulators
-    connectFirestoreEmulator(db, 'localhost', 8080);
-    connectAuthEmulator(auth, 'http://localhost:9099');
+    // Set up test environment
+    await supabase.auth.signOut();
   });
 
   describe('Category Integrity', () => {
