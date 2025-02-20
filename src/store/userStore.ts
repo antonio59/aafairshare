@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User, NotificationPreferences, UserStore } from '@/types';
 import { supabase } from '@/supabase';
-import { clearAuthCache, auth, EmailAuthProvider } from '@/utils/authUtils';
+import { clearAuthCache, auth } from '@/utils/authUtils';
 import { AuthError } from '@supabase/supabase-js';
 
 export const defaultNotificationPreferences: NotificationPreferences = {
