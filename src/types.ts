@@ -1,11 +1,11 @@
 export interface User {
   id: string;
   email: string;
-  notificationPreferences: NotificationPreferences;
-  role?: 'partner1' | 'partner2';
-  name?: string;
-  preferences?: {
+  name: string;
+  role: 'partner1' | 'partner2';
+  preferences: {
     currency: string;
+    notifications: NotificationPreferences;
   };
 }
 

@@ -11,6 +11,11 @@ interface UserState {
   isInitialized: boolean;
 }
 
+const defaultPreferences = {
+  currency: 'GBP',
+  notifications: defaultNotificationPreferences
+};
+
 const initialState: UserState = {
   users: [],
   currentUser: null,
@@ -80,8 +85,15 @@ export const useUserStore = create<UserStore>((set, get) => ({
         const userData: User = {
           id: user.id,
           email: user.email!,
-          notificationPreferences: profile?.notification_preferences || defaultNotificationPreferences,
-          // Add any other user fields you need
+          name: user.email!.split('@')[0] || '',
+          role: (user.email!.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
+          preferences: {
+            ...defaultPreferences,
+            notifications: {
+              ...defaultNotificationPreferences,
+              ...(profile?.notification_preferences || {})
+            }
+          }
         };
 
         set({ currentUser: userData, error: null });
@@ -124,11 +136,26 @@ export const useUserStore = create<UserStore>((set, get) => ({
         if (error) throw error;
       }
 
+      // Ensure preferences are properly merged
+      const updatedUser = { ...currentUser };
+      if (updates.preferences) {
+        updatedUser.preferences = {
+          ...defaultPreferences,
+          ...currentUser.preferences,
+          ...updates.preferences,
+          notifications: {
+            ...defaultNotificationPreferences,
+            ...(currentUser.preferences?.notifications || {}),
+            ...(updates.preferences.notifications || {})
+          }
+        };
+      }
+
       // Update profile data
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
-          notification_preferences: updates.notificationPreferences,
+          notification_preferences: updatedUser.preferences.notifications,
           // Add other profile fields here
         })
         .eq('id', currentUser.id);
@@ -136,7 +163,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
       if (profileError) throw profileError;
 
       set({
-        currentUser: { ...currentUser, ...updates },
+        currentUser: { ...updatedUser, ...updates },
         error: null
       });
       return true;
