@@ -99,44 +99,26 @@ export class EncryptionService {
   /**
    * Encrypts sensitive fields in an object
    * @param data - Object containing data to encrypt
-   * @param sensitiveFields - Array of field names to encrypt
    * @param masterKey - Master encryption key
    */
-  static async encryptFields<T extends Record<string, any>>(
-    data: T,
-    sensitiveFields: (keyof T)[],
-    masterKey: string
-  ): Promise<T> {
+  static async encryptFields<T extends Record<string, any>>(data: T, masterKey: string): Promise<T> {
     const result = { ...data };
-    
-    for (const field of sensitiveFields) {
-      if (result[field]) {
-        result[field] = await this.encrypt(result[field], masterKey);
-      }
+    for (const field of Object.keys(data) as Array<keyof T>) {
+      result[field] = await this.encrypt(result[field], masterKey) as unknown as T[keyof T];
     }
-    
     return result;
   }
 
   /**
    * Decrypts sensitive fields in an object
    * @param data - Object containing encrypted data
-   * @param sensitiveFields - Array of field names to decrypt
    * @param masterKey - Master encryption key
    */
-  static async decryptFields<T extends Record<string, any>>(
-    data: T,
-    sensitiveFields: (keyof T)[],
-    masterKey: string
-  ): Promise<T> {
+  static async decryptFields<T extends Record<string, any>>(data: T, masterKey: string): Promise<T> {
     const result = { ...data };
-    
-    for (const field of sensitiveFields) {
-      if (result[field]) {
-        result[field] = await this.decrypt(result[field], masterKey);
-      }
+    for (const field of Object.keys(data) as Array<keyof T>) {
+      result[field] = await this.decrypt(result[field], masterKey) as unknown as T[keyof T];
     }
-    
     return result;
   }
 }
