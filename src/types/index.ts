@@ -1,5 +1,7 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
+export type NotificationType = 'budget' | 'channeled' | 'timed';
+
 export type NotificationChannel = 'email' | 'push' | 'inApp';
 
 export interface BudgetNotificationSetting {
