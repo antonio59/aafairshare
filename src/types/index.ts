@@ -1,22 +1,22 @@
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 export type NotificationChannel = 'email' | 'push' | 'inApp';
 
 export interface BudgetNotificationSetting {
   enabled: boolean;
-  threshold: number;
-  channels: NotificationChannel[];
+  threshold?: number;
+  channels?: NotificationChannel[];
 }
 
 export interface ChanneledNotificationSetting {
   enabled: boolean;
-  channels: NotificationChannel[];
+  channels?: NotificationChannel[];
 }
 
 export interface TimedNotificationSetting {
   enabled: boolean;
-  day: number;
-  channels: NotificationChannel[];
+  day?: number;
+  channels?: NotificationChannel[];
 }
 
 export interface NotificationPreferences {
