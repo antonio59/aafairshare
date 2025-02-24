@@ -16,7 +16,7 @@ export class EncryptionService {
    * @param data - Data to encrypt
    * @param masterKey - Master encryption key (from environment variable)
    */
-  static async encrypt<T extends Record<string, any>>(data: T, masterKey: string): Promise<string> {
+  static async encrypt(data: string | Record<string, any>, masterKey: string): Promise<string> {
     if (!data) {
       throw new Error('Data to encrypt cannot be null or undefined');
     }
@@ -37,7 +37,7 @@ export class EncryptionService {
       const cipher = createCipheriv(algorithm, key as CipherKey, iv);
       
       // Encrypt the data
-      const dataString = JSON.stringify(data);
+      const dataString = typeof data === 'string' ? data : JSON.stringify(data);
       let encryptedData = cipher.update(dataString, 'utf8', 'base64');
       encryptedData += cipher.final('base64');
       
@@ -65,7 +65,7 @@ export class EncryptionService {
    * @param encryptedData - Data to decrypt
    * @param masterKey - Master encryption key (from environment variable)
    */
-  static async decrypt<T extends Record<string, any>>(encryptedData: string, masterKey: string): Promise<T> {
+  static async decrypt(encryptedData: string, masterKey: string): Promise<string> {
     try {
       // Parse the encrypted data
       const parsed = JSON.parse(Buffer.from(encryptedData, 'base64').toString());
@@ -90,7 +90,7 @@ export class EncryptionService {
       let decrypted = decipher.update(parsed.data, 'base64', 'utf8');
       decrypted += decipher.final('utf8');
       
-      return JSON.parse(decrypted) as T;
+      return decrypted;
     } catch (error) {
       throw new Error('Decryption failed');
     }

@@ -1,21 +1,4 @@
-export type NotificationChannel = 'email' | 'push' | 'inApp';
-
-export interface BudgetNotificationSetting {
-  enabled: boolean;
-  threshold: number;
-  channels: NotificationChannel[];
-}
-
-export interface ChanneledNotificationSetting {
-  enabled: boolean;
-  channels: NotificationChannel[];
-}
-
-export interface TimedNotificationSetting {
-  enabled: boolean;
-  day: number;
-  channels: NotificationChannel[];
-}import { supabase } from '../supabase';
+import { supabase } from '../supabase';
 import { auditLog, AuditLogType } from './auditLogger';
 import { EncryptionService } from './encryptionUtils';
 
