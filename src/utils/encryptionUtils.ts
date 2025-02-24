@@ -1,124 +1,126 @@
-import type { CipherKey } from 'crypto';
-import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
-import { promisify } from 'util';
+// Use Web Crypto API for browser compatibility
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
 
-const algorithm = 'aes-256-gcm';
-const scryptAsync = promisify(scrypt);
+const ENCRYPTION_CONFIG = {
+  keyLength: 32, // for AES-256
+  saltLength: 32,
+  ivLength: 12,
+  algorithm: 'AES-GCM',
+  iterations: 100000,
+  hash: 'SHA-256'
+} as const;
 
-export class EncryptionService {
-  private static readonly keyLength = 32; // for AES-256
-  private static readonly saltLength = 32;
-  private static readonly ivLength = 12; // for GCM mode
-  private static readonly tagLength = 16; // for authentication tag
+async function deriveKey(masterKey: string, salt: Uint8Array, usage: KeyUsage): Promise<CryptoKey> {
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(masterKey),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+  
+  return crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: ENCRYPTION_CONFIG.iterations,
+      hash: ENCRYPTION_CONFIG.hash
+    },
+    keyMaterial,
+    { name: ENCRYPTION_CONFIG.algorithm, length: 256 },
+    false,
+    [usage]
+  );
+}
 
-  /**
-   * Encrypts sensitive data
-   * @param data - Data to encrypt
-   * @param masterKey - Master encryption key (from environment variable)
-   */
-  static async encrypt(data: string | Record<string, any>, masterKey: string): Promise<string> {
-    if (!data) {
-      throw new Error('Data to encrypt cannot be null or undefined');
-    }
-    if (!masterKey) {
-      throw new Error('Master key cannot be empty');
-    }
-    try {
-      // Generate a random salt
-      const salt = randomBytes(this.saltLength);
-      
-      // Generate key using scrypt
-      const key = (await scryptAsync(masterKey, salt, this.keyLength)) as Buffer;
-      
-      // Generate initialization vector
-      const iv = randomBytes(this.ivLength);
-      
-      // Create cipher
-      const cipher = createCipheriv(algorithm, key as CipherKey, iv);
-      
-      // Encrypt the data
-      const dataString = typeof data === 'string' ? data : JSON.stringify(data);
-      let encryptedData = cipher.update(dataString, 'utf8', 'base64');
-      encryptedData += cipher.final('base64');
-      
-      // Get authentication tag
-      const authTag = cipher.getAuthTag();
-      
-      // Combine all components
-      const result = JSON.stringify({
-        v: 1, // version for future compatibility
-        salt: salt.toString('base64'),
-        iv: iv.toString('base64'),
-        data: encryptedData,
-        tag: authTag.toString('base64')
-      });
+export async function encrypt(data: string | Record<string, unknown>, masterKey: string): Promise<string> {
+  if (!data) throw new Error('Data to encrypt cannot be null or undefined');
+  if (!masterKey) throw new Error('Master key cannot be empty');
 
-      return result;
-    } catch (error) {
-      console.error('Encryption error:', error);
-      throw new Error(`Encryption failed: ${error instanceof Error ? error.message : String(error)}`);
+  try {
+    // Generate a random salt and IV
+    const salt = crypto.getRandomValues(new Uint8Array(ENCRYPTION_CONFIG.saltLength));
+    const iv = crypto.getRandomValues(new Uint8Array(ENCRYPTION_CONFIG.ivLength));
+    
+    // Derive encryption key
+    const key = await deriveKey(masterKey, salt, 'encrypt');
+    
+    // Encrypt the data
+    const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+    const encryptedData = await crypto.subtle.encrypt(
+      {
+        name: ENCRYPTION_CONFIG.algorithm,
+        iv
+      },
+      key,
+      encoder.encode(dataString)
+    );
+    
+    // Combine and encode components
+    return JSON.stringify({
+      v: 1, // version for future compatibility
+      salt: btoa(String.fromCharCode(...salt)),
+      iv: btoa(String.fromCharCode(...iv)),
+      data: btoa(String.fromCharCode(...new Uint8Array(encryptedData)))
+    });
+  } catch (error) {
+    throw new Error(`Encryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+export async function decrypt(encryptedData: string, masterKey: string): Promise<string> {
+  if (!encryptedData) throw new Error('Data to decrypt cannot be null or undefined');
+  if (!masterKey) throw new Error('Master key cannot be empty');
+
+  try {
+    const { v, salt, iv, data } = JSON.parse(encryptedData);
+    if (v !== 1) throw new Error('Unsupported encryption version');
+
+    // Convert base64 strings back to Uint8Arrays
+    const saltArray = Uint8Array.from(atob(salt), c => c.charCodeAt(0));
+    const ivArray = Uint8Array.from(atob(iv), c => c.charCodeAt(0));
+    const encryptedArray = Uint8Array.from(atob(data), c => c.charCodeAt(0));
+
+    // Derive decryption key
+    const key = await deriveKey(masterKey, saltArray, 'decrypt');
+
+    // Decrypt the data
+    const decryptedData = await crypto.subtle.decrypt(
+      {
+        name: ENCRYPTION_CONFIG.algorithm,
+        iv: ivArray
+      },
+      key,
+      encryptedArray
+    );
+
+    return decoder.decode(decryptedData);
+  } catch (error) {
+    throw new Error(`Decryption failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
+}
+
+export async function encryptFields<T extends Record<string, unknown>>(data: T, masterKey: string): Promise<T> {
+  const result = { ...data };
+  for (const field of Object.keys(data) as Array<keyof T>) {
+    const value = result[field];
+    if (typeof value === 'string') {
+      result[field] = await encrypt(value, masterKey) as unknown as T[keyof T];
+    } else if (value && typeof value === 'object') {
+      result[field] = await encrypt(value as Record<string, unknown>, masterKey) as unknown as T[keyof T];
     }
   }
+  return result;
+}
 
-  /**
-   * Decrypts encrypted data
-   * @param encryptedData - Data to decrypt
-   * @param masterKey - Master encryption key (from environment variable)
-   */
-  static async decrypt(encryptedData: string, masterKey: string): Promise<string> {
-    try {
-      // Parse the encrypted data
-      const parsed = JSON.parse(Buffer.from(encryptedData, 'base64').toString());
-      
-      if (parsed.v !== 1) {
-        throw new Error('Unsupported encryption version');
-      }
-
-      // Extract components
-      const salt = Buffer.from(parsed.salt, 'base64');
-      const iv = Buffer.from(parsed.iv, 'base64');
-      const tag = Buffer.from(parsed.tag, 'base64');
-      
-      // Generate key using scrypt
-      const key = (await scryptAsync(masterKey, salt, this.keyLength)) as Buffer;
-      
-      // Create decipher
-      const decipher = createDecipheriv(algorithm, key as CipherKey, iv);
-      decipher.setAuthTag(tag);
-      
-      // Decrypt the data
-      let decrypted = decipher.update(parsed.data, 'base64', 'utf8');
-      decrypted += decipher.final('utf8');
-      
-      return decrypted;
-    } catch (error) {
-      throw new Error('Decryption failed');
+export async function decryptFields<T extends Record<string, unknown>>(data: T, masterKey: string): Promise<T> {
+  const result = { ...data };
+  for (const field of Object.keys(data) as Array<keyof T>) {
+    const value = result[field];
+    if (typeof value === 'string') {
+      result[field] = await decrypt(value, masterKey) as unknown as T[keyof T];
     }
   }
-
-  /**
-   * Encrypts sensitive fields in an object
-   * @param data - Object containing data to encrypt
-   * @param masterKey - Master encryption key
-   */
-  static async encryptFields<T extends Record<string, any>>(data: T, masterKey: string): Promise<T> {
-    const result = { ...data };
-    for (const field of Object.keys(data) as Array<keyof T>) {
-      result[field] = await this.encrypt(result[field], masterKey) as unknown as T[keyof T];
-    }
-    return result;
-  }
-
-  /**
-   * Decrypts sensitive fields in an object
-   * @param data - Object containing encrypted data
-   * @param masterKey - Master encryption key
-   */
-  static async decryptFields<T extends Record<string, any>>(data: T, masterKey: string): Promise<T> {
-    const result = { ...data };
-    for (const field of Object.keys(data) as Array<keyof T>) {
-      result[field] = await this.decrypt(result[field], masterKey) as unknown as T[keyof T];
-    }
-    return result;
-  }
+  return result;
 }

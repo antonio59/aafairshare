@@ -1,31 +1,31 @@
 import { supabase } from '../supabase';
-import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
 
 interface LogEntry {
   action: string;
   collection: string;
   documentId?: string;
   userId: string;
-  timestamp: Date;
-  details?: any;
+  timestamp: string;
+  details?: Record<string, unknown>;
   error?: string;
 }
 
-export const logDataOperation = async (entry: LogEntry) => {
-  const db = getFirestore();
-  const logsCollection = collection(db, 'data_operation_logs');
-  
+export const logDataOperation = async (entry: LogEntry): Promise<void> => {
   try {
-    await addDoc(logsCollection, {
-      ...entry,
-      timestamp: Timestamp.fromDate(entry.timestamp)
-    });
+    const { error } = await supabase
+      .from('data_operation_logs')
+      .insert({
+        ...entry,
+        timestamp: new Date(entry.timestamp).toISOString()
+      });
+
+    if (error) throw error;
   } catch (error) {
     console.error('Failed to write log entry:', error);
-    // Still log to console even if Firestore write fails
+    // Still log to console even if database write fails
     console.warn('Data Operation:', {
       ...entry,
-      timestamp: entry.timestamp.toISOString()
+      timestamp: entry.timestamp
     });
   }
 };
@@ -35,14 +35,14 @@ export const createLogEntry = (
   collection: string,
   userId: string,
   documentId?: string,
-  details?: any,
+  details?: Record<string, unknown>,
   error?: string
 ): LogEntry => ({
   action,
   collection,
   documentId,
   userId,
-  timestamp: new Date(),
+  timestamp: new Date().toISOString(),
   details,
   error
 });

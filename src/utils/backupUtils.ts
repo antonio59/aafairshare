@@ -1,6 +1,6 @@
 import { supabase } from '../supabase';
 import { auditLog, AuditLogType } from './auditLogger';
-import { EncryptionService } from './encryptionUtils';
+import { encrypt, decrypt } from './encryptionUtils';
 
 interface BackupMetadata {
   timestamp: string;
@@ -34,7 +34,7 @@ export class BackupService {
       }
 
       // Encrypt the backup data
-      const encryptedData = await EncryptionService.encrypt(
+      const encryptedData = await encrypt(
         JSON.stringify(backupData),
         this.MASTER_KEY
       );
@@ -92,7 +92,7 @@ export class BackupService {
 
       // Decrypt backup data
       const encryptedData = await data.text();
-      const decryptedString = await EncryptionService.decrypt(
+      const decryptedString = await decrypt(
         encryptedData,
         this.MASTER_KEY
       );
@@ -154,7 +154,7 @@ export class BackupService {
       if (error) throw error;
 
       const encryptedData = await data.text();
-      const decryptedString = await EncryptionService.decrypt(
+      const decryptedString = await decrypt(
         encryptedData,
         this.MASTER_KEY
       );

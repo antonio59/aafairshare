@@ -4,21 +4,22 @@ export type NotificationType = 'budget' | 'channeled' | 'timed';
 
 export type NotificationChannel = 'email' | 'push' | 'inApp';
 
-export interface BudgetNotificationSetting {
+export interface BaseNotificationSetting {
   enabled: boolean;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  inAppEnabled: boolean;
+  channels: Array<'email' | 'push' | 'inApp'>;
+}
+
+export interface BudgetNotificationSetting extends BaseNotificationSetting {
   threshold: number;
-  channels: NotificationChannel[];
 }
 
-export interface ChanneledNotificationSetting {
-  enabled: boolean;
-  channels: NotificationChannel[];
-}
+export interface ChanneledNotificationSetting extends BaseNotificationSetting {}
 
-export interface TimedNotificationSetting {
-  enabled: boolean;
+export interface TimedNotificationSetting extends BaseNotificationSetting {
   day: number;
-  channels: NotificationChannel[];
 }
 
 export interface NotificationPreferences {

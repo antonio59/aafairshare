@@ -1,5 +1,3 @@
-import { createHash } from 'crypto';
-
 // Rate limiting configuration
 interface RateLimitConfig {
   maxAttempts: number;
@@ -153,7 +151,7 @@ export const validateFile = (
 
 // Get CSP Header
 function getCSPHeader(): string {
-  const nonce = createHash('sha256').update(Date.now().toString()).digest('base64');
+  const nonce = Date.now().toString();
   
   return [
     "default-src 'self'",

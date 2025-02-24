@@ -1,25 +1,28 @@
 import { create } from 'zustand';
-import type { User, NotificationPreferences, UserStore, NotificationChannel, BudgetNotificationSetting, ChanneledNotificationSetting, TimedNotificationSetting } from '@/types';
-import { supabase } from '@/supabase';
-import { clearAuthCache, auth } from '@/utils/authUtils';
+import type { User, NotificationPreferences, UserStore, BudgetNotificationSetting, ChanneledNotificationSetting, TimedNotificationSetting } from '../types';
+import { supabase } from '../supabase';
+import { clearAuthCache, auth } from '../utils/authUtils';
 import type { AuthError } from '@supabase/supabase-js';
+
+const createNotificationSetting = (channels: Array<'email' | 'push' | 'inApp'>) => ({
+  enabled: true,
+  emailEnabled: channels.includes('email'),
+  pushEnabled: channels.includes('push'),
+  inAppEnabled: channels.includes('inApp'),
+  channels
+});
 
 export const defaultNotificationPreferences: NotificationPreferences = {
   globalEnabled: true,
   overBudget: {
-    enabled: true,
-    threshold: 80,
-    channels: ['email', 'push'] as NotificationChannel[]
-  } satisfies BudgetNotificationSetting,
-  settlementNotifications: {
-    enabled: true,
-    channels: ['email', 'push'] as NotificationChannel[]
-  } satisfies ChanneledNotificationSetting,
+    ...createNotificationSetting(['email', 'push']),
+    threshold: 80
+  } as BudgetNotificationSetting,
+  settlementNotifications: createNotificationSetting(['email', 'push']) as ChanneledNotificationSetting,
   monthlyReminder: {
-    enabled: true,
-    day: 1,
-    channels: ['email'] as NotificationChannel[]
-  } satisfies TimedNotificationSetting
+    ...createNotificationSetting(['email']),
+    day: 1
+  } as TimedNotificationSetting
 };
 
 interface UserState {
