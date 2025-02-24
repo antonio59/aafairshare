@@ -1,8 +1,9 @@
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 import type { Expense, Category, Tag } from '../types';
-import pdfMake from 'pdfmake/build/pdfmake';
-import pdfFonts from 'pdfmake/build/vfs_fonts';
+import * as pdfMake from 'pdfmake/build/pdfmake';
+import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+import type { TDocumentDefinitions } from 'pdfmake/interfaces';
 
 interface MonthlyTotals {
   andresPaid: number;
@@ -171,7 +172,7 @@ export const exportToPDF = (
   const totals = calculateMonthlyTotals(expenses);
 
   // Create document definition
-  const docDefinition = {
+  const docDefinition: TDocumentDefinitions = {
     content: [
       { text: `Expenses - ${monthName}`, style: 'header' },
       {

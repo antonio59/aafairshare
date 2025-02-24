@@ -15,7 +15,7 @@ export class EncryptionService {
    * @param data - Data to encrypt
    * @param masterKey - Master encryption key (from environment variable)
    */
-  static async encrypt(data: string, masterKey: string): Promise<string> {
+  static async encrypt<T extends { toString(): string }>(data: T, masterKey: string): Promise<string> {
     if (!data) {
       throw new Error('Data to encrypt cannot be null or undefined');
     }
@@ -36,7 +36,7 @@ export class EncryptionService {
       const cipher = createCipheriv(algorithm, key, iv);
       
       // Encrypt the data
-      const dataString = typeof data === 'string' ? data : JSON.stringify(data);
+      const dataString = data.toString();
       let encryptedData = cipher.update(dataString, 'utf8', 'base64');
       encryptedData += cipher.final('base64');
       
