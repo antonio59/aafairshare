@@ -1,4 +1,5 @@
 import { supabase } from '../supabase';
+import { getFirestore, collection, addDoc, Timestamp } from 'firebase/firestore';
 
 interface LogEntry {
   action: string;

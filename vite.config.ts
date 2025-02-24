@@ -5,6 +5,7 @@ import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa';
 import fs from 'fs';
 import path from 'path';
 import * as esbuild from 'esbuild';
+import terser from '@rollup/plugin-terser';
 
 // Read manifest.json content
 const manifestContent = JSON.parse(fs.readFileSync('./public/manifest.json', 'utf-8'));
@@ -27,21 +28,34 @@ const pwaOptions: Partial<VitePWAOptions> = {
   includeAssets: ['offline.html'],
   manifest: {
     ...manifestContent,
+    name: 'AA Fairshare',
+    short_name: 'Fairshare',
+    theme_color: '#ffffff',
+    icons: [
+      {
+        src: '/icon-192.png',
+        sizes: '192x192',
+        type: 'image/png'
+      },
+      {
+        src: '/icon-512.png',
+        sizes: '512x512',
+        type: 'image/png'
+      }
+    ],
     start_url: './',
     scope: './',
     id: '/',
   },
   workbox: {
     globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-    cleanupOutdatedCaches: true,
-    sourcemap: true,
     runtimeCaching: [
       {
         urlPattern: /^https:\/\/fonts\.googleapis\.com/,
         handler: 'StaleWhileRevalidate',
         options: {
-          cacheName: 'google-fonts-stylesheets',
-        },
+          cacheName: 'google-fonts-stylesheets'
+        }
       },
       {
         urlPattern: /^https:\/\/fonts\.gstatic\.com/,
@@ -59,7 +73,7 @@ const pwaOptions: Partial<VitePWAOptions> = {
         handler: 'NetworkFirst',
         options: {
           cacheName: 'static-resources',
-        },
+        }
       }
     ],
     navigateFallback: 'index.html',
@@ -78,11 +92,9 @@ export default defineConfig({
   plugins: [
     react({
       jsxRuntime: 'automatic',
-      jsxImportSource: 'react',
+      jsxImportSource: '@emotion/react',
       babel: {
-        plugins: [
-          ['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]
-        ]
+        plugins: ['@emotion/babel-plugin', '@babel/plugin-transform-react-jsx']
       }
     }),
     compression({
@@ -150,7 +162,7 @@ export default defineConfig({
   },
 
   build: {
-    target: 'esnext',
+    target: 'es2022',
     modulePreload: {
       polyfill: true,
       resolveDependencies: (url: string, deps: string[], { hostId, hostType }: any) => deps
@@ -166,6 +178,13 @@ export default defineConfig({
     manifest: true,
     ssrManifest: true,
     rollupOptions: {
+      plugins: [
+        terser({
+          format: {
+            comments: false
+          }
+        })
+      ],
       output: {
         assetFileNames: (assetInfo: { name?: string }) => {
           const info = assetInfo.name ?? '';
@@ -213,7 +232,7 @@ export default defineConfig({
     include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', 'zustand'],
     exclude: ['@jridgewell/sourcemap-codec'],
     esbuildOptions: {
-      target: 'esnext',
+      target: 'es2022',
       platform: 'browser',
       supported: {
         'dynamic-import': true,

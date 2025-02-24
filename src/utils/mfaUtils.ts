@@ -30,11 +30,12 @@ export async function enrollMFA() {
   }
 }
 
-export async function verifyMFA(code: string, factorId: string) {
+export async function verifyMFA(factorId: string, code: string, challengeId: string) {
   try {
     const { data, error } = await supabase.auth.mfa.verify({
       factorId,
-      code
+      code,
+      challengeId
     });
 
     if (error) throw error;

@@ -1,24 +1,24 @@
 import { create } from 'zustand';
-import type { User, NotificationPreferences, UserStore } from '@/types';
+import type { User, NotificationPreferences, UserStore, NotificationChannel } from '@/types';
 import { supabase } from '@/supabase';
 import { clearAuthCache, auth } from '@/utils/authUtils';
-import { AuthError } from '@supabase/supabase-js';
+import type { AuthError } from '@supabase/supabase-js';
 
 export const defaultNotificationPreferences: NotificationPreferences = {
   globalEnabled: true,
   overBudget: {
     enabled: true,
     threshold: 80,
-    channels: ['email', 'push']
+    channels: ['email', 'push'] as NotificationChannel[]
   },
   settlementNotifications: {
     enabled: true,
-    channels: ['email', 'push']
+    channels: ['email', 'push'] as NotificationChannel[]
   },
   monthlyReminder: {
     enabled: true,
     day: 1,
-    channels: ['email']
+    channels: ['email'] as NotificationChannel[]
   }
 };
 

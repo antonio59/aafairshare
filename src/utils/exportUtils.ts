@@ -1,9 +1,11 @@
 import { format } from 'date-fns';
 import ExcelJS from 'exceljs';
 import type { Expense, Category, Tag } from '../types';
-import * as pdfMake from 'pdfmake/build/pdfmake';
-import * as pdfFonts from 'pdfmake/build/vfs_fonts';
+import pdfMake from 'pdfmake/build/pdfmake';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
+
+// @ts-ignore - pdfFonts has no type definitions
+import pdfFonts from 'pdfmake/build/vfs_fonts';
 
 interface MonthlyTotals {
   andresPaid: number;
@@ -140,7 +142,7 @@ export const exportToExcel = async (
 };
 
 // Initialize pdfmake with fonts
-pdfMake.vfs = pdfFonts.pdfMake.vfs;
+(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
 export const exportToPDF = (
   expenses: Expense[],

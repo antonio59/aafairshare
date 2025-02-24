@@ -1,3 +1,4 @@
+import type { CipherKey } from 'crypto';
 import { createCipheriv, createDecipheriv, randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
 
@@ -15,7 +16,7 @@ export class EncryptionService {
    * @param data - Data to encrypt
    * @param masterKey - Master encryption key (from environment variable)
    */
-  static async encrypt<T extends { toString(): string }>(data: T, masterKey: string): Promise<string> {
+  static async encrypt<T extends Record<string, any>>(data: T, masterKey: string): Promise<string> {
     if (!data) {
       throw new Error('Data to encrypt cannot be null or undefined');
     }
@@ -27,16 +28,16 @@ export class EncryptionService {
       const salt = randomBytes(this.saltLength);
       
       // Generate key using scrypt
-      const key = await scryptAsync(masterKey, salt, this.keyLength);
+      const key = (await scryptAsync(masterKey, salt, this.keyLength)) as Buffer;
       
       // Generate initialization vector
       const iv = randomBytes(this.ivLength);
       
       // Create cipher
-      const cipher = createCipheriv(algorithm, key, iv);
+      const cipher = createCipheriv(algorithm, key as CipherKey, iv);
       
       // Encrypt the data
-      const dataString = data.toString();
+      const dataString = JSON.stringify(data);
       let encryptedData = cipher.update(dataString, 'utf8', 'base64');
       encryptedData += cipher.final('base64');
       
@@ -52,7 +53,7 @@ export class EncryptionService {
         tag: authTag.toString('base64')
       });
 
-      return Buffer.from(result).toString('base64');
+      return result;
     } catch (error) {
       console.error('Encryption error:', error);
       throw new Error(`Encryption failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -64,7 +65,7 @@ export class EncryptionService {
    * @param encryptedData - Data to decrypt
    * @param masterKey - Master encryption key (from environment variable)
    */
-  static async decrypt(encryptedData: string, masterKey: string): Promise<string> {
+  static async decrypt<T extends Record<string, any>>(encryptedData: string, masterKey: string): Promise<T> {
     try {
       // Parse the encrypted data
       const parsed = JSON.parse(Buffer.from(encryptedData, 'base64').toString());
@@ -79,17 +80,17 @@ export class EncryptionService {
       const tag = Buffer.from(parsed.tag, 'base64');
       
       // Generate key using scrypt
-      const key = await scryptAsync(masterKey, salt, this.keyLength);
+      const key = (await scryptAsync(masterKey, salt, this.keyLength)) as Buffer;
       
       // Create decipher
-      const decipher = createDecipheriv(algorithm, key, iv);
+      const decipher = createDecipheriv(algorithm, key as CipherKey, iv);
       decipher.setAuthTag(tag);
       
       // Decrypt the data
       let decrypted = decipher.update(parsed.data, 'base64', 'utf8');
       decrypted += decipher.final('utf8');
       
-      return decrypted;
+      return JSON.parse(decrypted) as T;
     } catch (error) {
       throw new Error('Decryption failed');
     }
@@ -110,10 +111,7 @@ export class EncryptionService {
     
     for (const field of sensitiveFields) {
       if (result[field]) {
-        result[field] = await this.encrypt(
-          typeof result[field] === 'string' ? result[field] : JSON.stringify(result[field]),
-          masterKey
-        );
+        result[field] = await this.encrypt(result[field], masterKey);
       }
     }
     
@@ -135,12 +133,7 @@ export class EncryptionService {
     
     for (const field of sensitiveFields) {
       if (result[field]) {
-        const decrypted = await this.decrypt(result[field], masterKey);
-        try {
-          result[field] = JSON.parse(decrypted);
-        } catch {
-          result[field] = decrypted;
-        }
+        result[field] = await this.decrypt(result[field], masterKey);
       }
     }
     
