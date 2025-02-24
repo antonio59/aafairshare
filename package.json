@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "keep-alive": "tsx scripts/keepAlive.ts",
     "security-scan": "snyk test --severity-threshold=high && npm audit --audit-level=high --production",
     "audit-fix": "npm audit fix",
     "security:full": "npm run security-scan && npm run lint && npm run typecheck",
