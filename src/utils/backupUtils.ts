@@ -1,4 +1,21 @@
-import { supabase } from '../supabase';
+export type NotificationChannel = 'email' | 'push' | 'inApp';
+
+export interface BudgetNotificationSetting {
+  enabled: boolean;
+  threshold: number;
+  channels: NotificationChannel[];
+}
+
+export interface ChanneledNotificationSetting {
+  enabled: boolean;
+  channels: NotificationChannel[];
+}
+
+export interface TimedNotificationSetting {
+  enabled: boolean;
+  day: number;
+  channels: NotificationChannel[];
+}import { supabase } from '../supabase';
 import { auditLog, AuditLogType } from './auditLogger';
 import { EncryptionService } from './encryptionUtils';
 
@@ -92,12 +109,12 @@ export class BackupService {
 
       // Decrypt backup data
       const encryptedData = await data.text();
-      const decryptedData = await EncryptionService.decrypt(
+      const decryptedString = await EncryptionService.decrypt(
         encryptedData,
         this.MASTER_KEY
       );
 
-      const backupData = JSON.parse(decryptedData);
+      const backupData = JSON.parse(decryptedString) as Record<string, any>;
 
       // Start transaction for restore
       const { error: txError } = await supabase.rpc('begin_transaction');
@@ -154,13 +171,13 @@ export class BackupService {
       if (error) throw error;
 
       const encryptedData = await data.text();
-      const decryptedData = await EncryptionService.decrypt(
+      const decryptedString = await EncryptionService.decrypt(
         encryptedData,
         this.MASTER_KEY
       );
 
       // Verify JSON structure
-      const backupData = JSON.parse(decryptedData);
+      const backupData = JSON.parse(decryptedString) as Record<string, any>;
       const requiredTables = ['expenses', 'profiles', 'audit_logs'];
       
       for (const table of requiredTables) {
