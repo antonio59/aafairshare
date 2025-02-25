@@ -1,9 +1,22 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { compression } from 'vite-plugin-compression2';
 import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa';
 import fs from 'fs';
 import path from 'path';
+
+// Load environment variables
+const env = loadEnv('', process.cwd(), '');
+
+// Map environment variables
+const envPrefix = ['NEXT_PUBLIC_'];
+const processEnv = {
+  'process.env': Object.fromEntries(
+    Object.entries(env).filter(([key]) =>
+      envPrefix.some(prefix => key.startsWith(prefix))
+    )
+  )
+};
 
 // Read manifest.json content
 const manifestContent = JSON.parse(fs.readFileSync('./public/manifest.json', 'utf-8'));
@@ -88,6 +101,7 @@ const pwaOptions: Partial<VitePWAOptions> = {
 };
 
 export default defineConfig({
+  define: processEnv,
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
