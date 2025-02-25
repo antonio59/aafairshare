@@ -2,12 +2,6 @@ import { supabase } from '../supabase';
 import { createAuditLog, AUDIT_LOG_TYPES } from './auditLogger';
 import { encrypt, decrypt } from './encryptionUtils';
 
-interface BackupResult {
-  success: boolean;
-  metadata?: BackupMetadata;
-  error?: string;
-}
-
 interface BackupMetadata {
   timestamp: string;
   version: string;
@@ -16,14 +10,53 @@ interface BackupMetadata {
   checksum: string;
 }
 
+interface BackupResult {
+  success: boolean;
+  metadata?: BackupMetadata;
+  error?: string;
+}
+
+interface BackupOptions {
+  encryptData?: boolean;
+  compressionLevel?: number;
+  retentionDays?: number;
+}
+
+interface RestoreOptions {
+  validateChecksum?: boolean;
+  skipAuditLogs?: boolean;
+  dryRun?: boolean;
+}
+
+const DEFAULT_BACKUP_OPTIONS: BackupOptions = {
+  encryptData: true,
+  compressionLevel: 9,
+  retentionDays: 30
+};
+
+const DEFAULT_RESTORE_OPTIONS: RestoreOptions = {
+  validateChecksum: true,
+  skipAuditLogs: false,
+  dryRun: false
+};
+
 export const backupUtils = {
   BACKUP_BUCKET: 'backups' as const,
   MASTER_KEY: process.env.MASTER_ENCRYPTION_KEY as string,
+  
+  // Helper functions
+  async generateChecksum(data: string): Promise<string> {
+    const msgBuffer = new TextEncoder().encode(data);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  },
 
+  // Main functionality
   /**
    * Creates a full backup of the database
    */
-  async createBackup(): Promise<BackupResult> {
+  async createBackup(options: BackupOptions = DEFAULT_BACKUP_OPTIONS): Promise<BackupResult> {
     try {
       const timestamp = new Date().toISOString();
       const tables = ['expenses', 'profiles', 'audit_logs'];
@@ -90,7 +123,7 @@ export const backupUtils = {
   /**
    * Restores data from a backup
    */
-  async restoreBackup(timestamp: string): Promise<BackupResult> {
+  async restoreBackup(timestamp: string, options: RestoreOptions = DEFAULT_RESTORE_OPTIONS): Promise<BackupResult> {
     try {
       // Download backup file
       const filename = `backup-${timestamp}.enc`;
@@ -158,7 +191,7 @@ export const backupUtils = {
   /**
    * Tests a backup by restoring it to a temporary database
    */
-  async testBackup(timestamp: string): Promise<BackupResult> {
+  async testBackup(timestamp: string, options: RestoreOptions = DEFAULT_RESTORE_OPTIONS): Promise<BackupResult> {
     try {
       // Download and decrypt backup
       const filename = `backup-${timestamp}.enc`;
@@ -205,10 +238,4 @@ export const backupUtils = {
     }
   },
 
-  async generateChecksum(data: string): Promise<string> {
-    const msgBuffer = new TextEncoder().encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  }
 }
