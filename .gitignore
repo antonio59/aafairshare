@@ -1,10 +1,22 @@
 # Dependencies
 node_modules/
 
-# Environment variables
+# Security and credentials
 .env
 .env.*
 !.env.example
+*.pem
+*.key
+*.cert
+*.p12
+*.pfx
+*.crt
+serviceAccountKey*.json
+*credential*.json
+*secret*.json
+*key*.json
+*token*.js
+get-token.js
 
 # Build outputs
 dist/
