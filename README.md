@@ -22,15 +22,21 @@ AA FairShare is a modern, secure, and high-performance expense sharing applicati
 - 📴 Offline functionality
 - 🖼️ Optimized image loading
 - 📊 Performance monitoring
+- ♿ Full accessibility support with Radix UI
+- ⌨️ Advanced keyboard navigation
+- 🎯 Form validation with Zod
+- 🔄 Enhanced state management
+- 🎨 Consistent component library
 
 ## Tech Stack
 
 - **Frontend Framework**: React with TypeScript
+- **UI Components**: Radix UI with full accessibility support
 - **Build Tool**: Vite with advanced code splitting
 - **State Management**: Zustand with optimized store management
 - **Authentication**: Supabase Auth
 - **Database**: Supabase with offline support
-- **Styling**: TailwindCSS
+- **Styling**: TailwindCSS with consistent design tokens
 - **Charts**: Chart.js with react-chartjs-2 (lazy loaded)
 - **PDF Generation**: pdfmake (dynamically imported)
 - **Testing**: Jest and React Testing Library
@@ -38,6 +44,7 @@ AA FairShare is a modern, secure, and high-performance expense sharing applicati
 - **Performance**: Web Vitals monitoring, optimized assets
 - **PWA**: Service Worker with advanced caching strategies
 - **Image Optimization**: WebP format, responsive loading
+- **Form Validation**: Zod with React Hook Form
 
 ## Getting Started
 

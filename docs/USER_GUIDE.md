@@ -5,10 +5,78 @@
 AA FairShare is designed to provide a fast, responsive, and reliable experience, even in challenging network conditions. This guide explains the performance features available to you and how to make the best use of them.
 
 ## Table of Contents
+- [Accessibility Features](#accessibility-features)
+- [Keyboard Navigation](#keyboard-navigation)
 - [Offline Support](#offline-support)
 - [Performance Features](#performance-features)
 - [Data Management](#data-management)
 - [Troubleshooting](#troubleshooting)
+
+## Accessibility Features
+
+### Screen Reader Support
+AA FairShare is fully accessible with screen readers:
+
+1. **Navigation**:
+   - All interactive elements are properly labeled
+   - Clear headings and landmarks
+   - Descriptive button and link text
+
+2. **Forms and Inputs**:
+   - Clear error messages
+   - Required field indicators
+   - Input validation feedback
+   - Descriptive labels
+
+3. **Dynamic Content**:
+   - Status updates are announced
+   - Loading states are indicated
+   - Modal dialogs are properly managed
+
+### High Contrast and Color
+1. **Color Schemes**:
+   - High contrast mode support
+   - Color-blind friendly design
+   - Customizable themes
+
+2. **Text and Icons**:
+   - Adjustable text size
+   - Clear iconography
+   - Sufficient color contrast
+
+## Keyboard Navigation
+
+### Global Navigation
+- `Tab`: Move between interactive elements
+- `Shift + Tab`: Move backwards
+- `Enter/Space`: Activate buttons and links
+- `Esc`: Close modals and menus
+
+### Component-Specific Shortcuts
+
+1. **Dropdowns and Selects**:
+   - `↑/↓`: Navigate options
+   - `Enter`: Select option
+   - `Esc`: Close dropdown
+   - Type to search
+
+2. **Tag Input**:
+   - `Enter`: Add tag
+   - `Backspace`: Remove last tag
+   - `←/→`: Navigate between tags
+   - `Delete`: Remove selected tag
+
+3. **Date Selection**:
+   - `←/→`: Previous/Next month
+   - `↑/↓`: Same day previous/next week
+   - `Home/End`: Start/End of week
+   - `PageUp/PageDown`: Previous/Next month
+
+4. **Forms**:
+   - `Enter`: Submit form
+   - `Esc`: Reset form
+   - `Tab`: Next field
+   - `Shift + Tab`: Previous field
 
 ## Offline Support
 

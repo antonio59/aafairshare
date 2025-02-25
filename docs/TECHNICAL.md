@@ -5,12 +5,94 @@
 This document provides detailed technical information about the performance optimizations implemented in the AA FairShare application.
 
 ## Table of Contents
+- [UI Components](#ui-components)
+- [Accessibility](#accessibility)
 - [Code Splitting](#code-splitting)
 - [Performance Monitoring](#performance-monitoring)
 - [Image Optimization](#image-optimization)
 - [State Management](#state-management)
 - [Service Worker](#service-worker)
 - [Build Optimization](#build-optimization)
+
+## UI Components
+
+### Component Architecture
+```typescript
+// Example from enhanced-select.tsx
+export function EnhancedSelect<T>({ 
+  value, 
+  onChange, 
+  options, 
+  groupBy 
+}: EnhancedSelectProps<T>) {
+  // Optimized rendering with proper memoization
+  const groups = useMemo(() => groupOptions(options, groupBy), [options, groupBy]);
+  
+  return (
+    <Command>
+      <CommandInput />
+      <CommandList>
+        {groups.map(group => (
+          <CommandGroup key={group.label}>
+            {group.items.map(item => (
+              <CommandItem key={item.value} onSelect={() => onChange(item.value)} />
+            ))}
+          </CommandGroup>
+        ))}
+      </CommandList>
+    </Command>
+  );
+}
+```
+
+### Component Features
+- Built on Radix UI primitives
+- Fully accessible
+- Keyboard navigation
+- Form validation with Zod
+- Toast notifications
+- Loading states
+- Error handling
+
+## Accessibility
+
+### ARIA Support
+```typescript
+// Example from user-select.tsx
+<DropdownMenuTrigger
+  aria-label="User menu"
+  aria-expanded={isOpen}
+  aria-haspopup="menu"
+>
+  <UserAvatar />
+</DropdownMenuTrigger>
+```
+
+### Keyboard Navigation
+- Tab navigation
+- Arrow key support
+- Enter/Space activation
+- Escape to close
+- Type to select
+
+### Focus Management
+```typescript
+// Example from tag-input.tsx
+const TagInput = forwardRef<HTMLDivElement, TagInputProps>((props, ref) => {
+  const [focused, setFocused] = useState(false);
+  
+  return (
+    <Command
+      ref={ref}
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      data-focused={focused}
+    >
+      {/* Component content */}
+    </Command>
+  );
+});
+```
 
 ## Code Splitting
 
