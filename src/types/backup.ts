@@ -1,41 +1,50 @@
+export type BackupType = 'daily' | 'weekly' | 'monthly';
+export type BackupStatus = 'pending' | 'completed' | 'failed';
+
 export interface BackupMetadata {
+  id: string;
   timestamp: string;
-  version: string;
+  type: BackupType;
   tables: string[];
   size: number;
-  checksum: string;
+  status: BackupStatus;
+  error?: string;
+  restoredAt?: string;
+  restoredBy?: string;
 }
 
 export interface BackupResult {
+  metadata: BackupMetadata;
   success: boolean;
-  metadata?: BackupMetadata;
   error?: string;
 }
 
 export interface BackupOptions {
-  encryptData?: boolean;
-  compressionLevel?: number;
-  retentionDays?: number;
+  encrypt?: boolean;
+  compress?: boolean;
+  includeAttachments?: boolean;
+  excludeTables?: string[];
 }
 
 export interface RestoreOptions {
+  skipExistingRecords?: boolean;
   validateChecksum?: boolean;
-  skipAuditLogs?: boolean;
   dryRun?: boolean;
 }
 
 export interface BackupData {
-  [table: string]: Record<string, unknown>[];
+  [table: string]: any[];
 }
 
 export const DEFAULT_BACKUP_OPTIONS: BackupOptions = {
-  encryptData: true,
-  compressionLevel: 9,
-  retentionDays: 30
+  encrypt: true,
+  compress: true,
+  includeAttachments: true,
+  excludeTables: []
 };
 
 export const DEFAULT_RESTORE_OPTIONS: RestoreOptions = {
+  skipExistingRecords: false,
   validateChecksum: true,
-  skipAuditLogs: false,
   dryRun: false
 };
