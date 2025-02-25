@@ -4,13 +4,11 @@ import { compression } from 'vite-plugin-compression2';
 import { VitePWA, VitePWAOptions } from 'vite-plugin-pwa';
 import fs from 'fs';
 import path from 'path';
-import * as esbuild from 'esbuild';
-import terser from '@rollup/plugin-terser';
 
 // Read manifest.json content
 const manifestContent = JSON.parse(fs.readFileSync('./public/manifest.json', 'utf-8'));
 
-// CSP Headers configuration - with GitHub Codespaces support
+// CSP Headers configuration
 const cspHeaders = [
   "default-src 'self' https://*.github.dev https://*.app.github.dev",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://*.github.dev https://*.app.github.dev",
@@ -90,6 +88,11 @@ const pwaOptions: Partial<VitePWAOptions> = {
 };
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src')
+    }
+  },
   plugins: [
     react({
       jsxRuntime: 'automatic',
@@ -99,209 +102,127 @@ export default defineConfig({
       }
     }),
     compression({
-      algorithm: 'brotliCompress',
+      algorithm: 'gzip',
       exclude: [/\.(br)$/, /\.(gz)$/],
       deleteOriginalAssets: false,
     }),
-    VitePWA(pwaOptions),
+    VitePWA(pwaOptions)
   ],
-  
-  resolve: {
-    alias: {
-      '@': path.resolve(__dirname, './src')
-    }
-  },
-
-  css: {
-    postcss: './postcss.config.js',
-    modules: {
-      localsConvention: 'camelCase',
-    },
-    devSourcemap: true,
-  },
-  
-  server: {
-    port: 5173,
-    strictPort: true,
-    host: 'localhost',
-    origin: 'http://localhost:5173',
-    headers: {
-      'Content-Security-Policy': cspHeaders,
-      'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'DENY',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'same-origin',
-      'Permissions-Policy': 'accelerometer=(), ambient-light-sensor=(), autoplay=(), battery=(), camera=(), cross-origin-isolated=(), display-capture=(), document-domain=(), encrypted-media=(), execution-while-not-rendered=(), execution-while-out-of-viewport=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), navigation-override=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(), clipboard-write=(), gamepad=(), speaker-selection=()'
-    },
-    fs: {
-      strict: true,
-      allow: ['.'],
-      deny: [
-        '.env',
-        '.env.*',
-        '*.{pem,crt,key}',
-        'node_modules/.cache',
-        '.git',
-        '.github',
-        '.vscode',
-        'coverage'
-      ]
-    },
-    cors: false,
-    hmr: {
-      protocol: 'wss',
-      host: 'localhost',
-      clientPort: 443,
-      overlay: false
-    },
-    watch: {
-      ignored: ['**/node_modules/**', '**/.git/**', '**/dist/**']
-    },
-    middlewareMode: false
-  },
-
   build: {
-    target: 'es2022',
-    modulePreload: {
-      polyfill: true,
-      resolveDependencies: (url: string, deps: string[], { hostId, hostType }: any) => deps
-    },
+    target: 'es2020',
     sourcemap: process.env.NODE_ENV !== 'production',
     minify: 'esbuild',
     cssCodeSplit: true,
     cssMinify: true,
-    reportCompressedSize: true,
     chunkSizeWarningLimit: 1000,
-    assetsInlineLimit: 4096,
-    emptyOutDir: true,
-    manifest: true,
-    ssrManifest: true,
     rollupOptions: {
-      plugins: [
-        terser({
-          format: {
-            comments: false
-          }
-        })
-      ],
       output: {
-        assetFileNames: (assetInfo: { name?: string }) => {
-          const info = assetInfo.name ?? '';
-          const extType = info.split('.').at(1) ?? '';
-          
-          if (/png|jpe?g|svg|gif|tiff|bmp/i.test(extType)) {
-            return `assets/img/[name]-[hash][extname]`;
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            // Core React and routing
+            if (id.includes('react') || id.includes('react-dom') || id.includes('react-router')) {
+              return 'vendor-react';
+            }
+            // Backend and authentication
+            if (id.includes('@supabase')) {
+              return 'vendor-supabase';
+            }
+            // Data visualization
+            if (id.includes('chart.js') || id.includes('@kurkle') || id.includes('recharts')) {
+              return 'vendor-charts';
+            }
+            // UI components and styling
+            if (id.includes('tailwind') || id.includes('@headlessui') || id.includes('lucide-react')) {
+              return 'vendor-ui';
+            }
+            // Data handling and utilities
+            if (id.includes('date-fns') || id.includes('uuid') || id.includes('validator')) {
+              return 'vendor-utils';
+            }
+            // Security and sanitization
+            if (id.includes('sanitize-html') || id.includes('xss') || id.includes('helmet')) {
+              return 'vendor-security';
+            }
+            // File handling and exports
+            if (id.includes('pdfmake') || id.includes('exceljs')) {
+              return 'vendor-exports';
+            }
+            // State management
+            if (id.includes('zustand')) {
+              return 'vendor-state';
+            }
+            // DnD functionality
+            if (id.includes('react-beautiful-dnd')) {
+              return 'vendor-dnd';
+            }
+            // Performance monitoring
+            if (id.includes('web-vitals')) {
+              return 'vendor-monitoring';
+            }
+            // Development dependencies should be excluded from the build
+            if (id.includes('eslint') || id.includes('jest') || id.includes('typescript') || id.includes('ts-node')) {
+              return undefined;
+            }
+            // Remaining dependencies
+            return 'vendor-shared';
           }
-          if (/css/i.test(extType)) {
-            return `assets/css/[name]-[hash][extname]`;
+          // Split app code by feature
+          if (id.includes('/src/components/')) {
+            if (id.includes('/Analytics')) {
+              return 'feature-analytics';
+            }
+            if (id.includes('/Settlement')) {
+              return 'feature-settlement';
+            }
+            if (id.includes('/Expense')) {
+              return 'feature-expenses';
+            }
+            if (id.includes('/Auth')) {
+              return 'feature-auth';
+            }
+            if (id.includes('/Settings')) {
+              return 'feature-settings';
+            }
           }
-          return `assets/[name]-[hash][extname]`;
+          // Split utilities
+          if (id.includes('/src/utils/')) {
+            if (id.includes('auth')) {
+              return 'utils-auth';
+            }
+            if (id.includes('security')) {
+              return 'utils-security';
+            }
+            if (id.includes('export')) {
+              return 'utils-export';
+            }
+          }
         },
+        // Customize chunk and asset filenames
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'supabase-vendor': ['@supabase/supabase-js'],
-          'chart-vendor': ['chart.js', 'react-chartjs-2'],
-          'zustand-vendor': ['zustand']
-        },
-        format: 'es',
-        generatedCode: {
-          constBindings: true,
-          objectShorthand: true
-        },
-        compact: true,
-        preserveModules: false,
-        strict: true,
-        sanitizeFileName: true
-      },
-      treeshake: {
-        moduleSideEffects: false,
-        propertyReadSideEffects: false,
-        tryCatchDeoptimization: false
+        assetFileNames: (assetInfo) => {
+          if (!assetInfo.name) return 'assets/[name]-[hash][extname]';
+          const { ext, name } = path.parse(assetInfo.name);
+          if (ext === '.css') return `assets/css/${name}-[hash]${ext}`;
+          if (['.png', '.jpg', '.jpeg', '.gif', '.svg'].includes(ext)) {
+            return `assets/img/${name}-[hash]${ext}`;
+          }
+          return `assets/${name}-[hash]${ext}`;
+        }
       }
-    },
-    commonjsOptions: {
-      strictRequires: true,
-      transformMixedEsModules: true
     }
   },
-
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@supabase/supabase-js', 'zustand'],
-    exclude: ['@jridgewell/sourcemap-codec'],
-    esbuildOptions: {
-      target: 'es2022',
-      platform: 'browser',
-      supported: {
-        'dynamic-import': true,
-        'import-meta': true
-      },
-      define: {
-        'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV)
-      },
-      minify: true,
-      minifyIdentifiers: true,
-      minifySyntax: true,
-      minifyWhitespace: true,
-      treeShaking: true,
-      drop: ['debugger', 'console'],
-      pure: ['console.log', 'console.debug', 'console.info'],
-      sourcemap: true,
-      sourcesContent: false,
-      format: 'esm',
-      mainFields: ['browser', 'module', 'main'],
-      conditions: ['browser', 'import', 'default'],
-      banner: {
-        js: '// This bundle is optimized and secured with esbuild'
-      }
-    }
+    exclude: ['@jridgewell/sourcemap-codec']
   },
-
   server: {
-    strictPort: true,
-    hmr: {
-      protocol: 'wss',
-      clientPort: 443
-    },
     headers: {
       'Content-Security-Policy': cspHeaders,
-      'X-Content-Type-Options': 'nosniff',
       'X-Frame-Options': 'SAMEORIGIN',
-      'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'cross-origin'
-    },
-    fs: {
-      strict: true,
-      allow: ['.'],
-      deny: ['.env', '.env.*', '*.{pem,crt,key}', 'node_modules/.cache']
-    },
-    origin: 'http://localhost:5173',
-    cors: false,
-    proxy: null,
-    middlewareMode: false
-  },
-
-  preview: {
-    port: 5173,
-    strictPort: true,
-    headers: {
-      'Content-Security-Policy': cspHeaders,
       'X-Content-Type-Options': 'nosniff',
-      'X-Frame-Options': 'SAMEORIGIN',
       'Referrer-Policy': 'strict-origin-when-cross-origin',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'X-Requested-With, Content-Type, Authorization, X-Custom-Header',
-      'Access-Control-Allow-Credentials': 'true',
-      'Access-Control-Max-Age': '86400',
-      'Cross-Origin-Opener-Policy': 'same-origin',
-      'Cross-Origin-Embedder-Policy': 'require-corp',
-      'Cross-Origin-Resource-Policy': 'cross-origin'
-    },
+      'Permissions-Policy': 'geolocation=(), camera=(), microphone=()'
+    }
   }
 });

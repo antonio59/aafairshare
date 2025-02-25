@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, lazy, Suspense } from 'react';
 import { useUserStore } from './store/userStore';
 import { supabase } from './supabase';
 import { clearAuthCache, validateAuthToken } from './utils/authUtils';
@@ -7,11 +7,13 @@ import { applySecurityHeaders } from './middleware/security';
 import { updateLastActivity, startSessionTimeout } from './utils/securityUtils';
 import { auditLog, AuditLogType } from './utils/auditLogger';
 import Navbar from './components/Navbar';
-import ExpenseList from './components/ExpenseList';
-import ExpenseForm from './components/ExpenseForm';
-import Analytics from './components/Analytics';
-import Settlement from './components/Settlement';
 import Login from './components/Login';
+
+// Lazy load route components
+const ExpenseList = lazy(() => import('./components/ExpenseList'));
+const ExpenseForm = lazy(() => import('./components/ExpenseForm'));
+const Analytics = lazy(() => import('./components/Analytics'));
+const Settlement = lazy(() => import('./components/Settlement'));
 import ProtectedRoute from './components/ProtectedRoute';
 import type { User, NotificationPreferences } from './types';
 
@@ -194,7 +196,9 @@ function App() {
                 path="/" 
                 element={
                   <ProtectedRoute>
-                    <ExpenseList />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ExpenseList />
+                    </Suspense>
                   </ProtectedRoute>
                 } 
               />
@@ -203,7 +207,9 @@ function App() {
                 path="/add" 
                 element={
                   <ProtectedRoute>
-                    <ExpenseForm />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <ExpenseForm />
+                    </Suspense>
                   </ProtectedRoute>
                 } 
               />
@@ -212,7 +218,9 @@ function App() {
                 path="/analytics" 
                 element={
                   <ProtectedRoute>
-                    <Analytics />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Analytics />
+                    </Suspense>
                   </ProtectedRoute>
                 } 
               />
@@ -221,7 +229,9 @@ function App() {
                 path="/settlement" 
                 element={
                   <ProtectedRoute>
-                    <Settlement />
+                    <Suspense fallback={<LoadingSpinner />}>
+                      <Settlement />
+                    </Suspense>
                   </ProtectedRoute>
                 } 
               />
