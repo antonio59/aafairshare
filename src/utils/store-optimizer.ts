@@ -63,8 +63,9 @@ export function createPersistentStore<T>(
   if (persistedState) {
     try {
       const state = JSON.parse(persistedState);
-      const currentState = store.getState();
-      Object.assign(currentState, state);
+      const currentState = store.getState() as Record<string, unknown>;
+      const typedState = state as Record<string, unknown>;
+      Object.assign(currentState, typedState);
     } catch (error) {
       console.error('Failed to load persisted state:', error);
     }

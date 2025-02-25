@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { createAuditLog, AUDIT_LOG_TYPES } from './auditLogger';
+import { auditLog, AUDIT_LOG_TYPE } from './auditLogger';
 import { encrypt, decrypt } from './encryptionUtils';
 
 interface BackupMetadata {
@@ -99,8 +99,8 @@ export const backupUtils = {
       if (uploadError) throw uploadError;
 
       // Log backup creation
-      await createAuditLog(
-        AUDIT_LOG_TYPES.ADMIN_ACTION,
+      await auditLog(
+        AUDIT_LOG_TYPE.ADMIN_ACTION,
         'backup_created',
         { timestamp, tables, size: metadata.size },
         undefined,
@@ -109,8 +109,8 @@ export const backupUtils = {
 
       return { success: true, metadata };
     } catch (error) {
-      await createAuditLog(
-        AUDIT_LOG_TYPES.SECURITY_EVENT,
+      await auditLog(
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'backup_failed',
         { error: error instanceof Error ? error.message : 'Unknown error' },
         undefined,
@@ -163,8 +163,8 @@ export const backupUtils = {
         // Commit transaction
         await supabase.rpc('commit_transaction');
 
-        await createAuditLog(
-          AUDIT_LOG_TYPES.ADMIN_ACTION,
+        await auditLog(
+          AUDIT_LOG_TYPE.ADMIN_ACTION,
           'backup_restored',
           { timestamp },
           undefined,
@@ -177,8 +177,8 @@ export const backupUtils = {
         throw error;
       }
     } catch (error) {
-      await createAuditLog(
-        AUDIT_LOG_TYPES.SECURITY_EVENT,
+      await auditLog(
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'restore_failed',
         { error: error instanceof Error ? error.message : 'Unknown error' },
         undefined,
@@ -217,8 +217,8 @@ export const backupUtils = {
         }
       }
 
-      await createAuditLog(
-        AUDIT_LOG_TYPES.ADMIN_ACTION,
+      await auditLog(
+        AUDIT_LOG_TYPE.ADMIN_ACTION,
         'backup_test_completed',
         { timestamp, status: 'success' },
         undefined,
@@ -227,8 +227,8 @@ export const backupUtils = {
 
       return { success: true };
     } catch (error) {
-      await createAuditLog(
-        AUDIT_LOG_TYPES.SECURITY_EVENT,
+      await auditLog(
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'backup_test_failed',
         { error: error instanceof Error ? error.message : 'Unknown error' },
         undefined,

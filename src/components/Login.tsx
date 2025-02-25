@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
 import { supabase } from '../supabase';
 import { checkRateLimit, validateInput, updateLastActivity } from '../utils/securityUtils';
-import { auditLog, AuditLogType } from '../utils/auditLogger';
+import { auditLog, AUDIT_LOG_TYPE } from '../utils/auditLogger';
 
 interface LocationState {
   from?: Location;
@@ -62,7 +62,7 @@ const Login = () => {
 
       // Log successful login
       await auditLog(
-        AuditLogType.AUTH_SUCCESS,
+        AUDIT_LOG_TYPE.AUTH_SUCCESS,
         'User login',
         { email }
       );
@@ -77,7 +77,7 @@ const Login = () => {
     } catch (error) {
       // Log failed login attempt
       await auditLog(
-        AuditLogType.AUTH_FAILURE,
+        AUDIT_LOG_TYPE.AUTH_FAILURE,
         'Failed login attempt',
         { email, error: error instanceof Error ? error.message : 'Unknown error' }
       );
@@ -119,7 +119,7 @@ const Login = () => {
 
       // Log password reset request
       await auditLog(
-        AuditLogType.PASSWORD_RESET,
+        AUDIT_LOG_TYPE.PASSWORD_RESET,
         'Password reset requested',
         { email }
       );
@@ -127,7 +127,7 @@ const Login = () => {
       setMessage('Password reset email sent. Please check your inbox.');
     } catch (error) {
       await auditLog(
-        AuditLogType.SECURITY_EVENT,
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'Failed password reset attempt',
         { email, error: error instanceof Error ? error.message : 'Unknown error' }
       );

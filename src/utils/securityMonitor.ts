@@ -1,7 +1,7 @@
 import { supabase } from '../supabase';
-import { auditLog, AuditLogType } from './auditLogger';
+import { auditLog, AUDIT_LOG_TYPE } from './auditLogger';
 
-interface SecurityAlert {
+interface SecurityAlert extends Record<string, unknown> {
   type: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
@@ -31,7 +31,7 @@ export class SecurityMonitor {
       const { data, error } = await supabase
         .from('audit_logs')
         .select('*')
-        .eq('type', AuditLogType.AUTH_FAILURE)
+        .eq('type', AUDIT_LOG_TYPE.AUTH_FAILURE)
         .eq('user_id', userId)
         .gte('timestamp', new Date(Date.now() - 30 * 60 * 1000).toISOString()) // Last 30 minutes
         .order('timestamp', { ascending: false });
@@ -184,7 +184,7 @@ export class SecurityMonitor {
     try {
       // Log the alert
       await auditLog(
-        AuditLogType.SECURITY_EVENT,
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'Security alert raised',
         alert
       );

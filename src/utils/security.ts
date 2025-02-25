@@ -41,7 +41,7 @@ function createSanitizeConfig(config?: Partial<SanitizeConfig>): DOMPurify.Confi
     USE_PROFILES: { html: false },
     RETURN_DOM: false,
     RETURN_DOM_FRAGMENT: false,
-    RETURN_DOM_IMPORT: false,
+
     SANITIZE_DOM: config?.sanitizeDom ?? true,
     WHOLE_DOCUMENT: false,
     SANITIZE_NAMED_PROPS: true,
@@ -70,7 +70,7 @@ export function sanitizeInput(input: string, config?: Partial<SanitizeConfig>): 
     USE_PROFILES: { html: false },
     RETURN_DOM: false,
     RETURN_DOM_FRAGMENT: false,
-    RETURN_DOM_IMPORT: false,
+
     SANITIZE_DOM: true,
     WHOLE_DOCUMENT: false,
     SANITIZE_NAMED_PROPS: true,
@@ -81,71 +81,82 @@ export function sanitizeInput(input: string, config?: Partial<SanitizeConfig>): 
 };
 
 // Validate numeric input with configurable range
-export const validateAmount = (amount: string, min: number = 0, max: number = 1000000): boolean => {
+export const validateAmount = (amount: string, min: number = 0, max: number = 1000000): ValidationResult => {
   const num = parseFloat(amount);
-  if (isNaN(num)) return false;
-  if (num < min || num > max) return false;
+  if (isNaN(num)) return { isValid: false, errors: ['Invalid number format'] };
+  if (num < min || num > max) return { isValid: false, errors: [`Amount must be between ${min} and ${max}`] };
   // Ensure no more than 2 decimal places
-  if (amount.includes('.') && amount.split('.')[1].length > 2) return false;
-  return true;
+  if (amount.includes('.') && amount.split('.')[1].length > 2) return { isValid: false, errors: ['Maximum 2 decimal places allowed'] };
+  return { isValid: true };
 };
 
 // Enhanced date validation
-export const validateDate = (date: string): boolean => {
+export const validateDate = (date: string): ValidationResult => {
   const d = new Date(date);
-  if (!(d instanceof Date) || isNaN(d.getTime())) return false;
+  if (!(d instanceof Date) || isNaN(d.getTime())) return { isValid: false, errors: ['Invalid date format'] };
   
   // Ensure date is not in the future
   const now = new Date();
-  if (d > now) return false;
+  if (d > now) return { isValid: false, errors: ['Date cannot be in the future'] };
   
   // Ensure date is not too far in the past (e.g., not before 2020)
   const minDate = new Date('2020-01-01');
-  if (d < minDate) return false;
+  if (d < minDate) return { isValid: false, errors: ['Date cannot be before 2020'] };
   
-  return true;
+  return { isValid: true };
 };
 
 // Enhanced email validation
 export function validateEmail(email: string, config?: EmailValidationConfig): ValidationResult {
-  if (typeof email !== 'string') return false;
+  if (typeof email !== 'string') return { isValid: false, errors: ['Email must be a string'] };
   
   // Simpler, more maintainable email regex
   const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
   
-  if (!emailRegex.test(email)) return false;
-  if (email.length > 254) return false; // RFC 5321
+  if (!emailRegex.test(email)) return { isValid: false, errors: ['Invalid email format'] };
+  if (email.length > 254) return { isValid: false, errors: ['Email exceeds maximum length'] }; // RFC 5321
   
   // Get allowed domains from environment
   const allowedDomains = process.env.VITE_ALLOWED_EMAIL_DOMAINS?.split(',') || [];
   const emailDomain = email.split('@')[1]?.toLowerCase();
   
-  return allowedDomains.includes(emailDomain);
+  return allowedDomains.includes(emailDomain) 
+    ? { isValid: true }
+    : { isValid: false, errors: ['Email domain not allowed'] };
 };
 
 // Enhanced password validation
 export function validatePassword(password: string, config?: PasswordValidationConfig): ValidationResult {
+  const errors: string[] = [];
+  
   // Minimum 8 characters, max 100 characters
-  if (password.length < 8 || password.length > 100) return false;
+  if (password.length < 8 || password.length > 100) {
+    errors.push('Password must be between 8 and 100 characters');
+  }
   
   // Must contain at least:
   // - one uppercase letter
   // - one lowercase letter
   // - one number
   // - one special character
-  const hasUpperCase = /[A-Z]/.test(password);
-  const hasLowerCase = /[a-z]/.test(password);
-  const hasNumbers = /\d/.test(password);
-  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+  if (!/[A-Z]/.test(password)) errors.push('Must contain uppercase letter');
+  if (!/[a-z]/.test(password)) errors.push('Must contain lowercase letter');
+  if (!/\d/.test(password)) errors.push('Must contain number');
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) errors.push('Must contain special character');
   
-  return hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar;
+  return errors.length === 0 
+    ? { isValid: true }
+    : { isValid: false, errors };
 };
 
 // Validate text input length and content with enhanced security
 export function validateText(text: string, config?: TextValidationConfig): ValidationResult {
-  if (typeof text !== 'string') return false;
-  if (!text || text.trim().length === 0) return false;
-  if (text.length > maxLength) return false;
+  const errors: string[] = [];
+  const { maxLength = 1000 } = config || {};
+
+  if (typeof text !== 'string') errors.push('Input must be a string');
+  if (!text || text.trim().length === 0) errors.push('Input cannot be empty');
+  if (text.length > maxLength) errors.push(`Input exceeds maximum length of ${maxLength}`);
 
   // Comprehensive XSS and injection patterns
   const dangerousPatterns = [
@@ -177,7 +188,12 @@ export function validateText(text: string, config?: TextValidationConfig): Valid
     /new\s+function/gi
   ];
 
-  return !dangerousPatterns.some(pattern => pattern.test(text));
+  const hasDangerousPattern = dangerousPatterns.find(pattern => pattern.test(text));
+  if (hasDangerousPattern) errors.push('Input contains potentially dangerous content');
+
+  return errors.length === 0
+    ? { isValid: true }
+    : { isValid: false, errors };
 };
 
 /**

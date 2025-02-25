@@ -204,12 +204,11 @@ const ExpenseList = () => {
         </div>
       )}
 
-      {editingExpense && (
-        <ExpenseEditModal
-          expense={editingExpense}
-          onClose={() => setEditingExpense(null)}
-        />
-      )}
+      <ExpenseEditModal
+        expense={editingExpense!}
+        open={!!editingExpense}
+        onClose={() => setEditingExpense(null)}
+      />
     </div>
   );
 };

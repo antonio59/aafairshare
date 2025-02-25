@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { auditLog, AuditLogType } from './auditLogger';
+import { auditLog, AUDIT_LOG_TYPE } from './auditLogger';
 
 export async function enrollMFA() {
   try {
@@ -10,7 +10,7 @@ export async function enrollMFA() {
     if (error) throw error;
 
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'MFA enrollment initiated',
       { factorType: 'totp' }
     );
@@ -22,7 +22,7 @@ export async function enrollMFA() {
     };
   } catch (error) {
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'MFA enrollment failed',
       { error: error instanceof Error ? error.message : 'Unknown error' }
     );
@@ -41,7 +41,7 @@ export async function verifyMFA(factorId: string, code: string, challengeId: str
     if (error) throw error;
 
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'MFA verification successful',
       { factorId }
     );
@@ -49,7 +49,7 @@ export async function verifyMFA(factorId: string, code: string, challengeId: str
     return data;
   } catch (error) {
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'MFA verification failed',
       { error: error instanceof Error ? error.message : 'Unknown error' }
     );
@@ -68,7 +68,7 @@ export async function challengeMFA(factorId: string) {
     return data;
   } catch (error) {
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'MFA challenge failed',
       { error: error instanceof Error ? error.message : 'Unknown error' }
     );
@@ -85,13 +85,13 @@ export async function unenrollMFA(factorId: string) {
     if (error) throw error;
 
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'MFA unenrolled',
       { factorId }
     );
   } catch (error) {
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'MFA unenrollment failed',
       { error: error instanceof Error ? error.message : 'Unknown error' }
     );

@@ -7,7 +7,7 @@ import { supabase } from './supabase';
 import { clearAuthCache, validateAuthToken } from './utils/authUtils';
 import { applySecurityHeaders } from './middleware/security';
 import { updateLastActivity, startSessionTimeout } from './utils/securityUtils';
-import { auditLog, AuditLogType } from './utils/auditLogger';
+import { auditLog, AUDIT_LOG_TYPE } from './utils/auditLogger';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
 
@@ -67,7 +67,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
     // Setup session timeout
     startSessionTimeout(async () => {
       await auditLog(
-        AuditLogType.SECURITY_EVENT,
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'Session timeout',
         { message: 'User session timed out due to inactivity' }
       );
@@ -86,7 +86,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
         const isValid = await validateAuthToken();
         if (!isValid) {
           await auditLog(
-            AuditLogType.SECURITY_EVENT,
+            AUDIT_LOG_TYPE.SECURITY_EVENT,
             'Invalid auth token',
             { userId: session.user.id }
           );
@@ -102,7 +102,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 
         if (profileError) {
           await auditLog(
-            AuditLogType.AUTH_FAILURE,
+            AUDIT_LOG_TYPE.AUTH_FAILURE,
             'Profile fetch failed',
             { userId: session.user.id, error: profileError.message }
           );
@@ -130,13 +130,13 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 
         // Log successful authentication
         await auditLog(
-          AuditLogType.AUTH_SUCCESS,
+          AUDIT_LOG_TYPE.AUTH_SUCCESS,
           'User authenticated',
           { userId: newUser.id, email: newUser.email }
         );
       } catch (error) {
         await auditLog(
-          AuditLogType.AUTH_FAILURE,
+          AUDIT_LOG_TYPE.AUTH_FAILURE,
           'Auth check failed',
           { error: error instanceof Error ? error.message : 'Unknown error' }
         );

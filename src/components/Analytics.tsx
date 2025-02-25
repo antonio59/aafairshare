@@ -10,12 +10,15 @@ import {
   ArcElement,
   LineElement,
   PointElement,
+  Scale,
 } from 'chart.js';
+import type { CoreScaleOptions, Tick } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useExpenseStore } from '../store/expenseStore';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns';
 import Dropdown from './common/Dropdown';
-import Select from 'react-select';
+import { MultiSelect } from './ui/multi-select';
+import type { Option } from './ui/multi-select';
 import type { Category } from '../types';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
@@ -36,6 +39,12 @@ const Analytics = () => {
   const { expenses, categories, categoryGroups, tags } = useExpenseStore();
   const [timeRange, setTimeRange] = useState('current');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  type SelectOption = { value: string; label: string; };
+  type ChartTooltipItem = { raw: unknown; };
+  type ChartTickValue = string | number;
+  type ChartTick = { value: number; };
+  type ChartScale = { options: CoreScaleOptions; };
+  type ChartCallback = (this: Scale<CoreScaleOptions>, tickValue: string | number, index: number, ticks: Tick[]) => string;
   const [selectedPaidBy, setSelectedPaidBy] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [isExporting, setIsExporting] = useState<'excel' | 'pdf' | null>(null);
@@ -390,42 +399,30 @@ const Analytics = () => {
             options={timeRangeOptions}
             placeholder="Select time range"
           />
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Categories
-            </label>
-            <Select
-              isMulti
-              value={categoryOptions.filter(option => selectedCategories.includes(option.value))}
-              onChange={(options) => setSelectedCategories(options.map(opt => opt.value))}
-              options={categoryOptions}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tags
-            </label>
-            <Select
-              isMulti
-              value={tagOptions.filter(option => selectedTags.includes(option.value))}
-              onChange={(options) => setSelectedTags(options.map(opt => opt.value))}
-              options={tagOptions}
-              className="w-full"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Paid By
-            </label>
-            <Select
-              isMulti
-              value={paidByOptions.filter(option => selectedPaidBy.includes(option.value))}
-              onChange={(options) => setSelectedPaidBy(options.map(opt => opt.value))}
-              options={paidByOptions}
-              className="w-full"
-            />
-          </div>
+          <MultiSelect
+            label="Categories"
+            options={categoryOptions}
+            selected={selectedCategories}
+            onChange={setSelectedCategories}
+            placeholder="Select categories..."
+            className="w-full"
+          />
+          <MultiSelect
+            label="Tags"
+            options={tagOptions}
+            selected={selectedTags}
+            onChange={setSelectedTags}
+            placeholder="Select tags..."
+            className="w-full"
+          />
+          <MultiSelect
+            label="Paid By"
+            options={paidByOptions}
+            selected={selectedPaidBy}
+            onChange={setSelectedPaidBy}
+            placeholder="Select payers..."
+            className="w-full"
+          />
         </div>
       </div>
 
@@ -446,14 +443,14 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: (context) => `£${context.raw as number}`
+                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 },
                 scales: {
                   y: {
                     ticks: {
-                      callback: (value) => `£${value}`
+                      callback: function(this: Scale<CoreScaleOptions>, value: string | number) { return `£${value}`; } as ChartCallback
                     }
                   }
                 }
@@ -477,7 +474,7 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: (context) => `£${context.raw as number}`
+                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 }
@@ -501,7 +498,7 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: (context) => `£${context.raw as number}`
+                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 },
@@ -509,7 +506,7 @@ const Analytics = () => {
                   y: {
                     beginAtZero: true,
                     ticks: {
-                      callback: (value) => `£${value}`
+                      callback: function(this: Scale<CoreScaleOptions>, value: string | number) { return `£${value}`; } as ChartCallback
                     }
                   }
                 }
@@ -533,7 +530,7 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: (context) => `£${context.raw as number}`
+                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 },
@@ -541,7 +538,7 @@ const Analytics = () => {
                   y: {
                     beginAtZero: true,
                     ticks: {
-                      callback: (value) => `£${value}`
+                      callback: function(this: Scale<CoreScaleOptions>, value: string | number) { return `£${value}`; } as ChartCallback
                     }
                   }
                 }

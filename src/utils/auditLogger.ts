@@ -1,6 +1,9 @@
+'use server';
+
 import { supabase } from '../supabase';
 
-export const AUDIT_LOG_TYPES = {
+// Define audit log types as a constant map to ensure type safety
+export const AUDIT_LOG_TYPE = {
   AUTH_SUCCESS: 'auth_success',
   AUTH_FAILURE: 'auth_failure',
   PASSWORD_CHANGE: 'password_change',
@@ -13,9 +16,10 @@ export const AUDIT_LOG_TYPES = {
   SECURITY_EVENT: 'security_event'
 } as const;
 
-type AuditLogType = typeof AUDIT_LOG_TYPES[keyof typeof AUDIT_LOG_TYPES];
+// Type for audit log types
+export type AuditLogType = typeof AUDIT_LOG_TYPE[keyof typeof AUDIT_LOG_TYPE];
 
-interface AuditLogEntry {
+export interface AuditLogEntry {
   type: AuditLogType;
   userId?: string;
   action: string;
@@ -28,7 +32,7 @@ interface AuditLogEntry {
   correlationId?: string;
 }
 
-interface AuditLogOptions {
+export interface AuditLogOptions {
   severity?: AuditLogEntry['severity'];
   source?: string;
   correlationId?: string;
@@ -36,7 +40,7 @@ interface AuditLogOptions {
   retentionDays?: number;
 }
 
-export async function createAuditLog(
+export async function auditLog(
   type: AuditLogType,
   action: string,
   details: Record<string, unknown>,
@@ -79,7 +83,7 @@ export async function createAuditLog(
     }
 
     // For security events, also log to console
-    if (type === AuditLogType.SECURITY_EVENT) {
+    if (type === AUDIT_LOG_TYPE.SECURITY_EVENT) {
       console.warn('Security Event:', action, sanitizedDetails);
     }
   } catch (error) {

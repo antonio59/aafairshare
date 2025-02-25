@@ -1,4 +1,5 @@
-import { auditLog, AuditLogType } from '../utils/auditLogger';
+import { auditLog, AUDIT_LOG_TYPE } from '../utils/auditLogger';
+import DOMPurify from 'isomorphic-dompurify';
 import { supabase } from '../supabase';
 import type { User } from '@supabase/supabase-js';
 
@@ -37,6 +38,9 @@ const DEFAULT_CONFIG: ApiSecurityConfig = {
 
 const rateLimitStore = new Map<string, RateLimitInfo>();
 
+const API_RATE_LIMIT = 100;
+const API_RATE_WINDOW = 60 * 1000; // 1 minute
+
 function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
   const finalConfig = {
     ...DEFAULT_CONFIG,
@@ -51,11 +55,7 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
     }
   };
 
-  return {
-  /**
-   * Validates and sanitizes API request parameters
-   */
-  validateRequest: (params: Record<string, any>) => {
+  const validateRequest = (params: Record<string, any>) => {
     const sanitized: Record<string, any> = {};
     
     const sanitizeValue = (value: any): any => {
@@ -98,12 +98,9 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
     }
     
     return sanitized;
-  },
+  };
 
-  /**
-   * Checks rate limiting for API requests
-   */
-  checkRateLimit: (identifier: string): boolean => {
+  const checkRateLimit = (identifier: string): boolean => {
     const now = Date.now();
     const info = rateLimitStore.get(identifier) || { count: 0, firstRequest: now };
 
@@ -122,7 +119,7 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
     // Check if limit exceeded
     if (info.count > API_RATE_LIMIT) {
       auditLog(
-        AuditLogType.SECURITY_EVENT,
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'API rate limit exceeded',
         { identifier, count: info.count }
       );
@@ -130,12 +127,9 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
     }
 
     return true;
-  },
+  };
 
-  /**
-   * Validates API tokens and permissions
-   */
-  validateApiAccess: async (token: string, requiredPermissions: string[]) => {
+  const validateApiAccess = async (token: string, requiredPermissions: string[]) => {
     try {
       // Verify token format
       if (!/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/.test(token)) {
@@ -161,18 +155,15 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
       return true;
     } catch (error) {
       await auditLog(
-        AuditLogType.SECURITY_EVENT,
+        AUDIT_LOG_TYPE.SECURITY_EVENT,
         'API access denied',
         { error: error instanceof Error ? error.message : 'Unknown error' }
       );
       return false;
     }
-  },
+  };
 
-  /**
-   * Validates and sanitizes file uploads
-   */
-  validateFileUpload: (file: File) => {
+  const validateFileUpload = (file: File) => {
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
@@ -186,5 +177,12 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
 
     // Additional checks could be added here (virus scan, etc.)
     return true;
-  }
-};
+  };
+
+  return {
+    validateRequest,
+    checkRateLimit,
+    validateApiAccess,
+    validateFileUpload
+  };
+}

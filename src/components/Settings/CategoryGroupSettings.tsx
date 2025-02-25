@@ -1,10 +1,15 @@
+'use client';
+
 import React, { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import * as Accordion from '@radix-ui/react-accordion';
+import * as Dialog from '@radix-ui/react-dialog';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useUserStore } from '../../store/userStore';
 import type { CategoryGroup, Category } from '../../types';
-import { ChevronDown, ChevronRight, Edit2, Trash2, Plus, X, Save } from 'lucide-react';
+import { ChevronDown, ChevronRight, Edit2, Trash2, Plus, X, Save, GripVertical } from 'lucide-react';
 import { generateUniqueColor } from '../../utils/colorUtils';
+import { cn } from '../../lib/utils';
 
 interface CategoryGroupSettingsProps {
   onClose?: () => void;
@@ -23,7 +28,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   } = useExpenseStore();
   const currentUser = useUserStore(state => state.currentUser);
   const [groups, setGroups] = useState<CategoryGroup[]>([]);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+  const [expandedGroups, setExpandedGroups] = useState<string[]>([]);
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editedGroupName, setEditedGroupName] = useState('');
@@ -39,16 +44,6 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   useEffect(() => {
     setGroups(categoryGroups);
   }, [categoryGroups]);
-
-  const toggleGroup = (groupId: string) => {
-    const newExpanded = new Set(expandedGroups);
-    if (newExpanded.has(groupId)) {
-      newExpanded.delete(groupId);
-    } else {
-      newExpanded.add(groupId);
-    }
-    setExpandedGroups(newExpanded);
-  };
 
   const handleAddGroup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -100,14 +95,20 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   };
 
   const handleAddCategory = async (groupId: string) => {
-    if (!newCategoryName.trim()) return;
+    if (!newCategoryName.trim() || !currentUser) return;
+
+    const newCategory = {
+      name: newCategoryName.trim(),
+      groupId,
+      color: generateUniqueColor(categories),
+      order: categories.filter(c => c.groupId === groupId).length,
+      createdBy: currentUser.id,
+      updatedBy: currentUser.id,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    } as const;
 
     try {
-      const newCategory = {
-        name: newCategoryName.trim(),
-        color: generateUniqueColor(categories),
-        groupId: groupId
-      };
       await addCategory(newCategory);
       setNewCategoryName('');
       setAddingCategoryToGroup(null);
@@ -117,13 +118,16 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   };
 
   const handleUpdateCategory = async (categoryId: string) => {
-    if (!editedCategoryName.trim()) return;
+    if (!editedCategoryName.trim() || !currentUser) return;
+
+    const updates = {
+      name: editedCategoryName.trim(),
+      color: editedCategoryColor,
+      updatedBy: currentUser.id,
+      updatedAt: new Date().toISOString(),
+    } as const;
 
     try {
-      const updates = {
-        name: editedCategoryName.trim(),
-        color: editedCategoryColor
-      };
       await updateCategory(categoryId, updates);
       setEditingCategory(null);
       setEditedCategoryName('');
@@ -143,343 +147,239 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     }
   };
 
-  const handleDragEnd = async (result: any) => {
-    if (!result.destination || !currentUser) return;
+  const handleDragStart = (event: React.PointerEvent<HTMLDivElement>, itemId: string) => {
+    event.currentTarget.style.cursor = 'grabbing';
+    event.currentTarget.style.opacity = '0.5';
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
 
-    const reorderedGroups = Array.from(groups);
-    const [removed] = reorderedGroups.splice(result.source.index, 1);
-    reorderedGroups.splice(result.destination.index, 0, removed);
-
-    const updatedGroups = reorderedGroups.map((group, index) => ({
-      ...group,
-      order: index,
-      updatedBy: currentUser.id,
-      updatedAt: new Date().toISOString(),
-    }));
-
-    setGroups(updatedGroups);
-
-    try {
-      for (const group of updatedGroups) {
-        const updates = {
-          order: group.order,
-          updatedBy: currentUser.id,
-          updatedAt: group.updatedAt,
-        } as const;
-        await updateCategoryGroup(group.id, updates);
-      }
-    } catch (error) {
-      console.error('Failed to update group orders:', error);
-      setGroups(categoryGroups);
-    }
+  const handleDragEnd = (event: React.PointerEvent<HTMLDivElement>, itemId: string) => {
+    event.currentTarget.style.cursor = 'grab';
+    event.currentTarget.style.opacity = '1';
+    event.currentTarget.releasePointerCapture(event.pointerId);
   };
 
   return (
-    <div className="p-3 md:p-4 w-full max-w-lg mx-auto">
-      <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6 text-center">Categories</h2>
-      
-      {/* Add new group form */}
-      <form onSubmit={handleAddGroup} className="mb-6 md:mb-8">
-        <div className="flex flex-col gap-3">
+    <div className="p-6 bg-white rounded-lg shadow-lg max-w-4xl mx-auto">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold text-gray-900">Category Groups</h2>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        )}
+      </div>
+
+      {/* Add New Group Form */}
+      <form onSubmit={handleAddGroup} className="mb-8">
+        <div className="flex gap-2">
           <input
             type="text"
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
             placeholder="New group name"
-            className="form-input w-full h-12 md:h-14 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <button
             type="submit"
             disabled={!newGroupName.trim()}
-            className="w-full h-12 md:h-14 bg-blue-600 text-white rounded-lg hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 text-base flex items-center justify-center gap-2 transition-colors"
+            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Plus className="w-5 h-5" />
-            <span>Add Group</span>
+            Add Group
           </button>
         </div>
       </form>
 
-      {/* Groups and Categories list */}
-      <DragDropContext onDragEnd={handleDragEnd}>
-        <Droppable droppableId="category-groups">
-          {(provided) => (
-            <div
-              {...provided.droppableProps}
-              ref={provided.innerRef}
-              className="space-y-4"
-            >
-              {groups.map((group, index) => (
-                <Draggable
-                  key={group.id}
-                  draggableId={group.id}
-                  index={index}
-                >
-                  {(provided) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.draggableProps}
-                      className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden"
+      {/* Category Groups List */}
+      <Accordion.Root
+        type="multiple"
+        value={expandedGroups}
+        onValueChange={setExpandedGroups}
+        className="space-y-4"
+      >
+        {groups.map((group) => (
+          <Accordion.Item
+            key={group.id}
+            value={group.id}
+            className="border border-gray-200 rounded-lg overflow-hidden"
+          >
+            <Accordion.Header>
+              <Accordion.Trigger className="w-full">
+                <div className="flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100">
+                  <div className="flex items-center gap-2">
+                    <GripVertical className="h-5 w-5 text-gray-400 cursor-grab" />
+                    {editingGroup === group.id ? (
+                      <input
+                        type="text"
+                        value={editedGroupName}
+                        onChange={(e) => setEditedGroupName(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleUpdateGroup(group.id);
+                          if (e.key === 'Escape') {
+                            setEditingGroup(null);
+                            setEditedGroupName('');
+                          }
+                        }}
+                        className="px-2 py-1 border border-gray-300 rounded"
+                        autoFocus
+                      />
+                    ) : (
+                      <span className="font-medium">{group.name}</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (editingGroup === group.id) {
+                          handleUpdateGroup(group.id);
+                        } else {
+                          setEditingGroup(group.id);
+                          setEditedGroupName(group.name);
+                        }
+                      }}
+                      className="p-1 text-gray-500 hover:text-gray-700"
                     >
-                      {/* Group header */}
+                      {editingGroup === group.id ? (
+                        <Save className="h-4 w-4" />
+                      ) : (
+                        <Edit2 className="h-4 w-4" />
+                      )}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteGroup(group.id);
+                      }}
+                      className="p-1 text-red-500 hover:text-red-700"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                    <ChevronDown className="h-5 w-5 text-gray-500 transform transition-transform duration-200" />
+                  </div>
+                </div>
+              </Accordion.Trigger>
+            </Accordion.Header>
+            <Accordion.Content>
+              <div className="p-4 space-y-4">
+                {/* Categories List */}
+                <div className="space-y-2">
+                  {categories
+                    .filter((category) => category.groupId === group.id)
+                    .map((category) => (
                       <div
-                        {...provided.dragHandleProps}
-                        className="flex flex-col gap-3 p-3 md:p-4 bg-gray-50 border-b"
+                        key={category.id}
+                        className="flex items-center justify-between p-2 bg-white border border-gray-200 rounded-lg"
+                        onPointerDown={(e) => handleDragStart(e, category.id)}
+                        onPointerUp={(e) => handleDragEnd(e, category.id)}
                       >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <button
-                            type="button"
-                            onClick={() => toggleGroup(group.id)}
-                            className="w-12 h-12 hover:bg-gray-200 active:bg-gray-300 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors"
-                            aria-label={expandedGroups.has(group.id) ? "Collapse group" : "Expand group"}
-                          >
-                            {expandedGroups.has(group.id) ? (
-                              <ChevronDown className="w-6 h-6" />
-                            ) : (
-                              <ChevronRight className="w-6 h-6" />
-                            )}
-                          </button>
-                          
-                          {editingGroup === group.id ? (
-                            <div className="flex-1 min-w-0">
-                              <div className="flex flex-col gap-3">
-                                <input
-                                  type="text"
-                                  value={editedGroupName}
-                                  onChange={(e) => setEditedGroupName(e.target.value)}
-                                  className="form-input w-full h-12 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                  autoFocus
-                                />
-                                <div className="flex gap-2">
-                                  <button
-                                    type="button"
-                                    onClick={() => handleUpdateGroup(group.id)}
-                                    className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
-                                  >
-                                    <Save className="w-5 h-5" />
-                                    <span>Save</span>
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setEditingGroup(null);
-                                      setEditedGroupName('');
-                                    }}
-                                    className="flex-1 h-12 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
-                                  >
-                                    <X className="w-5 h-5" />
-                                    <span>Cancel</span>
-                                  </button>
-                                </div>
-                              </div>
-                            </div>
-                          ) : (
-                            <>
-                              <div 
-                                className="flex-1 min-w-0 relative"
-                                onMouseEnter={() => setShowTooltip(`group-${group.id}`)}
-                                onMouseLeave={() => setShowTooltip(null)}
-                              >
-                                <span className="font-medium text-base md:text-lg truncate block">
-                                  {group.name}
-                                </span>
-                                {showTooltip === `group-${group.id}` && (
-                                  <div className="absolute z-10 bg-gray-900 text-white px-2 py-1 rounded text-sm whitespace-nowrap top-full left-0 mt-1">
-                                    {group.name}
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex gap-2 flex-shrink-0">
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingGroup(group.id);
-                                    setEditedGroupName(group.name);
-                                  }}
-                                  className="w-12 h-12 flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors"
-                                  aria-label="Edit group"
-                                >
-                                  <Edit2 className="w-5 h-5" />
-                                </button>
-                                <button
-                                  type="button"
-                                  role="button"
-                                  onClick={() => handleDeleteGroup(group.id)}
-                                  className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors cursor-pointer"
-                                  aria-label="Delete group"
-                                >
-                                  <Trash2 className="w-5 h-5" />
-                                </button>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Categories */}
-                      {expandedGroups.has(group.id) && (
-                        <div className="p-3 md:p-4 space-y-3">
-                          {/* Categories list */}
-                          {categories
-                            .filter(cat => cat.groupId === group.id)
-                            .map(category => (
-                              <div
-                                key={category.id}
-                                className="flex flex-col gap-3 p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-200"
-                              >
-                                {editingCategory === category.id ? (
-                                  <div className="flex flex-col gap-3">
-                                    <div className="flex flex-col md:flex-row gap-3">
-                                      <input
-                                        type="text"
-                                        value={editedCategoryName}
-                                        onChange={(e) => setEditedCategoryName(e.target.value)}
-                                        className="form-input flex-1 h-12 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                        placeholder="Category name"
-                                      />
-                                      <input
-                                        type="color"
-                                        value={editedCategoryColor}
-                                        onChange={(e) => setEditedCategoryColor(e.target.value)}
-                                        className="form-input w-full md:w-20 h-12 rounded-lg shadow-sm border border-gray-300"
-                                      />
-                                    </div>
-                                    <div className="flex gap-2">
-                                      <button
-                                        type="button"
-                                        onClick={() => handleUpdateCategory(category.id)}
-                                        className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
-                                      >
-                                        <Save className="w-5 h-5" />
-                                        <span>Save</span>
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingCategory(null);
-                                          setEditedCategoryName('');
-                                          setEditedCategoryColor('');
-                                        }}
-                                        className="flex-1 h-12 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
-                                      >
-                                        <X className="w-5 h-5" />
-                                        <span>Cancel</span>
-                                      </button>
-                                    </div>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <div
-                                      className="w-8 h-8 rounded-full flex-shrink-0"
-                                      style={{ backgroundColor: category.color }}
-                                    />
-                                    <div 
-                                      className="flex-1 min-w-0 relative"
-                                      onMouseEnter={() => setShowTooltip(category.id)}
-                                      onMouseLeave={() => setShowTooltip(null)}
-                                    >
-                                      <span className="block truncate text-base md:text-lg">
-                                        {category.name}
-                                      </span>
-                                      {showTooltip === category.id && (
-                                        <div className="absolute z-10 bg-gray-900 text-white px-2 py-1 rounded text-sm whitespace-nowrap top-full left-0 mt-1">
-                                          {category.name}
-                                        </div>
-                                      )}
-                                    </div>
-                                    <div className="flex gap-2 flex-shrink-0">
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setEditingCategory(category.id);
-                                          setEditedCategoryName(category.name);
-                                          setEditedCategoryColor(category.color);
-                                        }}
-                                        className="w-12 h-12 flex items-center justify-center text-blue-600 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors"
-                                        aria-label="Edit category"
-                                      >
-                                        <Edit2 className="w-5 h-5" />
-                                      </button>
-                                      <button
-                                        type="button"
-                                        role="button"
-                                        onClick={() => handleDeleteCategory(category.id)}
-                                        className="w-12 h-12 flex items-center justify-center text-red-600 hover:text-red-800 hover:bg-red-50 active:bg-red-100 rounded-lg transition-colors cursor-pointer"
-                                        aria-label="Delete category"
-                                      >
-                                        <Trash2 className="w-5 h-5" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-
-                          {/* Add category form */}
-                          {addingCategoryToGroup === group.id ? (
-                            <div className="flex flex-col gap-3 p-3 md:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex items-center gap-2">
+                          <GripVertical className="h-5 w-5 text-gray-400 cursor-grab" />
+                          <div
+                            className="w-4 h-4 rounded-full"
+                            style={{ backgroundColor: category.color }}
+                          />
+                          {editingCategory === category.id ? (
+                            <div className="flex items-center gap-2">
                               <input
                                 type="text"
-                                value={newCategoryName}
-                                onChange={(e) => setNewCategoryName(e.target.value)}
-                                className="form-input w-full h-12 text-base px-4 rounded-lg shadow-sm border border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500"
-                                placeholder="New category name"
+                                value={editedCategoryName}
+                                onChange={(e) => setEditedCategoryName(e.target.value)}
+                                className="px-2 py-1 border border-gray-300 rounded"
+                                autoFocus
                               />
-                              <div className="flex gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => handleAddCategory(group.id)}
-                                  className="flex-1 h-12 bg-green-600 text-white rounded-lg hover:bg-green-700 active:bg-green-800 flex items-center justify-center gap-2 transition-colors"
-                                >
-                                  <Plus className="w-5 h-5" />
-                                  <span>Add</span>
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setAddingCategoryToGroup(null);
-                                    setNewCategoryName('');
-                                  }}
-                                  className="flex-1 h-12 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 flex items-center justify-center gap-2 transition-colors"
-                                >
-                                  <X className="w-5 h-5" />
-                                  <span>Cancel</span>
-                                </button>
-                              </div>
+                              <input
+                                type="color"
+                                value={editedCategoryColor}
+                                onChange={(e) => setEditedCategoryColor(e.target.value)}
+                                className="w-8 h-8"
+                              />
                             </div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => setAddingCategoryToGroup(group.id)}
-                              className="w-full h-12 text-blue-600 hover:text-blue-800 hover:bg-blue-50 active:bg-blue-100 rounded-lg transition-colors flex items-center justify-center gap-2"
-                            >
-                              <Plus className="w-5 h-5" />
-                              <span>Add Category</span>
-                            </button>
+                            <span>{category.name}</span>
                           )}
                         </div>
-                      )}
-                    </div>
-                  )}
-                </Draggable>
-              ))}
-              {provided.placeholder}
-            </div>
-          )}
-        </Droppable>
-      </DragDropContext>
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => {
+                              if (editingCategory === category.id) {
+                                handleUpdateCategory(category.id);
+                              } else {
+                                setEditingCategory(category.id);
+                                setEditedCategoryName(category.name);
+                                setEditedCategoryColor(category.color);
+                              }
+                            }}
+                            className="p-1 text-gray-500 hover:text-gray-700"
+                          >
+                            {editingCategory === category.id ? (
+                              <Save className="h-4 w-4" />
+                            ) : (
+                              <Edit2 className="h-4 w-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCategory(category.id)}
+                            className="p-1 text-red-500 hover:text-red-700"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                </div>
 
-      {/* Close button */}
-      {onClose && (
-        <div className="mt-6 md:mt-8">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full h-12 md:h-14 bg-gray-600 text-white rounded-lg hover:bg-gray-700 active:bg-gray-800 text-base transition-colors"
-          >
-            Close
-          </button>
-        </div>
-      )}
+                {/* Add Category Button/Form */}
+                {addingCategoryToGroup === group.id ? (
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleAddCategory(group.id);
+                    }}
+                    className="flex gap-2"
+                  >
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="New category name"
+                      className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newCategoryName.trim()}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddingCategoryToGroup(null);
+                        setNewCategoryName('');
+                      }}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => setAddingCategoryToGroup(group.id)}
+                    className="flex items-center gap-2 text-blue-600 hover:text-blue-700"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Add Category</span>
+                  </button>
+                )}
+              </div>
+            </Accordion.Content>
+          </Accordion.Item>
+        ))}
+      </Accordion.Root>
     </div>
   );
 };

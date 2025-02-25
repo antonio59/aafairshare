@@ -1,17 +1,25 @@
 import { useState } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
-import { X, Calendar, HelpCircle } from 'lucide-react';
+import { Calendar, HelpCircle } from 'lucide-react';
 import type { Expense, Category } from '../types';
 import Dropdown from './common/Dropdown';
 import TagInput from './common/TagInput';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog';
 
 interface ExpenseEditModalProps {
   expense: Expense;
+  open: boolean;
   onClose: () => void;
 }
 
-const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
+const ExpenseEditModal = ({ expense, open, onClose }: ExpenseEditModalProps) => {
   const { updateExpense, categories, categoryGroups, tags, addTag } = useExpenseStore();
   const { currentUser } = useUserStore();
   const currencySymbol = currentUser?.preferences.currency === 'GBP' ? '£' : '$';
@@ -131,23 +139,13 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
           }
         `}
       </style>
-      <div className="fixed inset-0 bg-black/50 flex items-start sm:items-center justify-center z-50 overflow-y-auto">
-        <div className="bg-white w-full sm:rounded-xl sm:max-w-md max-h-[100dvh] flex flex-col">
-          {/* Header */}
-          <div className="sticky top-0 bg-white border-b px-6 py-4 flex items-center justify-between sm:rounded-t-xl z-10">
-            <h2 className="text-xl font-semibold text-gray-900">Edit Expense</h2>
-            <button
-              onClick={onClose}
-              className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100 transition-colors"
-              aria-label="Close"
-            >
-              <X size={24} />
-            </button>
-          </div>
+      <Dialog open={open} onOpenChange={onClose}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Expense</DialogTitle>
+          </DialogHeader>
 
-          {/* Form */}
-          <div className="flex-1 overflow-y-auto px-6 py-8">
-            <form id="expense-form" onSubmit={handleSubmit} className="space-y-8">
+          <form id="expense-form" onSubmit={handleSubmit} className="space-y-8 mt-4">
               <div className="space-y-7">
                 <div>
                   <LabelWithTooltip 
@@ -264,29 +262,24 @@ const ExpenseEditModal = ({ expense, onClose }: ExpenseEditModalProps) => {
                 </div>
               </div>
             </form>
-          </div>
-
-          {/* Footer */}
-          <div className="sticky bottom-0 bg-gray-50 px-6 py-4 border-t sm:rounded-b-xl z-10">
-            <div className="flex justify-end gap-3">
-              <button
-                type="button"
-                onClick={onClose}
-                className="min-w-[88px] px-4 py-2.5 text-gray-700 hover:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                form="expense-form"
-                type="submit"
-                className="min-w-[88px] bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
-              >
-                Save
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+          <DialogFooter className="mt-6">
+            <button
+              type="button"
+              onClick={onClose}
+              className="min-w-[88px] px-4 py-2.5 text-gray-700 hover:text-gray-900 text-sm font-medium rounded-lg hover:bg-gray-100 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              form="expense-form"
+              type="submit"
+              className="min-w-[88px] bg-blue-600 text-white px-4 py-2.5 rounded-lg hover:bg-blue-700 text-sm font-medium transition-colors"
+            >
+              Save
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

@@ -213,16 +213,15 @@ const Settlement = () => {
             </div>
           )}
 
-          {isModalOpen && (
-            <SettlementModal
-              months={selectedMonths}
-              balance={getTotalBalance()}
-              onClose={() => {
-                setIsModalOpen(false);
-                setSelectedMonths([]);
-              }}
-            />
-          )}
+          <SettlementModal
+            months={selectedMonths}
+            balance={getTotalBalance()}
+            open={isModalOpen}
+            onClose={() => {
+              setIsModalOpen(false);
+              setSelectedMonths([]);
+            }}
+          />
         </div>
       ) : (
         <SettlementHistory />

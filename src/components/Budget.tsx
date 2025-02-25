@@ -5,6 +5,13 @@ import type { Budget as BudgetType, CategoryGroup, Category } from '../types';
 import Dropdown from '../components/common/Dropdown';
 import BudgetHistory from './Budget/BudgetHistory';
 import BudgetReport from './Budget/BudgetReport';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from './ui/dialog';
 
 interface NewBudget {
   category: string;
@@ -219,16 +226,17 @@ const Budget: React.FC = () => {
       {renderContent()}
 
       {/* Add Budget Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Add New Budget</h2>
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleAddBudget} className="space-y-4">
+      <Dialog open={showAddModal} onOpenChange={setShowAddModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New Budget</DialogTitle>
+          </DialogHeader>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          <form onSubmit={handleAddBudget} className="space-y-4">
               <Dropdown
                 label="Category"
                 value={newBudget.category}
@@ -276,40 +284,43 @@ const Budget: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+              <DialogFooter className="mt-6">
                 <button
                   type="button"
                   onClick={() => {
                     setShowAddModal(false);
                     setError(null);
                   }}
-                  className="px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
+                  className="px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors order-1 sm:order-2"
+                  className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 >
                   Add Budget
                 </button>
-              </div>
+              </DialogFooter>
             </form>
-          </div>
-        </div>
-      )}
+          </DialogContent>
+        </Dialog>
 
       {/* Edit Budget Modal */}
-      {showEditModal && selectedBudget && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full p-4 sm:p-6 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Edit Budget</h2>
-            {error && (
-              <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleEditBudget} className="space-y-4">
+      <Dialog open={showEditModal} onOpenChange={(open) => {
+        setShowEditModal(open);
+        if (!open) setSelectedBudget(null);
+      }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Budget</DialogTitle>
+          </DialogHeader>
+          {error && (
+            <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
+          {selectedBudget && <form onSubmit={handleEditBudget} className="space-y-4">
               <Dropdown
                 label="Category"
                 value={selectedBudget.category}
@@ -360,7 +371,7 @@ const Budget: React.FC = () => {
                 </select>
               </div>
 
-              <div className="flex flex-col sm:flex-row justify-end gap-2 pt-4">
+              <DialogFooter className="mt-6">
                 <button
                   type="button"
                   onClick={() => {
@@ -368,21 +379,20 @@ const Budget: React.FC = () => {
                     setSelectedBudget(null);
                     setError(null);
                   }}
-                  className="px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors order-2 sm:order-1"
+                  className="px-4 py-3 text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors order-1 sm:order-2"
+                  className="px-4 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
                 >
                   Save Changes
                 </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+              </DialogFooter>
+            </form>}
+          </DialogContent>
+        </Dialog>
     </div>
   );
 };

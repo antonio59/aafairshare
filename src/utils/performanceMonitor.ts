@@ -1,4 +1,4 @@
-import { getCLS, getFID, getLCP, getFCP, getTTFB } from 'web-vitals';
+import { onCLS, onFID, onLCP, onFCP, onTTFB } from 'web-vitals';
 
 interface PerformanceMetric {
   name: string;
@@ -27,11 +27,11 @@ class PerformanceMonitor {
   }
 
   private initializeVitalsTracking(): void {
-    getCLS(this.handleMetric.bind(this));
-    getFID(this.handleMetric.bind(this));
-    getLCP(this.handleMetric.bind(this));
-    getFCP(this.handleMetric.bind(this));
-    getTTFB(this.handleMetric.bind(this));
+    onCLS(this.handleMetric.bind(this));
+    onFID(this.handleMetric.bind(this));
+    onLCP(this.handleMetric.bind(this));
+    onFCP(this.handleMetric.bind(this));
+    onTTFB(this.handleMetric.bind(this));
   }
 
   private handleMetric(metric: PerformanceMetric): void {

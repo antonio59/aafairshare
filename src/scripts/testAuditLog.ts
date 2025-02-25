@@ -1,5 +1,5 @@
 import { supabase } from '../supabase';
-import { auditLog, AuditLogType } from '../utils/auditLogger';
+import { auditLog, AUDIT_LOG_TYPE } from '../utils/auditLogger';
 
 async function testAuditLogging() {
   try {
@@ -15,7 +15,7 @@ async function testAuditLogging() {
 
     // Test 1: Log a security event
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      AUDIT_LOG_TYPE.SECURITY_EVENT,
       'Test security event',
       { test: true, message: 'This is a test security event' }
     );
@@ -23,7 +23,7 @@ async function testAuditLogging() {
 
     // Test 2: Log a data modification
     await auditLog(
-      AuditLogType.DATA_UPDATE,
+      AUDIT_LOG_TYPE.DATA_UPDATE,
       'Test data update',
       { 
         entityType: 'expense',
@@ -35,7 +35,7 @@ async function testAuditLogging() {
 
     // Test 3: Log an admin action
     await auditLog(
-      AuditLogType.ADMIN_ACTION,
+      AUDIT_LOG_TYPE.ADMIN_ACTION,
       'Test admin action',
       { action: 'system_config_change', parameter: 'timeout_duration' }
     );
