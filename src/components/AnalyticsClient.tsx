@@ -115,6 +115,12 @@ export function AnalyticsClient() {
     { value: 'Antonio', label: 'Antonio' }
   ];
 
+  // Add this function to get the current user ID
+  function getCurrentUserId() {
+    // This is a placeholder - implement according to your auth system
+    return 'system';
+  }
+
   // Export handlers
   const handleExport = async (type: 'excel' | 'pdf') => {
     if (!data) return;
@@ -133,6 +139,14 @@ export function AnalyticsClient() {
             { header: 'Paid By', key: 'paidBy' }
           ]
         });
+        
+        // Fix auditLog call with all required parameters
+        await auditLog(
+          AUDIT_LOG_TYPE.DATA_CREATE,
+          'Created analytics report',
+          { reportType: 'excel' },
+          getCurrentUserId()
+        );
       } else {
         await exportToPDF({
           data: data.expenses,
@@ -145,6 +159,14 @@ export function AnalyticsClient() {
             { header: 'Paid By', key: 'paidBy' }
           ]
         });
+        
+        // Fix auditLog call with all required parameters
+        await auditLog(
+          AUDIT_LOG_TYPE.DATA_CREATE,
+          'Created analytics report',
+          { reportType: 'pdf' },
+          getCurrentUserId()
+        );
       }
     } catch (error) {
       console.error('Export failed:', error);
