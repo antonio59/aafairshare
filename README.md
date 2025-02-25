@@ -12,7 +12,7 @@ AA FairShare is a modern, secure, and high-performance expense sharing applicati
 - 💰 Expense tracking and management
 - 📊 Interactive charts and analytics
 - 📱 Responsive design for all devices
-- 📄 PDF report generation
+- 📄 Secure PDF and Excel report generation with data sanitization
 - 🔔 Customizable notification system
 - 🌐 Real-time updates
 - 🎨 Modern UI with dark/light mode
@@ -38,9 +38,9 @@ AA FairShare is a modern, secure, and high-performance expense sharing applicati
 - **Database**: Supabase with offline support
 - **Styling**: TailwindCSS with consistent design tokens
 - **Charts**: Chart.js with react-chartjs-2 (lazy loaded)
-- **PDF Generation**: pdfmake (dynamically imported)
+- **Document Generation**: pdfmake and ExcelJS with data sanitization
 - **Testing**: Jest and React Testing Library
-- **Security**: CSP headers, strict CORS, and secure build configurations
+- **Security**: CSP headers, strict CORS, secure build configurations, sanitized data exports, and secure file handling
 - **Performance**: Web Vitals monitoring, optimized assets
 - **PWA**: Service Worker with advanced caching strategies
 - **Image Optimization**: WebP format, responsive loading

@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import autoTable from 'jspdf-autotable';
+import sanitizeHtml from 'sanitize-html';
 
 interface ExportOptions {
   data: unknown[];
@@ -66,7 +67,8 @@ export async function exportToExcel({
   columns
 }: ExportOptions): Promise<Blob> {
   // Create workbook
-  const wb = XLSX.utils.book_new();
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet('Sheet1');
 
   // Prepare headers
   const tableColumns = columns || Object.keys(data[0] || {}).map(key => ({
@@ -74,50 +76,75 @@ export async function exportToExcel({
     key
   }));
 
-  // Create worksheet data
-  const ws_data = [
-    // Headers
-    tableColumns.map(col => col.header),
-    // Data rows
-    ...data.map(item =>
-      tableColumns.map(col => (item as any)[col.key] || '')
-    )
-  ];
+  let currentRow = 1;
 
-  // Add title and description if provided
-  if (title || description) {
-    ws_data.unshift([]);  // Empty row for spacing
-    if (description) ws_data.unshift([description]);
-    if (title) ws_data.unshift([title]);
+  // Add title if provided
+  if (title) {
+    const titleRow = worksheet.addRow([sanitizeHtml(title)]);
+    titleRow.font = { bold: true, size: 14 };
+    worksheet.mergeCells(currentRow, 1, currentRow, tableColumns.length);
+    currentRow += 1;
   }
 
-  // Create worksheet
-  const ws = XLSX.utils.aoa_to_sheet(ws_data);
-
-  // Style the title and description
-  if (title || description) {
-    let row = 0;
-    if (title) {
-      ws['!merges'] = ws['!merges'] || [];
-      ws['!merges'].push({ s: { r: row, c: 0 }, e: { r: row, c: tableColumns.length - 1 } });
-      row++;
-    }
-    if (description) {
-      ws['!merges'].push({ s: { r: row, c: 0 }, e: { r: row, c: tableColumns.length - 1 } });
-    }
+  // Add description if provided
+  if (description) {
+    const descRow = worksheet.addRow([sanitizeHtml(description)]);
+    descRow.font = { size: 11 };
+    worksheet.mergeCells(currentRow, 1, currentRow, tableColumns.length);
+    currentRow += 1;
   }
 
-  // Add the worksheet to the workbook
-  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1');
+  // Add empty row for spacing
+  if (title || description) {
+    currentRow += 1;
+  }
 
-  // Generate blob
-  const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
-  return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  // Add headers
+  worksheet.columns = tableColumns.map(col => ({
+    header: sanitizeHtml(col.header),
+    key: col.key,
+    width: col.width || 15
+  }));
+
+  // Style headers
+  const headerRow = worksheet.getRow(currentRow);
+  headerRow.font = { bold: true };
+  headerRow.fill = {
+    type: 'pattern',
+    pattern: 'solid',
+    fgColor: { argb: 'FFE0E0E0' }
+  };
+
+  // Add data
+  data.forEach(item => {
+    const rowData = tableColumns.reduce((acc, col) => {
+      acc[col.key] = sanitizeHtml(String((item as any)[col.key] || ''));
+      return acc;
+    }, {} as Record<string, string>);
+    worksheet.addRow(rowData);
+  });
+
+  // Generate buffer
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  return new Blob([buffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+  });
 }
 
 export function formatDataForExport(data: unknown): unknown[] {
   if (!Array.isArray(data)) return [data];
-  return data;
+  return data.map(item => {
+    if (typeof item === 'object' && item !== null) {
+      return Object.fromEntries(
+        Object.entries(item).map(([key, value]) => [
+          key,
+          sanitizeHtml(String(value || ''))
+        ])
+      );
+    }
+    return sanitizeHtml(String(item || ''));
+  });
 }
 
 export function sanitizeFilename(filename: string): string {

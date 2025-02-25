@@ -1,8 +1,8 @@
 # Technical Documentation
 
-## Performance Optimization Guide
+## Performance and Security Guide
 
-This document provides detailed technical information about the performance optimizations implemented in the AA FairShare application.
+This document provides detailed technical information about the performance optimizations and security measures implemented in the AA FairShare application.
 
 ## Table of Contents
 - [UI Components](#ui-components)
@@ -13,6 +13,48 @@ This document provides detailed technical information about the performance opti
 - [State Management](#state-management)
 - [Service Worker](#service-worker)
 - [Build Optimization](#build-optimization)
+- [Security Measures](#security-measures)
+
+## Security Measures
+
+### Data Export Security
+```typescript
+// Example from export-utils.ts
+export async function exportToExcel({
+  data,
+  title,
+  description
+}: ExportOptions): Promise<Blob> {
+  // Secure workbook creation with ExcelJS
+  const workbook = new ExcelJS.Workbook();
+  
+  // Sanitize all input data
+  const safeTitle = sanitizeHtml(title);
+  const safeDescription = sanitizeHtml(description);
+  
+  // Add sanitized data to worksheet
+  data.forEach(item => {
+    const sanitizedData = Object.entries(item).map(([key, value]) => [
+      key,
+      sanitizeHtml(String(value || ''))
+    ]);
+    worksheet.addRow(Object.fromEntries(sanitizedData));
+  });
+}
+```
+
+### Security Features
+- **Input Sanitization**: All user input and file content is sanitized using `sanitize-html`
+- **Secure File Handling**: Safe file name generation and content validation
+- **Data Export Protection**: Sanitized Excel and PDF exports
+- **Type Safety**: Strict TypeScript types for all data handling
+- **Error Boundaries**: Graceful error handling for all file operations
+
+### Best Practices
+- Use sanitization for all user-generated content
+- Implement proper error handling for file operations
+- Validate file types and content before processing
+- Use secure dependencies with regular updates
 
 ## UI Components
 
