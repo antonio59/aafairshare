@@ -1,10 +1,9 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { createClient } from '@/lib/supabase';
 
 export async function GET(request: Request) {
-  const supabase = createServerClient({ cookies });
+  const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
