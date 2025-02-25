@@ -1,6 +1,12 @@
 import { supabase } from '../supabase';
-import { auditLog, AuditLogType } from './auditLogger';
+import { createAuditLog, AUDIT_LOG_TYPES } from './auditLogger';
 import { encrypt, decrypt } from './encryptionUtils';
+
+interface BackupResult {
+  success: boolean;
+  metadata?: BackupMetadata;
+  error?: string;
+}
 
 interface BackupMetadata {
   timestamp: string;
@@ -10,14 +16,14 @@ interface BackupMetadata {
   checksum: string;
 }
 
-export class BackupService {
-  private static readonly BACKUP_BUCKET = 'backups';
-  private static readonly MASTER_KEY = process.env.MASTER_ENCRYPTION_KEY as string;
+export const backupUtils = {
+  BACKUP_BUCKET: 'backups' as const,
+  MASTER_KEY: process.env.MASTER_ENCRYPTION_KEY as string,
 
   /**
    * Creates a full backup of the database
    */
-  static async createBackup(): Promise<BackupMetadata> {
+  async createBackup(): Promise<BackupResult> {
     try {
       const timestamp = new Date().toISOString();
       const tables = ['expenses', 'profiles', 'audit_logs'];
@@ -60,27 +66,31 @@ export class BackupService {
       if (uploadError) throw uploadError;
 
       // Log backup creation
-      await auditLog(
-        AuditLogType.ADMIN_ACTION,
-        'Backup created',
-        { timestamp, tables, size: metadata.size }
+      await createAuditLog(
+        AUDIT_LOG_TYPES.ADMIN_ACTION,
+        'backup_created',
+        { timestamp, tables, size: metadata.size },
+        undefined,
+        { severity: 'info', source: 'backup-service' }
       );
 
-      return metadata;
+      return { success: true, metadata };
     } catch (error) {
-      await auditLog(
-        AuditLogType.SECURITY_EVENT,
-        'Backup failed',
-        { error: error instanceof Error ? error.message : 'Unknown error' }
+      await createAuditLog(
+        AUDIT_LOG_TYPES.SECURITY_EVENT,
+        'backup_failed',
+        { error: error instanceof Error ? error.message : 'Unknown error' },
+        undefined,
+        { severity: 'error', source: 'backup-service' }
       );
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-  }
+  },
 
   /**
    * Restores data from a backup
    */
-  static async restoreBackup(timestamp: string): Promise<void> {
+  async restoreBackup(timestamp: string): Promise<BackupResult> {
     try {
       // Download backup file
       const filename = `backup-${timestamp}.enc`;
@@ -120,30 +130,35 @@ export class BackupService {
         // Commit transaction
         await supabase.rpc('commit_transaction');
 
-        await auditLog(
-          AuditLogType.ADMIN_ACTION,
-          'Backup restored',
-          { timestamp }
+        await createAuditLog(
+          AUDIT_LOG_TYPES.ADMIN_ACTION,
+          'backup_restored',
+          { timestamp },
+          undefined,
+          { severity: 'info', source: 'backup-service' }
         );
+        return { success: true };
       } catch (error) {
         // Rollback on error
         await supabase.rpc('rollback_transaction');
         throw error;
       }
     } catch (error) {
-      await auditLog(
-        AuditLogType.SECURITY_EVENT,
-        'Backup restoration failed',
-        { error: error instanceof Error ? error.message : 'Unknown error' }
+      await createAuditLog(
+        AUDIT_LOG_TYPES.SECURITY_EVENT,
+        'restore_failed',
+        { error: error instanceof Error ? error.message : 'Unknown error' },
+        undefined,
+        { severity: 'error', source: 'backup-service' }
       );
-      throw error;
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-  }
+  },
 
   /**
    * Tests a backup by restoring it to a temporary database
    */
-  static async testBackup(timestamp: string): Promise<boolean> {
+  async testBackup(timestamp: string): Promise<BackupResult> {
     try {
       // Download and decrypt backup
       const filename = `backup-${timestamp}.enc`;
@@ -169,24 +184,28 @@ export class BackupService {
         }
       }
 
-      await auditLog(
-        AuditLogType.ADMIN_ACTION,
-        'Backup test completed',
-        { timestamp, status: 'success' }
+      await createAuditLog(
+        AUDIT_LOG_TYPES.ADMIN_ACTION,
+        'backup_test_completed',
+        { timestamp, status: 'success' },
+        undefined,
+        { severity: 'info', source: 'backup-service' }
       );
 
-      return true;
+      return { success: true };
     } catch (error) {
-      await auditLog(
-        AuditLogType.SECURITY_EVENT,
-        'Backup test failed',
-        { error: error instanceof Error ? error.message : 'Unknown error' }
+      await createAuditLog(
+        AUDIT_LOG_TYPES.SECURITY_EVENT,
+        'backup_test_failed',
+        { error: error instanceof Error ? error.message : 'Unknown error' },
+        undefined,
+        { severity: 'error', source: 'backup-service' }
       );
-      return false;
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-  }
+  },
 
-  private static async generateChecksum(data: string): Promise<string> {
+  async generateChecksum(data: string): Promise<string> {
     const msgBuffer = new TextEncoder().encode(data);
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));

@@ -1,16 +1,82 @@
 import DOMPurify from 'dompurify';
 
+interface SanitizeConfig {
+  allowedTags?: string[];
+  allowedAttrs?: string[];
+  allowDataAttrs?: boolean;
+  sanitizeDom?: boolean;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors?: string[];
+}
+
+interface EmailValidationConfig {
+  maxLength?: number;
+  allowedDomains?: string[];
+}
+
+interface PasswordValidationConfig {
+  minLength?: number;
+  maxLength?: number;
+  requireUppercase?: boolean;
+  requireLowercase?: boolean;
+  requireNumbers?: boolean;
+  requireSpecial?: boolean;
+}
+
+interface TextValidationConfig {
+  maxLength?: number;
+  allowHtml?: boolean;
+  allowUrls?: boolean;
+}
+
 // Enhanced input sanitization with strict configuration
-export const sanitizeInput = (input: string): string => {
-  return DOMPurify.sanitize(input, {
-    ALLOWED_TAGS: [], // Strip all HTML tags
-    ALLOWED_ATTR: [], // Strip all attributes
-    ALLOW_DATA_ATTR: false, // Prevent data attributes
-    USE_PROFILES: { html: false }, // Disable HTML profile
+function createSanitizeConfig(config?: Partial<SanitizeConfig>): DOMPurify.Config {
+  return {
+    ALLOWED_TAGS: config?.allowedTags || [],
+    ALLOWED_ATTR: config?.allowedAttrs || [],
+    ALLOW_DATA_ATTR: config?.allowDataAttrs || false,
+    USE_PROFILES: { html: false },
     RETURN_DOM: false,
     RETURN_DOM_FRAGMENT: false,
     RETURN_DOM_IMPORT: false,
-    SANITIZE_DOM: true
+    SANITIZE_DOM: config?.sanitizeDom ?? true,
+    WHOLE_DOCUMENT: false,
+    SANITIZE_NAMED_PROPS: true,
+    ADD_TAGS: ['#text'],
+    FORBID_TAGS: ['script', 'style', 'iframe', 'frame', 'object', 'embed', 'form'],
+    FORBID_ATTR: ['style', 'class', 'id', 'href', 'src', 'on*']
+  };
+}
+
+export function sanitizeInput(input: string, config?: Partial<SanitizeConfig>): string {
+  if (typeof input !== 'string') return '';
+  
+  // First pass: Basic character encoding
+  const preEncoded = input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;');
+
+  // Second pass: DOMPurify with strict configuration
+  return DOMPurify.sanitize(preEncoded, {
+    ALLOWED_TAGS: [], // Strip all HTML tags
+    ALLOWED_ATTR: [], // Strip all attributes
+    ALLOW_DATA_ATTR: false,
+    USE_PROFILES: { html: false },
+    RETURN_DOM: false,
+    RETURN_DOM_FRAGMENT: false,
+    RETURN_DOM_IMPORT: false,
+    SANITIZE_DOM: true,
+    WHOLE_DOCUMENT: false,
+    SANITIZE_NAMED_PROPS: true,
+    ADD_TAGS: ['#text'], // Only allow text nodes
+    FORBID_TAGS: ['script', 'style', 'iframe', 'frame', 'object', 'embed', 'form'],
+    FORBID_ATTR: ['style', 'class', 'id', 'href', 'src', 'on*']
   });
 };
 
@@ -41,18 +107,24 @@ export const validateDate = (date: string): boolean => {
 };
 
 // Enhanced email validation
-export const validateEmail = (email: string): boolean => {
-  // RFC 5322 compliant email regex
-  const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
-  if (!emailRegex.test(email)) return false;
+export function validateEmail(email: string, config?: EmailValidationConfig): ValidationResult {
+  if (typeof email !== 'string') return false;
   
-  // Check specific allowed domains
-  const allowedEmails = ['andypamo@gmail.com', 'antoniojsmith@protonmail.com'];
-  return allowedEmails.includes(email.toLowerCase());
+  // Simpler, more maintainable email regex
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
+  
+  if (!emailRegex.test(email)) return false;
+  if (email.length > 254) return false; // RFC 5321
+  
+  // Get allowed domains from environment
+  const allowedDomains = process.env.VITE_ALLOWED_EMAIL_DOMAINS?.split(',') || [];
+  const emailDomain = email.split('@')[1]?.toLowerCase();
+  
+  return allowedDomains.includes(emailDomain);
 };
 
 // Enhanced password validation
-export const validatePassword = (password: string): boolean => {
+export function validatePassword(password: string, config?: PasswordValidationConfig): ValidationResult {
   // Minimum 8 characters, max 100 characters
   if (password.length < 8 || password.length > 100) return false;
   
@@ -69,18 +141,43 @@ export const validatePassword = (password: string): boolean => {
   return hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar;
 };
 
-// Validate text input length and content
-export const validateText = (text: string, maxLength: number = 500): boolean => {
+// Validate text input length and content with enhanced security
+export function validateText(text: string, config?: TextValidationConfig): ValidationResult {
+  if (typeof text !== 'string') return false;
   if (!text || text.trim().length === 0) return false;
   if (text.length > maxLength) return false;
-  // Prevent common XSS patterns
-  const xssPatterns = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+
+  // Comprehensive XSS and injection patterns
+  const dangerousPatterns = [
+    // Script tags and events
+    /<script[^>]*>[\s\S]*?<\/script>/gi,
+    /<script[^>]*>/gi,
+    /on\w+\s*=\s*["']?[^"']*["']?/gi,
+    
+    // Dangerous protocols
     /javascript:/gi,
-    /on\w+\s*=/gi,
-    /data:/gi
+    /data:/gi,
+    /vbscript:/gi,
+    /file:/gi,
+    
+    // Dangerous tags
+    /<iframe[^>]*>[\s\S]*?<\/iframe>/gi,
+    /<frame[^>]*>/gi,
+    /<embed[^>]*>/gi,
+    /<object[^>]*>[\s\S]*?<\/object>/gi,
+    /<form[^>]*>[\s\S]*?<\/form>/gi,
+    
+    // Other dangerous patterns
+    /expression\s*\([^)]*\)/gi,
+    /url\s*\([^)]*\)/gi,
+    /eval\s*\([^)]*\)/gi,
+    /settimeout\s*\([^)]*\)/gi,
+    /setinterval\s*\([^)]*\)/gi,
+    /function\s*\([^)]*\)/gi,
+    /new\s+function/gi
   ];
-  return !xssPatterns.some(pattern => pattern.test(text));
+
+  return !dangerousPatterns.some(pattern => pattern.test(text));
 };
 
 /**

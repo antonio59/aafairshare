@@ -1,34 +1,48 @@
 import { supabase } from '../supabase';
 
-export enum AuditLogType {
-  AUTH_SUCCESS = 'auth_success',
-  AUTH_FAILURE = 'auth_failure',
-  PASSWORD_CHANGE = 'password_change',
-  PASSWORD_RESET = 'password_reset',
-  USER_UPDATE = 'user_update',
-  DATA_CREATE = 'data_create',
-  DATA_UPDATE = 'data_update',
-  DATA_DELETE = 'data_delete',
-  ADMIN_ACTION = 'admin_action',
-  SECURITY_EVENT = 'security_event'
-}
+export const AUDIT_LOG_TYPES = {
+  AUTH_SUCCESS: 'auth_success',
+  AUTH_FAILURE: 'auth_failure',
+  PASSWORD_CHANGE: 'password_change',
+  PASSWORD_RESET: 'password_reset',
+  USER_UPDATE: 'user_update',
+  DATA_CREATE: 'data_create',
+  DATA_UPDATE: 'data_update',
+  DATA_DELETE: 'data_delete',
+  ADMIN_ACTION: 'admin_action',
+  SECURITY_EVENT: 'security_event'
+} as const;
+
+type AuditLogType = typeof AUDIT_LOG_TYPES[keyof typeof AUDIT_LOG_TYPES];
 
 interface AuditLogEntry {
   type: AuditLogType;
   userId?: string;
   action: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   ipAddress?: string;
   userAgent?: string;
   timestamp: string;
+  severity?: 'info' | 'warning' | 'error';
+  source?: string;
+  correlationId?: string;
 }
 
-export const auditLog = async (
+interface AuditLogOptions {
+  severity?: AuditLogEntry['severity'];
+  source?: string;
+  correlationId?: string;
+  shouldEncrypt?: boolean;
+  retentionDays?: number;
+}
+
+export async function createAuditLog(
   type: AuditLogType,
   action: string,
-  details: Record<string, any>,
-  userId?: string
-) => {
+  details: Record<string, unknown>,
+  userId?: string,
+  options?: AuditLogOptions
+): Promise<void> {
   try {
     // Get client IP and user agent if available
     const ipAddress = typeof window !== 'undefined' ? 
@@ -73,17 +87,100 @@ export const auditLog = async (
   }
 };
 
-// Sanitize sensitive information before logging
+// Enhanced sensitive information sanitization for logging
 function sanitizeLogDetails(details: Record<string, any>): Record<string, any> {
-  const sensitiveFields = ['password', 'token', 'secret', 'credit_card', 'ssn'];
+  // Comprehensive list of sensitive field patterns
+  const sensitivePatterns = [
+    // Authentication & Authorization
+    /pass(word)?/i,
+    /auth/i,
+    /jwt/i,
+    /token/i,
+    /secret/i,
+    /key/i,
+    /api[-_]?key/i,
+    /access[-_]?token/i,
+    /refresh[-_]?token/i,
+    
+    // Personal Information
+    /ssn/i,
+    /social[-_]?security/i,
+    /credit[-_]?card/i,
+    /card[-_]?number/i,
+    /cvv/i,
+    /pin/i,
+    
+    // Contact Information
+    /phone/i,
+    /address/i,
+    /zip/i,
+    /postal/i,
+    
+    // Financial Information
+    /account/i,
+    /routing/i,
+    /swift/i,
+    /iban/i,
+    
+    // Healthcare Information
+    /health/i,
+    /medical/i,
+    /diagnosis/i,
+    /treatment/i
+  ];
+
   const sanitized = { ...details };
 
-  Object.keys(sanitized).forEach(key => {
-    if (sensitiveFields.some(field => key.toLowerCase().includes(field))) {
-      sanitized[key] = '[REDACTED]';
-    } else if (typeof sanitized[key] === 'object' && sanitized[key] !== null) {
-      sanitized[key] = sanitizeLogDetails(sanitized[key]);
+  function isSensitive(key: string, value: any): boolean {
+    // Check key against patterns
+    if (sensitivePatterns.some(pattern => pattern.test(key))) {
+      return true;
     }
+
+    // Check if value looks like a token/key
+    if (typeof value === 'string') {
+      // Token patterns (long strings of letters, numbers, and special characters)
+      if (/^[A-Za-z0-9+/=_-]{32,}$/.test(value)) {
+        return true;
+      }
+      
+      // Common token prefixes
+      if (/^(Bearer|Basic|Digest)\s+/.test(value)) {
+        return true;
+      }
+      
+      // URL with query parameters containing sensitive data
+      if (value.includes('?') && sensitivePatterns.some(pattern => 
+        pattern.test(value.substring(value.indexOf('?')))
+      )) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  function sanitizeValue(key: string, value: any): any {
+    if (value === null || value === undefined) {
+      return value;
+    }
+
+    if (typeof value === 'object') {
+      if (Array.isArray(value)) {
+        return value.map(item => sanitizeValue(key, item));
+      }
+      return sanitizeLogDetails(value);
+    }
+
+    if (isSensitive(key, value)) {
+      return '[REDACTED]';
+    }
+
+    return value;
+  }
+
+  Object.entries(sanitized).forEach(([key, value]) => {
+    sanitized[key] = sanitizeValue(key, value);
   });
 
   return sanitized;

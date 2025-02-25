@@ -2,34 +2,99 @@ import { auditLog, AuditLogType } from '../utils/auditLogger';
 import { supabase } from '../supabase';
 import type { User } from '@supabase/supabase-js';
 
-const API_RATE_LIMIT = 100; // requests per window
-const API_RATE_WINDOW = 60 * 1000; // 1 minute window
+interface RateLimitConfig {
+  requestsPerWindow: number;
+  windowMs: number;
+}
 
 interface RateLimitInfo {
   count: number;
   firstRequest: number;
 }
 
+interface ValidationConfig {
+  allowHtml?: boolean;
+  allowDataUrls?: boolean;
+  maxDepth?: number;
+}
+
+interface ApiSecurityConfig {
+  rateLimit: RateLimitConfig;
+  validation: ValidationConfig;
+}
+
+const DEFAULT_CONFIG: ApiSecurityConfig = {
+  rateLimit: {
+    requestsPerWindow: 100,
+    windowMs: 60 * 1000 // 1 minute
+  },
+  validation: {
+    allowHtml: false,
+    allowDataUrls: false,
+    maxDepth: 10
+  }
+};
+
 const rateLimitStore = new Map<string, RateLimitInfo>();
 
-export const apiSecurityMiddleware = {
+function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
+  const finalConfig = {
+    ...DEFAULT_CONFIG,
+    ...config,
+    rateLimit: {
+      ...DEFAULT_CONFIG.rateLimit,
+      ...config.rateLimit
+    },
+    validation: {
+      ...DEFAULT_CONFIG.validation,
+      ...config.validation
+    }
+  };
+
+  return {
   /**
    * Validates and sanitizes API request parameters
    */
   validateRequest: (params: Record<string, any>) => {
     const sanitized: Record<string, any> = {};
     
-    for (const [key, value] of Object.entries(params)) {
-      // Remove any potential XSS or injection attempts
+    const sanitizeValue = (value: any): any => {
       if (typeof value === 'string') {
-        sanitized[key] = value
-          .replace(/[<>]/g, '') // Remove < and >
-          .replace(/javascript:/gi, '') // Remove javascript: protocol
-          .replace(/on\w+=/gi, '') // Remove onclick= and similar
+        // Use DOMPurify for strings
+        const sanitizedString = DOMPurify.sanitize(value, {
+          ALLOWED_TAGS: [],
+          ALLOWED_ATTR: [],
+          ALLOW_DATA_ATTR: false,
+          USE_PROFILES: { html: false },
+          SANITIZE_DOM: true
+        });
+        
+        // Additional protocol and script checks
+        return sanitizedString
+          .replace(/[<>]/g, '')
+          .replace(/javascript:|data:|vbscript:|file:/gi, '')
+          .replace(/on\w+=/gi, '')
+          .replace(/expression\(|eval\(|function\(|setTimeout\(|setInterval\(/gi, '')
           .trim();
-      } else {
-        sanitized[key] = value;
       }
+      
+      if (Array.isArray(value)) {
+        return value.map(sanitizeValue);
+      }
+      
+      if (typeof value === 'object' && value !== null) {
+        const sanitizedObj: Record<string, any> = {};
+        for (const [k, v] of Object.entries(value)) {
+          sanitizedObj[k] = sanitizeValue(v);
+        }
+        return sanitizedObj;
+      }
+      
+      return value;
+    };
+    
+    for (const [key, value] of Object.entries(params)) {
+      sanitized[key] = sanitizeValue(value);
     }
     
     return sanitized;
