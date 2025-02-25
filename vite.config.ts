@@ -106,7 +106,57 @@ export default defineConfig({
       exclude: [/\.(br)$/, /\.(gz)$/],
       deleteOriginalAssets: false,
     }),
-    VitePWA(pwaOptions)
+    VitePWA({
+      ...pwaOptions,
+      injectRegister: 'auto',
+      workbox: {
+        ...pwaOptions.workbox,
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com/,
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'google-fonts-stylesheets' }
+          },
+          {
+            urlPattern: /^https:\/\/fonts\.gstatic\.com/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-webfonts',
+              expiration: {
+                maxEntries: 30,
+                maxAgeSeconds: 60 * 60 * 24 * 365
+              }
+            }
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg|gif)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'images',
+              expiration: {
+                maxEntries: 60,
+                maxAgeSeconds: 60 * 60 * 24 * 30
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/api\.supabase\.co/,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              networkTimeoutSeconds: 10,
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 5
+              }
+            }
+          }
+        ],
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true
+      }
+    })
   ],
   build: {
     target: 'es2020',
@@ -115,6 +165,10 @@ export default defineConfig({
     cssCodeSplit: true,
     cssMinify: true,
     chunkSizeWarningLimit: 3000, // Increased due to necessary PDF/Excel libraries
+    modulePreload: {
+      polyfill: true,
+      resolveDependencies: (filename: string, deps: string[]) => deps,
+    },
     rollupOptions: {
       output: {
         manualChunks(id) {

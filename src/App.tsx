@@ -1,5 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useEffect, useState, lazy, Suspense } from 'react';
+import { initializePerformanceMonitoring } from './utils/performance-monitor';
+import { createPersistentStore } from './utils/store-optimizer';
 import { useUserStore } from './store/userStore';
 import { supabase } from './supabase';
 import { clearAuthCache, validateAuthToken } from './utils/authUtils';
@@ -16,6 +18,12 @@ const Analytics = lazy(() => import('./components/Analytics'));
 const Settlement = lazy(() => import('./components/Settlement'));
 import ProtectedRoute from './components/ProtectedRoute';
 import type { User, NotificationPreferences } from './types';
+
+// Initialize performance monitoring
+initializePerformanceMonitoring();
+
+// Initialize persistent store
+createPersistentStore(useUserStore, 'user-store');
 
 // Loading component
 const LoadingSpinner = () => (
