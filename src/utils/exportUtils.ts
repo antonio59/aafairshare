@@ -1,11 +1,6 @@
 import { format } from 'date-fns';
-import ExcelJS from 'exceljs';
 import type { Expense, Category, Tag } from '../types';
-import pdfMake from 'pdfmake/build/pdfmake';
 import type { TDocumentDefinitions } from 'pdfmake/interfaces';
-
-// @ts-ignore - pdfFonts has no type definitions
-import pdfFonts from 'pdfmake/build/vfs_fonts';
 
 interface MonthlyTotals {
   andresPaid: number;
@@ -52,6 +47,8 @@ export const exportToExcel = async (
   tags: Tag[],
   month: string
 ) => {
+  // Dynamically import Excel.js
+  const { default: ExcelJS } = await import('exceljs');
   const workbook = new ExcelJS.Workbook();
   const worksheet = workbook.addWorksheet('Expenses');
 
@@ -141,15 +138,21 @@ export const exportToExcel = async (
   window.URL.revokeObjectURL(url);
 };
 
-// Initialize pdfmake with fonts
-(pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
 
-export const exportToPDF = (
+export const exportToPDF = async (
   expenses: Expense[],
   categories: Category[],
   tags: Tag[],
   month: string
 ) => {
+  // Dynamically import PDF dependencies
+  const [{ default: pdfMake }, { default: pdfFonts }] = await Promise.all([
+    import('pdfmake/build/pdfmake'),
+    import('pdfmake/build/vfs_fonts')
+  ]);
+
+  // Initialize pdfmake with fonts
+  (pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
   const monthName = format(new Date(month + '-01'), 'MMMM yyyy');
 
   // Prepare data for table
@@ -233,6 +236,6 @@ export const exportToPDF = (
 
   // Generate and download PDF
   const monthNameFile = format(new Date(month + '-01'), 'MMMM_yyyy');
-  pdfMake.createPdf(docDefinition).download(`Expenses_${monthNameFile}.pdf`);
+  return pdfMake.createPdf(docDefinition).download(`Expenses_${monthNameFile}.pdf`);
 
 };

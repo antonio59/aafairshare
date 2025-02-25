@@ -114,7 +114,7 @@ export default defineConfig({
     minify: 'esbuild',
     cssCodeSplit: true,
     cssMinify: true,
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 3000, // Increased due to necessary PDF/Excel libraries
     rollupOptions: {
       output: {
         manualChunks(id) {

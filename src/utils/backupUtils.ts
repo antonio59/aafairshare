@@ -21,7 +21,7 @@ export class BackupService {
     try {
       const timestamp = new Date().toISOString();
       const tables = ['expenses', 'profiles', 'audit_logs'];
-      let backupData: Record<string, any> = {};
+      const backupData: Record<string, unknown> = {};
 
       // Fetch data from each table
       for (const table of tables) {
