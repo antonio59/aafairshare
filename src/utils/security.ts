@@ -216,11 +216,11 @@ export function validateText(text: string, config?: TextValidationConfig): Valid
 export const getCSPHeader = (): string => {
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co https://*.google.com https://*.googleapis.com https://www.googletagmanager.com https://www.google-analytics.com",
+    "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.supabase.co",
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
     "font-src 'self' https://fonts.gstatic.com",
-    "img-src 'self' data: https: https://www.google-analytics.com",
-    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.google-analytics.com https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
+    "img-src 'self' data: https:",
+    "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
     "frame-src 'self' https://*.supabase.co",
     "manifest-src 'self' https://*.github.dev https://glorious-fiesta-9vxxv67qgvfjw9-5173.app.github.dev",
     "worker-src 'self'",
