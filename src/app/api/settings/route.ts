@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
+import { cookies } from 'next/headers';
 
 export async function GET(_request: Request) {
   const supabase = createClient();
@@ -44,7 +45,18 @@ export async function GET(_request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const supabase = createServerClient({ cookies });
+  const cookieStore = cookies();
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
+    {
+      cookies: {
+        get(name) {
+          return cookieStore.get(name)?.value;
+        },
+      },
+    }
+  );
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {

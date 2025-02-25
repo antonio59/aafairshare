@@ -8,7 +8,7 @@ async function main() {
     console.log('Starting backup process...');
 
     // Create backup
-    const metadata = await createBackup();
+    const metadata = await createBackup('daily', 'system');
 
     // Save backup report
     const report = {

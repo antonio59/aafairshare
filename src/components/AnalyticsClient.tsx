@@ -18,6 +18,7 @@ import { MultiSelect } from './ui/multi-select';
 import Dropdown from './common/Dropdown';
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 import type { Expense, Category, CategoryGroup, Tag } from '@/types';
+import { auditLog, AUDIT_LOG_TYPE } from '../utils/auditLogger';
 
 // Register ChartJS components
 ChartJS.register(

@@ -1,7 +1,32 @@
-import { createBackup, restoreBackup, testBackup } from '../src/utils/backupUtils';
+import { createBackup, restoreBackup } from '../src/utils/backupUtils';
 import { auditLog } from '../src/utils/auditLogger';
 import type { AuditLogType } from '../src/utils/auditLogger';
 import fs from 'fs';
+
+async function testBackupAndRestore() {
+  try {
+    console.log('Creating test backup...');
+    const backup = await createBackup('daily', 'system');
+    
+    if (!backup) {
+      console.error('Failed to create test backup');
+      return;
+    }
+    
+    console.log('Backup created:', backup.id);
+    
+    console.log('Testing restore...');
+    const restored = await restoreBackup(backup.id, 'system');
+    
+    if (restored) {
+      console.log('Restore successful');
+    } else {
+      console.error('Restore failed');
+    }
+  } catch (error) {
+    console.error('Test failed:', error);
+  }
+}
 
 async function main() {
   try {
@@ -15,7 +40,7 @@ async function main() {
     }
 
     // Test the backup
-    const isValid = await testBackup(report.metadata.timestamp);
+    const isValid = await testBackupAndRestore();
 
     if (!isValid) {
       throw new Error('Backup integrity test failed');
