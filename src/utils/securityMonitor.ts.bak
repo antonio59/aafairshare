@@ -1,12 +1,19 @@
 import { supabase } from '../supabase';
 import { auditLog, AUDIT_LOG_TYPE } from './auditLogger';
+import type { 
+  SecurityAlert,
+  SecurityAlertType,
+  SecuritySeverity,
+  SecurityAlertDetails,
+  SecurityAlertMetadata 
+} from '../types/security';
 
-interface SecurityAlert extends Record<string, unknown> {
-  type: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  message: string;
-  details: Record<string, unknown>;
-  timestamp: string;
+// Local type for alert metadata
+interface LoginAlertMetadata extends SecurityAlertMetadata {
+  userId: string;
+  ipAddress: string;
+  attemptCount: number;
+  timeWindow: string;
 }
 
 export class SecurityMonitor {
@@ -40,14 +47,26 @@ export class SecurityMonitor {
 
       if (data && data.length >= this.ALERT_THRESHOLDS.failedLogins) {
         const alert: SecurityAlert = {
+          id: crypto.randomUUID(),
           type: 'excessive_failed_logins',
           severity: 'high',
           message: `Multiple failed login attempts detected for user ${userId}`,
           details: {
+            source: 'login_monitor',
+            description: 'Multiple failed login attempts detected',
+            affectedResource: `user/${userId}`,
+            additionalInfo: {
+              userId,
+              ipAddress,
+              attemptCount: data.length,
+              timeWindow: '30 minutes'
+            }
+          },
+          metadata: {
             userId,
             ipAddress,
-            attemptCount: data.length,
-            timeWindow: '30 minutes'
+            timestamp: new Date().toISOString(),
+            requestId: crypto.randomUUID()
           },
           timestamp: new Date().toISOString()
         };
@@ -84,15 +103,25 @@ export class SecurityMonitor {
       const isUnusual = this.detectUnusualPattern(data, quantity);
       if (isUnusual) {
         const alert: SecurityAlert = {
+          id: crypto.randomUUID(),
           type: 'unusual_data_access',
           severity: 'medium',
           message: `Unusual data access pattern detected for user ${userId}`,
           details: {
+            source: 'data_access_monitor',
+            description: 'Unusual pattern in data access frequency',
+            affectedResource: resource,
+            additionalInfo: {
+              userId,
+              action,
+              quantity,
+              timeWindow: '1 hour'
+            }
+          },
+          metadata: {
             userId,
-            action,
-            resource,
-            quantity,
-            timeWindow: '1 hour'
+            timestamp: new Date().toISOString(),
+            requestId: crypto.randomUUID()
           },
           timestamp: new Date().toISOString()
         };
@@ -112,11 +141,25 @@ export class SecurityMonitor {
       // Check if IP is already marked as suspicious
       if (this.ALERT_THRESHOLDS.suspiciousIPs.has(ipAddress)) {
         const alert: SecurityAlert = {
+          id: crypto.randomUUID(),
           type: 'suspicious_ip_access',
           severity: 'high',
           message: `Access attempt from previously flagged suspicious IP`,
           details: {
+            source: 'ip_monitor',
+            description: 'Access attempt from known suspicious IP address',
+            affectedResource: `ip/${ipAddress}`,
+            additionalInfo: {
+              ipAddress,
+              userId,
+              status: 'previously_flagged'
+            }
+          },
+          metadata: {
             ipAddress,
+            userId,
+            timestamp: new Date().toISOString()
+          },
             userId
           },
           timestamp: new Date().toISOString()
@@ -217,7 +260,7 @@ export class SecurityMonitor {
     return false;
   }
 
-  private static detectUnusualPattern(_data: unknown[], _quantity: number): boolean {
+  private static detectUnusualPattern<T>(data: T[], quantity: number): boolean {
     // Implement pattern detection logic here
     // Could use statistical analysis, machine learning, etc.
     return false;

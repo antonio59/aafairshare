@@ -1,55 +1,28 @@
 import { supabase } from '../supabase';
 import { auditLog, AUDIT_LOG_TYPE } from './auditLogger';
 import { encrypt, decrypt } from './encryptionUtils';
-
-interface BackupMetadata {
-  timestamp: string;
-  version: string;
-  tables: string[];
-  size: number;
-  checksum: string;
-}
-
-interface BackupResult {
-  success: boolean;
-  metadata?: BackupMetadata;
-  error?: string;
-}
-
-interface BackupOptions {
-  encryptData?: boolean;
-  compressionLevel?: number;
-  retentionDays?: number;
-}
-
-interface RestoreOptions {
-  validateChecksum?: boolean;
-  skipAuditLogs?: boolean;
-  dryRun?: boolean;
-}
-
-const DEFAULT_BACKUP_OPTIONS: BackupOptions = {
-  encryptData: true,
-  compressionLevel: 9,
-  retentionDays: 30
-};
-
-const DEFAULT_RESTORE_OPTIONS: RestoreOptions = {
-  validateChecksum: true,
-  skipAuditLogs: false,
-  dryRun: false
-};
+import {
+  DEFAULT_BACKUP_OPTIONS,
+  DEFAULT_RESTORE_OPTIONS
+} from '../types/backup';
+import type {
+  BackupMetadata,
+  BackupResult,
+  BackupOptions,
+  RestoreOptions,
+  BackupData
+} from '../types/backup';
 
 export const BACKUP_BUCKET = 'backups' as const;
 export const MASTER_KEY = process.env.MASTER_ENCRYPTION_KEY as string;
 
 // Helper functions
 export async function generateChecksum(data: string): Promise<string> {
-    const msgBuffer = new TextEncoder().encode(data);
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  },
+  const msgBuffer = new TextEncoder().encode(data);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 
 /**
  * Creates a full backup of the database
@@ -58,7 +31,7 @@ export async function createBackup(_options: BackupOptions = DEFAULT_BACKUP_OPTI
     try {
       const timestamp = new Date().toISOString();
       const tables = ['expenses', 'profiles', 'audit_logs'];
-      const backupData: Record<string, unknown> = {};
+      const backupData: BackupData = {};
 
       // Fetch data from each table
       for (const table of tables) {
@@ -91,7 +64,7 @@ export async function createBackup(_options: BackupOptions = DEFAULT_BACKUP_OPTI
       // Store backup in Supabase Storage
       const filename = `backup-${timestamp}.enc`;
       const { error: uploadError } = await supabase.storage
-        .from(this.BACKUP_BUCKET)
+        .from(BACKUP_BUCKET)
         .upload(filename, encryptedData);
 
       if (uploadError) throw uploadError;
@@ -114,7 +87,7 @@ export async function createBackup(_options: BackupOptions = DEFAULT_BACKUP_OPTI
       );
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-  },
+  }
 
 /**
  * Restores data from a backup
@@ -124,7 +97,7 @@ export async function restoreBackup(timestamp: string, _options: RestoreOptions 
       // Download backup file
       const filename = `backup-${timestamp}.enc`;
       const { data, error } = await supabase.storage
-        .from(this.BACKUP_BUCKET)
+        .from(BACKUP_BUCKET)
         .download(filename);
 
       if (error) throw error;
@@ -133,7 +106,7 @@ export async function restoreBackup(timestamp: string, _options: RestoreOptions 
       const encryptedData = await data.text();
       const decryptedString = await decrypt(
         encryptedData,
-        this.MASTER_KEY
+        MASTER_KEY
       );
 
       const backupData = JSON.parse(decryptedString) as Record<string, unknown>;
@@ -180,7 +153,7 @@ export async function restoreBackup(timestamp: string, _options: RestoreOptions 
       );
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-  },
+  }
 
 /**
  * Tests a backup by restoring it to a temporary database
@@ -190,7 +163,7 @@ export async function testBackup(timestamp: string, _options: RestoreOptions = D
       // Download and decrypt backup
       const filename = `backup-${timestamp}.enc`;
       const { data, error } = await supabase.storage
-        .from(this.BACKUP_BUCKET)
+        .from(BACKUP_BUCKET)
         .download(filename);
 
       if (error) throw error;
@@ -198,7 +171,7 @@ export async function testBackup(timestamp: string, _options: RestoreOptions = D
       const encryptedData = await data.text();
       const decryptedString = await decrypt(
         encryptedData,
-        this.MASTER_KEY
+        MASTER_KEY
       );
 
       // Verify JSON structure
@@ -228,6 +201,4 @@ export async function testBackup(timestamp: string, _options: RestoreOptions = D
       );
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
-  },
-
-}
+  }
