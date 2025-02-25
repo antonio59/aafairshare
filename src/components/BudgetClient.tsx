@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
-import { MultiSelect } from './ui/multi-select';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import type { Budget, Category, CategoryGroup } from '@/types';
 import BudgetHistory from './Budget/BudgetHistory';
 import BudgetReport from './Budget/BudgetReport';
@@ -18,18 +17,18 @@ type TabType = 'budgets' | 'history' | 'report';
 export function BudgetClient() {
   // State
   const [budgets, setBudgets] = useState<Budget[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryGroups, setCategoryGroups] = useState<CategoryGroup[]>([]);
+  const [, setCategories] = useState<Category[]>([]);
+  const [, setCategoryGroups] = useState<CategoryGroup[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedBudget, setSelectedBudget] = useState<Budget | null>(null);
+
   const [activeTab, setActiveTab] = useState<TabType>('budgets');
-  const [newBudget, setNewBudget] = useState<NewBudget>({
+  const [, ] = useState<NewBudget>({
     category: '',
     amount: '',
     period: 'monthly',
   });
-  const [error, setError] = useState<string | null>(null);
+
 
   // Load data from server component
   useEffect(() => {
@@ -42,86 +41,9 @@ export function BudgetClient() {
     }
   }, []);
 
-  // Handlers
-  const handleAddBudget = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  const [, setSelectedBudget] = useState<Budget | null>(null);
 
-    const amount = parseFloat(newBudget.amount);
-    if (!newBudget.category) {
-      setError('Please select a category');
-      return;
-    }
-    if (isNaN(amount) || amount <= 0) {
-      setError('Please enter a valid amount greater than 0');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/budgets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...newBudget, amount }),
-      });
-
-      if (!response.ok) throw new Error('Failed to create budget');
-
-      const newBudgetData = await response.json();
-      setBudgets([newBudgetData, ...budgets]);
-      setShowAddModal(false);
-      setNewBudget({ category: '', amount: '', period: 'monthly' });
-    } catch (err) {
-      setError('Failed to create budget. Please try again.');
-    }
-  };
-
-  const handleEditBudget = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (!selectedBudget) return;
-
-    const amount = parseFloat(selectedBudget.amount.toString());
-    if (!selectedBudget.category) {
-      setError('Please select a category');
-      return;
-    }
-    if (isNaN(amount) || amount <= 0) {
-      setError('Please enter a valid amount greater than 0');
-      return;
-    }
-
-    try {
-      const response = await fetch('/api/budgets', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(selectedBudget),
-      });
-
-      if (!response.ok) throw new Error('Failed to update budget');
-
-      const updatedBudget = await response.json();
-      setBudgets(budgets.map(b => b.id === updatedBudget.id ? updatedBudget : b));
-      setShowEditModal(false);
-      setSelectedBudget(null);
-    } catch (err) {
-      setError('Failed to update budget. Please try again.');
-    }
-  };
-
-  const handleDeleteBudget = async (id: string) => {
-    try {
-      const response = await fetch(`/api/budgets?id=${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) throw new Error('Failed to delete budget');
-
-      setBudgets(budgets.filter(b => b.id !== id));
-    } catch (err) {
-      setError('Failed to delete budget. Please try again.');
-    }
-  };
+  // Event handlers
 
   // Render content based on active tab
   const renderContent = () => {

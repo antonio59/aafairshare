@@ -3,10 +3,7 @@ import { BudgetData } from '@/components/server/BudgetData';
 import { BudgetClient } from '@/components/BudgetClient';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-export const metadata = {
-  title: 'Budgets | AAFairShare',
-  description: 'Manage your budgets and track spending',
-};
+export { metadata } from './metadata';
 
 export default async function BudgetsPage() {
   return (

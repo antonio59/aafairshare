@@ -1,5 +1,6 @@
 import { supabase } from '../src/supabase';
-import { auditLog, AuditLogType } from '../src/utils/auditLogger';
+import { auditLog } from '../src/utils/auditLogger';
+import type { AuditLogType } from '../src/utils/auditLogger';
 
 async function main() {
   try {
@@ -39,7 +40,7 @@ async function main() {
     }
 
     await auditLog(
-      AuditLogType.ADMIN_ACTION,
+      'ADMIN_ACTION' as AuditLogType,
       'Old backups cleaned up',
       { 
         deletedCount: oldBackups.length,
@@ -53,7 +54,7 @@ async function main() {
     console.error('Backup cleanup failed:', error);
 
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      'SECURITY_EVENT' as AuditLogType,
       'Backup cleanup failed',
       { error: error instanceof Error ? error.message : 'Unknown error' }
     );

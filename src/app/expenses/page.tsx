@@ -3,10 +3,7 @@ import { ExpensesData } from '@/components/server/expenses/ExpensesData';
 import { ExpensesClient } from '@/components/ExpensesClient';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-export const metadata = {
-  title: 'Expenses | AAFairShare',
-  description: 'View and manage your expenses',
-};
+export { metadata } from './metadata';
 
 interface PageProps {
   searchParams: {

@@ -1,7 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
+
 import { cookies } from 'next/headers';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
-import type { Expense, Category, CategoryGroup, Tag } from '@/types';
+import type { Expense, Category, Tag } from '@/types';
 
 interface AnalyticsInsights {
   totalSpent: number;
@@ -27,7 +27,11 @@ interface AnalyticsInsights {
 }
 
 async function getAnalyticsData(timeRange: string = 'current') {
-  const supabase = createServerClient({ cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
   
   // Calculate date range
   const now = new Date();

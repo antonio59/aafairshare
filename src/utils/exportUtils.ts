@@ -152,7 +152,15 @@ export const exportToPDF = async (
   ]);
 
   // Initialize pdfmake with fonts
-  (pdfMake as any).vfs = (pdfFonts as any).pdfMake.vfs;
+  interface PdfMakeVFS {
+    vfs: Record<string, string>;
+  }
+
+  interface PdfFonts {
+    pdfMake: PdfMakeVFS;
+  }
+
+  (pdfMake as { vfs: Record<string, string> }).vfs = (pdfFonts as PdfFonts).pdfMake.vfs;
   const monthName = format(new Date(month + '-01'), 'MMMM yyyy');
 
   // Prepare data for table

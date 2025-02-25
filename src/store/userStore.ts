@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import type { User, NotificationPreferences, UserStore, BudgetNotificationSetting, ChanneledNotificationSetting, TimedNotificationSetting } from '../types';
 import { supabase } from '../supabase';
 import { clearAuthCache, auth } from '../utils/authUtils';
-import type { AuthError } from '@supabase/supabase-js';
+
 
 const createNotificationSetting = (channels: Array<'email' | 'push' | 'inApp'>) => ({
   enabled: true,

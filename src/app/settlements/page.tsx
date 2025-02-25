@@ -3,10 +3,7 @@ import { SettlementsData } from '@/components/server/settlements/SettlementsData
 import { SettlementsClient } from '@/components/SettlementsClient';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
-export const metadata = {
-  title: 'Settlements | AAFairShare',
-  description: 'Manage and track expense settlements between users',
-};
+export { metadata } from './metadata';
 
 export default async function SettlementsPage() {
   return (

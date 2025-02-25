@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Dialog } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { format } from 'date-fns';
-import type { Settlement, Expense } from '@/types';
+import type { Expense } from '@/types';
 
 interface SettlementSummary {
   id: string;
@@ -36,9 +36,7 @@ export function SettlementsClient() {
   const [data, setData] = useState<SettlementsData | null>(null);
   const [activeTab, setActiveTab] = useState<'create' | 'history'>('create');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedSettlement, setSelectedSettlement] = useState<SettlementSummary | null>(null);
   const [selectedExpenses, setSelectedExpenses] = useState<string[]>([]);
-  const [notes, setNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Load data from server component

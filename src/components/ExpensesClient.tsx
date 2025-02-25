@@ -9,7 +9,7 @@ import { MultiSelect } from './ui/multi-select';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { DatePicker } from './ui/date-picker';
-import type { Expense, Category, CategoryGroup, Tag } from '@/types';
+import type { Expense, Category, CategoryGroup, Tag, RecurringExpense } from '@/types';
 
 interface ExpensesData {
   expenses: Expense[];
@@ -27,22 +27,14 @@ interface ExpensesData {
   recurringExpenses: RecurringExpense[];
 }
 
-interface ExpenseFilters {
-  startDate?: string;
-  endDate?: string;
-  categories?: string[];
-  tags?: string[];
-  paidBy?: string[];
-  minAmount?: number;
-  maxAmount?: number;
-}
+// Filter types moved to types.ts
 
 export function ExpensesClient() {
   // URL Search Params for filters
   const searchParams = useSearchParams();
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
-  const categories = searchParams.get('categories')?.split(',') || [];
+  const selectedCategoryIds = searchParams.get('categories')?.split(',') || [];
   const tags = searchParams.get('tags')?.split(',') || [];
   const paidBy = searchParams.get('paidBy')?.split(',') || [];
   const minAmount = searchParams.get('minAmount') || '';
@@ -52,8 +44,8 @@ export function ExpensesClient() {
   const [data, setData] = useState<ExpensesData | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState<Expense | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [, setSelectedExpense] = useState<Expense | null>(null);
+
 
   // Load data from server component
   useEffect(() => {
@@ -66,10 +58,17 @@ export function ExpensesClient() {
 
   if (!data) return null;
 
-  const { expenses, categories, categoryGroups, tags: allTags, stats } = data;
+  const { expenses, categories: availableCategories, categoryGroups, tags: allTags, stats } = data;
+
+  interface SelectOption {
+    value: string;
+    label: string;
+    icon?: string;
+    group?: string;
+  }
 
   // Options for filters
-  const categoryOptions = categories.map(cat => ({
+  const categoryOptions: SelectOption[] = availableCategories.map(cat => ({
     value: cat.id,
     label: cat.name,
     icon: cat.icon,
@@ -86,49 +85,7 @@ export function ExpensesClient() {
     { value: 'Antonio', label: 'Antonio' }
   ];
 
-  // Handlers
-  const handleAddExpense = async (formData: FormData) => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/expenses', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to add expense');
-
-      // Refresh the page to get updated data
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to add expense:', error);
-    } finally {
-      setIsSubmitting(false);
-      setShowAddModal(false);
-    }
-  };
-
-  const handleEditExpense = async (formData: FormData) => {
-    if (!selectedExpense) return;
-
-    setIsSubmitting(true);
-    try {
-      const response = await fetch(`/api/expenses/${selectedExpense.id}`, {
-        method: 'PUT',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to update expense');
-
-      // Refresh the page to get updated data
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to update expense:', error);
-    } finally {
-      setIsSubmitting(false);
-      setShowEditModal(false);
-      setSelectedExpense(null);
-    }
-  };
+  // Handlers temporarily removed
 
   const handleDeleteExpense = async (id: string) => {
     try {
@@ -183,7 +140,7 @@ export function ExpensesClient() {
             <label className="text-sm font-medium">Date Range</label>
             <div className="flex gap-2">
               <DatePicker
-                value={startDate}
+                date={startDate ? new Date(startDate) : undefined}
                 onChange={(date) => {
                   const newParams = createQueryString(
                     'startDate',
@@ -195,7 +152,7 @@ export function ExpensesClient() {
                 placeholder="Start Date"
               />
               <DatePicker
-                value={endDate}
+                date={endDate ? new Date(endDate) : undefined}
                 onChange={(date) => {
                   const newParams = createQueryString(
                     'endDate',
@@ -211,7 +168,7 @@ export function ExpensesClient() {
           <MultiSelect
             label="Categories"
             options={categoryOptions}
-            selected={categories}
+            selected={selectedCategoryIds}
             onChange={(values) => {
               const newParams = createQueryString(
                 'categories',

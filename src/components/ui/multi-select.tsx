@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { X } from 'lucide-react';
-import { Command as CommandPrimitive } from 'cmdk';
 import { Badge } from './badge';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './command';
 
@@ -30,7 +29,7 @@ export function MultiSelect({
   label,
   className,
 }: MultiSelectProps) {
-  const [open, setOpen] = React.useState(false);
+
   const [inputValue, setInputValue] = React.useState('');
 
   const selectedOptions = options.filter((option) => selected.includes(option.value));

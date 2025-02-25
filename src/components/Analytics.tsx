@@ -12,14 +12,15 @@ import {
   PointElement,
   Scale,
 } from 'chart.js';
-import type { CoreScaleOptions, Tick } from 'chart.js';
+import type { CoreScaleOptions, Tick, TooltipItem } from 'chart.js';
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { useExpenseStore } from '../store/expenseStore';
 import { format, subMonths, startOfMonth, endOfMonth, parseISO, isSameMonth } from 'date-fns';
 import Dropdown from './common/Dropdown';
 import { MultiSelect } from './ui/multi-select';
-import type { Option } from './ui/multi-select';
 import type { Category } from '../types';
+
+// SelectOption type is now imported from MultiSelect component
 import { exportToExcel, exportToPDF } from '../utils/exportUtils';
 
 // Register ChartJS components
@@ -39,11 +40,12 @@ const Analytics = () => {
   const { expenses, categories, categoryGroups, tags } = useExpenseStore();
   const [timeRange, setTimeRange] = useState('current');
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  type SelectOption = { value: string; label: string; };
-  type ChartTooltipItem = { raw: unknown; };
-  type ChartTickValue = string | number;
-  type ChartTick = { value: number; };
-  type ChartScale = { options: CoreScaleOptions; };
+  // These types are used in chart configurations
+  // type SelectOption = { value: string; label: string; };
+  // type ChartTooltipItem = { raw: unknown; };
+  // type ChartTickValue = string | number;
+  // type ChartTick = { value: number; };
+  // type ChartScale = { options: CoreScaleOptions; };
   type ChartCallback = (this: Scale<CoreScaleOptions>, tickValue: string | number, index: number, ticks: Tick[]) => string;
   const [selectedPaidBy, setSelectedPaidBy] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -102,24 +104,24 @@ const Analytics = () => {
   // Filter expenses based on selected criteria
   const filteredExpenses = useMemo(() => {
     const now = new Date();
-    let startDate: Date;
+    let filterStartDate: Date;
     let endDate = endOfMonth(now);
 
     switch (timeRange) {
       case 'current':
-        startDate = startOfMonth(now);
+        filterStartDate = startOfMonth(now);
         break;
       case 'last':
-        startDate = startOfMonth(subMonths(now, 1));
+        filterStartDate = startOfMonth(subMonths(now, 1));
         endDate = endOfMonth(subMonths(now, 1));
         break;
       default:
-        startDate = startOfMonth(subMonths(now, parseInt(timeRange) - 1));
+        filterStartDate = startOfMonth(subMonths(now, parseInt(timeRange) - 1));
     }
 
     return expenses.filter(expense => {
       const expenseDate = parseISO(expense.date);
-      const matchesTimeRange = expenseDate >= startDate && expenseDate <= endDate;
+      const matchesTimeRange = expenseDate >= filterStartDate && expenseDate <= endDate;
       const matchesCategories = selectedCategories.length === 0 || selectedCategories.includes(expense.category);
       const matchesPaidBy = selectedPaidBy.length === 0 || selectedPaidBy.includes(expense.paidBy);
       const matchesTags = selectedTags.length === 0 || 
@@ -197,8 +199,6 @@ const Analytics = () => {
     const monthCount = timeRange === 'current' ? 1 : 
                       timeRange === 'last' ? 1 :
                       parseInt(timeRange);
-    const startDate = subMonths(startOfMonth(endDate), monthCount - 1);
-
     for (let i = 0; i < monthCount; i++) {
       const monthDate = subMonths(endDate, i);
       const monthKey = format(monthDate, 'yyyy-MM');
@@ -443,7 +443,7 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
+                      label: function(this: unknown, tooltipItem: TooltipItem<'bar' | 'line' | 'doughnut'>) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 },
@@ -474,7 +474,7 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
+                      label: function(this: unknown, tooltipItem: TooltipItem<'bar' | 'line' | 'doughnut'>) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 }
@@ -498,7 +498,7 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
+                      label: function(this: unknown, tooltipItem: TooltipItem<'bar' | 'line' | 'doughnut'>) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 },
@@ -530,7 +530,7 @@ const Analytics = () => {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(this: unknown, tooltipItem: ChartTooltipItem) { return `£${Number(tooltipItem.raw)}`; }
+                      label: function(this: unknown, tooltipItem: TooltipItem<'bar' | 'line' | 'doughnut'>) { return `£${Number(tooltipItem.raw)}`; }
                     }
                   }
                 },

@@ -5,7 +5,7 @@ interface SecurityAlert extends Record<string, unknown> {
   type: string;
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
-  details: Record<string, any>;
+  details: Record<string, unknown>;
   timestamp: string;
 }
 
@@ -211,13 +211,13 @@ export class SecurityMonitor {
     }
   }
 
-  private static async checkIPReputation(ipAddress: string): Promise<boolean> {
+  private static async checkIPReputation(_ipAddress: string): Promise<boolean> {
     // Implement IP reputation check logic here
     // Could integrate with services like AbuseIPDB or similar
     return false;
   }
 
-  private static detectUnusualPattern(data: any[], quantity: number): boolean {
+  private static detectUnusualPattern(_data: unknown[], _quantity: number): boolean {
     // Implement pattern detection logic here
     // Could use statistical analysis, machine learning, etc.
     return false;

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
+import { subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import { createClient } from '@/lib/supabase';
 
 export async function GET(request: Request) {

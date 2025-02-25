@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
-import type { RecurringExpense } from '../../types';
+
 import { Plus, Trash2, X } from 'lucide-react';
 
 interface RecurringExpensesProps {

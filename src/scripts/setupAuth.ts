@@ -19,7 +19,7 @@ const setupAuth = async () => {
       console.log(`Processing user: ${user.email}`);
       
       // Try to create the user
-      const { data: existingUser, error: checkError } = await supabase
+      const { data: existingUser } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', user.email)

@@ -9,7 +9,7 @@ import type {
   Settlement,
   BudgetHistory
 } from '@/types';
-import { v4 as uuidv4 } from 'uuid';
+
 
 // Supabase Data interface
 export interface SupabaseData {

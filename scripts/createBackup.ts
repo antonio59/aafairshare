@@ -1,5 +1,6 @@
-import { BackupService } from '../src/utils/backupUtils';
-import { auditLog, AuditLogType } from '../src/utils/auditLogger';
+import { createBackup } from '../src/utils/backupUtils';
+import { auditLog } from '../src/utils/auditLogger';
+import type { AuditLogType } from '../src/utils/auditLogger';
 import fs from 'fs';
 
 async function main() {
@@ -7,7 +8,7 @@ async function main() {
     console.log('Starting backup process...');
 
     // Create backup
-    const metadata = await BackupService.createBackup();
+    const metadata = await createBackup();
 
     // Save backup report
     const report = {
@@ -26,7 +27,7 @@ async function main() {
 
     // Log the failure
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      'SECURITY_EVENT' as AuditLogType,
       'Scheduled backup failed',
       { error: error instanceof Error ? error.message : 'Unknown error' }
     );

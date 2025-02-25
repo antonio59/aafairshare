@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { format, subMonths, startOfMonth } from 'date-fns';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
@@ -12,7 +12,7 @@ const Settlement = () => {
   const [activeTab, setActiveTab] = useState<TabType>('create');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
-  const { currentUser } = useUserStore();
+  useUserStore();
   const {
     getMonthlyBalance,
     isMonthSettled,

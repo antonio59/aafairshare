@@ -1,5 +1,6 @@
-import { BackupService } from '../src/utils/backupUtils';
-import { auditLog, AuditLogType } from '../src/utils/auditLogger';
+import { createBackup, restoreBackup, testBackup } from '../src/utils/backupUtils';
+import { auditLog } from '../src/utils/auditLogger';
+import type { AuditLogType } from '../src/utils/auditLogger';
 import fs from 'fs';
 
 async function main() {
@@ -14,7 +15,7 @@ async function main() {
     }
 
     // Test the backup
-    const isValid = await BackupService.testBackup(report.metadata.timestamp);
+    const isValid = await testBackup(report.metadata.timestamp);
 
     if (!isValid) {
       throw new Error('Backup integrity test failed');
@@ -23,7 +24,7 @@ async function main() {
     console.log('Backup integrity test passed');
     
     await auditLog(
-      AuditLogType.ADMIN_ACTION,
+      'ADMIN_ACTION' as AuditLogType,
       'Backup integrity test completed',
       { status: 'success', timestamp: report.metadata.timestamp }
     );
@@ -33,7 +34,7 @@ async function main() {
     console.error('Backup test failed:', error);
 
     await auditLog(
-      AuditLogType.SECURITY_EVENT,
+      'SECURITY_EVENT' as AuditLogType,
       'Backup integrity test failed',
       { error: error instanceof Error ? error.message : 'Unknown error' }
     );

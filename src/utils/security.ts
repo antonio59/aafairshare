@@ -33,7 +33,7 @@ interface TextValidationConfig {
 }
 
 // Enhanced input sanitization with strict configuration
-function createSanitizeConfig(config?: Partial<SanitizeConfig>): DOMPurify.Config {
+export function createSanitizeConfig(config?: Partial<SanitizeConfig>): DOMPurify.Config {
   return {
     ALLOWED_TAGS: config?.allowedTags || [],
     ALLOWED_ATTR: config?.allowedAttrs || [],
@@ -51,7 +51,7 @@ function createSanitizeConfig(config?: Partial<SanitizeConfig>): DOMPurify.Confi
   };
 }
 
-export function sanitizeInput(input: string, config?: Partial<SanitizeConfig>): string {
+export function sanitizeInput(input: string, _config?: Partial<SanitizeConfig>): string {
   if (typeof input !== 'string') return '';
   
   // First pass: Basic character encoding
@@ -78,7 +78,7 @@ export function sanitizeInput(input: string, config?: Partial<SanitizeConfig>): 
     FORBID_TAGS: ['script', 'style', 'iframe', 'frame', 'object', 'embed', 'form'],
     FORBID_ATTR: ['style', 'class', 'id', 'href', 'src', 'on*']
   });
-};
+}
 
 // Validate numeric input with configurable range
 export const validateAmount = (amount: string, min: number = 0, max: number = 1000000): ValidationResult => {
@@ -107,7 +107,7 @@ export const validateDate = (date: string): ValidationResult => {
 };
 
 // Enhanced email validation
-export function validateEmail(email: string, config?: EmailValidationConfig): ValidationResult {
+export function validateEmail(email: string, _config: EmailValidationConfig = {}): ValidationResult {
   if (typeof email !== 'string') return { isValid: false, errors: ['Email must be a string'] };
   
   // Simpler, more maintainable email regex
@@ -123,10 +123,10 @@ export function validateEmail(email: string, config?: EmailValidationConfig): Va
   return allowedDomains.includes(emailDomain) 
     ? { isValid: true }
     : { isValid: false, errors: ['Email domain not allowed'] };
-};
+}
 
 // Enhanced password validation
-export function validatePassword(password: string, config?: PasswordValidationConfig): ValidationResult {
+export function validatePassword(password: string, _config: PasswordValidationConfig = {}): ValidationResult {
   const errors: string[] = [];
   
   // Minimum 8 characters, max 100 characters
@@ -147,10 +147,10 @@ export function validatePassword(password: string, config?: PasswordValidationCo
   return errors.length === 0 
     ? { isValid: true }
     : { isValid: false, errors };
-};
+}
 
 // Validate text input length and content with enhanced security
-export function validateText(text: string, config?: TextValidationConfig): ValidationResult {
+export function validateText(text: string, _config: TextValidationConfig = {}): ValidationResult {
   const errors: string[] = [];
   const { maxLength = 1000 } = config || {};
 
@@ -194,7 +194,7 @@ export function validateText(text: string, config?: TextValidationConfig): Valid
   return errors.length === 0
     ? { isValid: true }
     : { isValid: false, errors };
-};
+}
 
 /**
  * Generate Content Security Policy header value

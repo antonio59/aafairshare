@@ -17,11 +17,21 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "baseUrl": ".",
-    "rootDir": "src",
     "paths": {
       "@/*": ["src/*"]
     }
   },
-  "include": ["src"],
+  "include": [
+    "src/**/*",
+    "scripts/**/*",
+    "*.config.js",
+    "next-env.d.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "build",
+    "dist",
+    "dev-dist"
+  ],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

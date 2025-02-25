@@ -44,7 +44,7 @@ class ErrorBoundary extends Component<Props, State> {
               Something went wrong
             </h1>
             <div className="text-gray-600 mb-4">
-              We're sorry, but something went wrong. Please try refreshing the page or contact support if the problem persists.
+              We&apos;re sorry, but something went wrong. Please try refreshing the page or contact support if the problem persists.
             </div>
             <div className="space-y-4">
               <button

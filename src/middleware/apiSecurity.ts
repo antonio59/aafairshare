@@ -1,64 +1,23 @@
-import { auditLog, AUDIT_LOG_TYPE } from '../utils/auditLogger';
+import { auditLog } from '../utils/auditLogger';
+import type { AuditLogType } from '../utils/auditLogger';
+
+const API_RATE_WINDOW = 60000; // 1 minute in milliseconds
+const API_RATE_LIMIT = 100; // requests per window
 import DOMPurify from 'isomorphic-dompurify';
 import { supabase } from '../supabase';
-import type { User } from '@supabase/supabase-js';
-
-interface RateLimitConfig {
-  requestsPerWindow: number;
-  windowMs: number;
-}
+type SanitizedValue = string | number | boolean | null | SanitizedValue[] | { [key: string]: SanitizedValue };
 
 interface RateLimitInfo {
   count: number;
   firstRequest: number;
 }
 
-interface ValidationConfig {
-  allowHtml?: boolean;
-  allowDataUrls?: boolean;
-  maxDepth?: number;
-}
-
-interface ApiSecurityConfig {
-  rateLimit: RateLimitConfig;
-  validation: ValidationConfig;
-}
-
-const DEFAULT_CONFIG: ApiSecurityConfig = {
-  rateLimit: {
-    requestsPerWindow: 100,
-    windowMs: 60 * 1000 // 1 minute
-  },
-  validation: {
-    allowHtml: false,
-    allowDataUrls: false,
-    maxDepth: 10
-  }
-};
-
 const rateLimitStore = new Map<string, RateLimitInfo>();
 
-const API_RATE_LIMIT = 100;
-const API_RATE_WINDOW = 60 * 1000; // 1 minute
-
-function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
-  const finalConfig = {
-    ...DEFAULT_CONFIG,
-    ...config,
-    rateLimit: {
-      ...DEFAULT_CONFIG.rateLimit,
-      ...config.rateLimit
-    },
-    validation: {
-      ...DEFAULT_CONFIG.validation,
-      ...config.validation
-    }
-  };
-
-  const validateRequest = (params: Record<string, any>) => {
-    const sanitized: Record<string, any> = {};
+function validateRequest(params: Record<string, unknown>): Record<string, SanitizedValue> {
+    const sanitized: Record<string, SanitizedValue> = {};
     
-    const sanitizeValue = (value: any): any => {
+    const sanitizeValue = (value: unknown): SanitizedValue => {
       if (typeof value === 'string') {
         // Use DOMPurify for strings
         const sanitizedString = DOMPurify.sanitize(value, {
@@ -83,7 +42,7 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
       }
       
       if (typeof value === 'object' && value !== null) {
-        const sanitizedObj: Record<string, any> = {};
+        const sanitizedObj: Record<string, SanitizedValue> = {};
         for (const [k, v] of Object.entries(value)) {
           sanitizedObj[k] = sanitizeValue(v);
         }
@@ -97,10 +56,10 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
       sanitized[key] = sanitizeValue(value);
     }
     
-    return sanitized;
-  };
+    return sanitized
+  }
 
-  const checkRateLimit = (identifier: string): boolean => {
+  function checkRateLimit(identifier: string): boolean {
     const now = Date.now();
     const info = rateLimitStore.get(identifier) || { count: 0, firstRequest: now };
 
@@ -114,12 +73,12 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
     info.count++;
 
     // Update store
-    rateLimitStore.set(identifier, info);
+    rateLimitStore.set(identifier, info)
 
     // Check if limit exceeded
     if (info.count > API_RATE_LIMIT) {
       auditLog(
-        AUDIT_LOG_TYPE.SECURITY_EVENT,
+        'SECURITY_EVENT' as AuditLogType,
         'API rate limit exceeded',
         { identifier, count: info.count }
       );
@@ -127,9 +86,9 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
     }
 
     return true;
-  };
+  }
 
-  const validateApiAccess = async (token: string, requiredPermissions: string[]) => {
+  async function validateApiAccess(token: string, requiredPermissions: string[]) {
     try {
       // Verify token format
       if (!/^[A-Za-z0-9-_]+\.[A-Za-z0-9-_]+\.[A-Za-z0-9-_]*$/.test(token)) {
@@ -155,15 +114,15 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
       return true;
     } catch (error) {
       await auditLog(
-        AUDIT_LOG_TYPE.SECURITY_EVENT,
+        'SECURITY_EVENT' as AuditLogType,
         'API access denied',
         { error: error instanceof Error ? error.message : 'Unknown error' }
       );
       return false;
     }
-  };
+  }
 
-  const validateFileUpload = (file: File) => {
+  function validateFileUpload(file: File) {
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf'];
 
@@ -176,13 +135,12 @@ function createSecurityMiddleware(config: Partial<ApiSecurityConfig> = {}) {
     }
 
     // Additional checks could be added here (virus scan, etc.)
-    return true;
-  };
+    return true
+  }
 
-  return {
-    validateRequest,
-    checkRateLimit,
-    validateApiAccess,
-    validateFileUpload
-  };
-}
+export {
+  validateRequest,
+  checkRateLimit,
+  validateApiAccess,
+  validateFileUpload
+};

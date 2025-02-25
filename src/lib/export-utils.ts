@@ -3,15 +3,21 @@ import ExcelJS from 'exceljs';
 import autoTable from 'jspdf-autotable';
 import sanitizeHtml from 'sanitize-html';
 
+interface ExportColumn {
+  header: string;
+  key: string;
+  width?: number | undefined;
+}
+
+interface ExportRecord {
+  [key: string]: string | number | boolean | null | undefined;
+}
+
 interface ExportOptions {
-  data: unknown[];
+  data: ExportRecord[];
   title?: string;
   description?: string;
-  columns?: Array<{
-    header: string;
-    key: string;
-    width?: number;
-  }>;
+  columns?: ExportColumn[];
 }
 
 export async function exportToPDF({
@@ -39,7 +45,7 @@ export async function exportToPDF({
   }));
 
   const tableRows = data.map(item =>
-    tableColumns.map(col => String((item as any)[col.key] || ''))
+    tableColumns.map(col => String(item[col.key] || ''))
   );
 
   // Add table
@@ -118,7 +124,7 @@ export async function exportToExcel({
   // Add data
   data.forEach(item => {
     const rowData = tableColumns.reduce((acc, col) => {
-      acc[col.key] = sanitizeHtml(String((item as any)[col.key] || ''));
+      acc[col.key] = sanitizeHtml(String(item[col.key] || ''));
       return acc;
     }, {} as Record<string, string>);
     worksheet.addRow(rowData);
@@ -132,18 +138,17 @@ export async function exportToExcel({
   });
 }
 
-export function formatDataForExport(data: unknown): unknown[] {
-  if (!Array.isArray(data)) return [data];
+export function formatDataForExport(data: unknown[]): ExportRecord[] {
+  if (!Array.isArray(data)) return [];
   return data.map(item => {
     if (typeof item === 'object' && item !== null) {
-      return Object.fromEntries(
-        Object.entries(item).map(([key, value]) => [
-          key,
-          sanitizeHtml(String(value || ''))
-        ])
-      );
+      const record: ExportRecord = {};
+      for (const [key, value] of Object.entries(item)) {
+        record[key] = sanitizeHtml(String(value || ''));
+      }
+      return record;
     }
-    return sanitizeHtml(String(item || ''));
+    return { value: sanitizeHtml(String(item || '')) };
   });
 }
 

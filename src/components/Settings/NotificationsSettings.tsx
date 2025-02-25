@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useUserStore } from '../../store/userStore';
-import { Bell, BellOff, AlertCircle, Calendar, MessageSquare, Mail, Clock, Info, XCircle } from 'lucide-react';
-import type { NotificationPreferences, TimedNotificationSetting, ChanneledNotificationSetting, BudgetNotificationSetting } from '../../types';
+import { AlertCircle, Calendar, MessageSquare, Mail, Clock, XCircle } from 'lucide-react';
+import type { NotificationPreferences, TimedNotificationSetting, ChanneledNotificationSetting } from '../../types';
 
 type NotificationKey = keyof Omit<NotificationPreferences, 'globalEnabled'>;
 

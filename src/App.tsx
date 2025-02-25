@@ -59,7 +59,6 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
 
     // Apply security headers
     applySecurityHeaders();
@@ -74,7 +73,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
       logout();
     });
 
-    const handleAuth = async (session: any) => {
+    const handleAuth = async (session: { user?: { id: string; email?: string } } | null) => {
       try {
         if (!session?.user) {
           setCurrentUser(null);
@@ -148,13 +147,13 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 
     // Set a loading timeout
     setIsLoading(true);
-    timeoutId = setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       if (mounted) {
         setIsLoading(false);
       }
     }, 1000); // Show loading for max 1 second
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event: string, session: any) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event: string, session: { user?: { id: string; email?: string } } | null) => {
       await handleAuth(session);
       if (mounted) {
         setIsLoading(false);
@@ -167,7 +166,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
       clearTimeout(timeoutId);
       subscription?.unsubscribe();
     };
-  }, [setCurrentUser, setInitialized]);
+  }, [setCurrentUser, setInitialized, logout]);
 
   // Only show loading spinner for the first second
   if (isLoading) {

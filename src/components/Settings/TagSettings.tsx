@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useExpenseStore } from '../../store/expenseStore';
-import type { Tag } from '../../types';
+
 import { Edit2, Trash2, Save, X } from 'lucide-react';
 
 interface TagSettingsProps {

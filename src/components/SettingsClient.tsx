@@ -6,7 +6,7 @@ import { Card } from './ui/card';
 import { Label } from './ui/label';
 import { Switch } from './ui/switch';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
+
 import { Dialog } from './ui/dialog';
 import { Select } from './ui/select';
 import type { Category, CategoryGroup, Tag, RecurringExpense, UserSettings } from '@/types';
@@ -34,7 +34,7 @@ export function SettingsClient() {
   const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
   const [showAddGroupModal, setShowAddGroupModal] = useState(false);
   const [showAddTagModal, setShowAddTagModal] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   // Load data from server component
   useEffect(() => {
@@ -48,7 +48,6 @@ export function SettingsClient() {
   if (!data) return null;
 
   const {
-    categories,
     categoryGroups,
     tags,
     recurringExpenses,
@@ -77,66 +76,6 @@ export function SettingsClient() {
       console.error('Failed to update settings:', error);
     } finally {
       setIsSubmitting(false);
-    }
-  };
-
-  const handleAddCategory = async (formData: FormData) => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/settings/categories', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to add category');
-
-      // Refresh the page to get updated data
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to add category:', error);
-    } finally {
-      setIsSubmitting(false);
-      setShowAddCategoryModal(false);
-    }
-  };
-
-  const handleAddGroup = async (formData: FormData) => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/settings/category-groups', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to add group');
-
-      // Refresh the page to get updated data
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to add group:', error);
-    } finally {
-      setIsSubmitting(false);
-      setShowAddGroupModal(false);
-    }
-  };
-
-  const handleAddTag = async (formData: FormData) => {
-    setIsSubmitting(true);
-    try {
-      const response = await fetch('/api/settings/tags', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) throw new Error('Failed to add tag');
-
-      // Refresh the page to get updated data
-      window.location.reload();
-    } catch (error) {
-      console.error('Failed to add tag:', error);
-    } finally {
-      setIsSubmitting(false);
-      setShowAddTagModal(false);
     }
   };
 

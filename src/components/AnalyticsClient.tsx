@@ -121,9 +121,29 @@ export function AnalyticsClient() {
     setIsExporting(type);
     try {
       if (type === 'excel') {
-        await exportToExcel(data.expenses);
+        await exportToExcel({
+          data: data.expenses,
+          title: 'Expenses Export',
+          columns: [
+            { header: 'Date', key: 'date' },
+            { header: 'Amount', key: 'amount' },
+            { header: 'Category', key: 'category' },
+            { header: 'Description', key: 'description' },
+            { header: 'Paid By', key: 'paidBy' }
+          ]
+        });
       } else {
-        await exportToPDF(data.expenses);
+        await exportToPDF({
+          data: data.expenses,
+          title: 'Expenses Export',
+          columns: [
+            { header: 'Date', key: 'date' },
+            { header: 'Amount', key: 'amount' },
+            { header: 'Category', key: 'category' },
+            { header: 'Description', key: 'description' },
+            { header: 'Paid By', key: 'paidBy' }
+          ]
+        });
       }
     } catch (error) {
       console.error('Export failed:', error);

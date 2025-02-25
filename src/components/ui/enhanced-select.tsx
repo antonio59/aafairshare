@@ -2,7 +2,6 @@
 
 import * as React from 'react';
 import { Check, ChevronsUpDown, Search } from 'lucide-react';
-import * as SelectPrimitive from '@radix-ui/react-select';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from './command';
 import { cn } from '@/lib/utils';
 

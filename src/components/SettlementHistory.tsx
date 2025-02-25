@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { format } from 'date-fns';
 import { useExpenseStore } from '../store/expenseStore';
-import { ChevronDown, ChevronUp, Filter, Clock, User, DollarSign, Folder } from 'lucide-react';
+import { ChevronDown, ChevronUp, Filter, Clock, DollarSign } from 'lucide-react';
 
 type SortField = 'date' | 'amount';
 type SortOrder = 'asc' | 'desc';

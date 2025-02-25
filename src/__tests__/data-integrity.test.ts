@@ -1,6 +1,7 @@
 import { fetchAllData } from '../store/supabaseOperations';
 import { supabase } from '../supabase';
-import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
+// These types are used implicitly in the fetchAllData response
+// import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
 
 describe('Data Integrity Tests', () => {
   beforeAll(async () => {
@@ -14,13 +15,13 @@ describe('Data Integrity Tests', () => {
       
       // Verify each expense references a valid category
       data.expenses.forEach(expense => {
-        const message = `Expense ${expense.id} references non-existent category ${expense.category}`;
+        // Check if expense category exists
         expect(data.categories.some(cat => cat.id === expense.category)).toBeTruthy();
       });
 
       // Verify each category belongs to a valid category group
       data.categories.forEach(category => {
-        const message = `Category ${category.id} references non-existent group ${category.groupId}`;
+        // Check if category group exists
         expect(data.categoryGroups.some(group => group.id === category.groupId)).toBeTruthy();
       });
     });
@@ -34,7 +35,7 @@ describe('Data Integrity Tests', () => {
           categoryNames.set(category.groupId, new Set());
         }
         const groupCategories = categoryNames.get(category.groupId)!;
-        const message = `Duplicate category name "${category.name}" in group ${category.groupId}`;
+        // Check for duplicate category names
         expect(groupCategories.has(category.name.toLowerCase())).toBeFalsy();
         groupCategories.add(category.name.toLowerCase());
       });
@@ -48,7 +49,7 @@ describe('Data Integrity Tests', () => {
       // Verify each tag references a valid category
       data.tags.forEach(tag => {
         if (tag.categoryId) {  // Only check if categoryId exists
-          const message = `Tag ${tag.id} references non-existent category ${tag.categoryId}`;
+          // Check if tag category exists
           expect(data.categories.some(cat => cat.id === tag.categoryId)).toBeTruthy();
         }
       });
@@ -57,7 +58,6 @@ describe('Data Integrity Tests', () => {
       data.expenses.forEach(expense => {
         if (expense.tags && expense.tags.length > 0) {  // Only check if tags exist
           expense.tags.forEach(tagId => {
-            const message = `Expense ${expense.id} references non-existent tag ${tagId}`;
             expect(data.tags.some(tag => tag.id === tagId)).toBeTruthy();
           });
         }
@@ -74,7 +74,6 @@ describe('Data Integrity Tests', () => {
             tagNames.set(tag.categoryId, new Set());
           }
           const categoryTags = tagNames.get(tag.categoryId)!;
-          const message = `Duplicate tag name "${tag.name}" in category ${tag.categoryId}`;
           expect(categoryTags.has(tag.name.toLowerCase())).toBeFalsy();
           categoryTags.add(tag.name.toLowerCase());
         }
@@ -134,7 +133,6 @@ describe('Data Integrity Tests', () => {
       const data = await fetchAllData();
       
       data.budgets.forEach(budget => {
-        const message = `Budget references non-existent category ${budget.category}`;
         expect(data.categories.some(cat => cat.id === budget.category)).toBeTruthy();
         expect(budget).toHaveProperty('amount');
         expect(typeof budget.amount).toBe('number');

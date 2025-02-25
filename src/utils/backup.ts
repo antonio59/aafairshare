@@ -18,7 +18,7 @@ export const backupData = async () => {
   try {
     // Tables to backup
     const tables = ['categories', 'category_groups', 'tags', 'expenses', 'budgets', 'recurring_expenses'];
-    const backupData: { [key: string]: any[] } = {};
+    const backupData: { [key: string]: Record<string, unknown>[] } = {};
 
     // Fetch data from each table
     for (const tableName of tables) {

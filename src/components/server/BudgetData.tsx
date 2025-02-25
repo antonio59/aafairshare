@@ -1,9 +1,12 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Budget, CategoryGroup, Category } from '@/types';
 
 async function getBudgetData() {
-  const supabase = createServerComponentClient({ cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
   
   // Fetch budgets
   const { data: budgets, error: budgetsError } = await supabase

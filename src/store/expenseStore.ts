@@ -7,8 +7,6 @@ import type {
   Budget, 
   Settlement, 
   BudgetHistory, 
-  BudgetReport, 
-  BudgetActionType,
   Category,
   CategoryGroup,
   Tag
@@ -534,7 +532,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
   // Settlement operations
   settleMonth: async (month, settledBy, balance) => {
-    const { expenses, categoryGroups } = get();
+    const { expenses } = get();
     
     const monthlyExpenses = expenses.filter(
       expense => format(new Date(expense.date), 'yyyy-MM') === month

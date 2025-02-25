@@ -6,6 +6,13 @@ import ExpenseSettings from './Settings/ExpenseSettings';
 import NotificationsSettings from './Settings/NotificationsSettings';
 import DocumentationSettings from './Settings/DocumentationSettings';
 
+const tabs = [
+  { id: 'account', label: 'Account', icon: <User className="w-5 h-5" /> },
+  { id: 'expense', label: 'Expense', icon: <DollarSign className="w-5 h-5" /> },
+  { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
+  { id: 'documentation', label: 'Documentation', icon: <FileText className="w-5 h-5" /> },
+];
+
 const Settings = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -23,13 +30,6 @@ const Settings = () => {
     setActiveTab(tabId);
     navigate(`/settings#${tabId}`, { replace: true });
   };
-
-  const tabs = [
-    { id: 'account', label: 'Account', icon: <User className="w-5 h-5" /> },
-    { id: 'expense', label: 'Expense', icon: <DollarSign className="w-5 h-5" /> },
-    { id: 'notifications', label: 'Notifications', icon: <Bell className="w-5 h-5" /> },
-    { id: 'documentation', label: 'Documentation', icon: <FileText className="w-5 h-5" /> },
-  ];
 
   const getTabHeading = () => {
     const tab = tabs.find(t => t.id === activeTab);

@@ -3,7 +3,11 @@ import { cookies } from 'next/headers';
 import type { Category, CategoryGroup, Tag, RecurringExpense, UserSettings } from '@/types';
 
 async function getSettingsData() {
-  const supabase = createServerClient({ cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
   
   // Fetch all settings data in parallel
   const [

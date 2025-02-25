@@ -5,7 +5,7 @@ import { Download, Filter } from 'lucide-react';
 import type { BudgetActionType, BudgetHistoryFilters } from '@/types';
 
 const BudgetHistory: React.FC = () => {
-  const { getBudgetHistory, generateBudgetReport, categories } = useExpenseStore();
+  const { getBudgetHistory, categories } = useExpenseStore();
   const [filters, setFilters] = useState<BudgetHistoryFilters>({
     startDate: '',
     endDate: '',
@@ -26,8 +26,6 @@ const BudgetHistory: React.FC = () => {
       return;
     }
 
-    const report = generateBudgetReport(filters.startDate, filters.endDate);
-    
     // Create CSV content
     const csvContent = [
       // Header

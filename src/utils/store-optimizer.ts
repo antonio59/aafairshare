@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import type { StoreApi, UseBoundStore } from 'zustand';
 
 interface StoreOptimizer<T> {
@@ -18,7 +18,10 @@ export function useShallowSelector<T, U>(
   selector: (state: T) => U
 ): U {
   const ref = useRef<U>();
-  const getCurrentValue = () => selector(store.getState());
+  const getCurrentValue = useCallback(
+    () => selector(store.getState()),
+    [store, selector]
+  );
 
   useEffect(() => {
     ref.current = getCurrentValue();
@@ -28,7 +31,7 @@ export function useShallowSelector<T, U>(
         ref.current = newValue;
       }
     });
-  }, []);
+  }, [store, getCurrentValue]);
 
   return getCurrentValue();
 }
@@ -39,7 +42,10 @@ export function useDeepSelector<T, U>(
   deps: unknown[] = []
 ): U {
   const ref = useRef<U>();
-  const getCurrentValue = () => selector(store.getState());
+  const getCurrentValue = useCallback(
+    () => selector(store.getState()),
+    [store, selector]
+  );
 
   useEffect(() => {
     ref.current = getCurrentValue();
@@ -49,7 +55,8 @@ export function useDeepSelector<T, U>(
         ref.current = newValue;
       }
     });
-  }, deps);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [store, getCurrentValue, ...(deps || [])]);
 
   return getCurrentValue();
 }

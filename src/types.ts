@@ -1,3 +1,10 @@
+export interface UserSettings {
+  currency: string;
+  notifications: NotificationPreferences;
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+}
+
 export interface User {
   id: string;
   email: string;

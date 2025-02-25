@@ -27,7 +27,7 @@ export const corsOptions = {
 };
 
 // Session management middleware
-let activeTokens = new Set<string>();
+const activeTokens = new Set<string>();
 const MAX_SESSIONS = 3;
 
 export const sessionManager = {
@@ -54,7 +54,12 @@ export const sessionManager = {
 };
 
 // Request sanitization middleware
-export const sanitizeRequest = (req: any) => {
+interface RequestLike {
+  headers?: Record<string, string>;
+  body?: Record<string, unknown>;
+}
+
+export const sanitizeRequest = (req: RequestLike) => {
   const sanitized = { ...req };
   
   // Remove sensitive headers
@@ -66,10 +71,10 @@ export const sanitizeRequest = (req: any) => {
   });
 
   // Sanitize body
-  if (sanitized.body) {
+  if (sanitized.body && typeof sanitized.body === 'object') {
     const sensitiveFields = ['password', 'token', 'secret', 'apiKey'];
     sensitiveFields.forEach(field => {
-      if (sanitized.body[field]) {
+      if (sanitized.body && typeof sanitized.body === 'object' && field in sanitized.body) {
         sanitized.body[field] = '[REDACTED]';
       }
     });

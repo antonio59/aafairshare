@@ -2,14 +2,11 @@
 
 import React, { useState, useEffect } from 'react';
 import * as Accordion from '@radix-ui/react-accordion';
-import * as Dialog from '@radix-ui/react-dialog';
-import * as Tooltip from '@radix-ui/react-tooltip';
 import { useExpenseStore } from '../../store/expenseStore';
 import { useUserStore } from '../../store/userStore';
-import type { CategoryGroup, Category } from '../../types';
-import { ChevronDown, ChevronRight, Edit2, Trash2, Plus, X, Save, GripVertical } from 'lucide-react';
+import type { CategoryGroup } from '../../types';
+import { ChevronDown, Edit2, Trash2, Plus, X, Save, GripVertical } from 'lucide-react';
 import { generateUniqueColor } from '../../utils/colorUtils';
-import { cn } from '../../lib/utils';
 
 interface CategoryGroupSettingsProps {
   onClose?: () => void;
@@ -32,7 +29,7 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
   const [newGroupName, setNewGroupName] = useState('');
   const [editingGroup, setEditingGroup] = useState<string | null>(null);
   const [editedGroupName, setEditedGroupName] = useState('');
-  const [showTooltip, setShowTooltip] = useState<string | null>(null);
+  // Tooltip state removed as it's not being used
   
   // Category state
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -147,13 +144,13 @@ const CategoryGroupSettings: React.FC<CategoryGroupSettingsProps> = ({ onClose }
     }
   };
 
-  const handleDragStart = (event: React.PointerEvent<HTMLDivElement>, itemId: string) => {
+  const handleDragStart = (event: React.PointerEvent<HTMLDivElement>, _itemId: string) => {
     event.currentTarget.style.cursor = 'grabbing';
     event.currentTarget.style.opacity = '0.5';
     event.currentTarget.setPointerCapture(event.pointerId);
   };
 
-  const handleDragEnd = (event: React.PointerEvent<HTMLDivElement>, itemId: string) => {
+  const handleDragEnd = (event: React.PointerEvent<HTMLDivElement>, _itemId: string) => {
     event.currentTarget.style.cursor = 'grab';
     event.currentTarget.style.opacity = '1';
     event.currentTarget.releasePointerCapture(event.pointerId);

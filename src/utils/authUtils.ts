@@ -1,5 +1,6 @@
-import type { User } from '@/types';
-import { AuthError } from '@supabase/supabase-js';
+// These types are used in type annotations in other files
+// import type { User } from '@/types';
+// import { AuthError } from '@supabase/supabase-js';
 import { supabase } from '../supabase';
 
 export const auth = supabase.auth;

@@ -1,7 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
+
 import { cookies } from 'next/headers';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
-import type { Expense, Category, CategoryGroup, Tag } from '@/types';
+import { format, parseISO } from 'date-fns';
+import type { Expense } from '@/types';
 
 interface ExpenseFilters {
   startDate?: string;
@@ -14,7 +14,11 @@ interface ExpenseFilters {
 }
 
 async function getExpensesData(filters: ExpenseFilters = {}) {
-  const supabase = createServerClient({ cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
   
   // Build the base query
   let query = supabase
@@ -107,7 +111,11 @@ function calculateExpenseStats(expenses: Expense[]) {
 }
 
 async function getRecurringExpenses() {
-  const supabase = createServerClient({ cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
   
   const { data: recurring, error } = await supabase
     .from('recurring_expenses')

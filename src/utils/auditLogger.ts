@@ -32,20 +32,14 @@ export interface AuditLogEntry {
   correlationId?: string;
 }
 
-export interface AuditLogOptions {
-  severity?: AuditLogEntry['severity'];
-  source?: string;
-  correlationId?: string;
-  shouldEncrypt?: boolean;
-  retentionDays?: number;
-}
+// Options interface removed as it's not used
 
 export async function auditLog(
   type: AuditLogType,
   action: string,
   details: Record<string, unknown>,
   userId?: string,
-  options?: AuditLogOptions
+  _options?: never // Removed unused parameter
 ): Promise<void> {
   try {
     // Get client IP and user agent if available
@@ -89,10 +83,10 @@ export async function auditLog(
   } catch (error) {
     console.error('Audit logging failed:', error);
   }
-};
+}
 
 // Enhanced sensitive information sanitization for logging
-function sanitizeLogDetails(details: Record<string, any>): Record<string, any> {
+function sanitizeLogDetails(details: Record<string, unknown>): Record<string, unknown> {
   // Comprehensive list of sensitive field patterns
   const sensitivePatterns = [
     // Authentication & Authorization
@@ -135,7 +129,7 @@ function sanitizeLogDetails(details: Record<string, any>): Record<string, any> {
 
   const sanitized = { ...details };
 
-  function isSensitive(key: string, value: any): boolean {
+  function isSensitive(key: string, value: unknown): boolean {
     // Check key against patterns
     if (sensitivePatterns.some(pattern => pattern.test(key))) {
       return true;
@@ -164,7 +158,7 @@ function sanitizeLogDetails(details: Record<string, any>): Record<string, any> {
     return false;
   }
 
-  function sanitizeValue(key: string, value: any): any {
+  function sanitizeValue(key: string, value: unknown): unknown {
     if (value === null || value === undefined) {
       return value;
     }

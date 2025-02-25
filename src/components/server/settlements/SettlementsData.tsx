@@ -15,7 +15,11 @@ interface SettlementSummary {
 }
 
 async function getSettlementsData() {
-  const supabase = createServerClient({ cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
   
   // Fetch settlements with related expenses
   const { data: settlements, error: settlementsError } = await supabase
@@ -76,7 +80,11 @@ function calculateSettlementStats(settlements: SettlementSummary[]) {
 }
 
 async function getUnsettledExpenses() {
-  const supabase = createServerClient({ cookies });
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies }
+  );
   
   const { data: expenses, error: expensesError } = await supabase
     .from('expenses')
