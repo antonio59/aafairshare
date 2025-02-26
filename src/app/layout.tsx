@@ -4,8 +4,17 @@ import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from '@/components/theme-provider'
 import Navbar from '@/components/Navbar'
 import './globals.css'
+import { Analytics } from '@vercel/analytics/react';
 
 const inter = Inter({ subsets: ['latin'] })
+
+// Default Supabase credentials - these will be used if environment variables are not available
+const DEFAULT_SUPABASE_URL = 'https://ilrnhmnkstnglkrsirjq.supabase.co';
+const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlscm5obW5rc3RuZ2xrcnNpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIzNzc2MjQsImV4cCI6MjA0Nzk1MzYyNH0.bG4rbyHXEmW38Vb1eT6BBgXiPmtDzgf4FHIImqqJY8c';
+
+// Get environment variables with fallbacks
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
 export const metadata: Metadata = {
   title: 'AA Fair Share',
@@ -20,9 +29,6 @@ export default function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://ilrnhmnkstnglkrsirjq.supabase.co';
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlscm5obW5rc3RuZ2xrcnNpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIzNzc2MjQsImV4cCI6MjA0Nzk1MzYyNH0.bG4rbyHXEmW38Vb1eT6BBgXiPmtDzgf4FHIImqqJY8c';
-  
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -40,6 +46,7 @@ export default function RootLayout({
           <Navbar />
           {children}
           <Toaster />
+          <Analytics />
         </ThemeProvider>
       </body>
     </html>
