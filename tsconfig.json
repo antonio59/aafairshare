@@ -21,7 +21,6 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "baseUrl": ".",
-    "rootDir": "src",
     "paths": {
       "@/*": [
         "src/*"
