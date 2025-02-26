@@ -26,8 +26,36 @@ interface AnalyticsInsights {
   };
 }
 
+export interface AnalyticsData {
+  expenses: Expense[];
+  categories: Category[];
+  categoryGroups: CategoryGroup[];
+  tags: Tag[];
+  insights: AnalyticsInsights;
+  dateRange: string;
+  startDate: string;
+  endDate: string;
+}
+
 async function getAnalyticsData(timeRange: string = 'current') {
-  const supabase = createServerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          // Server component doesn't need to set cookies
+        },
+        remove(name: string, options: any) {
+          // Server component doesn't need to remove cookies
+        },
+      },
+    }
+  );
   
   // Calculate date range
   const now = new Date();
@@ -87,6 +115,9 @@ async function getAnalyticsData(timeRange: string = 'current') {
     categoryGroups,
     tags,
     insights,
+    dateRange: timeRange,
+    startDate: startDate.toISOString(),
+    endDate: endDate.toISOString(),
   };
 }
 

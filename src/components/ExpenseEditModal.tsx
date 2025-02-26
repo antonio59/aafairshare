@@ -30,8 +30,8 @@ const ExpenseEditModal = ({ expense, open, onClose }: ExpenseEditModalProps) => 
     date: '',
     category: '',
     paidBy: '',
-    split: 'equal',
-    tags: [],
+    split: 'equal' as 'equal' | 'no-split',
+    tags: [] as string[],
   });
 
   // Initialize form data when expense changes

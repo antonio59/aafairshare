@@ -1,7 +1,7 @@
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
+import { createServerClient } from '@supabase/ssr';
 import { format, parseISO } from 'date-fns';
-import type { Settlement, Expense } from '@/types';
+import type { Expense } from '@/types';
 
 interface SettlementSummary {
   id: string;
@@ -9,16 +9,47 @@ interface SettlementSummary {
   amount: number;
   paidBy: string;
   paidTo: string;
-  notes: string;
+  notes?: string;
   status: 'pending' | 'completed';
   expenses: Expense[];
 }
 
+interface SettlementStats {
+  totalSettlements: number;
+  totalAmount: number;
+  averageAmount: number;
+  byMonth: Record<string, number>;
+  byStatus: Record<string, number>;
+  recentActivity: SettlementSummary[];
+}
+
+interface SettlementsData {
+  settlements: SettlementSummary[];
+  stats: SettlementStats;
+}
+
 async function getSettlementsData() {
-  const supabase = createServerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          // Server component doesn't need to set cookies
+        },
+        remove(name: string, options: any) {
+          // Server component doesn't need to remove cookies
+        },
+      },
+    }
+  );
   
   // Fetch settlements with related expenses
-  const { data: settlements, error: settlementsError } = await supabase
+  const { data: rawSettlements, error: settlementsError } = await supabase
     .from('settlements')
     .select(`
       *,
@@ -28,9 +59,21 @@ async function getSettlementsData() {
 
   if (settlementsError) throw new Error('Failed to fetch settlements');
 
-  // Calculate settlement summaries
-  const summaries = settlements.map((settlement: Settlement & { expenses: Expense[] }) => {
-    const totalAmount = settlement.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  // Fetch all expenses
+  const { data: expenses, error: expensesError } = await supabase
+    .from('expenses')
+    .select('*');
+
+  if (expensesError) throw new Error('Failed to fetch expenses');
+
+  // Process settlements data
+  const settlements = rawSettlements.map((settlement) => {
+    const expensesData = settlement.expenses.map((expenseId: string) => {
+      const expense = expenses.find((e) => e.id === expenseId);
+      return expense || { id: expenseId, amount: 0 };
+    });
+
+    const totalAmount = expensesData.reduce((sum: number, exp: any) => sum + exp.amount, 0);
     
     return {
       id: settlement.id,
@@ -39,34 +82,34 @@ async function getSettlementsData() {
       paidBy: settlement.paidBy,
       paidTo: settlement.paidTo,
       notes: settlement.notes,
-      status: settlement.status,
-      expenses: settlement.expenses,
+      status: settlement.status as 'pending' | 'completed',
+      expenses: expensesData
     };
   });
 
-  // Calculate overall statistics
-  const stats = calculateSettlementStats(summaries);
+  // Calculate settlement stats
+  const stats = calculateSettlementStats(settlements);
 
   return {
-    settlements: summaries,
+    settlements,
     stats,
   };
 }
 
 function calculateSettlementStats(settlements: SettlementSummary[]) {
-  const totalSettled = settlements.reduce((sum, s) => 
+  const totalSettled = settlements.reduce((sum: number, s) => 
     s.status === 'completed' ? sum + s.amount : sum, 0);
   
-  const pendingAmount = settlements.reduce((sum, s) => 
+  const pendingAmount = settlements.reduce((sum: number, s) => 
     s.status === 'pending' ? sum + s.amount : sum, 0);
   
-  const byPerson = settlements.reduce((acc, s) => {
+  const byPerson = settlements.reduce((acc: Record<string, number>, s) => {
     if (s.status === 'completed') {
       acc[s.paidBy] = (acc[s.paidBy] || 0) + s.amount;
       acc[s.paidTo] = (acc[s.paidTo] || 0) - s.amount;
     }
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
   return {
     totalSettled,
@@ -76,7 +119,24 @@ function calculateSettlementStats(settlements: SettlementSummary[]) {
 }
 
 async function getUnsettledExpenses() {
-  const supabase = createServerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          // Server component doesn't need to set cookies
+        },
+        remove(name: string, options: any) {
+          // Server component doesn't need to remove cookies
+        },
+      },
+    }
+  );
   
   const { data: expenses, error: expensesError } = await supabase
     .from('expenses')

@@ -1,48 +1,27 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createClient as createClientOriginal } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Fallback values in case environment variables are not set
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://example.supabase.co';
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'your-anon-key';
 
-if (!SUPABASE_URL) throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_URL');
-if (!SUPABASE_ANON_KEY) throw new Error('Missing env.NEXT_PUBLIC_SUPABASE_ANON_KEY');
-
-interface CookieHandler {
-  get(name: string): string | undefined;
-  set(name: string, value: string, options: CookieOptions): void;
-  remove(name: string, options: CookieOptions): void;
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  console.error('Missing Supabase environment variables. Please check your .env file.');
 }
 
-function createCookieHandler(): CookieHandler {
+export const createClient = () => {
   const cookieStore = cookies();
-
-  return {
-    get(name: string) {
-      return cookieStore.get(name)?.value;
-    },
-    set(name: string, value: string, options: CookieOptions) {
-      try {
-        cookieStore.set({ name, value, ...options });
-      } catch (error) {
-        console.error('Error setting cookie:', error);
-      }
-    },
-    remove(name: string, options: CookieOptions) {
-      try {
-        cookieStore.set({ name, value: '', ...options });
-      } catch (error) {
-        console.error('Error removing cookie:', error);
-      }
-    },
-  };
-}
-
-export function createClient() {
-  return createServerClient(
+  
+  return createClientOriginal(
     SUPABASE_URL,
-    SUPABASE_ANON_KEY,
-    {
-      cookies: createCookieHandler()
-    }
+    SUPABASE_ANON_KEY
   );
-}
+};
+
+// Create a client for the browser
+export const createBrowserClient = () => {
+  return createClientOriginal(
+    SUPABASE_URL,
+    SUPABASE_ANON_KEY
+  );
+};

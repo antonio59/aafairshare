@@ -124,11 +124,16 @@ export interface Expense {
 
 export interface Settlement {
   id: string;
-  month: string;
-  settledBy: string;
-  settledAt: string;
-  balance: number;
-  categoryGroups: {
+  date: string;
+  paidBy: string;
+  paidTo: string;
+  amount: number;
+  status: 'pending' | 'completed';
+  month?: string;
+  settledBy?: string;
+  settledAt?: string;
+  balance?: number;
+  categoryGroups?: {
     groupId: string;
     amount: number;
   }[];
@@ -186,4 +191,33 @@ export interface BudgetHistoryFilters {
   endDate?: string;
   actionTypes?: BudgetActionType[];
   categories?: string[];
+}
+
+export interface UserSettings {
+  id: string;
+  userId: string;
+  theme: 'light' | 'dark' | 'system';
+  currency: string;
+  language: string;
+  notificationFrequency: 'daily' | 'weekly' | 'monthly' | 'quarterly';
+  emailNotifications: boolean;
+  pushNotifications: boolean;
+  defaultSplit: 'equal' | 'no-split';
+  notifications: {
+    email: boolean;
+    push: boolean;
+    inApp: boolean;
+    recurring: boolean;
+  };
+}
+
+export interface SettlementSummary {
+  id: string;
+  date: string;
+  amount: number;
+  paidBy: string;
+  paidTo: string;
+  notes?: string;
+  status: 'pending' | 'completed';
+  expenses: Expense[];
 }

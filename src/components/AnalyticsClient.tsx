@@ -16,8 +16,9 @@ import {
 import { Bar, Doughnut, Line } from 'react-chartjs-2';
 import { MultiSelect } from './ui/multi-select';
 import Dropdown from './common/Dropdown';
-import { exportToExcel, exportToPDF } from '../utils/exportUtils';
+import { exportToExcel, exportToPDF } from '../lib/export-utils';
 import type { Expense, Category, CategoryGroup, Tag } from '@/types';
+import { format } from 'date-fns';
 
 // Register ChartJS components
 ChartJS.register(
@@ -59,6 +60,9 @@ interface AnalyticsData {
       data: number[];
     };
   };
+  startDate: string;
+  endDate: string;
+  dateRange: string;
 }
 
 export function AnalyticsClient() {
@@ -114,21 +118,57 @@ export function AnalyticsClient() {
     { value: 'Antonio', label: 'Antonio' }
   ];
 
+  // Format currency
+  function formatCurrency(amount: number) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  }
+
   // Export handlers
   const handleExport = async (type: 'excel' | 'pdf') => {
     if (!data) return;
     
-    setIsExporting(type);
-    try {
-      if (type === 'excel') {
-        await exportToExcel(data.expenses);
-      } else {
-        await exportToPDF(data.expenses);
-      }
-    } catch (error) {
-      console.error('Export failed:', error);
+    const exportData = data.expenses.map(expense => ({
+      date: format(new Date(expense.date), 'yyyy-MM-dd'),
+      description: expense.description || '',
+      amount: expense.amount,
+      category: categories.find(c => c.id === expense.category)?.name || 'Unknown',
+      paidBy: expense.paidBy
+    }));
+    
+    const columns = [
+      { header: 'Date', key: 'date', width: 15 },
+      { header: 'Description', key: 'description', width: 30 },
+      { header: 'Amount', key: 'amount', width: 15 },
+      { header: 'Category', key: 'category', width: 20 },
+      { header: 'Paid By', key: 'paidBy', width: 15 }
+    ];
+    
+    const dateRange = data.startDate && data.endDate ? 
+      `${format(new Date(data.startDate), 'dd MMM yyyy')} - ${format(new Date(data.endDate), 'dd MMM yyyy')}` : 
+      'All time';
+    
+    if (type === 'excel') {
+      exportToExcel({
+        columns,
+        data: exportData,
+        filename: `expenses-${format(new Date(), 'yyyy-MM-dd')}`,
+        title: 'Expense Report',
+        subtitle: dateRange
+      });
+    } else {
+      exportToPDF({
+        columns,
+        data: exportData,
+        filename: `expenses-${format(new Date(), 'yyyy-MM-dd')}.pdf`,
+        title: 'Expense Report',
+        subtitle: dateRange
+      });
     }
-    setIsExporting(null);
   };
 
   return (
@@ -137,12 +177,12 @@ export function AnalyticsClient() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white rounded-lg shadow-sm p-4">
           <h3 className="text-sm font-medium text-gray-500">Total Spent</h3>
-          <p className="text-2xl font-bold mt-1">£{insights.totalSpent.toFixed(2)}</p>
+          <p className="text-2xl font-bold mt-1">{formatCurrency(insights.totalSpent)}</p>
           <p className="text-sm text-gray-500 mt-1">This period</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-4">
           <h3 className="text-sm font-medium text-gray-500">Average Expense</h3>
-          <p className="text-2xl font-bold mt-1">£{insights.averageExpense.toFixed(2)}</p>
+          <p className="text-2xl font-bold mt-1">{formatCurrency(insights.averageExpense)}</p>
           <p className="text-sm text-gray-500 mt-1">Per transaction</p>
         </div>
         <div className="bg-white rounded-lg shadow-sm p-4">
@@ -242,8 +282,8 @@ export function AnalyticsClient() {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(context) {
-                        return `£${context.raw}`;
+                      label: function(context: any) {
+                        return formatCurrency(Number(context.raw));
                       }
                     }
                   }
@@ -251,8 +291,8 @@ export function AnalyticsClient() {
                 scales: {
                   y: {
                     ticks: {
-                      callback: function(value) {
-                        return `£${value}`;
+                      callback: function(value: any) {
+                        return formatCurrency(Number(value));
                       }
                     }
                   }
@@ -284,8 +324,8 @@ export function AnalyticsClient() {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(context) {
-                        return `£${context.raw}`;
+                      label: function(context: any) {
+                        return formatCurrency(Number(context.raw));
                       }
                     }
                   }
@@ -319,8 +359,8 @@ export function AnalyticsClient() {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(context) {
-                        return `£${context.raw}`;
+                      label: function(context: any) {
+                        return formatCurrency(Number(context.raw));
                       }
                     }
                   }
@@ -329,8 +369,8 @@ export function AnalyticsClient() {
                   y: {
                     beginAtZero: true,
                     ticks: {
-                      callback: function(value) {
-                        return `£${value}`;
+                      callback: function(value: any) {
+                        return formatCurrency(Number(value));
                       }
                     }
                   }
@@ -373,8 +413,8 @@ export function AnalyticsClient() {
                   },
                   tooltip: {
                     callbacks: {
-                      label: function(context) {
-                        return `£${context.raw}`;
+                      label: function(context: any) {
+                        return formatCurrency(Number(context.raw));
                       }
                     }
                   }
@@ -383,8 +423,8 @@ export function AnalyticsClient() {
                   y: {
                     beginAtZero: true,
                     ticks: {
-                      callback: function(value) {
-                        return `£${value}`;
+                      callback: function(value: any) {
+                        return formatCurrency(Number(value));
                       }
                     }
                   }

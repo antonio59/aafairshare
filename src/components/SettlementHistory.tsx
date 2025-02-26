@@ -11,6 +11,11 @@ interface FilterState {
   user?: string;
 }
 
+interface DateRange {
+  start?: Date;
+  end?: Date;
+}
+
 const SettlementHistory = () => {
   const { settlements, categoryGroups } = useExpenseStore();
   const [sortField, setSortField] = useState<SortField>('date');
@@ -18,37 +23,106 @@ const SettlementHistory = () => {
   const [filters, setFilters] = useState<FilterState>({});
   const [selectedSettlement, setSelectedSettlement] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [dateRange, setDateRange] = useState<DateRange>({});
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Helper functions
+  function formatDate(dateString: string | undefined): string {
+    if (!dateString) return '';
+    return format(new Date(dateString), 'dd MMM yyyy');
+  }
+
+  function formatCurrency(amount: number | undefined): string {
+    if (amount === undefined) return '';
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(amount);
+  }
+
+  // Helper function to safely access categoryGroups
+  function getCategoryGroupName(settlement: any, groupId: string): string {
+    if (!settlement.categoryGroups) return 'Unknown Group';
+    const categoryGroup = settlement.categoryGroups.find((cg: any) => cg.groupId === groupId);
+    return categoryGroup?.name || 'Unknown Group';
+  }
+
+  // Format balance for display
+  function formatBalance(balance: number | undefined): string {
+    if (balance === undefined) return '';
+    if (balance === 0) return 'Settled';
+    return balance > 0 ? 'You are owed' : 'You owe';
+  }
+
+  // Get color based on balance
+  function getBalanceColor(balance: number | undefined): string {
+    if (balance === undefined) return '';
+    if (balance === 0) return 'text-gray-500';
+    return balance > 0 ? 'text-green-600' : 'text-red-600';
+  }
 
   // Sort settlements
   const sortedSettlements = useMemo(() => {
     return [...settlements].sort((a, b) => {
-      if (sortField === 'date') {
-        return sortOrder === 'desc'
-          ? new Date(b.settledAt).getTime() - new Date(a.settledAt).getTime()
-          : new Date(a.settledAt).getTime() - new Date(b.settledAt).getTime();
-      } else {
-        return sortOrder === 'desc'
-          ? Math.abs(b.balance) - Math.abs(a.balance)
-          : Math.abs(a.balance) - Math.abs(b.balance);
+      // If dates are available, sort by date
+      if (a.settledAt && b.settledAt) {
+        return new Date(b.settledAt).getTime() - new Date(a.settledAt).getTime();
       }
+      
+      // Fallback to sorting by month
+      if (a.month && b.month) {
+        return a.month > b.month ? -1 : 1;
+      }
+      
+      return 0;
     });
-  }, [settlements, sortField, sortOrder]);
+  }, [settlements]);
 
   // Filter settlements
   const filteredSettlements = useMemo(() => {
     return sortedSettlements.filter(settlement => {
+      // Filter by date range
+      if (dateRange.start && dateRange.end) {
+        const settlementDate = settlement.settledAt ? new Date(settlement.settledAt) : null;
+        if (settlementDate && (settlementDate < dateRange.start || settlementDate > dateRange.end)) {
+          return false;
+        }
+      }
+      
+      // Filter by search term
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSettledBy = settlement.settledBy ? settlement.settledBy.toLowerCase().includes(searchLower) : false;
+        
+        // Safely check categoryGroups
+        const matchesCategoryGroup = settlement.categoryGroups ? 
+          settlement.categoryGroups.some(group => 
+            categoryGroups.find(cg => cg.id === group.groupId)?.name.toLowerCase().includes(searchLower)
+          ) : false;
+          
+        return matchesSettledBy || matchesCategoryGroup;
+      }
+      
+      // Filter by category group
       if (filters.categoryGroup) {
-        const hasGroup = settlement.categoryGroups.some(
+        const hasGroup = settlement.categoryGroups ? settlement.categoryGroups.some(
           group => group.groupId === filters.categoryGroup
-        );
+        ) : false;
         if (!hasGroup) return false;
       }
-      if (filters.user && settlement.settledBy !== filters.user) {
-        return false;
+      
+      // Filter by user
+      if (filters.user && settlement.settledBy) {
+        if (settlement.settledBy !== filters.user) {
+          return false;
+        }
       }
+      
       return true;
     });
-  }, [sortedSettlements, filters]);
+  }, [sortedSettlements, dateRange, searchTerm, categoryGroups, filters]);
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -57,21 +131,6 @@ const SettlementHistory = () => {
       setSortField(field);
       setSortOrder('desc');
     }
-  };
-
-  const formatBalance = (amount: number) => {
-    const absAmount = Math.abs(amount);
-    if (amount > 0) {
-      return `Antonio owes Andres £${absAmount.toFixed(2)}`;
-    } else if (amount < 0) {
-      return `Andres owes Antonio £${absAmount.toFixed(2)}`;
-    }
-    return 'No balance';
-  };
-
-  const getBalanceColor = (amount: number) => {
-    if (amount === 0) return 'text-gray-600';
-    return amount > 0 ? 'text-green-600' : 'text-red-600';
   };
 
   return (
@@ -139,70 +198,70 @@ const SettlementHistory = () => {
               <option value="Andres">Andres</option>
               <option value="Antonio">Antonio</option>
             </select>
+            <input
+              type="search"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search"
+              className="px-4 py-3 border rounded-lg text-base min-h-[48px] bg-white"
+            />
           </div>
         </div>
       </div>
 
       {/* Settlements List */}
-      <div className="space-y-4">
+      <div className="mt-6 space-y-6">
         {filteredSettlements.map(settlement => (
-          <div key={settlement.id} className="border rounded-lg">
-            {/* Settlement Header */}
-            <div
-              className="p-4 cursor-pointer hover:bg-gray-50"
-              onClick={() => setSelectedSettlement(
-                selectedSettlement === settlement.id ? null : settlement.id
-              )}
-            >
-              <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
-                <div>
-                  <p className="font-medium text-base">
-                    {format(new Date(settlement.settledAt), 'dd MMM yyyy, HH:mm')}
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Settled by {settlement.settledBy}
-                  </p>
-                </div>
-                <div className="text-left sm:text-right w-full sm:w-auto">
-                  <p className={`font-medium text-base ${getBalanceColor(settlement.balance)}`}>
-                    £{Math.abs(settlement.balance).toFixed(2)}
-                  </p>
-                  <p className={`text-sm ${getBalanceColor(settlement.balance)} mt-1`}>
-                    {formatBalance(settlement.balance)}
-                  </p>
-                </div>
+          <div 
+            key={settlement.id} 
+            className={`bg-white rounded-lg shadow-sm p-4 cursor-pointer transition-all ${
+              selectedSettlement === settlement.id ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
+            }`}
+            onClick={() => setSelectedSettlement(
+              selectedSettlement === settlement.id ? null : settlement.id
+            )}
+          >
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-3">
+              <div>
+                <p className="font-medium text-base">
+                  {formatDate(settlement.settledAt)}
+                </p>
+                <p className="text-sm text-gray-600 mt-1">
+                  Settled by {settlement.settledBy}
+                </p>
+              </div>
+              <div className="text-left sm:text-right w-full sm:w-auto">
+                <p className={`font-medium text-base ${getBalanceColor(settlement.balance)}`}>
+                  {formatCurrency(settlement.balance)}
+                </p>
+                <p className={`text-sm ${getBalanceColor(settlement.balance)} mt-1`}>
+                  {formatBalance(settlement.balance)}
+                </p>
               </div>
             </div>
-
-            {/* Settlement Details */}
+            
             {selectedSettlement === settlement.id && (
-              <div className="border-t p-4 bg-gray-50">
+              <div className="mt-4 pt-4 border-t border-gray-200">
                 <h4 className="font-medium mb-4">Category Groups</h4>
                 <div className="space-y-3">
-                  {settlement.categoryGroups.map(group => {
-                    const categoryGroup = categoryGroups.find(g => g.id === group.groupId);
+                  {settlement.categoryGroups && settlement.categoryGroups.map(group => {
+                    const categoryGroupName = getCategoryGroupName(settlement, group.groupId);
                     return (
                       <div key={group.groupId} className="flex justify-between items-center text-base">
-                        <span className="mr-4">{categoryGroup?.name || 'Unknown Group'}</span>
-                        <span className="font-medium whitespace-nowrap">£{Math.abs(group.amount).toFixed(2)}</span>
+                        <span className="mr-4">{categoryGroupName}</span>
+                        <span className="font-medium whitespace-nowrap">{formatCurrency(group.amount)}</span>
                       </div>
                     );
                   })}
                 </div>
-                {settlement.notes && (
-                  <div className="mt-4 pt-4 border-t">
-                    <h4 className="font-medium mb-3">Notes</h4>
-                    <p className="text-base text-gray-600">{settlement.notes}</p>
-                  </div>
-                )}
               </div>
             )}
           </div>
         ))}
-
+        
         {filteredSettlements.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No settlements found matching the current filters.
+          <div className="bg-white rounded-lg shadow-sm p-6 text-center">
+            <p className="text-gray-500">No settlements found</p>
           </div>
         )}
       </div>

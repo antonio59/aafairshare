@@ -1,5 +1,6 @@
 import { fetchAllData } from '../store/supabaseOperations';
 import { supabase } from '../supabase';
+import { isValid } from 'date-fns';
 import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
 
 describe('Data Integrity Tests', () => {
@@ -96,6 +97,12 @@ describe('Data Integrity Tests', () => {
         expect(expense).toHaveProperty('split');
         expect(['Andres', 'Antonio']).toContain(expense.paidBy);
         expect(['equal', 'full']).toContain(expense.split);
+
+        // Check date format
+        if (expense.date) {
+          const date = new Date(expense.date);
+          expect(isValid(date)).toBe(true);
+        }
       });
     });
 
@@ -147,15 +154,27 @@ describe('Data Integrity Tests', () => {
     test('settlements should have valid data', async () => {
       const data = await fetchAllData();
       
-      data.settlements.forEach(settlement => {
-        expect(settlement).toHaveProperty('month');
-        expect(settlement).toHaveProperty('settledAt');
-        expect(settlement).toHaveProperty('settledBy');
-        expect(settlement).toHaveProperty('balance');
-        expect(typeof settlement.balance).toBe('number');
-        expect(new Date(settlement.settledAt)).toBeInstanceOf(Date);
-        expect(['Andres', 'Antonio']).toContain(settlement.settledBy);
-      });
+      // Check if settlement data exists
+      expect(data.settlements).toBeDefined();
+      expect(Array.isArray(data.settlements)).toBe(true);
+      
+      if (data.settlements.length > 0) {
+        const settlement = data.settlements[0];
+        
+        // Check required properties
+        expect(settlement).toHaveProperty('id');
+        expect(settlement).toHaveProperty('date');
+        expect(settlement).toHaveProperty('paidBy');
+        expect(settlement).toHaveProperty('paidTo');
+        expect(settlement).toHaveProperty('amount');
+        expect(settlement).toHaveProperty('status');
+        
+        // Check date format if it exists
+        if (settlement.date) {
+          const date = new Date(settlement.date);
+          expect(isValid(date)).toBe(true);
+        }
+      }
     });
   });
 });

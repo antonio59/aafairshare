@@ -1,9 +1,40 @@
-import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
-import type { Category, CategoryGroup, Tag, RecurringExpense, UserSettings } from '@/types';
+import { createServerClient } from '@supabase/ssr';
+import type { Category, CategoryGroup, Tag, UserSettings } from '@/types';
+
+export interface RecurringExpense {
+  id: string;
+  description?: string;
+  amount: number;
+  category: string;
+  paidBy: string;
+  split: 'equal' | 'no-split';
+  startDate: string;
+  frequency: 'monthly' | 'quarterly' | 'yearly' | 'weekly';
+  dayOfMonth: number;
+  tags: string[];
+  lastProcessed?: string;
+}
 
 async function getSettingsData() {
-  const supabase = createServerClient({ cookies });
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return cookieStore.get(name)?.value;
+        },
+        set(name: string, value: string, options: any) {
+          // Server component doesn't need to set cookies
+        },
+        remove(name: string, options: any) {
+          // Server component doesn't need to remove cookies
+        },
+      },
+    }
+  );
   
   // Fetch all settings data in parallel
   const [
@@ -28,6 +59,42 @@ async function getSettingsData() {
     throw new Error('Failed to fetch user settings');
   }
 
+  // Process user settings
+  const processedUserSettings = {
+    currency: 'USD',
+    language: 'en',
+    theme: 'light',
+    notifications: {
+      enabled: true,
+      email: true,
+      push: false,
+      frequency: 'daily' as 'daily' | 'weekly' | 'monthly' | 'quarterly',
+      recurring: true
+    },
+    defaultView: 'list',
+    defaultCategory: categories[0]?.id || '',
+    defaultCategoryGroup: categoryGroups[0]?.id || '',
+    defaultPaidBy: 'Antonio',
+    expenseReminders: true,
+    settlementReminders: true,
+    budgetAlerts: true,
+    dateFormat: 'MM/DD/YYYY',
+    weekStart: 'Sunday',
+  };
+
+  // Merge processed user settings with fetched user settings
+  const mergedUserSettings = { ...processedUserSettings, ...userSettings };
+
+  // Notification frequency check
+  if (
+    mergedUserSettings.notifications.frequency !== 'daily' &&
+    mergedUserSettings.notifications.frequency !== 'weekly' &&
+    mergedUserSettings.notifications.frequency !== 'monthly' &&
+    mergedUserSettings.notifications.frequency !== 'quarterly'
+  ) {
+    mergedUserSettings.notifications.frequency = 'weekly';
+  }
+
   // Calculate statistics and relationships
   const stats = calculateSettingsStats({
     categories: categories || [],
@@ -41,7 +108,7 @@ async function getSettingsData() {
     categoryGroups,
     tags,
     recurringExpenses,
-    userSettings: userSettings || getDefaultUserSettings(),
+    userSettings: mergedUserSettings,
     stats
   };
 }
@@ -69,10 +136,18 @@ function calculateSettingsStats({
 
   // Calculate monthly recurring total
   const monthlyRecurringTotal = recurringExpenses.reduce((sum, exp) => {
-    if (exp.frequency === 'monthly') return sum + exp.amount;
-    if (exp.frequency === 'yearly') return sum + (exp.amount / 12);
-    if (exp.frequency === 'weekly') return sum + (exp.amount * 52 / 12);
-    return sum;
+    switch (exp.frequency) {
+      case 'monthly':
+        return sum + exp.amount;
+      case 'yearly':
+        return sum + (exp.amount / 12);
+      case 'weekly':
+        return sum + (exp.amount * 52 / 12);
+      case 'quarterly':
+        return sum + (exp.amount * 4 / 12);
+      default:
+        return sum;
+    }
   }, 0);
 
   return {
@@ -88,18 +163,19 @@ function calculateSettingsStats({
 function getDefaultUserSettings(): UserSettings {
   return {
     id: '',
+    userId: '',
     theme: 'light',
     currency: 'GBP',
+    language: 'en',
+    notificationFrequency: 'weekly',
+    emailNotifications: true,
+    pushNotifications: false,
     defaultSplit: 'equal',
     notifications: {
       email: true,
       push: false,
+      inApp: true,
       recurring: true
-    },
-    displayPreferences: {
-      defaultView: 'list',
-      showTags: true,
-      showNotes: true
     }
   };
 }

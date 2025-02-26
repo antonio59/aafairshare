@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { Download, FileJson, FileSpreadsheet, FilePdf, Loader2 } from 'lucide-react';
+import { Download, FileJson, FileSpreadsheet, File, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -41,7 +41,7 @@ const EXPORT_FORMATS = {
   },
   pdf: {
     label: 'PDF',
-    icon: FilePdf,
+    icon: File,
     mimeType: 'application/pdf',
     extension: '.pdf'
   }
@@ -78,19 +78,21 @@ export function ExportButton({
           const { exportToPDF, exportToExcel } = await import('@/lib/export-utils');
           
           if (format === 'pdf') {
-            const pdf = await exportToPDF({
+            exportToPDF({
+              columns: [{ header: 'Data', key: 'data', width: 100 }],
               data: data.data,
-              title: data.title,
-              description: data.description
+              title: data.title || 'Export',
+              subtitle: data.description,
+              filename: `${filename}.pdf`
             });
-            downloadBlob(pdf, `${filename}.pdf`);
           } else if (format === 'excel') {
-            const excel = await exportToExcel({
+            exportToExcel({
+              columns: [{ header: 'Data', key: 'data', width: 100 }],
               data: data.data,
-              title: data.title,
-              description: data.description
+              title: data.title || 'Export',
+              subtitle: data.description,
+              filename: `${filename}.xlsx`
             });
-            downloadBlob(excel, `${filename}.xlsx`);
           }
         }
       }

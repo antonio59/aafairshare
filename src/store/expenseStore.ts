@@ -551,6 +551,11 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
     const settlement: Settlement = {
       id: uuidv4(),
+      date: new Date().toISOString(),
+      paidBy: 'System',
+      paidTo: 'System',
+      amount: Math.abs(balance),
+      status: 'completed',
       month,
       settledBy,
       settledAt: new Date().toISOString(),
@@ -574,13 +579,13 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
     return settlements.some(s => s.month === month);
   },
 
-  getSettlementDate: (month) => {
+  getSettlementDate: (month: string): string | null => {
     const { settlements } = get();
     const settlement = settlements.find(s => s.month === month);
-    return settlement ? settlement.settledAt : null;
+    return settlement?.settledAt || null;
   },
 
-  getSettlementDetails: (month) => {
+  getSettlementDetails: (month: string) => {
     const { settlements } = get();
     return settlements.find(s => s.month === month) || null;
   },

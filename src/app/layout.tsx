@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from '@/components/theme-provider'
-import Navbar from '@/components/navbar'
+import Navbar from '@/components/Navbar'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -26,8 +26,8 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `window.env = {
-              NEXT_PUBLIC_SUPABASE_URL: "${process.env.NEXT_PUBLIC_SUPABASE_URL}",
-              NEXT_PUBLIC_SUPABASE_ANON_KEY: "${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}"
+              NEXT_PUBLIC_SUPABASE_URL: "${process.env.NEXT_PUBLIC_SUPABASE_URL || ''}",
+              NEXT_PUBLIC_SUPABASE_ANON_KEY: "${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || ''}"
             }`
           }}
         />

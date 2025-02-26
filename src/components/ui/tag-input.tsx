@@ -174,7 +174,7 @@ export function TagInput({
               onValueChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              disabled={disabled || (maxTags && selectedTags.length >= maxTags)}
+              disabled={disabled || (maxTags && selectedTags.length >= maxTags) ? true : undefined}
               className="h-8 px-2 py-1 text-sm focus:outline-none"
             />
 

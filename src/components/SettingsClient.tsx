@@ -178,38 +178,41 @@ export function SettingsClient() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label htmlFor="theme">Theme</Label>
-                <Select
+                <select
                   id="theme"
                   value={userSettings.theme}
-                  onValueChange={(value) => handleUpdateSettings({ theme: value })}
+                  onChange={(e) => handleUpdateSettings({ theme: e.target.value as 'light' | 'dark' | 'system' })}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                   <option value="light">Light</option>
                   <option value="dark">Dark</option>
                   <option value="system">System</option>
-                </Select>
+                </select>
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="currency">Currency</Label>
-                <Select
+                <select
                   id="currency"
                   value={userSettings.currency}
-                  onValueChange={(value) => handleUpdateSettings({ currency: value })}
+                  onChange={(e) => handleUpdateSettings({ currency: e.target.value })}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                   <option value="GBP">GBP (£)</option>
                   <option value="EUR">EUR (€)</option>
                   <option value="USD">USD ($)</option>
-                </Select>
+                </select>
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="defaultSplit">Default Split</Label>
-                <Select
+                <select
                   id="defaultSplit"
                   value={userSettings.defaultSplit}
-                  onValueChange={(value) => handleUpdateSettings({ defaultSplit: value })}
+                  onChange={(e) => handleUpdateSettings({ defaultSplit: e.target.value as 'equal' | 'no-split' })}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                 >
                   <option value="equal">Equal</option>
-                  <option value="custom">Custom</option>
-                </Select>
+                  <option value="no-split">No Split</option>
+                </select>
               </div>
             </div>
           </Card>
@@ -308,7 +311,7 @@ export function SettingsClient() {
                 <Switch
                   id="emailNotifications"
                   checked={userSettings.notifications.email}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleUpdateSettings({
                       notifications: { ...userSettings.notifications, email: checked }
                     })
@@ -320,7 +323,7 @@ export function SettingsClient() {
                 <Switch
                   id="pushNotifications"
                   checked={userSettings.notifications.push}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleUpdateSettings({
                       notifications: { ...userSettings.notifications, push: checked }
                     })
@@ -332,7 +335,7 @@ export function SettingsClient() {
                 <Switch
                   id="recurringNotifications"
                   checked={userSettings.notifications.recurring}
-                  onCheckedChange={(checked) =>
+                  onCheckedChange={(checked: boolean) =>
                     handleUpdateSettings({
                       notifications: { ...userSettings.notifications, recurring: checked }
                     })

@@ -1,5 +1,4 @@
 /// <reference lib="webworker" />
-/// <reference types="vite/client" />
 import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
 import { registerRoute, NavigationRoute, setDefaultHandler } from 'workbox-routing';
 import { StaleWhileRevalidate, CacheFirst, NetworkFirst } from 'workbox-strategies';

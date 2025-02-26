@@ -11,6 +11,20 @@ import { Input } from './ui/input';
 import { DatePicker } from './ui/date-picker';
 import type { Expense, Category, CategoryGroup, Tag } from '@/types';
 
+interface RecurringExpense {
+  id: string;
+  description?: string;
+  amount: number;
+  category: string;
+  paidBy: string;
+  split: 'equal' | 'no-split';
+  startDate: string;
+  frequency: 'monthly' | 'quarterly' | 'yearly';
+  dayOfMonth: number;
+  tags: string[];
+  lastProcessed?: string;
+}
+
 interface ExpensesData {
   expenses: Expense[];
   categories: Category[];
@@ -42,7 +56,7 @@ export function ExpensesClient() {
   const searchParams = useSearchParams();
   const startDate = searchParams.get('startDate') || '';
   const endDate = searchParams.get('endDate') || '';
-  const categories = searchParams.get('categories')?.split(',') || [];
+  const categoryParams = searchParams.get('categories')?.split(',') || [];
   const tags = searchParams.get('tags')?.split(',') || [];
   const paidBy = searchParams.get('paidBy')?.split(',') || [];
   const minAmount = searchParams.get('minAmount') || '';
@@ -211,7 +225,7 @@ export function ExpensesClient() {
           <MultiSelect
             label="Categories"
             options={categoryOptions}
-            selected={categories}
+            selected={categoryParams}
             onChange={(values) => {
               const newParams = createQueryString(
                 'categories',

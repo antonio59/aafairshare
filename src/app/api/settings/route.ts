@@ -44,7 +44,7 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const supabase = createServerClient({ cookies });
+  const supabase = createClient();
   const { data: { session } } = await supabase.auth.getSession();
 
   if (!session) {
