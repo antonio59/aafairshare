@@ -4,7 +4,6 @@ import { Toaster } from '@/components/ui/toaster'
 import { ThemeProvider } from '@/components/theme-provider'
 import Navbar from '@/components/Navbar'
 import './globals.css'
-import { Analytics } from '@vercel/analytics/react';
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -56,7 +55,6 @@ export default function RootLayout({
           <Navbar />
           {children}
           <Toaster />
-          <Analytics />
         </ThemeProvider>
       </body>
     </html>
