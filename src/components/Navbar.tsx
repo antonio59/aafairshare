@@ -1,16 +1,20 @@
-import { Home, PlusCircle, BarChart3, Settings, Wallet, LogOut } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+// @/components/navbar.tsx
+'use client';
+
+import { Home, PlusCircle, BarChart3, Settings as SettingsIcon, Wallet, LogOut } from 'lucide-react'; // Renamed to SettingsIcon
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import { useUserStore } from '../store/userStore';
 import { useState } from 'react';
-import SettingsComponent from './Settings';
+import Settings from './Settings'; // Ensure this is the only import for Settings
 
 const Navbar = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname(); // Use Next.js's usePathname
+  const router = useRouter(); // Use Next.js's useRouter
   const { currentUser, logout } = useUserStore();
   const [showSettings, setShowSettings] = useState(false);
 
-  const isActive = (path: string) => location.pathname === path;
+  const isActive = (path: string) => pathname === path;
 
   // Primary navigation items (shown in bottom bar)
   const primaryNavItems = [
@@ -23,7 +27,7 @@ const Navbar = () => {
   const handleLogout = () => {
     try {
       logout();
-      navigate('/');
+      router.push('/');
     } catch (error) {
       console.error('Failed to logout:', error);
     }
@@ -40,7 +44,7 @@ const Navbar = () => {
       <header className="fixed top-0 left-0 right-0 bg-white border-b border-gray-200 z-50">
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-14">
-            <Link to="/" className="flex items-center">
+            <Link href="/" className="flex items-center">
               <h1 className="text-xl font-bold text-gray-900">AA FairShare</h1>
             </Link>
             <div className="flex items-center gap-3">
@@ -61,7 +65,7 @@ const Navbar = () => {
                 }`}
                 aria-label="Settings"
               >
-                <Settings className="w-5 h-5" />
+                <SettingsIcon className="w-5 h-5" /> {/* Updated to SettingsIcon */}
                 <span className="text-sm font-medium hidden sm:inline">
                   Settings
                 </span>
@@ -80,7 +84,7 @@ const Navbar = () => {
       </header>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 pb-safe">
+      <nav className="fixed bottom-0 left-0 right-0 bg白色 border-t border-gray-200 z-50 pb-safe">
         <div className="container mx-auto px-2 sm:px-4">
           <div className="grid grid-cols-4 gap-1 py-2">
             {primaryNavItems.map(({ path, icon: Icon, label }) => {
@@ -88,7 +92,7 @@ const Navbar = () => {
               return (
                 <Link
                   key={path}
-                  to={path}
+                  href={path}
                   className={`flex flex-col items-center justify-center py-2 px-1 rounded-lg transition-colors ${
                     active 
                       ? 'text-blue-600' 
@@ -135,7 +139,7 @@ const Navbar = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
-                <SettingsComponent />
+                <Settings /> {/* Updated usage */}
               </div>
             </div>
           </div>

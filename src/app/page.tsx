@@ -1,5 +1,5 @@
 import { Suspense } from 'react'
-import { ExpenseList } from '@/components/expenses/ExpenseList'
+import ExpenseList from '@/components/ExpenseList'
 
 export default function HomePage() {
   return (

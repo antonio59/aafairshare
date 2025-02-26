@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useExpenseStore } from '../store/expenseStore';
 import { useUserStore } from '../store/userStore';
 import { Calendar, HelpCircle } from 'lucide-react';
@@ -14,7 +14,7 @@ import {
 } from './ui/dialog';
 
 interface ExpenseEditModalProps {
-  expense: Expense;
+  expense: Expense | null; // Allow expense to be null
   open: boolean;
   onClose: () => void;
 }
@@ -25,14 +25,29 @@ const ExpenseEditModal = ({ expense, open, onClose }: ExpenseEditModalProps) => 
   const currencySymbol = currentUser?.preferences.currency === 'GBP' ? '£' : '$';
 
   const [formData, setFormData] = useState({
-    description: expense.description || '',
-    amount: expense.amount ? expense.amount.toString() : '',
-    date: new Date(expense.date).toISOString().split('T')[0],
-    category: expense.category,
-    paidBy: expense.paidBy,
-    split: expense.split,
-    tags: expense.tags || [],
+    description: '',
+    amount: '',
+    date: '',
+    category: '',
+    paidBy: '',
+    split: 'equal',
+    tags: [],
   });
+
+  // Initialize form data when expense changes
+  useEffect(() => {
+    if (expense) {
+      setFormData({
+        description: expense.description || '',
+        amount: expense.amount ? expense.amount.toString() : '',
+        date: new Date(expense.date).toISOString().split('T')[0],
+        category: expense.category || '',
+        paidBy: expense.paidBy || '',
+        split: expense.split || 'equal',
+        tags: expense.tags || [],
+      });
+    }
+  }, [expense]);
 
   // Convert categories for the dropdown with proper grouping
   const categoryOptions = categories
@@ -64,11 +79,13 @@ const ExpenseEditModal = ({ expense, open, onClose }: ExpenseEditModalProps) => 
     const amount = parseFloat(formData.amount);
     if (isNaN(amount)) return;
 
-    updateExpense(expense.id, {
-      ...formData,
-      amount,
-      date: new Date(formData.date).toISOString(),
-    });
+    if (expense) {
+      updateExpense(expense.id, {
+        ...formData,
+        amount,
+        date: new Date(formData.date).toISOString(),
+      });
+    }
     onClose();
   };
 

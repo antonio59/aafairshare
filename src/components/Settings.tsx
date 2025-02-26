@@ -1,5 +1,8 @@
+// @/components/Settings.tsx
+'use client';
+
 import { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { usePathname, useRouter } from 'next/navigation';
 import { User, Bell, FileText, DollarSign, Settings as SettingsIcon } from 'lucide-react';
 import AccountSettings from './Settings/AccountSettings';
 import ExpenseSettings from './Settings/ExpenseSettings';
@@ -7,21 +10,21 @@ import NotificationsSettings from './Settings/NotificationsSettings';
 import DocumentationSettings from './Settings/DocumentationSettings';
 
 const Settings = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const pathname = usePathname(); // Use Next.js's usePathname
+  const router = useRouter(); // Use Next.js's useRouter
   const [activeTab, setActiveTab] = useState('account');
 
   // Set initial tab based on URL hash
   useEffect(() => {
-    const hash = location.hash.replace('#', '');
+    const hash = pathname.split('#')[1];
     if (hash && tabs.some(tab => tab.id === hash)) {
       setActiveTab(hash);
     }
-  }, [location.hash]);
+  }, [pathname]);
 
   const handleTabChange = (tabId: string) => {
     setActiveTab(tabId);
-    navigate(`/settings#${tabId}`, { replace: true });
+    router.replace(`/settings#${tabId}`); // Use router.replace for navigation
   };
 
   const tabs = [

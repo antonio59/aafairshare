@@ -1,3 +1,6 @@
+// @/components/expenses/ExpenseList.tsx
+'use client';
+
 import { useState, useMemo } from 'react';
 import { Edit2, Trash2, Calendar, User, Split } from 'lucide-react';
 import { useExpenseStore } from '../store/expenseStore';
