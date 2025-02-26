@@ -15,37 +15,68 @@ function getSupabaseUrl(): string {
     console.log('Server: Added https:// protocol to URL:', url);
   }
   
+  // Log whether we're using default or environment variable
+  if (url === DEFAULT_SUPABASE_URL) {
+    console.log('Server: Using DEFAULT Supabase URL');
+  } else {
+    console.log('Server: Using environment variable for Supabase URL');
+  }
+  
+  // Validate URL format
+  try {
+    new URL(url);
+  } catch (error) {
+    console.error('Server: Invalid Supabase URL format:', url);
+    // Fall back to default if URL is invalid
+    url = DEFAULT_SUPABASE_URL;
+    console.log('Server: Falling back to DEFAULT Supabase URL');
+  }
+  
   return url;
 }
 
 function getSupabaseAnonKey(): string {
-  return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
+  
+  // Log whether we're using default or environment variable
+  if (key === DEFAULT_SUPABASE_ANON_KEY) {
+    console.log('Server: Using DEFAULT Supabase Anon Key');
+  } else {
+    console.log('Server: Using environment variable for Supabase Anon Key');
+  }
+  
+  return key;
 }
 
 // Create a Supabase client for server components
 export async function createServerSupabaseClient() {
-  const cookieStore = await cookies();
-  
-  const supabaseUrl = getSupabaseUrl();
-  const supabaseAnonKey = getSupabaseAnonKey();
-  
-  console.log('Server: Creating Supabase client with URL:', supabaseUrl);
-  
-  return createServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
+  try {
+    const cookieStore = await cookies();
+    
+    const supabaseUrl = getSupabaseUrl();
+    const supabaseAnonKey = getSupabaseAnonKey();
+    
+    console.log('Server: Creating Supabase client with URL:', supabaseUrl);
+    
+    return createServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            // Server component doesn't need to set cookies
+          },
+          remove(name: string, options: any) {
+            // Server component doesn't need to remove cookies
+          },
         },
-        set(name: string, value: string, options: any) {
-          // Server component doesn't need to set cookies
-        },
-        remove(name: string, options: any) {
-          // Server component doesn't need to remove cookies
-        },
-      },
-    }
-  );
+      }
+    );
+  } catch (error) {
+    console.error('Server: Failed to create Supabase client:', error);
+    throw new Error(`Failed to create Supabase client: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }

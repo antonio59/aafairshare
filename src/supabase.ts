@@ -13,119 +13,81 @@ declare global {
 const DEFAULT_SUPABASE_URL = 'https://ilrnhmnkstnglkrsirjq.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlscm5obW5rc3RuZ2xrcnNpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIzNzc2MjQsImV4cCI6MjA0Nzk1MzYyNH0.bG4rbyHXEmW38Vb1eT6BBgXiPmtDzgf4FHIImqqJY8c';
 
-// Get environment variables from window.env (injected in _document.tsx) or directly from process.env
+// Function to get Supabase URL with proper validation
 function getSupabaseUrl(): string {
-  let url = '';
+  // First check window.env (set in layout.tsx), then process.env
+  let url: string | undefined;
   
-  // Check if we're in the browser
-  if (typeof window !== 'undefined') {
-    // Try to get URL from window.env
-    if (window.env && window.env.NEXT_PUBLIC_SUPABASE_URL) {
-      url = window.env.NEXT_PUBLIC_SUPABASE_URL;
-      console.log('Using Supabase URL from window.env:', url);
-    } else {
-      // Try to get URL from process.env in the browser
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-        url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-        console.log('Using Supabase URL from process.env in browser:', url);
-      } else {
-        console.warn('No Supabase URL found in window.env or process.env in browser');
-      }
-    }
+  if (typeof window !== 'undefined' && window.env?.NEXT_PUBLIC_SUPABASE_URL) {
+    url = window.env.NEXT_PUBLIC_SUPABASE_URL;
+    console.log('Client: Using window.env for Supabase URL');
+  } else if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
+    url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    console.log('Client: Using process.env for Supabase URL');
   } else {
-    // Server-side: try to get URL from process.env
-    if (process.env.NEXT_PUBLIC_SUPABASE_URL) {
-      url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      console.log('Using Supabase URL from process.env on server:', url);
-    } else {
-      console.warn('No Supabase URL found in process.env on server');
-    }
-  }
-  
-  // Fallback to default URL if no URL was found
-  if (!url) {
     url = DEFAULT_SUPABASE_URL;
-    console.warn('Using default Supabase URL:', url);
+    console.log('Client: Using default Supabase credentials. This is fine for development but should be configured properly in production.');
   }
-  
+
   // Ensure URL has a protocol
   if (url && !url.startsWith('http://') && !url.startsWith('https://')) {
     url = 'https://' + url;
-    console.log('Added https:// protocol to URL:', url);
+    console.log('Client: Added https:// protocol to URL:', url);
   }
-  
+
+  // Validate URL format
+  try {
+    new URL(url);
+  } catch (error) {
+    console.error('Client: Invalid Supabase URL format:', url);
+    // Fall back to default if URL is invalid
+    url = DEFAULT_SUPABASE_URL;
+    console.log('Client: Falling back to DEFAULT Supabase URL');
+  }
+
   return url;
 }
 
+// Function to get Supabase anonymous key
 function getSupabaseAnonKey(): string {
-  let key = '';
-  
-  // Check if we're in the browser
-  if (typeof window !== 'undefined') {
-    // Try to get key from window.env
-    if (window.env && window.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      key = window.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      console.log('Using Supabase key from window.env');
-    } else {
-      // Try to get key from process.env in the browser
-      if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-        key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-        console.log('Using Supabase key from process.env in browser');
-      } else {
-        console.warn('No Supabase key found in window.env or process.env in browser');
-      }
-    }
+  // First check window.env (set in layout.tsx), then process.env
+  if (typeof window !== 'undefined' && window.env?.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.log('Client: Using window.env for Supabase Anon Key');
+    return window.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  } else if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.log('Client: Using process.env for Supabase Anon Key');
+    return process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   } else {
-    // Server-side: try to get key from process.env
-    if (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      console.log('Using Supabase key from process.env on server');
-    } else {
-      console.warn('No Supabase key found in process.env on server');
-    }
+    console.log('Client: Using default Supabase credentials. This is fine for development but should be configured properly in production.');
+    return DEFAULT_SUPABASE_ANON_KEY;
   }
+}
+
+// Create and export the Supabase client
+let supabase: SupabaseClient;
+
+try {
+  const supabaseUrl = getSupabaseUrl();
+  const supabaseAnonKey = getSupabaseAnonKey();
   
-  // Fallback to default key if no key was found
-  if (!key) {
-    key = DEFAULT_SUPABASE_ANON_KEY;
-    console.warn('Using default Supabase key');
-  }
+  console.log('Client: Creating Supabase client with URL:', supabaseUrl);
   
-  return key;
-}
-
-const supabaseUrl = getSupabaseUrl();
-const supabaseAnonKey = getSupabaseAnonKey();
-
-// Log warning if using default values
-if (supabaseUrl === DEFAULT_SUPABASE_URL || supabaseAnonKey === DEFAULT_SUPABASE_ANON_KEY) {
-  console.warn('Using default Supabase credentials. This is fine for development but should be configured properly in production.');
-}
-
-// Validate URL before creating client
-function isValidUrl(url: string): boolean {
-  try {
-    new URL(url);
-    console.log('URL is valid:', url);
-    return true;
-  } catch (e) {
-    console.error(`Invalid Supabase URL: ${url}`, e);
-    return false;
-  }
-}
-
-// Get final URL to use
-const finalUrl = isValidUrl(supabaseUrl) ? supabaseUrl : DEFAULT_SUPABASE_URL;
-console.log('Final Supabase URL being used:', finalUrl);
-
-// Create Supabase client with validated URL
-export const supabase: SupabaseClient = createClient(
-  finalUrl,
-  supabaseAnonKey || DEFAULT_SUPABASE_ANON_KEY,
-  {
+  supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
       autoRefreshToken: true,
       persistSession: true
     }
-  }
-);
+  });
+} catch (error) {
+  console.error('Client: Failed to create Supabase client:', error);
+  // Create with default values as fallback
+  supabase = createClient(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_ANON_KEY, {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true
+    }
+  });
+  console.error('Client: Using fallback Supabase client with default credentials');
+}
+
+export { supabase };

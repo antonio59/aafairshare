@@ -19,8 +19,8 @@ const Navbar = () => {
   // Primary navigation items (shown in bottom bar)
   const primaryNavItems = [
     { path: '/', icon: Home, label: 'Home' },
-    { path: '/add', icon: PlusCircle, label: 'Add' },
-    { path: '/settlement', icon: Wallet, label: 'Settlement' },
+    { path: '/expenses', icon: PlusCircle, label: 'Add' },
+    { path: '/settlements', icon: Wallet, label: 'Settlement' },
     { path: '/analytics', icon: BarChart3, label: 'Analytics' },
   ];
 
