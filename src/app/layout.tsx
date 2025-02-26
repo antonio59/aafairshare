@@ -16,6 +16,11 @@ const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
+// Ensure URL has a protocol
+const finalSupabaseUrl = !supabaseUrl.startsWith('http') ? `https://${supabaseUrl}` : supabaseUrl;
+
+console.log('Layout: Supabase URL being injected:', finalSupabaseUrl);
+
 export const metadata: Metadata = {
   title: 'AA Fair Share',
   description: 'Track and split expenses between Andres and Antonio',
@@ -32,12 +37,17 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {/* Inject environment variables into window.env */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.env = {
-              NEXT_PUBLIC_SUPABASE_URL: "${supabaseUrl}",
-              NEXT_PUBLIC_SUPABASE_ANON_KEY: "${supabaseAnonKey}"
-            }`
+            __html: `
+              // Initialize window.env with Supabase credentials
+              window.env = {
+                NEXT_PUBLIC_SUPABASE_URL: "${finalSupabaseUrl}",
+                NEXT_PUBLIC_SUPABASE_ANON_KEY: "${supabaseAnonKey}"
+              };
+              console.log("Environment variables injected into window.env:", window.env.NEXT_PUBLIC_SUPABASE_URL);
+            `
           }}
         />
       </head>
