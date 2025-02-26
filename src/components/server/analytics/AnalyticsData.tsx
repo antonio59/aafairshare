@@ -1,5 +1,4 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 import { format, subMonths, startOfMonth, endOfMonth } from 'date-fns';
 import type { Expense, Category, CategoryGroup, Tag } from '@/types';
 
@@ -26,7 +25,7 @@ interface AnalyticsInsights {
   };
 }
 
-export interface AnalyticsData {
+interface AnalyticsData {
   expenses: Expense[];
   categories: Category[];
   categoryGroups: CategoryGroup[];
@@ -38,56 +37,51 @@ export interface AnalyticsData {
 }
 
 async function getAnalyticsData(timeRange: string = 'current') {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          // Server component doesn't need to set cookies
-        },
-        remove(name: string, options: any) {
-          // Server component doesn't need to remove cookies
-        },
-      },
-    }
-  );
+  const supabase = await createServerSupabaseClient();
   
   // Calculate date range
   const now = new Date();
-  let startDate = startOfMonth(now);
-  let endDate = endOfMonth(now);
-  
+  let startDate: Date;
+  let endDate: Date;
+  let dateRange: string;
+
   switch (timeRange) {
-    case 'last':
+    case 'month1':
       startDate = startOfMonth(subMonths(now, 1));
       endDate = endOfMonth(subMonths(now, 1));
+      dateRange = format(startDate, 'MMMM yyyy');
       break;
-    case '3':
+    case 'month3':
       startDate = startOfMonth(subMonths(now, 3));
+      endDate = endOfMonth(now);
+      dateRange = `${format(startDate, 'MMMM yyyy')} - ${format(endDate, 'MMMM yyyy')}`;
       break;
-    case '6':
+    case 'month6':
       startDate = startOfMonth(subMonths(now, 6));
+      endDate = endOfMonth(now);
+      dateRange = `${format(startDate, 'MMMM yyyy')} - ${format(endDate, 'MMMM yyyy')}`;
       break;
-    case '12':
+    case 'year':
       startDate = startOfMonth(subMonths(now, 12));
+      endDate = endOfMonth(now);
+      dateRange = `${format(startDate, 'MMMM yyyy')} - ${format(endDate, 'MMMM yyyy')}`;
+      break;
+    case 'current':
+    default:
+      startDate = startOfMonth(now);
+      endDate = endOfMonth(now);
+      dateRange = format(startDate, 'MMMM yyyy');
       break;
   }
 
-  // Fetch all required data
+  // Fetch data
   const [
     { data: expenses, error: expensesError },
     { data: categories, error: categoriesError },
-    { data: categoryGroups, error: groupsError },
+    { data: groups, error: groupsError },
     { data: tags, error: tagsError }
   ] = await Promise.all([
-    supabase
-      .from('expenses')
-      .select('*')
+    supabase.from('expenses').select('*')
       .gte('date', startDate.toISOString())
       .lte('date', endDate.toISOString()),
     supabase.from('categories').select('*'),
@@ -112,12 +106,12 @@ async function getAnalyticsData(timeRange: string = 'current') {
   return {
     expenses,
     categories,
-    categoryGroups,
+    categoryGroups: groups,
     tags,
     insights,
-    dateRange: timeRange,
+    dateRange,
     startDate: startDate.toISOString(),
-    endDate: endDate.toISOString(),
+    endDate: endDate.toISOString()
   };
 }
 

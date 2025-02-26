@@ -1,6 +1,5 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { format, parseISO, startOfMonth, endOfMonth } from 'date-fns';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { format, parseISO, startOfMonth, endOfMonth, subMonths } from 'date-fns';
 import type { Expense, Category, CategoryGroup, Tag } from '@/types';
 
 interface ExpenseFilters {
@@ -14,24 +13,7 @@ interface ExpenseFilters {
 }
 
 async function getExpensesData(filters: ExpenseFilters = {}) {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          // Server component doesn't need to set cookies
-        },
-        remove(name: string, options: any) {
-          // Server component doesn't need to remove cookies
-        },
-      },
-    }
-  );
+  const supabase = await createServerSupabaseClient();
   
   // Build the base query
   let query = supabase
@@ -124,24 +106,7 @@ function calculateExpenseStats(expenses: Expense[]) {
 }
 
 async function getRecurringExpenses() {
-  const cookieStore = await cookies();
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: any) {
-          // Server component doesn't need to set cookies
-        },
-        remove(name: string, options: any) {
-          // Server component doesn't need to remove cookies
-        },
-      },
-    }
-  );
+  const supabase = await createServerSupabaseClient();
   
   const { data: recurring, error } = await supabase
     .from('recurring_expenses')
