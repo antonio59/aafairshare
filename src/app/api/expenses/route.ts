@@ -2,14 +2,19 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase';
 
 export async function POST(request: Request) {
+  console.log('API: POST /api/expenses - Starting');
   const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
-
+  
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.error('API: POST /api/expenses - Unauthorized, no session found');
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    
+    console.log('API: POST /api/expenses - User authenticated:', session.user.email);
+
     const formData = await request.formData();
     const expenseData = {
       description: formData.get('description'),
@@ -21,6 +26,8 @@ export async function POST(request: Request) {
       tags: formData.getAll('tags'),
       notes: formData.get('notes'),
     };
+    
+    console.log('API: POST /api/expenses - Expense data:', JSON.stringify(expenseData));
 
     const { data: expense, error } = await supabase
       .from('expenses')
@@ -28,11 +35,15 @@ export async function POST(request: Request) {
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error('API: POST /api/expenses - Database error:', error);
+      throw error;
+    }
 
+    console.log('API: POST /api/expenses - Expense created successfully');
     return NextResponse.json(expense);
   } catch (error) {
-    console.error('Expense creation error:', error);
+    console.error('API: POST /api/expenses - Error:', error);
     return NextResponse.json(
       { error: 'Failed to create expense' },
       { status: 500 }
@@ -41,14 +52,19 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
+  console.log('API: GET /api/expenses - Starting');
   const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-
-  if (!session) {
-    return new NextResponse('Unauthorized', { status: 401 });
-  }
-
+  
   try {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      console.error('API: GET /api/expenses - Unauthorized, no session found');
+      return new NextResponse('Unauthorized', { status: 401 });
+    }
+    
+    console.log('API: GET /api/expenses - User authenticated:', session.user.email);
+    
     const { searchParams } = new URL(request.url);
     
     // Build query with filters
@@ -66,6 +82,8 @@ export async function GET(request: Request) {
     const minAmount = searchParams.get('minAmount');
     const maxAmount = searchParams.get('maxAmount');
 
+    console.log('API: GET /api/expenses - Query params:', { startDate, endDate, categories, tags, paidBy, minAmount, maxAmount });
+
     if (startDate) query = query.gte('date', startDate);
     if (endDate) query = query.lte('date', endDate);
     if (categories?.length) query = query.in('category', categories);
@@ -76,11 +94,15 @@ export async function GET(request: Request) {
 
     const { data: expenses, error } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('API: GET /api/expenses - Database error:', error);
+      throw error;
+    }
 
+    console.log(`API: GET /api/expenses - Retrieved ${expenses.length} expenses`);
     return NextResponse.json(expenses);
   } catch (error) {
-    console.error('Expenses fetch error:', error);
+    console.error('API: GET /api/expenses - Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch expenses' },
       { status: 500 }

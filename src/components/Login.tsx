@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUserStore } from '../store/userStore';
-import { supabase } from '../supabase';
+import { getSupabase } from '../supabase';
 import { checkRateLimit, validateInput, updateLastActivity } from '../utils/securityUtils';
 import { auditLog, AUDIT_LOG_TYPE } from '../utils/auditLogger';
 
@@ -23,6 +23,7 @@ const Login = () => {
   // Redirect if already authenticated
   useEffect(() => {
     const checkSession = async () => {
+      const supabase = getSupabase();
       const { data: { session } } = await supabase.auth.getSession();
       if (currentUser && session) {
         const state = location.state as LocationState;
@@ -55,6 +56,7 @@ const Login = () => {
       }
 
       // Attempt login
+      const supabase = getSupabase();
       const success = await login(email, password);
       if (!success) {
         throw new Error('Failed to initialize user data');
@@ -111,6 +113,7 @@ const Login = () => {
         throw new Error(`Too many reset attempts. Please try again in ${Math.ceil(rateLimit.waitMs! / 1000)} seconds`);
       }
 
+      const supabase = getSupabase();
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/reset-password',
       });

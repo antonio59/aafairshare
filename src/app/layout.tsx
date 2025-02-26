@@ -7,7 +7,7 @@ import './globals.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
-// Default Supabase credentials - these will be used if environment variables are not available
+// Default Supabase credentials from lib/supabase.ts
 const DEFAULT_SUPABASE_URL = 'https://ilrnhmnkstnglkrsirjq.supabase.co';
 const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlscm5obW5rc3RuZ2xrcnNpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIzNzc2MjQsImV4cCI6MjA0Nzk1MzYyNH0.bG4rbyHXEmW38Vb1eT6BBgXiPmtDzgf4FHIImqqJY8c';
 
@@ -16,9 +16,20 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
 
 // Ensure URL has a protocol
-const finalSupabaseUrl = !supabaseUrl.startsWith('http') ? `https://${supabaseUrl}` : supabaseUrl;
+let finalSupabaseUrl = supabaseUrl;
+if (finalSupabaseUrl && !finalSupabaseUrl.startsWith('http://') && !finalSupabaseUrl.startsWith('https://')) {
+  finalSupabaseUrl = `https://${finalSupabaseUrl}`;
+}
 
-console.log('Layout: Supabase URL being injected:', finalSupabaseUrl);
+// Validate URL format
+try {
+  new URL(finalSupabaseUrl);
+  console.log('Layout: Valid Supabase URL being injected:', finalSupabaseUrl);
+} catch (error) {
+  console.error('Layout: Invalid Supabase URL format:', finalSupabaseUrl);
+  finalSupabaseUrl = DEFAULT_SUPABASE_URL;
+  console.log('Layout: Falling back to DEFAULT Supabase URL');
+}
 
 export const metadata: Metadata = {
   title: 'AA Fair Share',
@@ -51,7 +62,12 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
           <Navbar />
           {children}
           <Toaster />

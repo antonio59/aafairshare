@@ -1,11 +1,13 @@
 import type { User } from '@/types';
 import { AuthError } from '@supabase/supabase-js';
-import { supabase } from '../supabase';
+import { getSupabase } from '../supabase';
 
-export const auth = supabase.auth;
+// Get the auth instance from the Supabase client
+export const auth = getSupabase().auth;
 
 export const reauthenticateWithPassword = async (email: string, password: string) => {
-  const { data, error } = await auth.signInWithPassword({
+  const supabase = getSupabase();
+  const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password
   });
@@ -39,6 +41,7 @@ export const clearAuthCache = async () => {
     });
 
     // Sign out from Supabase
+    const supabase = getSupabase();
     await supabase.auth.signOut();
 
     console.log('Auth cache cleared successfully');
@@ -50,29 +53,32 @@ export const clearAuthCache = async () => {
 
 export const validateAuthToken = async () => {
   try {
+    const supabase = getSupabase();
     const { data: { session }, error } = await supabase.auth.getSession();
-    if (error || !session) {
+    
+    if (error) {
+      console.error('Auth token validation error:', error);
       return false;
     }
-
-    // Check if session is expired
-    const expirationTime = new Date(session.expires_at!).getTime();
-    const currentTime = new Date().getTime();
-
-    // If session is expired or close to expiration (within 5 minutes), refresh it
-    if (expirationTime - currentTime < 5 * 60 * 1000) {
-      const { error: refreshError } = await supabase.auth.refreshSession();
-      if (refreshError) {
-        console.error('Session refresh failed:', refreshError);
-        await clearAuthCache();
-        return false;
-      }
+    
+    if (!session) {
+      console.log('No active session found');
+      return false;
     }
-
+    
+    // Check if token is expired
+    const tokenExpiry = new Date((session.expires_at || 0) * 1000);
+    const now = new Date();
+    
+    if (tokenExpiry <= now) {
+      console.log('Session token is expired');
+      return false;
+    }
+    
+    console.log('Auth token is valid');
     return true;
   } catch (error) {
-    console.error('Token validation failed:', error);
-    await clearAuthCache(); // Clear cache on validation failure
+    console.error('Error validating auth token:', error);
     return false;
   }
 };
@@ -111,7 +117,8 @@ export const handleAuthError = async (error: unknown) => {
 // Utility function to check if session needs refresh
 export const checkTokenRefreshNeeded = async (): Promise<boolean> => {
   try {
-    const { data: { session } } = await auth.getSession();
+    const supabase = getSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session) return false;
 
     const expirationTime = new Date(session.expires_at!).getTime();
@@ -128,7 +135,8 @@ export const checkTokenRefreshNeeded = async (): Promise<boolean> => {
 // Re-authenticate user with stored credentials
 export const reAuthenticateUser = async (email: string): Promise<void> => {
   try {
-    const { data: { session } } = await auth.getSession();
+    const supabase = getSupabase();
+    const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) {
       throw new Error('No authenticated user');
     }
@@ -143,7 +151,7 @@ export const reAuthenticateUser = async (email: string): Promise<void> => {
     await reauthenticateWithPassword(email, storedPassword);
 
     // Refresh session
-    await auth.refreshSession();
+    await supabase.auth.refreshSession();
 
   } catch (error) {
     console.error('Re-authentication failed:', error);

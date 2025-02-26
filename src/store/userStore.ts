@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import type { User, NotificationPreferences, UserStore, BudgetNotificationSetting, ChanneledNotificationSetting, TimedNotificationSetting } from '../types';
-import { supabase } from '../supabase';
-import { clearAuthCache, auth } from '../utils/authUtils';
+import { getSupabase } from '../supabase';
+import { clearAuthCache } from '../utils/authUtils';
 import type { AuthError } from '@supabase/supabase-js';
 
 const createNotificationSetting = (channels: Array<'email' | 'push' | 'inApp'>) => ({
@@ -67,6 +67,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
   login: async (email: string, password: string) => {
     try {
+      const supabase = getSupabase();
       const { data: { user }, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -111,6 +112,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
   logout: async () => {
     try {
+      const supabase = getSupabase();
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
 
@@ -130,6 +132,7 @@ export const useUserStore = create<UserStore>((set, get) => ({
     }
 
     try {
+      const supabase = getSupabase();
       // Update auth email if it's being changed
       if (updates.email) {
         const { error } = await supabase.auth.updateUser({
@@ -178,7 +181,8 @@ export const useUserStore = create<UserStore>((set, get) => ({
 
   updatePassword: async (newPassword: string): Promise<boolean> => {
     try {
-      const { error } = await auth.updateUser({
+      const supabase = getSupabase();
+      const { error } = await supabase.auth.updateUser({
         password: newPassword
       });
 
