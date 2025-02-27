@@ -1,9 +1,10 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import type { Json } from '@/types/database.types';
 
 export async function POST(request: Request) {
   console.log('API: POST /api/expenses - Starting');
-  const supabase = createClient();
+  const supabase = createServerSupabaseClient();
   
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -16,15 +17,19 @@ export async function POST(request: Request) {
     console.log('API: POST /api/expenses - User authenticated:', session.user.email);
 
     const formData = await request.formData();
+    
+    // Convert form data to database schema format
     const expenseData = {
-      description: formData.get('description'),
+      description: String(formData.get('description') || ''),
       amount: parseFloat(formData.get('amount') as string),
-      date: formData.get('date'),
-      category: formData.get('category'),
-      paidBy: formData.get('paidBy'),
-      split: formData.get('split'),
-      tags: formData.getAll('tags'),
-      notes: formData.get('notes'),
+      date: String(formData.get('date') || ''),
+      category_id: formData.get('category') ? String(formData.get('category')) : null,
+      paid_by: String(formData.get('paidBy') || ''),
+      split: String(formData.get('split') || 'equal') as Json,
+      tags: formData.getAll('tags').map(tag => String(tag)),
+      notes: formData.get('notes') ? String(formData.get('notes')) : null,
+      recurring: Boolean(formData.get('recurring') || false),
+      recurring_frequency: formData.get('recurringFrequency') ? String(formData.get('recurringFrequency')) : null,
     };
     
     console.log('API: POST /api/expenses - Expense data:', JSON.stringify(expenseData));
@@ -53,7 +58,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   console.log('API: GET /api/expenses - Starting');
-  const supabase = createClient();
+  const supabase = createServerSupabaseClient();
   
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -68,17 +73,13 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     
     // Build query with filters
-    let query = supabase
-      .from('expenses')
-      .select('*')
-      .order('date', { ascending: false });
-
-    // Apply filters if present
+    let query = supabase.from('expenses').select('*');
+    
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
-    const categories = searchParams.get('categories')?.split(',');
-    const tags = searchParams.get('tags')?.split(',');
-    const paidBy = searchParams.get('paidBy')?.split(',');
+    const categories = searchParams.getAll('category');
+    const tags = searchParams.getAll('tag');
+    const paidBy = searchParams.get('paidBy');
     const minAmount = searchParams.get('minAmount');
     const maxAmount = searchParams.get('maxAmount');
 
@@ -87,10 +88,10 @@ export async function GET(request: Request) {
     if (startDate) query = query.gte('date', startDate);
     if (endDate) query = query.lte('date', endDate);
     if (categories?.length) query = query.in('category', categories);
-    if (paidBy?.length) query = query.in('paidBy', paidBy);
+    if (tags?.length) query = query.overlaps('tags', tags);
+    if (paidBy) query = query.eq('paidBy', paidBy);
     if (minAmount) query = query.gte('amount', parseFloat(minAmount));
     if (maxAmount) query = query.lte('amount', parseFloat(maxAmount));
-    if (tags?.length) query = query.overlaps('tags', tags);
 
     const { data: expenses, error } = await query;
 

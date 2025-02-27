@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import type { Json } from '@/types/database.types';
 
 interface RouteParams {
   params: { id: string };
@@ -10,7 +11,7 @@ export async function PUT(
   { params }: RouteParams
 ) {
   console.log(`API: PUT /api/expenses/${params.id} - Starting`);
-  const supabase = createClient();
+  const supabase = createServerSupabaseClient();
   
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -23,31 +24,36 @@ export async function PUT(
     console.log(`API: PUT /api/expenses/${params.id} - User authenticated:`, session.user.email);
 
     const formData = await request.formData();
+    
+    // Convert form data to database schema format
     const expenseData = {
-      description: formData.get('description'),
+      description: String(formData.get('description') || ''),
       amount: parseFloat(formData.get('amount') as string),
-      date: formData.get('date'),
-      category: formData.get('category'),
-      paidBy: formData.get('paidBy'),
-      split: formData.get('split'),
-      tags: formData.getAll('tags'),
-      notes: formData.get('notes'),
+      date: String(formData.get('date') || ''),
+      category_id: formData.get('category') ? String(formData.get('category')) : null,
+      paid_by: String(formData.get('paidBy') || ''),
+      split: String(formData.get('split') || 'equal') as Json,
+      tags: formData.getAll('tags').map(tag => String(tag)),
+      notes: formData.get('notes') ? String(formData.get('notes')) : null,
+      recurring: Boolean(formData.get('recurring') || false),
+      recurring_frequency: formData.get('recurringFrequency') ? String(formData.get('recurringFrequency')) : null,
+      updated_at: new Date().toISOString(),
     };
     
-    console.log(`API: PUT /api/expenses/${params.id} - Expense data:`, JSON.stringify(expenseData));
-
+    console.log(`API: PUT /api/expenses/${params.id} - Update data:`, JSON.stringify(expenseData));
+    
     const { data: expense, error } = await supabase
       .from('expenses')
       .update(expenseData)
       .eq('id', params.id)
       .select()
       .single();
-
+      
     if (error) {
       console.error(`API: PUT /api/expenses/${params.id} - Database error:`, error);
       throw error;
     }
-
+    
     console.log(`API: PUT /api/expenses/${params.id} - Expense updated successfully`);
     return NextResponse.json(expense);
   } catch (error) {
@@ -64,7 +70,7 @@ export async function DELETE(
   { params }: RouteParams
 ) {
   console.log(`API: DELETE /api/expenses/${params.id} - Starting`);
-  const supabase = createClient();
+  const supabase = createServerSupabaseClient();
   
   try {
     const { data: { session } } = await supabase.auth.getSession();
@@ -102,7 +108,7 @@ export async function GET(
   { params }: RouteParams
 ) {
   console.log(`API: GET /api/expenses/${params.id} - Starting`);
-  const supabase = createClient();
+  const supabase = createServerSupabaseClient();
   
   try {
     const { data: { session } } = await supabase.auth.getSession();

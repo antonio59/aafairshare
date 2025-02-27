@@ -1,9 +1,95 @@
+'use client';
+
 import type { User } from '@/types';
 import { AuthError } from '@supabase/supabase-js';
-import { getSupabase } from '../supabase';
+import { getSupabase } from '@/supabase';
+
+const TOKEN_REFRESH_MARGIN = 5 * 60 * 1000; // 5 minutes in ms
 
 // Get the auth instance from the Supabase client
 export const auth = getSupabase().auth;
+
+/**
+ * Checks if the current user session is valid
+ * @returns A promise that resolves to a boolean indicating if the session is valid
+ */
+export async function isSessionValid(): Promise<boolean> {
+  try {
+    const supabase = getSupabase();
+    const { data: { session }, error } = await supabase.auth.getSession();
+    
+    if (error) {
+      console.error('Error checking session validity:', error);
+      return false;
+    }
+    
+    if (!session) {
+      console.log('No session found');
+      return false;
+    }
+    
+    // Check if token is close to expiring
+    const expiresAt = session.expires_at ? session.expires_at * 1000 : 0; // convert to ms
+    const now = Date.now();
+    
+    if (expiresAt && expiresAt - now < TOKEN_REFRESH_MARGIN) {
+      console.log('Session is about to expire, refreshing...');
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      
+      if (refreshError) {
+        console.error('Error refreshing session:', refreshError);
+        return false;
+      }
+      
+      console.log('Session refreshed successfully');
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Unexpected error in isSessionValid:', error);
+    return false;
+  }
+}
+
+/**
+ * Gets the current user information from the session
+ * @returns User data if available, null otherwise
+ */
+export async function getCurrentUser() {
+  try {
+    const supabase = getSupabase();
+    const { data: { user }, error } = await supabase.auth.getUser();
+    
+    if (error) {
+      console.error('Error getting current user:', error);
+      return null;
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('Unexpected error in getCurrentUser:', error);
+    return null;
+  }
+}
+
+/**
+ * Helper function to get user metadata in a safe way
+ * @param key The key to look for in the metadata
+ * @returns The value if found, null otherwise
+ */
+export async function getUserMetadata(key: string): Promise<any> {
+  try {
+    const user = await getCurrentUser();
+    if (!user || !user.user_metadata) {
+      return null;
+    }
+    
+    return user.user_metadata[key] ?? null;
+  } catch (error) {
+    console.error(`Error getting user metadata for key ${key}:`, error);
+    return null;
+  }
+}
 
 export const reauthenticateWithPassword = async (email: string, password: string) => {
   const supabase = getSupabase();

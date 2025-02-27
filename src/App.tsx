@@ -2,14 +2,14 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { useEffect, useState, lazy, Suspense } from 'react';
 import { initializePerformanceMonitoring } from './utils/performance-monitor';
 import { createPersistentStore } from './utils/store-optimizer';
-import { useUserStore } from './store/userStore';
+import { useUserStore, type UserState } from './store/userStore';
 import { supabase } from './supabase';
 import { clearAuthCache, validateAuthToken } from './utils/authUtils';
 import { applySecurityHeaders } from './middleware/security';
 import { updateLastActivity, startSessionTimeout } from './utils/securityUtils';
 import { auditLog, AUDIT_LOG_TYPE } from './utils/auditLogger';
 import Navbar from './components/Navbar';
-import Login from './components/Login';
+import { Login } from './components/Login';
 
 // Lazy load route components
 const ExpenseList = lazy(() => import('./components/ExpenseList'));
@@ -118,7 +118,7 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
           role: (session.user.email?.toLowerCase() === 'andypamo@gmail.com' ? 'partner1' : 'partner2') as 'partner1' | 'partner2',
           preferences: {
             currency: 'GBP',
-            notifications: profile?.notification_preferences || defaultNotificationPreferences
+            notifications: (profile?.notification_preferences as NotificationPreferences) || defaultNotificationPreferences
           },
         };
 
@@ -179,8 +179,8 @@ const AuthCheck = ({ children }: { children: React.ReactNode }) => {
 
 // Main App component
 function App() {
-  const currentUser = useUserStore(state => state.currentUser);
-  const isInitialized = useUserStore(state => state.isInitialized);
+  const currentUser = useUserStore((state: UserState) => state.currentUser);
+  const isInitialized = useUserStore((state: UserState) => state.isInitialized);
 
   // Show loading spinner only during initial load and for max 1 second
   if (!isInitialized) {

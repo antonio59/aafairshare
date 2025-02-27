@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { useExpenseStore } from '@/store/expenseStore';
 import { useUserStore } from '@/store/userStore';
 import { ArrowLeft, Calendar, HelpCircle } from 'lucide-react';
-import type { Expense, Category } from '@/types';
+import type { Expense, Category, ExpenseFormData } from '@/types';
 import Dropdown from '@/components/common/Dropdown';
 import TagInput from '@/components/common/TagInput';
 
 // Extend the base expense type to include form-specific fields
-type ExpenseFormData = Omit<Expense, 'id' | 'amount'> & {
-  amount: string; // Handle amount as string in form state
-  isRecurring: boolean;
-  recurringDay: string;
-};
+// type ExpenseFormData = Omit<Expense, 'id' | 'amount'> & {
+//   amount: string; // Handle amount as string in form state
+//   isRecurring: boolean;
+//   recurringDay: string;
+// };
 
 const ExpenseForm = () => {
   const navigate = useNavigate();
@@ -107,7 +107,7 @@ const ExpenseForm = () => {
     const value = e.target.value;
     // Allow empty value or numbers with up to 2 decimal places
     if (value === '' || /^\d*\.?\d{0,2}$/.test(value)) {
-      setFormData(prev => ({ ...prev, amount: value }));
+      setFormData((prev: ExpenseFormData) => ({ ...prev, amount: value }));
     }
   };
 
@@ -121,7 +121,7 @@ const ExpenseForm = () => {
       // After tag is created, find it in the updated tags list
       const newTag = tags.find(tag => tag.name === name);
       if (newTag) {
-        setFormData(prev => ({
+        setFormData((prev: ExpenseFormData) => ({
           ...prev,
           tags: [...prev.tags, newTag.id],
         }));
@@ -196,7 +196,7 @@ const ExpenseForm = () => {
                 value={formData.category}
                 onChange={(value) => {
                   console.log('Selected category:', value);
-                  setFormData(prev => ({ ...prev, category: value }));
+                  setFormData((prev: ExpenseFormData) => ({ ...prev, category: value as string }));
                 }}
                 options={categoryOptions}
                 placeholder="Select a category"
@@ -212,7 +212,9 @@ const ExpenseForm = () => {
               />
               <TagInput
                 value={formData.tags}
-                onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                onChange={(tagIds) => {
+                  setFormData((prev: ExpenseFormData) => ({ ...prev, tags: tagIds }));
+                }}
                 onCreateTag={handleCreateTag}
                 availableTags={tags}
                 placeholder="Add tags..."

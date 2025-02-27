@@ -1,8 +1,17 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js';
+export * from './expense';
 
-export type NotificationType = 'budget' | 'channeled' | 'timed';
+export enum NotificationType {
+  budget = 'budget',
+  channeled = 'channeled',
+  timed = 'timed',
+}
 
-export type NotificationChannel = 'email' | 'push' | 'inApp';
+export enum NotificationChannel {
+  email = 'email',
+  push = 'push',
+  inApp = 'inApp',
+}
 
 export interface BaseNotificationSetting {
   enabled: boolean;

@@ -61,16 +61,25 @@ export interface Category {
 
 export interface RecurringExpense {
   id: string;
-  description?: string;
+  description?: string | null;
   amount: number;
-  category: string;
-  paidBy: string;
-  split: 'equal' | 'no-split';
-  startDate: string;
-  frequency: 'monthly' | 'quarterly' | 'yearly';
-  dayOfMonth: number;
-  tags: string[];
-  lastProcessed?: string;
+  category_id: string | null;
+  category?: string; // For backward compatibility
+  paid_by: string;
+  paidBy?: string; // For backward compatibility
+  split: any; // Json type
+  start_date: string;
+  startDate?: string; // For backward compatibility
+  frequency: string; // 'monthly' | 'quarterly' | 'yearly' | 'weekly'
+  day_of_month: number;
+  dayOfMonth?: number; // For backward compatibility
+  tags: string[] | null;
+  last_processed?: string | null;
+  lastProcessed?: string; // For backward compatibility
+  next_due_date?: string | null;
+  created_at?: string;
+  updated_at?: string | null;
+  user_id?: string | null;
 }
 
 export interface Budget {
@@ -108,6 +117,17 @@ export interface BudgetReport {
     name: string;
     percentageChange: number;
   }[];
+}
+
+export interface ExpenseFormData {
+  description: string;
+  amount: string;
+  category: string;
+  date: string;
+  paidBy: string;
+  split: 'equal' | 'no-split';
+  tags: string[];
+  receipt?: File | null;
 }
 
 export interface Expense {

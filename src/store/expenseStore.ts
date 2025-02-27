@@ -36,7 +36,7 @@ import {
   addBudgetHistory,
   fetchAllData
 } from '@/store/supabaseOperations';
-import { supabase } from '@/supabase';
+import { supabaseClient } from '@/supabase';
 import { reAuthenticateUser } from '@/utils/authUtils';
 import type { ExpenseStore } from '@/store/types';
 import { getExpenseStore } from '@/store/createStore';
@@ -77,7 +77,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
     store.setLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
       if (!user) {
         throw new Error('User not authenticated');
       }
@@ -282,8 +282,8 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
       category: newBudget.category,
       newValue: newBudget.amount,
       timestamp: new Date().toISOString(),
-      userId: (await supabase.auth.getUser()).data.user?.id || '',
-      userName: (await supabase.auth.getUser()).data.user?.email || 'Unknown User'
+      userId: (await supabaseClient.auth.getUser()).data.user?.id || '',
+      userName: (await supabaseClient.auth.getUser()).data.user?.email || 'Unknown User'
     };
     await addBudgetHistory(history);
 
@@ -302,7 +302,7 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
 
     // Create history entry if amount changed
     if (budget.amount !== undefined && budget.amount !== currentBudget.amount) {
-      const { data: { user } } = await supabase.auth.getUser();
+      const { data: { user } } = await supabaseClient.auth.getUser();
       const history: BudgetHistory = {
         id: uuidv4(),
         budgetId: id,
@@ -343,8 +343,8 @@ const createExpenseStore: StateCreator<ExpenseStore> = (set, get) => ({
       category: currentBudget.category,
       oldValue: currentBudget.amount,
       timestamp: new Date().toISOString(),
-      userId: (await supabase.auth.getUser()).data.user?.id || '',
-      userName: (await supabase.auth.getUser()).data.user?.email || 'Unknown User'
+      userId: (await supabaseClient.auth.getUser()).data.user?.id || '',
+      userName: (await supabaseClient.auth.getUser()).data.user?.email || 'Unknown User'
     };
     await addBudgetHistory(history);
 

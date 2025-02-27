@@ -4,16 +4,20 @@ import type { Category, CategoryGroup, Tag, UserSettings } from '@/types';
 
 export interface RecurringExpense {
   id: string;
-  description?: string;
+  description?: string | null;
   amount: number;
-  category: string;
-  paidBy: string;
-  split: 'equal' | 'no-split';
-  startDate: string;
-  frequency: 'monthly' | 'quarterly' | 'yearly' | 'weekly';
-  dayOfMonth: number;
-  tags: string[];
-  lastProcessed?: string;
+  category_id: string | null;
+  paid_by: string;
+  split: any; // Json type
+  start_date: string;
+  frequency: string; // 'monthly' | 'quarterly' | 'yearly' | 'weekly'
+  day_of_month: number;
+  tags: string[] | null;
+  last_processed?: string | null;
+  next_due_date?: string | null;
+  created_at?: string;
+  updated_at?: string | null;
+  user_id?: string | null;
 }
 
 async function getSettingsData() {
@@ -47,7 +51,7 @@ async function getSettingsData() {
     supabase.from('categories').select('*').order('name'),
     supabase.from('category_groups').select('*').order('name'),
     supabase.from('tags').select('*').order('name'),
-    supabase.from('recurring_expenses').select('*').order('nextDueDate'),
+    supabase.from('recurring_expenses').select('*').order('next_due_date'),
     supabase.from('user_settings').select('*').single()
   ]);
 

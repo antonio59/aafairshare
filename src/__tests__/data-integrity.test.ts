@@ -1,5 +1,5 @@
 import { fetchAllData } from '../store/supabaseOperations';
-import { supabase } from '../supabase';
+import { supabase } from '@/supabase';
 import { isValid } from 'date-fns';
 import type { Expense, Category, CategoryGroup, Tag, Budget, RecurringExpense, Settlement } from '../types';
 

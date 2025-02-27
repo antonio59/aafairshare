@@ -20,8 +20,7 @@ async function getExpensesData(filters: ExpenseFilters = {}) {
     .from('expenses')
     .select(`
       *,
-      categories (*),
-      tags (*)
+      categories(*)
     `)
     .order('date', { ascending: false });
 
@@ -33,10 +32,10 @@ async function getExpensesData(filters: ExpenseFilters = {}) {
     query = query.lte('date', filters.endDate);
   }
   if (filters.categories?.length) {
-    query = query.in('category', filters.categories);
+    query = query.in('category_id', filters.categories);
   }
   if (filters.paidBy?.length) {
-    query = query.in('paidBy', filters.paidBy);
+    query = query.in('paid_by', filters.paidBy);
   }
   if (filters.minAmount !== undefined) {
     query = query.gte('amount', filters.minAmount);
@@ -44,34 +43,50 @@ async function getExpensesData(filters: ExpenseFilters = {}) {
   if (filters.maxAmount !== undefined) {
     query = query.lte('amount', filters.maxAmount);
   }
+  if (filters.tags?.length) {
+    // For array columns, we use the contains operator
+    // This assumes tags is stored as an array in the database
+    query = query.overlaps('tags', filters.tags);
+  }
 
-  // Fetch all required data in parallel
-  const [
-    { data: expenses, error: expensesError },
-    { data: categories, error: categoriesError },
-    { data: categoryGroups, error: groupsError },
-    { data: tags, error: tagsError }
-  ] = await Promise.all([
-    query,
-    supabase.from('categories').select('*'),
-    supabase.from('category_groups').select('*'),
-    supabase.from('tags').select('*')
-  ]);
+  const { data: dbExpenses, error } = await query;
 
-  if (expensesError) throw new Error('Failed to fetch expenses');
-  if (categoriesError) throw new Error('Failed to fetch categories');
-  if (groupsError) throw new Error('Failed to fetch category groups');
-  if (tagsError) throw new Error('Failed to fetch tags');
+  if (error) {
+    console.error('Error fetching expenses:', error);
+    return {
+      expenses: [],
+      stats: null,
+      error: error.message
+    };
+  }
 
-  // Calculate summary statistics
+  // Transform database expenses to frontend format
+  const expenses: Expense[] = (dbExpenses || []).map(expense => ({
+    id: expense.id,
+    description: expense.description,
+    amount: expense.amount,
+    date: expense.date,
+    created_at: expense.created_at,
+    updated_at: expense.updated_at,
+    paidBy: expense.paid_by,
+    paid_by: expense.paid_by,
+    split: expense.split,
+    category_id: expense.category_id,
+    category: expense.categories ? expense.categories : { id: '', name: 'Uncategorized' },
+    tags: expense.tags || [],
+    notes: expense.notes,
+    recurring: expense.recurring || false,
+    recurring_frequency: expense.recurring_frequency,
+    receipt_url: expense.receipt_url
+  }));
+
+  // Calculate statistics
   const stats = calculateExpenseStats(expenses);
 
   return {
     expenses,
-    categories,
-    categoryGroups,
-    tags,
     stats,
+    error: null
   };
 }
 
@@ -80,7 +95,8 @@ function calculateExpenseStats(expenses: Expense[]) {
   const averageAmount = totalAmount / (expenses.length || 1);
 
   const byCategory = expenses.reduce((acc, exp) => {
-    acc[exp.category] = (acc[exp.category] || 0) + exp.amount;
+    const categoryName = typeof exp.category === 'string' ? exp.category : exp.category?.name || 'Uncategorized';
+    acc[categoryName] = (acc[categoryName] || 0) + exp.amount;
     return acc;
   }, {} as Record<string, number>);
 
@@ -90,7 +106,7 @@ function calculateExpenseStats(expenses: Expense[]) {
   }, {} as Record<string, number>);
 
   const byMonth = expenses.reduce((acc, exp) => {
-    const month = format(parseISO(exp.date), 'yyyy-MM');
+    const month = format(new Date(exp.date), 'yyyy-MM');
     acc[month] = (acc[month] || 0) + exp.amount;
     return acc;
   }, {} as Record<string, number>);
@@ -105,17 +121,23 @@ function calculateExpenseStats(expenses: Expense[]) {
   };
 }
 
+// This function should be updated if there are recurring expenses in the database schema
 async function getRecurringExpenses() {
   const supabase = await createServerSupabaseClient();
   
+  // Use the expenses table and filter for recurring expenses
   const { data: recurring, error } = await supabase
-    .from('recurring_expenses')
+    .from('expenses')
     .select('*')
-    .order('nextDueDate', { ascending: true });
+    .eq('recurring', true)
+    .order('date', { ascending: true });
 
-  if (error) throw new Error('Failed to fetch recurring expenses');
+  if (error) {
+    console.error('Error fetching recurring expenses:', error);
+    return { recurringExpenses: [], error: error.message };
+  }
 
-  return recurring;
+  return { recurringExpenses: recurring || [], error: null };
 }
 
 export async function ExpensesData({ filters }: { filters?: ExpenseFilters }) {
@@ -133,7 +155,7 @@ export async function ExpensesData({ filters }: { filters?: ExpenseFilters }) {
       dangerouslySetInnerHTML={{
         __html: JSON.stringify({
           ...expensesData,
-          recurringExpenses,
+          recurringExpenses: recurringExpenses.recurringExpenses,
         }),
       }}
     />

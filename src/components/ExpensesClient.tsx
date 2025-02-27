@@ -9,21 +9,7 @@ import { MultiSelect } from './ui/multi-select';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { DatePicker } from './ui/date-picker';
-import type { Expense, Category, CategoryGroup, Tag } from '@/types';
-
-interface RecurringExpense {
-  id: string;
-  description?: string;
-  amount: number;
-  category: string;
-  paidBy: string;
-  split: 'equal' | 'no-split';
-  startDate: string;
-  frequency: 'monthly' | 'quarterly' | 'yearly';
-  dayOfMonth: number;
-  tags: string[];
-  lastProcessed?: string;
-}
+import type { Expense, Category, CategoryGroup, Tag, RecurringExpense } from '@/types';
 
 interface ExpensesData {
   expenses: Expense[];

@@ -1,78 +1,70 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import { Toaster } from '@/components/ui/toaster'
-import { ThemeProvider } from '@/components/theme-provider'
-import Navbar from '@/components/Navbar'
-import './globals.css'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import Script from "next/script";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Navbar } from "@/components/Navbar";
+import { Toaster } from "react-hot-toast";
 
-const inter = Inter({ subsets: ['latin'] })
-
-// Default Supabase credentials from lib/supabase.ts
-const DEFAULT_SUPABASE_URL = 'https://ilrnhmnkstnglkrsirjq.supabase.co';
-const DEFAULT_SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imlscm5obW5rc3RuZ2xrcnNpcmpxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzIzNzc2MjQsImV4cCI6MjA0Nzk1MzYyNH0.bG4rbyHXEmW38Vb1eT6BBgXiPmtDzgf4FHIImqqJY8c';
-
-// Get environment variables with fallbacks
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || DEFAULT_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || DEFAULT_SUPABASE_ANON_KEY;
-
-// Ensure URL has a protocol
-let finalSupabaseUrl = supabaseUrl;
-if (finalSupabaseUrl && !finalSupabaseUrl.startsWith('http://') && !finalSupabaseUrl.startsWith('https://')) {
-  finalSupabaseUrl = `https://${finalSupabaseUrl}`;
-}
-
-// Validate URL format
-try {
-  new URL(finalSupabaseUrl);
-  console.log('Layout: Valid Supabase URL being injected:', finalSupabaseUrl);
-} catch (error) {
-  console.error('Layout: Invalid Supabase URL format:', finalSupabaseUrl);
-  finalSupabaseUrl = DEFAULT_SUPABASE_URL;
-  console.log('Layout: Falling back to DEFAULT Supabase URL');
-}
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'AA Fair Share',
-  description: 'Track and split expenses between Andres and Antonio',
+  title: "AA FairShare - Split Expenses Fairly",
+  description: "Track and split expenses with friends and family",
   icons: {
     icon: '/favicon.ico',
   },
+};
+
+// Inject environment variables for client-side access
+function EnvironmentVariables() {
+  // Safely get Supabase URL and ANON KEY from environment
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+  
+  // Create a safe script to inject these variables
+  const envScript = `
+    window.env = {
+      NEXT_PUBLIC_SUPABASE_URL: "${supabaseUrl}",
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: "${supabaseAnonKey}"
+    };
+    console.log("Environment variables injected:", { 
+      url: window.env.NEXT_PUBLIC_SUPABASE_URL ? "Set" : "Not set", 
+      key: window.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? "Set" : "Not set" 
+    });
+  `;
+  
+  return (
+    <Script id="environment-variables" strategy="beforeInteractive">
+      {envScript}
+    </Script>
+  );
 }
 
 export default function RootLayout({
   children,
-}: {
-  children: React.ReactNode
-}) {
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {/* Inject environment variables into window.env */}
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              // Initialize window.env with Supabase credentials
-              window.env = {
-                NEXT_PUBLIC_SUPABASE_URL: "${finalSupabaseUrl}",
-                NEXT_PUBLIC_SUPABASE_ANON_KEY: "${supabaseAnonKey}"
-              };
-              console.log("Environment variables injected into window.env:", window.env.NEXT_PUBLIC_SUPABASE_URL);
-            `
-          }}
-        />
+        <EnvironmentVariables />
       </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
+          defaultTheme="light"
           enableSystem
           disableTransitionOnChange
         >
           <Navbar />
-          {children}
-          <Toaster />
+          <div className="pt-16 pb-20">
+            {children}
+          </div>
+          <Toaster position="top-center" />
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }
