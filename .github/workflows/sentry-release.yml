@@ -8,6 +8,11 @@ on:
       - '*.md'
       - '.github/workflows/snyk-security.yml'
 
+# Add permissions at workflow level
+permissions:
+  contents: read
+  id-token: write # Needed for Sentry release authentication
+
 jobs:
   create-sentry-release:
     runs-on: ubuntu-latest

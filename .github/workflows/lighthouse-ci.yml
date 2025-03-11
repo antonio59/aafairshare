@@ -6,6 +6,11 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# Add permissions at workflow level
+permissions:
+  contents: read
+  pull-requests: write # Needed for commenting results
+
 jobs:
   lighthouse:
     runs-on: ubuntu-latest

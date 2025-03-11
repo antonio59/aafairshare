@@ -8,6 +8,12 @@ on:
   pull_request:
     branches: [ main ]
 
+# Add permissions at workflow level
+permissions:
+  contents: read
+  security-events: write
+  issues: write # Needed if creating issues for vulnerabilities
+
 jobs:
   security:
     runs-on: ubuntu-latest
