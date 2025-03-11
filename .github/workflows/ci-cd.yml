@@ -16,6 +16,15 @@ on:
           - staging
           - production
 
+# Add permissions at workflow level
+permissions:
+  contents: read
+  actions: read
+  id-token: write # Needed for deployment authentication
+  deployments: write # Needed for deployments
+  checks: write # Needed for test results
+  pull-requests: write # Needed for PR comments
+
 jobs:
   lint-and-test:
     name: Lint and Test
