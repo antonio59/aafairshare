@@ -83,7 +83,7 @@
     "autoprefixer": "^10.4.21",
     "axe-core": "^4.8.4",
     "axe-playwright": "^2.0.1",
-    "dotenv-cli": "^7.3.0",
+    "dotenv-cli": "^8.0.0",
     "eslint": "^8.56.0",
     "eslint-import-resolver-typescript": "3.8.4",
     "eslint-plugin-import": "2.31.0",
