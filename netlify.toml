@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "SKIP_NODE_CHECK=true npm run build"
   publish = "dist"
   functions = "netlify/functions"
 
@@ -8,6 +8,7 @@
   NPM_FLAGS = "--legacy-peer-deps"
   NETLIFY_USE_YARN = "false"
   NETLIFY_IGNORE_ENGINES = "false"
+  SKIP_NODE_CHECK = "true"
 
 # Production context: all deploys from the Production branch set in your site's
 # deploy contexts will inherit these settings.
