@@ -12,6 +12,7 @@
     "dev:clean": "rm -rf node_modules/.vite && ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
     "build": "tsc -p tsconfig.netlify.json && npx vite build",
+    "build:ci": "node scripts/ci-build.js",
     "preview": "vite preview",
     "netlify:node-check": "node -e \"if (process.env.SKIP_NODE_CHECK === 'true') { console.log('Node version check skipped'); } else if (process.versions.node.split('.')[0] < 20) { console.error('❌ Node.js 20+ is required'); process.exit(1); } else { console.log('✅ Using Node.js', process.versions.node); }\"",
     "preinstall": "npm run netlify:node-check && npx npm-force-resolutions",
@@ -27,6 +28,7 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "test:ci": "node scripts/ci-test.js",
     "fix:ts": "node ./scripts/fix-typescript-issues.js",
     "fix:ts:unused": "node ./scripts/fix-typescript-issues.js --unused-vars",
     "fix:ts:comments": "node ./scripts/fix-typescript-issues.js --ts-comments",
@@ -45,7 +47,8 @@
     "deploy:staging": "node scripts/deploy.js staging",
     "deploy:production": "node scripts/deploy.js production",
     "build:netlify-functions": "tsc -p tsconfig.netlify.json",
-    "prebuild": "npm run build:netlify-functions"
+    "prebuild": "npm run build:netlify-functions",
+    "test:netlify-build": "node scripts/test-netlify-build.js"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",

@@ -1,5 +1,13 @@
 [build]
-  command = "SKIP_NODE_CHECK=true npm ci && npm run build"
+  command = """
+    echo "Starting build process with error handling..." && 
+    SKIP_NODE_CHECK=true npm ci && 
+    echo "Installing dependencies completed" && 
+    npm run build:netlify-functions && 
+    echo "TypeScript compilation completed" && 
+    npx vite build && 
+    echo "Vite build completed successfully"
+  """
   publish = "dist"
   functions = "netlify/functions-dist"
 
@@ -10,6 +18,10 @@
   NETLIFY_IGNORE_ENGINES = "false"
   SKIP_NODE_CHECK = "true"
   PATH = "/opt/build/repo/node_modules/.bin:$PATH"
+  # Skip non-essential steps in production build
+  SKIP_TESTS = "true"
+  SKIP_SENTRY = "true"
+  CI = "true"
 
 # Use our custom build plugin
 [[plugins]]
