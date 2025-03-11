@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { App } from './App';
 import './styles/global.css';
 import { supabase } from './core/api/supabase';
+import { reportWebVitals } from './utils/web-vitals';
 
 // Add a check for the Supabase connection
 console.log('DEBUG: Testing Supabase connection');
@@ -31,3 +32,19 @@ ReactDOM.createRoot(root).render(
     <App />
   </React.StrictMode>
 );
+
+// Report Web Vitals
+reportWebVitals();
+
+// If you want to send the metrics to your analytics:
+// reportWebVitals((metric) => {
+//   const { name, value } = metric;
+//   // Send to your analytics service 
+//   // Example for Google Analytics:
+//   // gtag('event', name, {
+//   //   value: Math.round(name === 'CLS' ? value * 1000 : value),
+//   //   metric_id: name,
+//   //   metric_value: value,
+//   //   metric_delta: metric.delta,
+//   // });
+// });
