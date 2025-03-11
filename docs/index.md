@@ -9,6 +9,7 @@ This directory contains detailed technical documentation for the Expense Sharing
 
 ### Security
 - [SECURITY.md](./SECURITY.md) - Security features, best practices, and implementation details.
+- [security-scanning.md](./security-scanning.md) - Security scanning setup with Snyk and other tools.
 
 ### Performance
 - [PERFORMANCE_OPTIMIZATIONS.md](./PERFORMANCE_OPTIMIZATIONS.md) - Performance optimization techniques and implementation details.

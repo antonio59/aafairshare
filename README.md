@@ -1,5 +1,7 @@
 # Expense Sharing App - Deployment Guide
 
+[![Known Vulnerabilities](https://snyk.io/test/github/antonio59/aafairshare/badge.svg)](https://snyk.io/test/github/antonio59/aafairshare)
+
 ## Overview
 This is a React-based expense sharing application built with Vite and Supabase. The app allows users to track shared expenses, manage settlements, and handle currency conversions.
 
