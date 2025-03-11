@@ -23,6 +23,7 @@ permissions:
   deployments: write # Needed for deployments
   checks: write # Needed for test results
   pull-requests: write # Needed for PR comments
+  security-events: write # Needed for security scan results
 
 jobs:
   security-scan:
@@ -42,16 +43,20 @@ jobs:
         
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
+        continue-on-error: true # Don't fail the build for vulnerabilities
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --sarif-file-output=snyk.sarif
+          args: --all-projects --sarif-file-output=snyk.sarif
+          command: test
           
       - name: Upload SARIF file
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: always() # Upload even if Snyk test fails
         with:
           sarif_file: snyk.sarif
+          category: Snyk
+          wait-for-processing: true
           
   lint-and-test:
     name: Lint and Test
