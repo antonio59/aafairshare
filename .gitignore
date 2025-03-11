@@ -54,3 +54,4 @@ next-env.d.ts
 *.sw?
 # Local Netlify folder
 .netlify
+netlify/functions-dist/
