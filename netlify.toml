@@ -1,5 +1,5 @@
 [build]
-  command = "SKIP_NODE_CHECK=true npm ci && node scripts/ensure-directories.js && npm run build:netlify-functions && npx vite build"
+  command = "node scripts/netlify-build.js"
   publish = "dist"
   functions = "netlify/functions-dist"
 
