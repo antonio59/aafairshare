@@ -34,6 +34,31 @@ jobs:
           npm ci --legacy-peer-deps
           npm list --depth=0
       
+      - name: Create workspace variable and debug info
+        id: workspace
+        run: |
+          echo "WORKSPACE=${{ github.workspace }}" >> $GITHUB_OUTPUT
+          echo "Current working directory: $(pwd)"
+          echo "GitHub workspace: ${{ github.workspace }}"
+          echo "Directory contents:"
+          ls -la
+      
+      - name: Create absolute paths for files
+        id: paths
+        run: |
+          # Create absolute paths for files
+          echo "JSON_PATH=${{ github.workspace }}/snyk-results.json" >> $GITHUB_OUTPUT
+          echo "SARIF_DIR=${{ github.workspace }}/sarif" >> $GITHUB_OUTPUT
+          echo "SARIF_PATH=${{ github.workspace }}/sarif/snyk-results.sarif" >> $GITHUB_OUTPUT
+          echo "MINIMAL_SARIF_PATH=${{ github.workspace }}/sarif/minimal-snyk-results.sarif" >> $GITHUB_OUTPUT
+          
+          # Create the directory with sudo to ensure permissions
+          sudo mkdir -p "${{ github.workspace }}/sarif"
+          sudo chmod 777 "${{ github.workspace }}/sarif"
+          
+          echo "Created sarif directory with full permissions:"
+          ls -la "${{ github.workspace }}" | grep sarif
+      
       - name: Check for Snyk token
         id: check-token
         run: |
@@ -46,12 +71,6 @@ jobs:
             echo "SNYK_CONFIGURED=true" >> $GITHUB_OUTPUT
           fi
       
-      - name: Create sarif directory early
-        run: |
-          mkdir -p sarif
-          echo "Created sarif directory:"
-          ls -la | grep sarif
-      
       - name: Run Snyk to check for vulnerabilities
         id: snyk-test
         if: steps.check-token.outputs.SNYK_CONFIGURED == 'true'
@@ -60,7 +79,7 @@ jobs:
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          command: test --json-file-output=snyk-results.json
+          command: test --json-file-output=${{ steps.paths.outputs.JSON_PATH }}
           args: --severity-threshold=high
       
       - name: Debug - Check if Snyk test completed
@@ -68,7 +87,7 @@ jobs:
           if [ "${{ steps.check-token.outputs.SNYK_CONFIGURED }}" != "true" ]; then
             echo "⚠️ Skipping Snyk test - no token configured"
             echo "Creating a placeholder JSON file"
-            echo '{"ok":false,"error":"Snyk scan skipped - no token configured","path":"","projectName":""}' > snyk-results.json
+            echo '{"ok":false,"error":"Snyk scan skipped - no token configured","path":"","projectName":""}' > "${{ steps.paths.outputs.JSON_PATH }}"
           elif [ "${{ steps.snyk-test.outcome }}" == "success" ]; then
             echo "✅ Snyk test completed successfully"
           else
@@ -78,15 +97,15 @@ jobs:
           echo "Current directory contents:"
           ls -la
           
-          if [ -f "snyk-results.json" ]; then
-            echo "✅ snyk-results.json file exists with size:"
-            ls -la snyk-results.json
+          if [ -f "${{ steps.paths.outputs.JSON_PATH }}" ]; then
+            echo "✅ JSON file exists with size:"
+            ls -la "${{ steps.paths.outputs.JSON_PATH }}"
             echo "Content sample (first 200 chars):"
-            head -c 200 snyk-results.json
+            head -c 200 "${{ steps.paths.outputs.JSON_PATH }}"
           else
-            echo "❌ snyk-results.json file does not exist!"
+            echo "❌ JSON file does not exist!"
             echo "Creating a placeholder JSON file"
-            echo '{"ok":false,"error":"Snyk scan failed to generate results","path":"","projectName":""}' > snyk-results.json
+            echo '{"ok":false,"error":"Snyk scan failed to generate results","path":"","projectName":""}' > "${{ steps.paths.outputs.JSON_PATH }}"
           fi
       
       - name: Create minimal valid SARIF file
@@ -108,10 +127,10 @@ jobs:
                 "results": []
               }
             ]
-          }' > sarif/minimal-snyk-results.sarif
+          }' > "${{ steps.paths.outputs.MINIMAL_SARIF_PATH }}"
           
           echo "✅ Created minimal SARIF file"
-          ls -la sarif/
+          ls -la "${{ steps.paths.outputs.SARIF_DIR }}/"
       
       - name: Generate SARIF from Snyk JSON
         id: generate-sarif
@@ -121,36 +140,37 @@ jobs:
           npm install -g @snyk/snyk-to-sarif
           
           echo "Converting Snyk JSON to SARIF"
-          if [ -f "snyk-results.json" ] && [ -s "snyk-results.json" ]; then
-            if cat snyk-results.json | npx snyk-to-sarif > sarif/snyk-results.sarif; then
+          if [ -f "${{ steps.paths.outputs.JSON_PATH }}" ] && [ -s "${{ steps.paths.outputs.JSON_PATH }}" ]; then
+            if cat "${{ steps.paths.outputs.JSON_PATH }}" | npx snyk-to-sarif > "${{ steps.paths.outputs.SARIF_PATH }}"; then
               echo "✅ SARIF file generated successfully"
-              ls -la sarif/
+              ls -la "${{ steps.paths.outputs.SARIF_DIR }}/"
               echo "SARIF file size:"
-              ls -la sarif/snyk-results.sarif
+              ls -la "${{ steps.paths.outputs.SARIF_PATH }}"
               echo "Content sample (first 100 chars):"
-              head -c 100 sarif/snyk-results.sarif
+              head -c 100 "${{ steps.paths.outputs.SARIF_PATH }}"
             else
               echo "❌ SARIF conversion failed, using fallback SARIF file"
-              cp sarif/minimal-snyk-results.sarif sarif/snyk-results.sarif
+              cp "${{ steps.paths.outputs.MINIMAL_SARIF_PATH }}" "${{ steps.paths.outputs.SARIF_PATH }}"
             fi
           else
             echo "❌ JSON file is empty or doesn't exist, using fallback SARIF file"
-            cp sarif/minimal-snyk-results.sarif sarif/snyk-results.sarif
+            cp "${{ steps.paths.outputs.MINIMAL_SARIF_PATH }}" "${{ steps.paths.outputs.SARIF_PATH }}"
           fi
       
       - name: Use minimal SARIF if conversion was skipped
         if: steps.check-token.outputs.SNYK_CONFIGURED != 'true'
         run: |
           echo "⚠️ Using minimal SARIF file since Snyk was skipped (no token)"
-          cp sarif/minimal-snyk-results.sarif sarif/snyk-results.sarif
+          cp "${{ steps.paths.outputs.MINIMAL_SARIF_PATH }}" "${{ steps.paths.outputs.SARIF_PATH }}"
       
       - name: Verify SARIF file exists
         id: verify-sarif
         run: |
-          if [ -f "sarif/snyk-results.sarif" ]; then
+          if [ -f "${{ steps.paths.outputs.SARIF_PATH }}" ]; then
             echo "✅ SARIF file exists and is ready for upload"
-            ls -la sarif/
-            echo "SARIF file size: $(du -h sarif/snyk-results.sarif | cut -f1)"
+            ls -la "${{ steps.paths.outputs.SARIF_DIR }}/"
+            echo "SARIF file size: $(du -h "${{ steps.paths.outputs.SARIF_PATH }}" | cut -f1)"
+            echo "SARIF_EXISTS=true" >> $GITHUB_OUTPUT
           else
             echo "❌ SARIF file is still missing, creating a final fallback"
             echo '{
@@ -168,14 +188,45 @@ jobs:
                   "results": []
                 }
               ]
-            }' > sarif/snyk-results.sarif
+            }' > "${{ steps.paths.outputs.SARIF_PATH }}"
             echo "Created emergency fallback SARIF file"
+            echo "SARIF_EXISTS=true" >> $GITHUB_OUTPUT
           fi
+          
+          # Double check and provide debug info
+          echo "Final filesystem state before upload:"
+          find "${{ steps.paths.outputs.SARIF_DIR }}" -type f | xargs ls -la
+      
+      - name: Copy SARIF file to artifact directory
+        run: |
+          # Create a directory for artifacts
+          mkdir -p "${{ github.workspace }}/sarif-artifacts"
+          
+          # Copy the SARIF file
+          cp "${{ steps.paths.outputs.SARIF_PATH }}" "${{ github.workspace }}/sarif-artifacts/"
+          
+          echo "SARIF file copied to artifacts directory:"
+          ls -la "${{ github.workspace }}/sarif-artifacts/"
+      
+      - name: Upload SARIF file as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: snyk-sarif-results
+          path: ${{ github.workspace }}/sarif-artifacts/
+          retention-days: 5
       
       - name: Upload Snyk scan results to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
-        if: always()
+        if: steps.verify-sarif.outputs.SARIF_EXISTS == 'true'
         continue-on-error: true
         with:
-          sarif_file: sarif/snyk-results.sarif
+          sarif_file: ${{ steps.paths.outputs.SARIF_PATH }}
+          category: snyk
+          
+      - name: Alternative SARIF upload if first attempt failed
+        if: failure()
+        uses: github/codeql-action/upload-sarif@v3
+        continue-on-error: true
+        with:
+          sarif_file: ${{ github.workspace }}/sarif-artifacts/snyk-results.sarif
           category: snyk 
