@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import { browserTracingIntegration, replayIntegration } from '@sentry/react';
 
 /**
  * Initializes Sentry error tracking with the provided DSN
@@ -9,8 +10,8 @@ export function initSentry(): void {
     Sentry.init({
       dsn: import.meta.env.VITE_SENTRY_DSN,
       integrations: [
-        new Sentry.BrowserTracing(),
-        new Sentry.Replay(),
+        browserTracingIntegration(),
+        replayIntegration(),
       ],
       // Performance monitoring - adjust the sample rate as needed (0.0 to 1.0)
       tracesSampleRate: 0.1,
