@@ -11,8 +11,9 @@
     "dev": "./scripts/start-dev.sh",
     "dev:clean": "rm -rf node_modules/.vite && ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
-    "build": "npx vite build",
-    "ensure-dirs": "node scripts/ensure-directories.js",
+    "build": "npm run create-dist && npm run build:netlify-functions && npx vite build",
+    "create-dist": "node -e \"const fs=require('fs');const dirs=['dist','netlify/functions-dist','playwright-report','test-results'];dirs.forEach(dir=>{try{if(!fs.existsSync(dir)){fs.mkdirSync(dir,{recursive:true});console.log('Created '+dir);}else{console.log(dir+' exists');}}catch(e){console.error(e);}});\"",
+    "ensure-dirs": "node netlify/functions-dist/scripts/ensure-directories.js",
     "build:ci": "node scripts/ci-build.js",
     "preview": "vite preview",
     "netlify:node-check": "node -e \"if (process.env.SKIP_NODE_CHECK === 'true') { console.log('Node version check skipped'); } else if (process.versions.node.split('.')[0] < 20) { console.error('❌ Node.js 20+ is required'); process.exit(1); } else { console.log('✅ Using Node.js', process.versions.node); }\"",
@@ -49,7 +50,8 @@
     "deploy:production": "node scripts/deploy.js production",
     "build:netlify-functions": "tsc -p tsconfig.netlify.json",
     "prebuild": "npm run build:netlify-functions",
-    "test:netlify-build": "node scripts/test-netlify-build.js"
+    "test:netlify-build": "node scripts/test-netlify-build.js",
+    "netlify:build": "node --loader ts-node/esm scripts/netlify-build-pure.ts"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
