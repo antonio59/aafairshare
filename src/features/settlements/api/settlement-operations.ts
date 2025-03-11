@@ -145,7 +145,7 @@ export async function setupExpenseSubscription(
       return () => {};
     }
 
-    const channelName = `expenses-changes-${user as _user.id}-${Date.now()}`;
+    const channelName = `expenses-changes-${_user.id}-${Date.now()}`;
     let channel: RealtimeChannel | null = null;
     let retryTimeout: NodeJS.Timeout | null = null;
     let isActive = true;
@@ -268,7 +268,7 @@ export async function calculateUserBalances(
     const { data: { _user } } = await supabase.auth.getUser();
     if (!_user) throw new Error('No authenticated _user found');
     
-    logger.info('calculateUserBalances: Starting calculation for user:', user.id, {
+    logger.info('calculateUserBalances: Starting calculation for user:', _user.id, {
       forceRefresh, startDate, endDate, limit, page
     });
     
@@ -329,7 +329,7 @@ export async function calculateUserBalances(
         };
       }
 
-      const isCurrentUserPayer = expense.users?.id === user.id;
+      const isCurrentUserPayer = expense.users?.id === _user.id;
       if (isCurrentUserPayer) {
         expensesByMonth[monthYear].totalPaidByCurrentUser += amount;
       } else {
@@ -429,7 +429,7 @@ export async function createSettlement(
     
     // Construct settlement data using DB type
     const settlementData: Omit<DbSettlement, 'id' | 'created_at' | 'updated_at'> = {
-      user_id: user as _user.id,
+      user_id: _user.id,
       month_year: monthYear,
       amount,
       status: 'pending'
@@ -552,5 +552,5 @@ export async function markSettlementComplete(settlementId: string): Promise<Sett
 async function getAuthenticatedUser(): Promise<User> {
   const { data: { _user } } = await supabase.auth.getUser();
   if (!_user) throw new Error('User not authenticated');
-  return user;
+  return _user;
 } 
