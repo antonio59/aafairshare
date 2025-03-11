@@ -12,6 +12,25 @@ This project uses TypeScript for Netlify functions and build plugins. The TypeSc
 - `netlify.toml`: Main Netlify configuration file
 - `.nvmrc` and `.node-version`: Node.js version specification files
 
+## Build Process
+
+### Shell-Independent Build Command
+
+The build command in `netlify.toml` uses Node.js's built-in file system API instead of shell commands to ensure compatibility with all Netlify build environments:
+
+```javascript
+node -e "const fs=require('fs'); ['dist', 'netlify/functions-dist', 'playwright-report', 'test-results'].forEach(dir => fs.mkdirSync(dir, {recursive:true}));" && npx tsc -p tsconfig.netlify.json && npx vite build
+```
+
+This approach:
+1. Creates all necessary directories using Node.js (avoiding shell commands like `mkdir`)
+2. Compiles TypeScript files for Netlify functions
+3. Builds the frontend using Vite
+
+### Build Image
+
+We use Ubuntu 20.04 (Focal) as our build image by setting `NETLIFY_IMAGE_VERSION = "focal"` in `netlify.toml`. This ensures a more complete and stable build environment.
+
 ## Preventing Duplicate Builds
 
 One of the key issues we address is preventing duplicate builds on Netlify. By default, Netlify can trigger multiple builds for the same commit:
@@ -48,8 +67,10 @@ In addition to the build plugin, we've created a Netlify function (`stop-duplica
 The following environment variables are used for build configuration:
 
 - `SKIP_NODE_CHECK`: Set to "true" to bypass Node.js version checking
-- `NODE_VERSION`: Specifies the Node.js version for Netlify
-- `NPM_FLAGS`: Additional flags for npm installation
+- `NODE_VERSION`: Specifies the Node.js version for Netlify (currently using 20.10.0)
+- `NPM_VERSION`: Specifies the npm version (currently using 10.2.4)
+- `NPM_FLAGS`: Additional flags for npm installation (`--legacy-peer-deps --no-audit --no-fund`)
+- `NETLIFY_IMAGE_VERSION`: Specifies the build image (currently using "focal" for Ubuntu 20.04)
 
 ## CI Build Process
 
@@ -84,13 +105,20 @@ If you encounter issues with builds:
 
 ### Common Build Issues
 
+#### Missing Shell Commands
+
+If you encounter errors like `mkdir: command not found` or `touch: command not found`, the build environment may be missing basic shell utilities. Our solution uses:
+
+1. Node.js's built-in file system API instead of shell commands
+2. The "focal" (Ubuntu 20.04) build image which has a more complete set of utilities
+
 #### "vite: not found" Error
 
 If you encounter an error like "sh: 1: vite: not found" during the build process, it means that the Vite CLI is not available in the PATH. This has been fixed by:
 
-1. Using `npm ci` instead of just `npm run build` in the Netlify build command to ensure a clean installation
+1. Using `npx` to run tools directly from node_modules
 2. Adding node_modules/.bin to the PATH environment variable in netlify.toml
-3. Using `npx vite build` in package.json to ensure Vite is found even if it's not in the PATH
+3. Setting the correct Node.js and npm versions
 
 If this error persists:
 - Check that vite is properly listed in the devDependencies in package.json
