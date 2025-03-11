@@ -49,7 +49,7 @@
     "deploy:staging": "node scripts/deploy.js staging",
     "deploy:production": "node scripts/deploy.js production",
     "build:netlify-functions": "tsc -p tsconfig.netlify.json",
-    "prebuild": "node -e \"const fs=require('fs'); fs.mkdirSync('netlify/functions-dist', {recursive:true});\" && tsc -p tsconfig.netlify.json",
+    "prebuild": "tsx scripts/create-directories.ts && tsc -p tsconfig.netlify.json",
     "test:netlify-build": "tsx scripts/test-netlify-build.ts",
     "netlify:build": "node --loader ts-node/esm scripts/netlify-build-pure.ts"
   },
