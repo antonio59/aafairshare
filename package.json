@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "type": "module",
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.0.0",
+    "npm": ">=10.0.0"
   },
   "scripts": {
     "start": "./scripts/start-dev.sh",
@@ -12,6 +13,8 @@
     "clean": "rm -rf node_modules/.vite",
     "build": "vite build",
     "preview": "vite preview",
+    "netlify:node-check": "node -e \"if (process.versions.node.split('.')[0] < 20) { console.error('❌ Node.js 20+ is required'); process.exit(1); } else { console.log('✅ Using Node.js', process.versions.node); }\"",
+    "preinstall": "npm run netlify:node-check && npx npm-force-resolutions",
     "security:audit": "npm audit",
     "security:fix": "npm audit fix",
     "security:update": "npm update --save",
@@ -19,7 +22,6 @@
     "security:snyk:license": "snyk test --license",
     "security:snyk:monitor": "snyk monitor",
     "security:snyk:fix": "snyk wizard",
-    "preinstall": "npx npm-force-resolutions",
     "migrate:supabase": "chmod +x ./scripts/migrations/migrate-imports.sh && ./scripts/migrations/migrate-imports.sh",
     "test": "vitest",
     "test:ui": "vitest --ui",
