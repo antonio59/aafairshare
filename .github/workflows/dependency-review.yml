@@ -8,6 +8,13 @@ on:
       - 'package-lock.json'
       - 'pnpm-lock.yaml'
 
+# Add permissions at workflow level
+permissions:
+  contents: read
+  pull-requests: write # For adding labels and approving PRs
+  checks: write # For dependency review results
+  issues: write # For adding labels to issues
+
 jobs:
   dependency-review:
     runs-on: ubuntu-latest

@@ -31,6 +31,12 @@ on:
           - schema
           - full
 
+# Add permissions at workflow level
+permissions:
+  contents: read
+  id-token: write # For AWS authentication
+  actions: write # For uploading artifacts
+
 jobs:
   backup:
     name: Run Database Backup
