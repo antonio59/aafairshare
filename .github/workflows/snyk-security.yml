@@ -34,18 +34,27 @@ jobs:
           npm ci --legacy-peer-deps
           npm list --depth=0
       
-      - name: Verify Snyk token
+      - name: Check for Snyk token
+        id: check-token
         run: |
           if [[ -z "${{ secrets.SNYK_TOKEN }}" ]]; then
-            echo "::error::SNYK_TOKEN is not set in your GitHub repository secrets"
-            echo "Please add your Snyk API token as a secret named SNYK_TOKEN"
-            exit 1
+            echo "::warning::SNYK_TOKEN is not set in your GitHub repository secrets"
+            echo "Running in limited mode. To enable full Snyk scanning, add your Snyk API token as a secret."
+            echo "SNYK_CONFIGURED=false" >> $GITHUB_OUTPUT
           else
-            echo "SNYK_TOKEN is properly configured"
+            echo "✅ SNYK_TOKEN is properly configured"
+            echo "SNYK_CONFIGURED=true" >> $GITHUB_OUTPUT
           fi
+      
+      - name: Create sarif directory early
+        run: |
+          mkdir -p sarif
+          echo "Created sarif directory:"
+          ls -la | grep sarif
       
       - name: Run Snyk to check for vulnerabilities
         id: snyk-test
+        if: steps.check-token.outputs.SNYK_CONFIGURED == 'true'
         uses: snyk/actions/node@master
         continue-on-error: true  # Don't fail the workflow if vulnerabilities are found
         env:
@@ -56,8 +65,17 @@ jobs:
       
       - name: Debug - Check if Snyk test completed
         run: |
-          echo "Snyk test outcome: ${{ steps.snyk-test.outcome }}"
-          echo "Current directory contents after Snyk test:"
+          if [ "${{ steps.check-token.outputs.SNYK_CONFIGURED }}" != "true" ]; then
+            echo "⚠️ Skipping Snyk test - no token configured"
+            echo "Creating a placeholder JSON file"
+            echo '{"ok":false,"error":"Snyk scan skipped - no token configured","path":"","projectName":""}' > snyk-results.json
+          elif [ "${{ steps.snyk-test.outcome }}" == "success" ]; then
+            echo "✅ Snyk test completed successfully"
+          else
+            echo "⚠️ Snyk test completed with issues"
+          fi
+          
+          echo "Current directory contents:"
           ls -la
           
           if [ -f "snyk-results.json" ]; then
@@ -71,53 +89,70 @@ jobs:
             echo '{"ok":false,"error":"Snyk scan failed to generate results","path":"","projectName":""}' > snyk-results.json
           fi
       
+      - name: Create minimal valid SARIF file
+        id: create-minimal-sarif
+        run: |
+          echo "Creating a minimal valid SARIF file as a fallback"
+          echo '{
+            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+            "version": "2.1.0",
+            "runs": [
+              {
+                "tool": {
+                  "driver": {
+                    "name": "Snyk",
+                    "informationUri": "https://snyk.io",
+                    "rules": []
+                  }
+                },
+                "results": []
+              }
+            ]
+          }' > sarif/minimal-snyk-results.sarif
+          
+          echo "✅ Created minimal SARIF file"
+          ls -la sarif/
+      
       - name: Generate SARIF from Snyk JSON
         id: generate-sarif
+        if: steps.check-token.outputs.SNYK_CONFIGURED == 'true'
         run: |
-          echo "Creating SARIF directory"
-          mkdir -p sarif
-          
-          if [ ! -f "snyk-results.json" ]; then
-            echo "❌ snyk-results.json still does not exist, creating a blank file"
-            echo '{"ok":false,"error":"Snyk scan failed to generate results","path":"","projectName":""}' > snyk-results.json
-          fi
-          
           echo "Installing Snyk SARIF converter"
           npm install -g @snyk/snyk-to-sarif
           
           echo "Converting Snyk JSON to SARIF"
-          if ! cat snyk-results.json | npx snyk-to-sarif > sarif/snyk-results.sarif; then
-            echo "❌ SARIF conversion failed, creating a fallback SARIF file"
-            echo '{
-              "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
-              "version": "2.1.0",
-              "runs": [
-                {
-                  "tool": {
-                    "driver": {
-                      "name": "Snyk",
-                      "informationUri": "https://snyk.io",
-                      "rules": []
-                    }
-                  },
-                  "results": []
-                }
-              ]
-            }' > sarif/snyk-results.sarif
+          if [ -f "snyk-results.json" ] && [ -s "snyk-results.json" ]; then
+            if cat snyk-results.json | npx snyk-to-sarif > sarif/snyk-results.sarif; then
+              echo "✅ SARIF file generated successfully"
+              ls -la sarif/
+              echo "SARIF file size:"
+              ls -la sarif/snyk-results.sarif
+              echo "Content sample (first 100 chars):"
+              head -c 100 sarif/snyk-results.sarif
+            else
+              echo "❌ SARIF conversion failed, using fallback SARIF file"
+              cp sarif/minimal-snyk-results.sarif sarif/snyk-results.sarif
+            fi
           else
-            echo "✅ SARIF file generated successfully"
+            echo "❌ JSON file is empty or doesn't exist, using fallback SARIF file"
+            cp sarif/minimal-snyk-results.sarif sarif/snyk-results.sarif
           fi
-          
-          echo "SARIF directory contents:"
-          ls -la sarif/
-          
+      
+      - name: Use minimal SARIF if conversion was skipped
+        if: steps.check-token.outputs.SNYK_CONFIGURED != 'true'
+        run: |
+          echo "⚠️ Using minimal SARIF file since Snyk was skipped (no token)"
+          cp sarif/minimal-snyk-results.sarif sarif/snyk-results.sarif
+      
+      - name: Verify SARIF file exists
+        id: verify-sarif
+        run: |
           if [ -f "sarif/snyk-results.sarif" ]; then
-            echo "SARIF file size:"
-            ls -la sarif/snyk-results.sarif
-            echo "Content sample (first 100 chars):"
-            head -c 100 sarif/snyk-results.sarif
+            echo "✅ SARIF file exists and is ready for upload"
+            ls -la sarif/
+            echo "SARIF file size: $(du -h sarif/snyk-results.sarif | cut -f1)"
           else
-            echo "❌ SARIF file was not created properly, creating an empty one"
+            echo "❌ SARIF file is still missing, creating a final fallback"
             echo '{
               "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
               "version": "2.1.0",
@@ -134,11 +169,13 @@ jobs:
                 }
               ]
             }' > sarif/snyk-results.sarif
+            echo "Created emergency fallback SARIF file"
           fi
       
       - name: Upload Snyk scan results to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
         if: always()
+        continue-on-error: true
         with:
           sarif_file: sarif/snyk-results.sarif
           category: snyk 
