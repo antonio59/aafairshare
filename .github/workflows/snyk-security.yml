@@ -33,20 +33,33 @@ jobs:
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
         env:
-          # Make sure this secret is properly added to your repository settings
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high --sarif-file-output=snyk-results.sarif
+          command: test --json-file-output=snyk-results.json
+          args: --severity-threshold=high
       
-      - name: Debug SARIF file
+      - name: Generate SARIF from Snyk JSON
+        if: always()
         run: |
-          echo "Checking for SARIF file"
-          ls -la
-          find . -name "*.sarif" || echo "No SARIF files found"
+          echo "Creating SARIF directory"
+          mkdir -p sarif
+          
+          echo "Installing Snyk SARIF converter"
+          npm install -g @snyk/snyk-to-sarif
+          
+          echo "Converting Snyk JSON to SARIF"
+          if [ -f "snyk-results.json" ]; then
+            snyk-to-sarif -i snyk-results.json -o sarif/snyk-results.sarif
+            echo "SARIF file generated at sarif/snyk-results.sarif"
+            ls -la sarif/
+          else
+            echo "snyk-results.json not found. Cannot generate SARIF."
+            exit 1
+          fi
       
       - name: Upload Snyk scan results to GitHub Code Scanning
         uses: github/codeql-action/upload-sarif@v3
+        if: always()
         with:
-          sarif_file: snyk-results.sarif
-          category: snyk
-        if: always() # This ensures the workflow continues even if previous steps fail 
+          sarif_file: sarif/snyk-results.sarif
+          category: snyk 
