@@ -89,7 +89,7 @@
     "axe-playwright": "^2.0.1",
     "chrome-launcher": "1.1.2",
     "dotenv-cli": "^8.0.0",
-    "eslint": "^8.56.0",
+    "eslint": "^9.22.0",
     "eslint-import-resolver-typescript": "3.8.4",
     "eslint-plugin-import": "2.31.0",
     "eslint-plugin-react": "7.37.4",
