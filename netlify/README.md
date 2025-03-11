@@ -59,3 +59,18 @@ If you encounter issues with builds:
 2. Look for warnings from the build plugin
 3. Verify that the TypeScript compilation step completed successfully
 4. Ensure the Node.js version is compatible (20.x+) 
+
+### Common Build Issues
+
+#### "vite: not found" Error
+
+If you encounter an error like "sh: 1: vite: not found" during the build process, it means that the Vite CLI is not available in the PATH. This has been fixed by:
+
+1. Using `npm ci` instead of just `npm run build` in the Netlify build command to ensure a clean installation
+2. Adding node_modules/.bin to the PATH environment variable in netlify.toml
+3. Using `npx vite build` in package.json to ensure Vite is found even if it's not in the PATH
+
+If this error persists:
+- Check that vite is properly listed in the devDependencies in package.json
+- Verify that the Netlify build environment is using the correct Node.js version
+- Try clearing the Netlify build cache and rebuilding 

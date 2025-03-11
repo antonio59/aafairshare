@@ -11,7 +11,7 @@
     "dev": "./scripts/start-dev.sh",
     "dev:clean": "rm -rf node_modules/.vite && ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
-    "build": "vite build",
+    "build": "tsc -p tsconfig.netlify.json && npx vite build",
     "preview": "vite preview",
     "netlify:node-check": "node -e \"if (process.env.SKIP_NODE_CHECK === 'true') { console.log('Node version check skipped'); } else if (process.versions.node.split('.')[0] < 20) { console.error('❌ Node.js 20+ is required'); process.exit(1); } else { console.log('✅ Using Node.js', process.versions.node); }\"",
     "preinstall": "npm run netlify:node-check && npx npm-force-resolutions",
@@ -43,7 +43,9 @@
     "prepare-release": "node scripts/prepare-release.js",
     "release": "standard-version",
     "deploy:staging": "node scripts/deploy.js staging",
-    "deploy:production": "node scripts/deploy.js production"
+    "deploy:production": "node scripts/deploy.js production",
+    "build:netlify-functions": "tsc -p tsconfig.netlify.json",
+    "prebuild": "npm run build:netlify-functions"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
@@ -67,6 +69,7 @@
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx": "7.25.9",
+    "@netlify/functions": "3.0.1",
     "@playwright/test": "^1.41.2",
     "@storybook/addon-essentials": "8.6.4",
     "@storybook/addon-interactions": "^8.6.4",

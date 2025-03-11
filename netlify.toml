@@ -1,7 +1,7 @@
 [build]
-  command = "SKIP_NODE_CHECK=true npm run build"
+  command = "SKIP_NODE_CHECK=true npm ci && npm run build"
   publish = "dist"
-  functions = "netlify/functions"
+  functions = "netlify/functions-dist"
 
 [build.environment]
   NODE_VERSION = "20.10.0"
@@ -9,6 +9,11 @@
   NETLIFY_USE_YARN = "false"
   NETLIFY_IGNORE_ENGINES = "false"
   SKIP_NODE_CHECK = "true"
+  PATH = "/opt/build/repo/node_modules/.bin:$PATH"
+
+# Use our custom build plugin
+[[plugins]]
+  package = "./netlify/functions-dist/netlify-build-plugin"
 
 # Production context: all deploys from the Production branch set in your site's
 # deploy contexts will inherit these settings.
