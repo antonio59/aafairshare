@@ -147,9 +147,9 @@ jobs:
         id: set-url
         run: |
           # Set the BASE_URL with a default value if the secret is not available
-          if [ -n "${{ secrets.SITE_URL }}" ]; then
+          if [[ -n "${{ secrets.SITE_URL || '' }}" ]]; then
             echo "Using configured site URL from secrets"
-            echo "BASE_URL=${{ secrets.SITE_URL }}" >> $GITHUB_ENV
+            echo "BASE_URL=${{ secrets.SITE_URL || 'https://aafairshare.online' }}" >> $GITHUB_ENV
           else
             echo "Using default site URL"
             echo "BASE_URL=https://aafairshare.online" >> $GITHUB_ENV
