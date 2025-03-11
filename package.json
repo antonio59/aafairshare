@@ -103,6 +103,7 @@
     "happy-dom": "17.4.3",
     "jsdom": "^26.0.0",
     "lighthouse": "12.4.0",
+    "npm-force-resolutions": "0.0.10",
     "postcss": "8.5.3",
     "serve": "14.2.4",
     "snyk": "1.1295.4",
