@@ -64,7 +64,7 @@
     "@babel/plugin-transform-react-jsx": "7.25.9",
     "@playwright/test": "^1.41.2",
     "@storybook/addon-essentials": "8.6.4",
-    "@storybook/addon-interactions": "^7.6.10",
+    "@storybook/addon-interactions": "^8.6.4",
     "@storybook/addon-links": "^8.6.4",
     "@storybook/blocks": "8.6.4",
     "@storybook/react": "8.6.4",
