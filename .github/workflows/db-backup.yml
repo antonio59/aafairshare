@@ -41,7 +41,6 @@ jobs:
   backup:
     name: Run Database Backup
     runs-on: ubuntu-latest
-    environment: production
     
     steps:
       - name: Checkout repository

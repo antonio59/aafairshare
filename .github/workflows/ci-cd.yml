@@ -10,10 +10,9 @@ on:
       environment:
         description: 'Environment to deploy to'
         required: true
-        default: 'staging'
+        default: 'production'
         type: choice
         options:
-          - staging
           - production
 
 # Add permissions at workflow level
@@ -80,43 +79,6 @@ jobs:
           path: dist/
           retention-days: 7
   
-  deploy-staging:
-    name: Deploy to Staging
-    needs: build
-    runs-on: ubuntu-latest
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
-    environment:
-      name: staging
-      url: https://staging.yourdomain.com
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: build-artifacts
-          path: dist
-          
-      - name: Set up environment variables
-        run: |
-          echo "Setting up staging environment variables"
-          # Set up any environment-specific configuration here
-        
-      - name: Deploy to Netlify (Staging)
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: './dist'
-          production-branch: develop
-          github-token: ${{ github.token }}
-          deploy-message: "Deploy from GitHub Actions"
-          enable-pull-request-comment: true
-          enable-commit-comment: true
-          overwrites-pull-request-comment: true
-        env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_STAGING_SITE_ID }}
-        timeout-minutes: 5
-  
   deploy-production:
     name: Deploy to Production
     needs: build
@@ -124,9 +86,6 @@ jobs:
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
-    environment:
-      name: production
-      url: https://yourdomain.com
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v3
@@ -139,7 +98,7 @@ jobs:
           echo "Setting up production environment variables"
           # Set up any environment-specific configuration here
         
-      - name: Deploy to Netlify (Production)
+      - name: Deploy to Netlify
         uses: nwtgck/actions-netlify@v2
         with:
           publish-dir: './dist'
@@ -150,16 +109,16 @@ jobs:
           enable-commit-comment: true
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_PRODUCTION_SITE_ID }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         timeout-minutes: 5
           
   e2e-tests:
     name: Run E2E Tests
-    needs: [deploy-staging]
+    needs: [deploy-production]
     runs-on: ubuntu-latest
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/develop') ||
-      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     steps:
       - uses: actions/checkout@v3
       
@@ -175,10 +134,10 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
         
-      - name: Run E2E tests against staging
+      - name: Run E2E tests against production
         run: npx playwright test
         env:
-          BASE_URL: https://staging.yourdomain.com
+          BASE_URL: ${{ secrets.PRODUCTION_URL || 'https://yourdomain.com' }}
           
       - name: Upload E2E test results
         uses: actions/upload-artifact@v4
