@@ -5,18 +5,23 @@
  * and conditional execution of steps based on environment variables.
  */
 
-import { execSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
+import { execSync, ExecSyncOptions } from 'child_process';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
-const logSection = (message) => {
+interface CommandOptions {
+  ignoreError?: boolean;
+  silent?: boolean;
+}
+
+function logSection(message: string): void {
   console.log('\n');
   console.log('='.repeat(80));
   console.log(message);
   console.log('='.repeat(80));
-};
+}
 
-const runCommand = (command, options = {}) => {
+function runCommand(command: string, options: CommandOptions = {}): boolean {
   const { ignoreError = false, silent = false } = options;
   
   try {
@@ -24,16 +29,19 @@ const runCommand = (command, options = {}) => {
       console.log(`Running: ${command}`);
     }
     
-    execSync(command, { 
+    const execOptions: ExecSyncOptions = {
       stdio: silent ? 'ignore' : 'inherit',
       env: { ...process.env }
-    });
+    };
     
+    execSync(command, execOptions);
     return true;
   } catch (error) {
     if (!silent) {
       console.error(`Command failed: ${command}`);
-      console.error(error.message);
+      if (error instanceof Error) {
+        console.error(error.message);
+      }
     }
     
     if (!ignoreError) {
@@ -42,9 +50,9 @@ const runCommand = (command, options = {}) => {
     
     return false;
   }
-};
+}
 
-const main = () => {
+function main(): void {
   try {
     logSection('Starting CI Build Process');
     
@@ -82,7 +90,12 @@ const main = () => {
       logSection('Creating Sentry Release');
       
       if (process.env.SENTRY_AUTH_TOKEN) {
-        runCommand('node scripts/create-sentry-release.js', { ignoreError: true });
+        const sentryScript = join(__dirname, 'create-sentry-release.ts');
+        if (existsSync(sentryScript)) {
+          runCommand(`tsx ${sentryScript}`, { ignoreError: true });
+        } else {
+          console.log('Sentry release script not found');
+        }
       } else {
         console.log('Skipping Sentry release - SENTRY_AUTH_TOKEN not set');
       }
@@ -94,9 +107,11 @@ const main = () => {
     
   } catch (error) {
     console.error('Build failed with error:');
-    console.error(error);
+    if (error instanceof Error) {
+      console.error(error.message);
+    }
     process.exit(1);
   }
-};
+}
 
-main(); 
+main();

@@ -5,18 +5,28 @@
  * error handling and reporting.
  */
 
-import { execSync } from 'child_process';
-import fs from 'fs';
-import path from 'path';
+import { execSync, ExecSyncOptions } from 'child_process';
+import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import { join } from 'path';
 
-const logSection = (message) => {
+interface CommandOptions {
+  ignoreError?: boolean;
+  silent?: boolean;
+}
+
+interface TestReport {
+  skipped: boolean;
+  timestamp: string;
+}
+
+function logSection(message: string): void {
   console.log('\n');
   console.log('='.repeat(80));
   console.log(message);
   console.log('='.repeat(80));
-};
+}
 
-const runCommand = (command, options = {}) => {
+function runCommand(command: string, options: CommandOptions = {}): boolean {
   const { ignoreError = true, silent = false } = options;
   
   try {
@@ -24,16 +34,19 @@ const runCommand = (command, options = {}) => {
       console.log(`Running: ${command}`);
     }
     
-    execSync(command, { 
+    const execOptions: ExecSyncOptions = {
       stdio: silent ? 'ignore' : 'inherit',
       env: { ...process.env }
-    });
+    };
     
+    execSync(command, execOptions);
     return true;
   } catch (error) {
     if (!silent) {
       console.error(`Command failed: ${command}`);
-      console.error(error.message);
+      if (error instanceof Error) {
+        console.error(error.message);
+      }
     }
     
     if (!ignoreError) {
@@ -42,15 +55,34 @@ const runCommand = (command, options = {}) => {
     
     return false;
   }
-};
+}
 
-const ensureDirectoryExists = (dir) => {
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+function ensureDirectoryExists(dir: string): void {
+  if (!existsSync(dir)) {
+    mkdirSync(dir, { recursive: true });
   }
-};
+}
 
-const main = () => {
+function createPlaceholderReports(): void {
+  writeFileSync(
+    join('playwright-report', 'index.html'),
+    '<html><body><h1>Playwright tests were skipped</h1></body></html>'
+  );
+
+  const report: TestReport = {
+    skipped: true,
+    timestamp: new Date().toISOString()
+  };
+
+  writeFileSync(
+    join('test-results', 'results.json'),
+    JSON.stringify(report, null, 2)
+  );
+  
+  console.log('Created placeholder Playwright reports');
+}
+
+function main(): void {
   try {
     logSection('Starting CI Test Process');
     
@@ -83,20 +115,12 @@ const main = () => {
       
       // Create a simple Playwright test report if we're skipping actual tests
       if (process.env.SKIP_PLAYWRIGHT === 'true') {
-        fs.writeFileSync(
-          path.join('playwright-report', 'index.html'), 
-          '<html><body><h1>Playwright tests were skipped</h1></body></html>'
-        );
-        fs.writeFileSync(
-          path.join('test-results', 'results.json'), 
-          JSON.stringify({ skipped: true, timestamp: new Date().toISOString() })
-        );
-        console.log('Created placeholder Playwright reports');
+        createPlaceholderReports();
       } else {
         // Use a CI-specific Playwright config if available
-        const playwrightConfig = fs.existsSync('playwright.ci.config.js') 
-          ? 'playwright.ci.config.js' 
-          : 'playwright.config.js';
+        const playwrightConfig = existsSync('playwright.ci.config.ts') 
+          ? 'playwright.ci.config.ts' 
+          : 'playwright.config.ts';
           
         runCommand(`npx playwright test --config=${playwrightConfig}`, { ignoreError: true });
       }
@@ -108,10 +132,12 @@ const main = () => {
     
   } catch (error) {
     console.error('Test process failed with error:');
-    console.error(error);
+    if (error instanceof Error) {
+      console.error(error.message);
+    }
     // Still exit with 0 to not block the build
     process.exit(0);
   }
-};
+}
 
-main(); 
+main();

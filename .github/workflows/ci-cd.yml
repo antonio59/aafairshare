@@ -25,8 +25,37 @@ permissions:
   pull-requests: write # Needed for PR comments
 
 jobs:
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+        
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --sarif-file-output=snyk.sarif
+          
+      - name: Upload SARIF file
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: snyk.sarif
+          
   lint-and-test:
     name: Lint and Test
+    needs: security-scan
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

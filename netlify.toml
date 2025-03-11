@@ -15,6 +15,7 @@
   SKIP_TESTS = "true"
   SKIP_SENTRY = "true"
   CI = "true"
+  NETLIFY_IMAGE_VERSION = "focal"  # Ubuntu 20.04
 
 # Only include essential plugin
 [[plugins]]
