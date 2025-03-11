@@ -9,12 +9,15 @@ on:
   schedule:
     - cron: '0 8 * * 1' # Run every Monday at 8:00 AM
 
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+  issues: write
+
 jobs:
   security:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
     steps:
       - uses: actions/checkout@v3
       
@@ -33,10 +36,17 @@ jobs:
           # Make sure this secret is properly added to your repository settings
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
-          args: --severity-threshold=high
+          args: --severity-threshold=high --sarif-file-output=snyk-results.sarif
+      
+      - name: Debug SARIF file
+        run: |
+          echo "Checking for SARIF file"
+          ls -la
+          find . -name "*.sarif" || echo "No SARIF files found"
       
       - name: Upload Snyk scan results to GitHub Code Scanning
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: snyk.sarif
+          sarif_file: snyk-results.sarif
+          category: snyk
         if: always() # This ensures the workflow continues even if previous steps fail 
