@@ -164,7 +164,14 @@ This application implements comprehensive security measures:
 - Frame protection
 - Resource loading restrictions
 
+### Error Monitoring & Tracking
+- Sentry integration for error tracking
+- Detailed error context and breadcrumbs
+- Performance monitoring
+- User session replay for critical issues
+
 For detailed security documentation, see [docs/SECURITY.md](./docs/SECURITY.md)
+For Sentry integration details, see [docs/sentry-integration.md](./docs/sentry-integration.md)
 
 ## Automated Security Monitoring
 
