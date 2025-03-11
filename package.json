@@ -11,7 +11,7 @@
     "dev": "./scripts/start-dev.sh",
     "dev:clean": "rm -rf node_modules/.vite && ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
-    "build": "npm run ensure-dirs && npm run build:netlify-functions && npx vite build",
+    "build": "npx vite build",
     "ensure-dirs": "node scripts/ensure-directories.js",
     "build:ci": "node scripts/ci-build.js",
     "preview": "vite preview",
