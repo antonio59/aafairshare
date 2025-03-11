@@ -1,11 +1,12 @@
 [build]
-  command = "node scripts/netlify-build.js"
+  command = "npx tsc -p tsconfig.netlify.json && npx vite build"
   publish = "dist"
   functions = "netlify/functions-dist"
 
 [build.environment]
   NODE_VERSION = "20.10.0"
-  NPM_FLAGS = "--legacy-peer-deps"
+  NPM_VERSION = "10.2.4"
+  NPM_FLAGS = "--legacy-peer-deps --no-audit --no-fund"
   NETLIFY_USE_YARN = "false"
   NETLIFY_IGNORE_ENGINES = "false"
   SKIP_NODE_CHECK = "true"
@@ -18,6 +19,14 @@
 # Use our custom build plugin
 [[plugins]]
   package = "./netlify/functions-dist/netlify-build-plugin"
+
+# Setup directories plugin
+[[plugins]]
+  package = "./netlify-setup-dirs.js"
+
+# Explicitly create required directories
+[[plugins]]
+  package = "@netlify/plugin-functions-core"
 
 # Production context: all deploys from the Production branch set in your site's
 # deploy contexts will inherit these settings.
