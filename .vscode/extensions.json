@@ -1,0 +1,8 @@
+{
+  "recommendations": [
+    "redhat.vscode-yaml",
+    "DotJoshJohnson.xml",
+    "streetsidesoftware.code-spell-checker"
+  ],
+  "unwantedRecommendations": []
+} 

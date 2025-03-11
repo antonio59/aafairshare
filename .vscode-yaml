@@ -1,0 +1,8 @@
+disableValidation: true
+customTags:
+  - !reference
+schemas:
+  - schema: https://json.schemastore.org/github-workflow.json
+    fileMatch:
+      - "/.github/workflows/*.yml"
+    validate: false 
