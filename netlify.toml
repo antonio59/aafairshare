@@ -10,7 +10,7 @@
   NETLIFY_IGNORE_ENGINES = "false"
 
 [[plugins]]
-  package = "./netlify-plugin-prebuild"
+  package = "./netlify-plugin-prebuild.cjs"
 
 # Production context: all deploys from the Production branch set in your site's
 # deploy contexts will inherit these settings.
