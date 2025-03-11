@@ -20,7 +20,7 @@ Our testing approach follows the Testing Trophy methodology with the following l
 | Unit & Integration | Vitest, React Testing Library | Jest (as fallback) |
 | Component | Storybook, React Testing Library | Chromatic (visual regression) |
 | End-to-End | Playwright | Cypress (as alternative) |
-| Performance | Lighthouse CI | Playwright Performance API |
+| Performance | Lighthouse, Web Vitals | GitHub Actions for CI |
 | Accessibility | Axe, Storybook a11y addon | Playwright accessibility testing |
 
 ## Priority Areas
@@ -102,4 +102,27 @@ Tests will be integrated into the CI/CD pipeline to ensure:
 
 - Regular test audits to identify gaps
 - Update tests as features change
-- Periodic review of testing strategy and tools 
+- Periodic review of testing strategy and tools
+
+## Performance Testing Strategy
+
+Our comprehensive performance testing approach includes:
+
+1. **Custom Lighthouse Script** (`scripts/run-lighthouse.js`)
+   - Local performance testing during development
+   - CI performance testing for production builds
+   - HTML reports generated for detailed analysis
+
+2. **Web Vitals Integration** (`src/utils/web-vitals.ts`)
+   - Real User Monitoring (RUM) of Core Web Vitals
+   - Console reporting during development
+   - Analytics integration for production monitoring
+
+3. **GitHub Actions Workflow** (`.github/workflows/lighthouse-ci.yml`)
+   - Automated performance testing on pull requests
+   - Set thresholds for critical metrics
+   - PR comments with performance impact
+
+For more details on our performance testing implementation, see:
+- [Performance Testing Documentation](./performance-testing.md)
+- [Performance Optimizations Documentation](./PERFORMANCE_OPTIMIZATIONS.md) 

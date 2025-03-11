@@ -74,10 +74,20 @@ npx playwright test --project=chromium
 
 ### Performance Tests
 
+We have multiple ways to test performance:
+
 ```bash
-# Run Lighthouse CI
+# Run Lighthouse directly on your local development server
 npm run test:performance
+
+# Build and test the production build
+npm run test:performance:ci
+
+# Web Vitals are automatically collected in the browser console during development
+# and can be sent to analytics in production
 ```
+
+For more details on performance testing options, see [Performance Testing Documentation](./performance-testing.md).
 
 ## Test Coverage
 

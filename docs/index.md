@@ -12,11 +12,13 @@ This directory contains detailed technical documentation for the Expense Sharing
 
 ### Performance
 - [PERFORMANCE_OPTIMIZATIONS.md](./PERFORMANCE_OPTIMIZATIONS.md) - Performance optimization techniques and implementation details.
+- [performance-testing.md](./performance-testing.md) - Performance testing approaches, tools, and workflow integration.
 
 ### Development
 - [DEVELOPMENT_TOOLS.md](./DEVELOPMENT_TOOLS.md) - Development utilities, scripts, and workflow documentation.
 - [testing-strategy.md](./testing-strategy.md) - Testing strategy and approach.
 - [testing-setup-guide.md](./testing-setup-guide.md) - Detailed setup for testing environment.
+- [README-testing.md](./README-testing.md) - Overview of testing structure and practices.
 
 ### Migrations
 - [SUPABASE_MIGRATION.md](./SUPABASE_MIGRATION.md) - Guide for migrating to the standardized Supabase client approach.
