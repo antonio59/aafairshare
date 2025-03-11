@@ -1,5 +1,5 @@
 [build]
-  command = "npx tsc -p tsconfig.netlify.json && npx vite build"
+  command = "node -e \"const fs=require('fs'); ['dist', 'netlify/functions-dist', 'playwright-report', 'test-results'].forEach(dir => fs.mkdirSync(dir, {recursive:true}));\" && npx tsc -p tsconfig.netlify.json && npx vite build"
   publish = "dist"
   functions = "netlify/functions-dist"
 
@@ -16,15 +16,7 @@
   SKIP_SENTRY = "true"
   CI = "true"
 
-# Use our custom build plugin
-[[plugins]]
-  package = "./netlify/functions-dist/netlify-build-plugin"
-
-# Setup directories plugin
-[[plugins]]
-  package = "./netlify-setup-dirs.js"
-
-# Explicitly create required directories
+# Only include essential plugin
 [[plugins]]
   package = "@netlify/plugin-functions-core"
 
