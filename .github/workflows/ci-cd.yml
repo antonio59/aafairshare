@@ -86,6 +86,8 @@ jobs:
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    outputs:
+      deploy_url: ${{ steps.netlify-deploy.outputs.deploy-url }}
     steps:
       - name: Download build artifacts
         uses: actions/download-artifact@v4
@@ -99,6 +101,7 @@ jobs:
           # Set up any environment-specific configuration here
         
       - name: Deploy to Netlify
+        id: netlify-deploy
         uses: nwtgck/actions-netlify@v2
         with:
           publish-dir: './dist'
@@ -111,6 +114,12 @@ jobs:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         timeout-minutes: 5
+      
+      - name: Display deployment URL
+        run: |
+          echo "Deployed to Netlify URL: ${{ steps.netlify-deploy.outputs.deploy-url }}"
+          echo "Deployment details URL may be available in the GitHub UI"
+          echo "deploy_url=${{ steps.netlify-deploy.outputs.deploy-url }}" >> $GITHUB_OUTPUT
           
   e2e-tests:
     name: Run E2E Tests
@@ -133,11 +142,31 @@ jobs:
         
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
+      
+      - name: Set production URL
+        id: set-url
+        run: |
+          # Set the BASE_URL with a default value if the secret is not available
+          if [ -n "${{ secrets.PRODUCTION_URL }}" ]; then
+            echo "Using configured production URL from secrets"
+            echo "BASE_URL=${{ secrets.PRODUCTION_URL }}" >> $GITHUB_ENV
+          else
+            echo "Using default production URL"
+            echo "BASE_URL=https://aafairshare.online" >> $GITHUB_ENV
+          fi
+          
+          # Set the NETLIFY_URL with a default value if the output is not available
+          if [ -n "${{ needs.deploy-production.outputs.deploy_url }}" ]; then
+            echo "Using Netlify URL from deployment step"
+            echo "NETLIFY_URL=${{ needs.deploy-production.outputs.deploy_url }}" >> $GITHUB_ENV
+          else
+            echo "Using default Netlify URL"
+            echo "NETLIFY_URL=https://aafairshare.netlify.app" >> $GITHUB_ENV
+          fi
         
       - name: Run E2E tests against production
         run: npx playwright test
-        env:
-          BASE_URL: ${{ secrets.PRODUCTION_URL || 'https://yourdomain.com' }}
+        # Environment variables are set by the previous step
           
       - name: Upload E2E test results
         uses: actions/upload-artifact@v4
