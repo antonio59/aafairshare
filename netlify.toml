@@ -1,13 +1,5 @@
 [build]
-  command = """
-    echo "Starting build process with error handling..." && 
-    SKIP_NODE_CHECK=true npm ci && 
-    echo "Installing dependencies completed" && 
-    npm run build:netlify-functions && 
-    echo "TypeScript compilation completed" && 
-    npx vite build && 
-    echo "Vite build completed successfully"
-  """
+  command = "SKIP_NODE_CHECK=true npm ci && npm run build"
   publish = "dist"
   functions = "netlify/functions-dist"
 
