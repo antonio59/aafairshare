@@ -1,0 +1,91 @@
+{
+  "root": true,
+  "env": {
+    "browser": true,
+    "es2020": true
+  },
+  "extends": [
+    "eslint:recommended",
+    "plugin:@typescript-eslint/recommended",
+    "plugin:react-hooks/recommended",
+    "plugin:react/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:import/typescript"
+  ],
+  "ignorePatterns": [
+    "dist",
+    ".eslintrc.cjs",
+    "node_modules",
+    "config/**/*.ts",
+    "e2e/**/*.ts",
+    "playwright.config.ts",
+    "scripts/**/*.ts"
+  ],
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "ecmaVersion": "latest",
+    "sourceType": "module",
+    "project": ["./tsconfig.json", "./tsconfig.node.json"]
+  },
+  "plugins": ["react-refresh", "@typescript-eslint", "import", "react"],
+  "settings": {
+    "react": {
+      "version": "detect"
+    },
+    "import/resolver": {
+      "typescript": {},
+      "node": {
+        "extensions": [".js", ".jsx", ".ts", ".tsx"]
+      }
+    }
+  },
+  "rules": {
+    "react-refresh/only-export-components": "warn",
+    "react/react-in-jsx-scope": "off",
+    "react/prop-types": "off",
+    "react/display-name": "off",
+    "react/no-unescaped-entities": "warn",
+    "@typescript-eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/no-empty-interface": "off",
+    "@typescript-eslint/no-empty-object-type": "warn",
+    "@typescript-eslint/ban-ts-comment": "warn",
+    "import/no-unresolved": "warn",
+    "import/export": "warn",
+    "no-case-declarations": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["*.config.ts", "*.config.js", "vite.config.ts", "postcss.config.ts", "tailwind.config.ts"],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off",
+        "@typescript-eslint/no-unused-vars": "off",
+        "import/no-unresolved": "off"
+      }
+    },
+    {
+      "files": ["*.test.ts", "*.test.tsx", "src/test/**/*"],
+      "rules": {
+        "import/no-unresolved": "off"
+      }
+    },
+    {
+      "files": ["src/features/*/index.ts"],
+      "rules": {
+        "import/no-unresolved": "off"
+      }
+    },
+    {
+      "files": [
+        "src/features/expenses/components/NewExpenseModal.tsx",
+        "src/features/analytics/components/AnalyticsPage.tsx",
+        "src/features/expenses/components/MonthlyExpenses.tsx",
+        "src/features/settlements/components/SettlementsPage.tsx"
+      ],
+      "rules": {
+        "@typescript-eslint/no-explicit-any": "off"
+      }
+    }
+  ]
+} 

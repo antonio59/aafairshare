@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAFairShare - Secure Login Link</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #374151;
+      margin: 0;
+      padding: 0;
+      background-color: #f3f4f6;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .email-wrapper {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 32px;
+      margin: 20px auto;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .logo {
+      background-color: #e11d48;
+      color: white;
+      padding: 12px 24px;
+      border-radius: 8px;
+      display: inline-block;
+      font-weight: bold;
+      font-size: 24px;
+      margin-bottom: 24px;
+    }
+    h1 {
+      color: #111827;
+      font-size: 24px;
+      margin-bottom: 16px;
+      font-weight: bold;
+    }
+    p {
+      margin-bottom: 16px;
+      color: #4b5563;
+    }
+    .button {
+      display: inline-block;
+      background-color: #e11d48;
+      color: #ffffff;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 500;
+      margin: 16px 0;
+    }
+    .button:hover {
+      background-color: #be123c;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 32px;
+      padding-top: 16px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 14px;
+      color: #6b7280;
+    }
+    .security-note {
+      background-color: #f3f4f6;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin-top: 24px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="email-wrapper">
+      <div class="logo">
+        AAFairShare
+      </div>
+      
+      <h1>Login to AAFairShare</h1>
+      
+      <p>Click the button below to securely log in to your AAFairShare account. This link is valid for one-time use only.</p>
+      
+      <p>
+        <a href="{{ .ConfirmationURL }}" class="button">
+          Secure Login
+        </a>
+      </p>
+      
+      <div class="security-note">
+        <p style="margin: 0;">
+          <strong>Security Note:</strong><br>
+          • This login link will expire in 24 hours<br>
+          • If you didn't request this login link, please ignore this email<br>
+          • For security, never forward this email to anyone
+        </p>
+      </div>
+      
+      <div class="footer">
+        <p>
+          AAFairShare - The simple way to manage shared expenses<br>
+          Need help? Contact support@aafairshare.com
+        </p>
+      </div>
+    </div>
+  </div>
+</body>
+</html> 

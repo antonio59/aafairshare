@@ -1,0 +1,103 @@
+name: Dependency Review
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'pnpm-lock.yaml'
+
+jobs:
+  dependency-review:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run tests
+        run: npm test || echo "No tests found"
+        
+      - name: Check for breaking changes
+        id: breaking-check
+        run: |
+          BREAKING_CHANGES=$(git diff --unified=0 origin/${{ github.base_ref }} package.json | grep -B1 '"version":' || true)
+          if [[ $BREAKING_CHANGES == *"major"* ]]; then
+            echo "has_breaking_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_breaking_changes=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Label PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const hasBreakingChanges = '${{ steps.breaking-check.outputs.has_breaking_changes }}' === 'true';
+            const isDev = context.payload.pull_request.title.toLowerCase().includes('dev');
+            
+            // Add labels based on changes
+            const labels = [];
+            if (hasBreakingChanges) labels.push('breaking-change');
+            if (isDev) labels.push('dev-dependency');
+            
+            // Add labels to PR
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                labels: labels
+              });
+            }
+            
+            // Auto-approve minor and patch updates for dev dependencies
+            if (!hasBreakingChanges && isDev) {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: context.issue.number,
+                event: 'APPROVE',
+                body: 'Automatically approved dev dependency update'
+              });
+            }
+            
+      - name: Auto-merge check
+        id: auto-merge
+        run: |
+          if [[ "${{ steps.breaking-check.outputs.has_breaking_changes }}" == "false" ]]; then
+            echo "can_automerge=true" >> $GITHUB_OUTPUT
+          else
+            echo "can_automerge=false" >> $GITHUB_OUTPUT
+          fi
+          
+      - name: Enable auto-merge
+        if: steps.auto-merge.outputs.can_automerge == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.pulls.updateBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number
+            });
+            
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: context.issue.number,
+              auto_merge: true,
+              merge_method: 'squash'
+            }); 

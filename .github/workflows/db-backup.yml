@@ -1,0 +1,118 @@
+name: Database Backup
+
+# Required secrets for this workflow:
+# - SUPABASE_URL: Supabase project URL
+# - SUPABASE_SERVICE_KEY: Supabase service key for admin access
+# - DB_HOST: Database host address
+# - DB_PORT: Database port
+# - DB_NAME: Database name
+# - DB_USER: Database username
+# - SUPABASE_DB_PASSWORD: Database password
+# - AWS_ACCESS_KEY_ID: AWS access key for S3 access
+# - AWS_SECRET_ACCESS_KEY: AWS secret key for S3 access
+# - AWS_REGION: AWS region for S3 bucket
+# - BACKUP_BUCKET: S3 bucket name for backup storage
+# - SLACK_WEBHOOK: Webhook URL for Slack notifications
+
+on:
+  schedule:
+    # Daily schema backup at 1:00 UTC
+    - cron: '0 1 * * *'
+    # Weekly full backup on Sunday at 2:00 UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      backup_type:
+        description: 'Type of backup to run'
+        required: true
+        default: 'schema'
+        type: choice
+        options:
+          - schema
+          - full
+
+jobs:
+  backup:
+    name: Run Database Backup
+    runs-on: ubuntu-latest
+    environment: production
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Determine backup type
+        id: backup-type
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "type=${{ github.event.inputs.backup_type }}" >> $GITHUB_OUTPUT
+          elif [[ "${{ github.event.schedule }}" == "0 2 * * 0" ]]; then
+            echo "type=full" >> $GITHUB_OUTPUT
+          else
+            echo "type=schema" >> $GITHUB_OUTPUT
+          fi
+      
+      - name: Install Supabase CLI
+        run: npm install -g supabase@latest
+      
+      - name: Run database backup
+        run: |
+          if [[ "${{ steps.backup-type.outputs.type }}" == "full" ]]; then
+            node scripts/db-backup.js --full --output ./backup-output
+          else
+            node scripts/db-backup.js --output ./backup-output
+          fi
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_NAME: ${{ secrets.DB_NAME }}
+          DB_USER: ${{ secrets.DB_USER }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      
+      - name: Upload backup to GitHub
+        uses: actions/upload-artifact@v3
+        with:
+          name: database-backup-${{ steps.backup-type.outputs.type }}-${{ github.run_id }}
+          path: ./backup-output/*.sql
+          retention-days: ${{ steps.backup-type.outputs.type == 'full' && 14 || 7 }}
+          
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+          
+      - name: Copy files to S3
+        run: |
+          BACKUP_TYPE="${{ steps.backup-type.outputs.type }}"
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          
+          aws s3 cp ./backup-output/ s3://${{ secrets.BACKUP_BUCKET }}/database-backups/${BACKUP_TYPE}/ \
+            --recursive \
+            --exclude "*" \
+            --include "*.sql"
+            
+          echo "Database backup ($BACKUP_TYPE) uploaded to S3 successfully"
+          
+      - name: Send notification on failure
+        if: failure()
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: devops-alerts
+          SLACK_COLOR: danger
+          SLACK_TITLE: Database Backup Failed
+          SLACK_MESSAGE: "Database ${{ steps.backup-type.outputs.type }} backup job failed. Please check the logs."
+          SLACK_FOOTER: "GitHub Actions" 

@@ -1,0 +1,45 @@
+name: Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Run unit and integration tests
+        run: npm run test:coverage
+        
+      - name: Run Storybook tests
+        run: npm run test-storybook -- --ci
+        if: success()
+        
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        if: success()
+        
+      - name: Run E2E tests
+        run: npx playwright test
+        if: success()
+        
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v3
+        if: always()
+        
+      - name: Run Lighthouse CI
+        run: npm run test:performance
+        if: success() 
