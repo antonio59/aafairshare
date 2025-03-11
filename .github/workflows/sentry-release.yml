@@ -7,6 +7,7 @@ on:
       - 'docs/**'
       - '*.md'
       - '.github/workflows/snyk-security.yml'
+  workflow_dispatch: # Allow manual triggering
 
 # Add permissions at workflow level
 permissions:
@@ -15,6 +16,7 @@ permissions:
 
 jobs:
   create-sentry-release:
+    name: Create Sentry Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -24,13 +26,42 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20 # Update to latest LTS
           cache: 'npm'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Verify Sentry Configuration
+        id: verify-sentry
+        run: |
+          if [[ -z "${{ secrets.SENTRY_AUTH_TOKEN }}" ]]; then
+            echo "::warning::SENTRY_AUTH_TOKEN is not set in your GitHub repository secrets"
+            echo "SENTRY_CONFIGURED=false" >> $GITHUB_OUTPUT
+            echo "Release will be skipped. To enable Sentry, add your Sentry auth token as a secret."
+            exit 0
+          elif [[ -z "${{ secrets.SENTRY_ORG }}" ]]; then
+            echo "::warning::SENTRY_ORG is not set in your GitHub repository secrets"
+            echo "SENTRY_CONFIGURED=false" >> $GITHUB_OUTPUT
+            echo "Release will be skipped. To enable Sentry, add your Sentry organization as a secret."
+            exit 0
+          elif [[ -z "${{ secrets.SENTRY_PROJECT }}" ]]; then
+            echo "::warning::SENTRY_PROJECT is not set in your GitHub repository secrets"
+            echo "SENTRY_CONFIGURED=false" >> $GITHUB_OUTPUT
+            echo "Release will be skipped. To enable Sentry, add your Sentry project as a secret."
+            exit 0
+          elif [[ -z "${{ secrets.SENTRY_DSN }}" ]]; then
+            echo "::warning::SENTRY_DSN is not set in your GitHub repository secrets"
+            echo "SENTRY_CONFIGURED=false" >> $GITHUB_OUTPUT
+            echo "Release will be skipped. To enable Sentry, add your Sentry DSN as a secret."
+            exit 0
+          else
+            echo "Sentry is properly configured"
+            echo "SENTRY_CONFIGURED=true" >> $GITHUB_OUTPUT
+          fi
+
       - name: Build the application
+        if: steps.verify-sentry.outputs.SENTRY_CONFIGURED == 'true'
         run: |
           echo "Building the application with Sentry configuration"
           npm run build
@@ -40,8 +71,26 @@ jobs:
           VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
           VITE_APP_VERSION: ${{ github.sha }}
 
+      - name: Debug - Check for sourcemaps
+        if: steps.verify-sentry.outputs.SENTRY_CONFIGURED == 'true'
+        run: |
+          echo "Looking for sourcemap files in dist directory:"
+          find ./dist -name "*.map" | head -n 10
+          
+          SOURCEMAP_COUNT=$(find ./dist -name "*.map" | wc -l)
+          if [ "$SOURCEMAP_COUNT" -eq 0 ]; then
+            echo "::warning::No sourcemap files found in the dist directory"
+            echo "SOURCEMAPS_FOUND=false" >> $GITHUB_ENV
+          else
+            echo "Found $SOURCEMAP_COUNT sourcemap files"
+            echo "SOURCEMAPS_FOUND=true" >> $GITHUB_ENV
+          fi
+
       - name: Create Sentry release
+        id: sentry-release
+        if: steps.verify-sentry.outputs.SENTRY_CONFIGURED == 'true'
         uses: getsentry/action-release@v1
+        continue-on-error: true
         env:
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
@@ -49,4 +98,24 @@ jobs:
         with:
           environment: production
           version: ${{ github.sha }}
-          sourcemaps: './dist' 
+          sourcemaps: './dist'
+          
+      - name: Handle Sentry Outcome
+        run: |
+          if [ "${{ steps.verify-sentry.outputs.SENTRY_CONFIGURED }}" != "true" ]; then
+            echo "Sentry release was skipped because Sentry is not configured"
+            echo "To configure Sentry, add the required secrets to your repository"
+            exit 0
+          elif [ "${{ steps.sentry-release.outcome }}" != "success" ]; then
+            if [ "$SOURCEMAPS_FOUND" != "true" ]; then
+              echo "::warning::Sentry release failed, likely because no sourcemaps were found"
+              echo "This may be expected if your build doesn't generate sourcemaps"
+              exit 0
+            else
+              echo "::warning::Sentry release failed for unknown reasons"
+              echo "Check your Sentry configuration and try again"
+              exit 0
+            fi
+          else
+            echo "Sentry release was successful"
+          fi 

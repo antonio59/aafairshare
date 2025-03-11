@@ -1,12 +1,11 @@
-name: Security Scan
+name: Security Scan (DEPRECATED)
+
+# This workflow is deprecated in favor of the more comprehensive snyk-security.yml
+# It is being left in place temporarily for reference but will not run
 
 on:
-  schedule:
-    - cron: '0 0 * * *'  # Run daily at midnight
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch: # Only manual runs for troubleshooting
+  # Removed scheduled and automatic triggers
 
 # Add permissions at workflow level
 permissions:
@@ -16,23 +15,13 @@ permissions:
 
 jobs:
   security:
+    name: Security Scan (Deprecated)
+    # This job will output a warning and exit successfully
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
-        
-      - name: Run npm audit
-        run: npm audit
-        
-      - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }} 
+      - name: Deprecated Workflow Notice
+        run: |
+          echo "⚠️ WARNING: This security workflow is deprecated!"
+          echo "Please use the comprehensive Snyk workflow in snyk-security.yml instead."
+          echo "This workflow will be removed in a future update."
+          exit 0  # Exit successfully to avoid failing the workflow 
