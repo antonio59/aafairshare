@@ -1,8 +1,32 @@
 #!/usr/bin/env node
 
 import { readFileSync, writeFileSync, existsSync } from 'fs';
+import { unlink } from 'fs/promises';
 import { join } from 'path';
 import { execSync, ExecSyncOptions } from 'child_process';
+
+type ErrorWithMessage = {
+  message: string;
+};
+
+function isErrorWithMessage(error: unknown): error is ErrorWithMessage {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'message' in error &&
+    typeof (error as Record<string, unknown>).message === 'string'
+  );
+}
+
+function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
+  if (isErrorWithMessage(maybeError)) return maybeError;
+  
+  try {
+    return new Error(JSON.stringify(maybeError));
+  } catch {
+    return new Error(String(maybeError));
+  }
+}
 
 interface LintFixOptions {
   autoFix: boolean;
@@ -19,10 +43,41 @@ interface FixResult {
 /**
  * Run ESLint with specific options
  */
+function sanitizeCommand(command: string): string {
+  // Ensure command only contains allowed ESLint patterns
+  const allowedCommands = ['npx', 'eslint'];
+  const allowedFlags = ['--ext', '--fix', '--rule', '.ts,.tsx'];
+  const allowedPaths = ['src/'];
+  
+  const parts = command.split(' ').filter(Boolean);
+  
+  // Validate each part of the command
+  for (const part of parts) {
+    const isAllowed = 
+      allowedCommands.includes(part) ||
+      allowedFlags.includes(part) ||
+      allowedPaths.includes(part) ||
+      part.startsWith('"import/order:') ||
+      /\.(ts|tsx)$/.test(part);
+      
+    if (!isAllowed) {
+      throw new Error(`Invalid command part: ${part}`);
+    }
+  }
+  
+  return command;
+}
+
 function runESLint(command: string, description: string): FixResult {
   try {
-    const options: ExecSyncOptions = { stdio: 'inherit' };
-    execSync(command, options);
+    // Sanitize command before execution
+    const sanitizedCommand = sanitizeCommand(command);
+    
+    const options: ExecSyncOptions = { 
+      stdio: 'inherit',
+      shell: '/bin/bash' // Explicitly specify shell
+    };
+    execSync(sanitizedCommand, options);
     return {
       success: true,
       message: `${description} completed successfully`
@@ -124,16 +179,19 @@ async function fixLintIssues(options: LintFixOptions = {
     // Create temporary lint report
     const reportPath = join(process.cwd(), 'temp-lint-report.txt');
     try {
-      execSync(`npx eslint --ext .ts,.tsx src/ > ${reportPath}`, { stdio: 'pipe' });
+      const sanitizedReportCommand = sanitizeCommand('npx eslint --ext .ts,.tsx src/');
+      execSync(`${sanitizedReportCommand} > ${reportPath}`, { 
+        stdio: 'pipe',
+        shell: '/bin/bash'
+      });
       prefixUnusedVariables(reportPath);
     } catch (error) {
-      console.error('Error while fixing unused variables:', 
-        error instanceof Error ? error.message : 'Unknown error'
-      );
+      const errorMessage = toErrorWithMessage(error).message;
+      console.error('Error while fixing unused variables:', errorMessage);
     } finally {
       // Clean up temporary report
       try {
-        execSync(`rm ${reportPath}`, { stdio: 'ignore' });
+        await unlink(reportPath);
       } catch {
         // Ignore cleanup errors
       }
@@ -153,6 +211,7 @@ const options: LintFixOptions = {
 
 // Run the fixes
 fixLintIssues(options).catch(error => {
-  console.error('Unhandled error:', error instanceof Error ? error.message : error);
+  const errorMessage = toErrorWithMessage(error).message;
+  console.error('Unhandled error:', errorMessage);
   process.exit(1);
 });

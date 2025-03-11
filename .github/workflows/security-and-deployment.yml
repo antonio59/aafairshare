@@ -5,6 +5,16 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: '0 0 * * 1' # Run weekly on Mondays
+
+permissions:
+  contents: read
+  security-events: write
+  deployments: write
+  id-token: write
+  actions: read
+  checks: write
 
 env:
   NODE_VERSION: 20.10.0
@@ -26,15 +36,15 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
-      - name: Install Snyk CLI
-        run: npm install -g snyk
-
       - name: Run Snyk scan
-        run: |
-          snyk auth ${{ secrets.SNYK_TOKEN }}
-          snyk test --json --sarif-file-output=snyk.sarif || true
+        uses: snyk/actions/node@master
+        continue-on-error: true
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          args: --all-projects --sarif-file-output=snyk.sarif
+          command: test
+          json: true
 
       - name: Validate SARIF file
         run: |
@@ -72,7 +82,16 @@ jobs:
         run: npm install -g netlify-cli
 
       - name: Deploy to Netlify
-        run: netlify deploy --dir=dist --prod
+        uses: nwtgck/actions-netlify@v2
+        with:
+          publish-dir: './dist'
+          production-branch: main
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          deploy-message: "Production deployment from GitHub Actions"
+          enable-pull-request-comment: false
+          enable-commit-comment: true
+          enable-commit-status: true
         env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }} 
+        timeout-minutes: 5 
