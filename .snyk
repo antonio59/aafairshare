@@ -1,0 +1,34 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+
+# Ignore specific vulnerabilities
+# ignore:
+#   'npm:package-name:20170301':
+#     - 'affected-package > dependency-path':
+#         reason: 'Explanation for ignoring this vulnerability'
+#         expires: '2023-12-31T00:00:00.000Z'
+
+# Patch specific vulnerabilities
+# patch:
+#   'npm:package-name:20170301':
+#     - 'affected-package > dependency-path':
+#         patched: '2023-01-01T00:00:00.000Z'
+
+# Specify paths to scan or exclude from scanning
+exclude:
+  global:
+    - node_modules
+    - dist
+    - .next
+    - 'package-lock.json'
+    - '.git/**'
+
+# Settings for Snyk to use when scanning your project
+# Setting severity-threshold to high will only alert on high severity issues
+# Setting fail-on to all will make the CLI return a non-zero exit code if any issues are found
+# Set org to use a specific organization in Snyk
+cli-args:
+  # severity-threshold: high
+  # fail-on: all
+  json: false
+  all-projects: false 
