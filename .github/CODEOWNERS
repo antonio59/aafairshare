@@ -1,0 +1,19 @@
+# These owners will be the default owners for everything in the repo.
+# Unless a later match takes precedence, they will be requested for
+# review when someone opens a pull request.
+*       @antonio59
+
+# Core app code
+/src/   @antonio59
+
+# Testing files
+/src/test/       @antonio59
+/e2e/           @antonio59
+
+# Documentation
+/docs/          @antonio59
+
+# Configuration files
+*.json          @antonio59
+*.config.ts     @antonio59
+*.config.js     @antonio59 
