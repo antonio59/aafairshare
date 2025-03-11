@@ -43,7 +43,7 @@ jobs:
           fi
           
           # Try to authenticate (will fail if token is not valid)
-          if [ "${{ secrets.SNYK_TOKEN != '' }}" == "true" ]; then
+          if [ -n "${{ secrets.SNYK_TOKEN }}" ]; then
             echo "Attempting to authenticate with Snyk"
             snyk auth ${{ secrets.SNYK_TOKEN }} || echo "Authentication failed with exit code $?"
           fi
