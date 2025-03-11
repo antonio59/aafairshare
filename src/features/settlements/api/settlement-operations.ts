@@ -1,15 +1,15 @@
 import { supabase } from '../../../core/api/supabase';
 import { createLogger } from '../../../core/utils/logger';
 import { MONTHS, formatMonthYear, Month } from '../../../utils/date-utils';
-import { cleanupTimeout, _calculateBackoffDelay, _withRetry } from '../../../utils/retry-utils';
-import { parseNumber, formatDecimal, _safeSum } from '../../../utils/number-utils';
+import { cleanupTimeout, calculateBackoffDelay, withRetry } from '../../../utils/retry-utils';
+import { parseNumber, formatDecimal, safeSum } from '../../../utils/number-utils';
 import { RealtimeChannel, User } from '@supabase/supabase-js';
-import { _DbExpense, 
-  DbSettlement, _DbCategory, _DbLocation, 
-  DbUser, _safeCastOne, _safeCastMany, 
+import { DbExpense, 
+  DbSettlement, DbCategory, DbLocation, 
+  DbUser, safeCastOne, safeCastMany, 
   handleSingleResponse, 
   handleManyResponse,
-  generateSelectString, _formatErrorResponse, _formatSuccessResponse,
+  generateSelectString, formatErrorResponse, formatSuccessResponse,
   createErrorHandler
 } from '../../../core/utils/supabase-helpers';
 
@@ -139,13 +139,13 @@ export async function setupExpenseSubscription(
   onExpenseChange: (payload: ExpenseChangePayload) => Promise<void>
 ): Promise<() => void> {
   try {
-    const { data: { _user } } = await supabase.auth.getUser();
-    if (!_user) {
-      logger.warn('No _user found for subscription');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      logger.warn('No user found for subscription');
       return () => {};
     }
 
-    const channelName = `expenses-changes-${_user.id}-${Date.now()}`;
+    const channelName = `expenses-changes-${user.id}-${Date.now()}`;
     let channel: RealtimeChannel | null = null;
     let retryTimeout: NodeJS.Timeout | null = null;
     let isActive = true;
@@ -265,10 +265,10 @@ export async function calculateUserBalances(
       }
     }
     
-    const { data: { _user } } = await supabase.auth.getUser();
-    if (!_user) throw new Error('No authenticated _user found');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('No authenticated user found');
     
-    logger.info('calculateUserBalances: Starting calculation for user:', _user.id, {
+    logger.info('calculateUserBalances: Starting calculation for user:', user.id, {
       forceRefresh, startDate, endDate, limit, page
     });
     
@@ -329,7 +329,7 @@ export async function calculateUserBalances(
         };
       }
 
-      const isCurrentUserPayer = expense.users?.id === _user.id;
+      const isCurrentUserPayer = expense.users?.id === user.id;
       if (isCurrentUserPayer) {
         expensesByMonth[monthYear].totalPaidByCurrentUser += amount;
       } else {
@@ -357,7 +357,7 @@ export async function calculateUserBalances(
         formattedAmount: formatDecimal(amount),
         category: expense.categories?.category,
         location: expense.locations?.location,
-        paidByName: expense.users?.name || getUserDisplayName(_user),
+        paidByName: expense.users?.name || getUserDisplayName(user),
         isPaidByCurrentUser: isCurrentUserPayer,
         splitAmount: formatDecimal(expense.split_type === 'equal' ? amount / 2 : amount),
         splitType: expense.split_type
@@ -412,7 +412,7 @@ export async function calculateUserBalances(
     
     return result;
   } catch (error) {
-    logger.error('Error calculating _user balances:', error);
+    logger.error('Error calculating user balances:', error);
     throw error;
   }
 }
@@ -425,14 +425,15 @@ export async function createSettlement(
   currency: string = 'GBP'
 ): Promise<Settlement> {
   try {
-    const _user = await getAuthenticatedUser();
+    const user = await getAuthenticatedUser();
     
     // Construct settlement data using DB type
     const settlementData: Omit<DbSettlement, 'id' | 'created_at' | 'updated_at'> = {
-      user_id: _user.id,
+      user_id: user.id,
       month_year: monthYear,
       amount,
-      status: 'pending'
+      status: 'pending',
+      settled_at: null
     };
     
     // Insert settlement using safe type handling
@@ -473,8 +474,8 @@ export async function getUserSettlements(): Promise<{
       return cachedData;
     }
     
-    const { data: { _user } } = await supabase.auth.getUser();
-    if (!_user) throw new Error('User not authenticated');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
     
     const response = await supabase
       .from('settlements')
@@ -506,7 +507,7 @@ export async function getUserSettlements(): Promise<{
     
     return result;
   } catch (error) {
-    logger.error('Error getting _user settlements:', error);
+    logger.error('Error getting user settlements:', error);
     return { settlements: [], settlementsByMonth: {} };
   }
 }
@@ -514,7 +515,7 @@ export async function getUserSettlements(): Promise<{
 export async function markSettlementComplete(settlementId: string): Promise<Settlement> {
   try {
     // Use our getAuthenticatedUser helper
-    const _user = await getAuthenticatedUser();
+    const user = await getAuthenticatedUser();
     
     // Update the settlement status
     const updateData = {
@@ -550,7 +551,7 @@ export async function markSettlementComplete(settlementId: string): Promise<Sett
 }
 
 async function getAuthenticatedUser(): Promise<User> {
-  const { data: { _user } } = await supabase.auth.getUser();
-  if (!_user) throw new Error('User not authenticated');
-  return _user;
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('User not authenticated');
+  return user;
 } 
