@@ -31,34 +31,71 @@ jobs:
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
         
-      - name: Run Snyk scan
+      - name: Debug Environment
+        run: |
+          echo "Node version: $(node -v)"
+          echo "NPM version: $(npm -v)"
+          echo "Current directory: $(pwd)"
+          echo "Repository contents:"
+          ls -la
+          echo "GitHub workspace: ${{ github.workspace }}"
+          echo "GitHub event name: ${{ github.event_name }}"
+          echo "Is Snyk token available: ${{ secrets.SNYK_TOKEN != '' }}"
+        
+      - name: Simple Snyk CLI test
+        id: snyk-cli-test
+        continue-on-error: true
+        run: |
+          # Install Snyk CLI directly
+          npm install -g snyk
+          # Run a simple test to verify CLI functionality
+          snyk --version
+          # Test without actually sending data to Snyk
+          snyk test --json || echo "Snyk CLI test exited with $?"
+        
+      - name: Run Snyk security scan
+        id: snyk-scan
         uses: snyk/actions/node@master
         continue-on-error: true  # Continue even if vulnerabilities are found
         env:
-          # Optional: If SNYK_TOKEN is not set, we'll just warn but not fail
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
           args: --severity-threshold=high
+          
+      - name: Log Snyk scan result
+        run: |
+          echo "Snyk scan completed with outcome: ${{ steps.snyk-scan.outcome }}"
+          echo "Snyk scan conclusion: ${{ steps.snyk-scan.conclusion }}"
+          echo "Exit code referenced in outcome: ${{ steps.snyk-scan.outputs.exit-code || 'not available' }}"
 
-      # Second step - create a "fixed" SARIF file for GitHub Code Scanning
-      - name: Run Snyk to check for vulnerabilities and create GitHub Code Scanning SARIF report
+      - name: Generate SARIF file with debug
+        id: sarif-generation
         uses: snyk/actions/node@master
-        continue-on-error: true  # Continue even if vulnerabilities are found or action fails
+        continue-on-error: true
         with:
           command: test
           args: --sarif-file-output=snyk.sarif
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+          SARIF_DEBUG: "true"  # Enable any available debug for SARIF generation
           
-      # Create minimal SARIF file if Snyk failed to produce one
-      - name: Create minimal SARIF file if needed
+      - name: Check for SARIF file
         id: check-sarif
         run: |
+          echo "Checking for SARIF file..."
           if [ -f "snyk.sarif" ]; then
-            echo "✅ SARIF file was created by Snyk"
-            ls -la snyk.sarif
+            echo "✅ SARIF file exists with size: $(du -h snyk.sarif | cut -f1)"
+            echo "File content sample (first 300 characters):"
+            head -c 300 snyk.sarif
+            echo ""
+            echo "SARIF_EXISTS=true" >> $GITHUB_OUTPUT
           else
-            echo "⚠️ Creating minimal SARIF file as fallback"
+            echo "❌ SARIF file does not exist!"
+            echo "Directory contents:"
+            ls -la
+            echo "SARIF_EXISTS=false" >> $GITHUB_OUTPUT
+            
+            # Create minimal SARIF as fallback
             echo '{
               "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
               "version": "2.1.0",
@@ -66,7 +103,7 @@ jobs:
                 {
                   "tool": {
                     "driver": {
-                      "name": "Snyk",
+                      "name": "Snyk Security Scanner",
                       "informationUri": "https://snyk.io",
                       "rules": []
                     }
@@ -75,18 +112,29 @@ jobs:
                 }
               ]
             }' > snyk.sarif
+            echo "Created fallback minimal SARIF file"
           fi
           
-      - name: Upload SARIF file to GitHub
+      - name: Upload SARIF to GitHub
+        id: upload-sarif
+        if: always()
         uses: github/codeql-action/upload-sarif@v3
         continue-on-error: true
         with:
           sarif_file: snyk.sarif
           category: snyk
           
+      - name: Check SARIF upload status
+        run: |
+          echo "SARIF upload outcome: ${{ steps.upload-sarif.outcome }}"
+          echo "SARIF upload conclusion: ${{ steps.upload-sarif.conclusion }}"
+          
       - name: Upload SARIF as artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: snyk-sarif
-          path: snyk.sarif
+          path: |
+            snyk.sarif
+            *.log
           retention-days: 5 
