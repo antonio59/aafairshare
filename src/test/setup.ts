@@ -1,10 +1,15 @@
 import '@testing-library/jest-dom';
 import { expect, afterEach } from 'vitest';
 import { cleanup } from '@testing-library/react';
-import matchers from '@testing-library/jest-dom/matchers';
+import * as matchers from '@testing-library/jest-dom/matchers';
 
 // Extend Vitest's expect with Testing Library matchers
-expect.extend(matchers);
+// Add safety check to handle potential undefined matchers
+if (matchers && typeof matchers === 'object') {
+  expect.extend(matchers);
+} else {
+  console.warn('Test matchers not found or invalid format, skipping extension');
+}
 
 // Clean up after each test
 afterEach(() => {
