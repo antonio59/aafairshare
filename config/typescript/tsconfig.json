@@ -5,19 +5,19 @@
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "types": ["vite/client", "vitest", "@testing-library/jest-dom"],
     "paths": {
-      "@/*": ["../../src/*"],
-      "@components/*": ["../../src/components/*"],
-      "@lib/*": ["../../src/lib/*"],
-      "@utils/*": ["../../src/utils/*"],
-      "@hooks/*": ["../../src/hooks/*"],
-      "@config/*": ["../../config/*"]
+      "@/*": ["./src/*"],
+      "@components/*": ["./src/components/*"],
+      "@lib/*": ["./src/lib/*"],
+      "@utils/*": ["./src/utils/*"],
+      "@hooks/*": ["./src/hooks/*"],
+      "@config/*": ["./config/*"]
     }
   },
   "include": [
-    "../../src/**/*.ts",
-    "../../src/**/*.tsx",
-    "../../tests/**/*.ts",
-    "../../tests/**/*.tsx"
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/**/*.ts",
+    "tests/**/*.tsx"
   ],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 
