@@ -40,8 +40,8 @@ function loadAppConfig(): AppConfig {
       credentials: process.env.SENTRY_AUTH_TOKEN || '',
       environment: process.env.NODE_ENV || 'development',
       release: `v${process.env.npm_package_version || '0.0.0'}`,
-      organization: process.env.SENTRY_ORG || 'antonio59',
-      project: process.env.SENTRY_PROJECT || 'aafairshare',
+      organization: process.env.SENTRY_ORG || 'o4508958675107841',
+      project: process.env.SENTRY_PROJECT || '4508958681661520',
     },
   };
 
