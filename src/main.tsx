@@ -4,10 +4,6 @@ import { App } from './App';
 import './styles/global.css';
 import { supabase } from './core/api/supabase';
 import { reportWebVitals } from './utils/web-vitals';
-import { initSentry } from './core/services/sentry';
-
-// Initialize Sentry (only enabled in production)
-initSentry();
 
 // Add a check for the Supabase connection
 console.log('DEBUG: Testing Supabase connection');

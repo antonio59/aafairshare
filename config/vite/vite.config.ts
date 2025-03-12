@@ -8,8 +8,6 @@ const rootDir = path.resolve(__dirname, '../..');
 
 // Config file paths
 const POSTCSS_CONFIG_PATH = path.resolve(rootDir, 'config/postcss.config.ts');
-const TAILWIND_CONFIG_PATH = path.resolve(rootDir, 'config/tailwind.config.ts');
-// Tailwind config should be referenced in postcss.config.ts
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -17,10 +15,6 @@ export default defineConfig({
   plugins: [react()],
   css: {
     postcss: POSTCSS_CONFIG_PATH,
-    modules: {
-      localsConvention: 'camelCase',
-      generateScopedName: '[local]_[hash:base64:5]'
-    }
   },
   build: {
     outDir: 'dist',
