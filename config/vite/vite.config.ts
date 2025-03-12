@@ -15,6 +15,7 @@ const TAILWIND_CONFIG_PATH = path.resolve(__dirname, '../tailwind/tailwind.confi
 // https://vitejs.dev/config/
 export default defineConfig({
   root: rootDir,
+  base: './',
   plugins: [
     react({
       include: '**/*.{jsx,tsx}',
@@ -25,17 +26,16 @@ export default defineConfig({
     tsconfigPaths()
   ],
   resolve: {
-    alias: {
-      '@': path.resolve(rootDir, 'src'),
-      '@features': path.resolve(rootDir, 'src/features'),
-      '@core': path.resolve(rootDir, 'src/core'),
-      '@components': path.resolve(rootDir, 'src/components'),
-      '@lib': path.resolve(rootDir, 'src/lib'),
-      '@utils': path.resolve(rootDir, 'src/utils'),
-      '@hooks': path.resolve(rootDir, 'src/hooks'),
-      '@config': path.resolve(rootDir, 'config')
-    },
-    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
+    alias: [
+      { find: '@', replacement: path.resolve(rootDir, 'src') },
+      { find: '@features', replacement: path.resolve(rootDir, 'src/features') },
+      { find: '@core', replacement: path.resolve(rootDir, 'src/core') },
+      { find: '@components', replacement: path.resolve(rootDir, 'src/components') },
+      { find: '@lib', replacement: path.resolve(rootDir, 'src/lib') },
+      { find: '@utils', replacement: path.resolve(rootDir, 'src/utils') },
+      { find: '@hooks', replacement: path.resolve(rootDir, 'src/hooks') },
+      { find: '@config', replacement: path.resolve(rootDir, 'config') }
+    ]
   },
   css: {
     modules: {
@@ -43,27 +43,18 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: path.resolve(rootDir, 'dist'),
+    outDir: 'dist',
+    assetsDir: 'assets',
     sourcemap: true,
     target: 'esnext',
     minify: 'terser',
     rollupOptions: {
-      input: path.resolve(rootDir, 'index.html'),
+      input: {
+        main: path.resolve(rootDir, 'index.html')
+      },
       external: [],
       output: {
-        manualChunks: (id) => {
-          if (id.includes('node_modules')) {
-            if (id.includes('react')) return 'react-vendor';
-            if (id.includes('@supabase')) return 'supabase-vendor';
-            return 'vendor';
-          }
-          if (id.includes('.worker.')) return 'workers';
-          if (id.includes('features/')) return 'features';
-          if (id.includes('core/')) return 'core';
-          return null;
-        },
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash][extname]'
+        manualChunks: undefined
       }
     },
     terserOptions: {
@@ -89,12 +80,7 @@ export default defineConfig({
     'process.env': {}
   },
   optimizeDeps: {
-    include: ['@supabase/supabase-js'],
-    esbuildOptions: {
-      define: {
-        global: 'globalThis'
-      }
-    }
+    include: ['@supabase/supabase-js']
   },
   esbuild: {
     loader: 'tsx',
