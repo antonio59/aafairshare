@@ -10,7 +10,7 @@
     "dev": "vite",
     "dev:clean": "rm -rf node_modules/.vite && NODE_ENV=development ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
-    "build": "node scripts/build.js",
+    "build": "vite build && node scripts/sentry-release.js",
     "preview": "vite preview",
     "security:audit": "npm audit --json > npm-audit.json || true",
     "security:fix": "npm audit fix",
