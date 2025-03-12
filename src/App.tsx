@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Header, Footer } from '@features/shared/components';
+import { Header, Footer } from '@features/shared/components/index';
 import { MonthlyExpenses, NewExpenseModal } from '@features/expenses/components';
 import ExpenseDetailPage from '@features/expenses/components/ExpenseDetailPage';
 import { SettlementsPage } from '@features/settlements/components';

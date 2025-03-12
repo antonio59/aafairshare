@@ -22,19 +22,22 @@ export default defineConfig({
         plugins: ['@babel/plugin-transform-react-jsx']
       }
     }),
-    tsconfigPaths()
+    tsconfigPaths({
+      projects: [path.resolve(rootDir, 'tsconfig.json')]
+    })
   ],
   resolve: {
-    alias: {
-      '@': path.resolve(rootDir, './src'),
-      '@features': path.resolve(rootDir, './src/features'),
-      '@core': path.resolve(rootDir, './src/core'),
-      '@components': path.resolve(rootDir, './src/components'),
-      '@lib': path.resolve(rootDir, './src/lib'),
-      '@utils': path.resolve(rootDir, './src/utils'),
-      '@hooks': path.resolve(rootDir, './src/hooks'),
-      '@config': path.resolve(rootDir, './config')
-    }
+    alias: [
+      { find: '@', replacement: path.resolve(rootDir, 'src') },
+      { find: '@features', replacement: path.resolve(rootDir, 'src/features') },
+      { find: '@core', replacement: path.resolve(rootDir, 'src/core') },
+      { find: '@components', replacement: path.resolve(rootDir, 'src/components') },
+      { find: '@lib', replacement: path.resolve(rootDir, 'src/lib') },
+      { find: '@utils', replacement: path.resolve(rootDir, 'src/utils') },
+      { find: '@hooks', replacement: path.resolve(rootDir, 'src/hooks') },
+      { find: '@config', replacement: path.resolve(rootDir, 'config') }
+    ],
+    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
   },
   css: {
     modules: {
