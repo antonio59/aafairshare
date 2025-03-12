@@ -18,15 +18,19 @@ async function validateEnvironment() {
       }
     });
   } catch (error) {
-    throw new Error('Failed to verify Sentry project access. Please check your credentials and project configuration.');
+    console.warn('Warning: Could not verify Sentry project access (this is expected in Vercel)');
   }
 }
 
 async function createRelease() {
   try {
-    validateEnvironment();
+    await validateEnvironment();
 
-    const version = process.env.VITE_APP_VERSION || `1.0.0-${Date.now()}`;
+    // Use commit SHA if available (Vercel provides this)
+    const version = process.env.VERCEL_GIT_COMMIT_SHA || 
+                   process.env.VITE_APP_VERSION || 
+                   `1.0.0-${Date.now()}`;
+
     console.log(`Creating Sentry release ${version}...`);
 
     // Create a new release
@@ -40,7 +44,9 @@ async function createRelease() {
 
     // Associate commits with the release
     try {
-      const commit = execSync('git rev-parse HEAD').toString().trim();
+      const commit = process.env.VERCEL_GIT_COMMIT_SHA || 
+                    execSync('git rev-parse HEAD').toString().trim();
+      
       execSync(
         `./node_modules/.bin/sentry-cli releases set-commits "${version}" --commit "${process.env.SENTRY_ORG}/${process.env.SENTRY_PROJECT}@${commit}"`,
         { stdio: 'inherit' }
