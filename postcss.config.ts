@@ -1,1 +1,1 @@
-config/postcss.config.ts
+config/postcss/postcss.config.ts

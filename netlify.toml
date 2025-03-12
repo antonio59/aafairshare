@@ -1,5 +1,5 @@
 [build]
-  command = "node -e \"const fs=require('fs'); ['dist', 'netlify/functions-dist', 'playwright-report', 'test-results'].forEach(dir => fs.mkdirSync(dir, {recursive:true}));\" && npx tsc -p tsconfig.netlify.json && npx vite build"
+  command = "tsx netlify/plugins/setup-directories.ts && npx tsc -p tsconfig.netlify.json && npx vite build"
   publish = "dist"
   functions = "netlify/functions-dist"
 

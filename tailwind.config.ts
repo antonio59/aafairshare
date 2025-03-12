@@ -1,1 +1,1 @@
-config/tailwind.config.ts
+config/tailwind/tailwind.config.ts
