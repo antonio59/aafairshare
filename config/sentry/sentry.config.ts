@@ -1,6 +1,6 @@
 /**
- * Sentry Configuration
- * This module exports configuration for Sentry error tracking
+ * Sentry Configuration Module
+ * Provides type-safe configuration for Sentry error tracking
  */
 
 interface SentryConfig {
@@ -17,58 +17,62 @@ interface SentryAuthConfig {
   project: string;
 }
 
+interface AppConfig {
+  monitoring: {
+    endpoint: string;
+    credentials: string;
+    environment: string;
+    release: string;
+    organization: string;
+    project: string;
+  };
+}
+
 /**
- * Load and validate environment variables
- * @returns Validated environment configuration
+ * Load and validate application configuration
+ * @returns Validated configuration
+ * @throws Error if required variables are missing
  */
-function loadEnvironment() {
-  // Required environment variables
-  const requiredVars = {
-    dsn: process.env.VITE_SENTRY_DSN,
-    token: process.env.SENTRY_AUTH_TOKEN,
+function loadAppConfig(): AppConfig {
+  const config: AppConfig = {
+    monitoring: {
+      endpoint: process.env.VITE_APP_MONITORING_DSN || '',
+      credentials: process.env.APP_MONITORING_TOKEN || '',
+      environment: process.env.NODE_ENV || 'development',
+      release: `v${process.env.npm_package_version || '0.0.0'}`,
+      organization: process.env.SENTRY_ORG || 'antonio59',
+      project: process.env.SENTRY_PROJECT || 'aafairshare',
+    },
   };
 
-  // Optional environment variables with defaults
-  const optionalVars = {
-    NODE_ENV: process.env.NODE_ENV || 'development',
-    ORG_ID: process.env.SENTRY_ORG || 'antonio59',
-    PROJECT_ID: process.env.SENTRY_PROJECT || 'aafairshare',
-    APP_VERSION: process.env.npm_package_version || '0.0.0',
-  };
-
-  // Validate required variables
-  const missingVars = Object.entries(requiredVars)
-    .filter(([_, value]) => !value)
-    .map(([key]) => key);
+  const { monitoring } = config;
+  const missingVars = ['endpoint', 'credentials']
+    .filter(key => !monitoring[key as keyof Pick<typeof monitoring, 'endpoint' | 'credentials'>]);
 
   if (missingVars.length > 0) {
     throw new Error(
-      `Missing required environment variables:\n${missingVars.map(v => `  - ${v}`).join('\n')}`
+      `Missing required monitoring variables:\n${missingVars.map(v => `  - ${v}`).join('\n')}`
     );
   }
 
-  // Combine and return validated environment
-  return {
-    ...requiredVars,
-    ...optionalVars,
-  } as const;
+  return config;
 }
 
-// Load and validate environment
-const env = loadEnvironment();
+// Load and validate configuration
+const config = loadAppConfig();
 
 // Base Sentry configuration
 export const sentryConfig: SentryConfig = {
-  dsn: env.dsn!,
-  environment: env.NODE_ENV,
-  release: `v${env.APP_VERSION}`,
+  dsn: config.monitoring.endpoint,
+  environment: config.monitoring.environment,
+  release: config.monitoring.release,
   tracesSampleRate: 1.0,
   attachStacktrace: true,
 };
 
 // Sentry authentication configuration
 export const sentryAuthConfig: SentryAuthConfig = {
-  authToken: env.token!,
-  org: env.ORG_ID,
-  project: env.PROJECT_ID,
+  authToken: config.monitoring.credentials,
+  org: config.monitoring.organization,
+  project: config.monitoring.project,
 };
