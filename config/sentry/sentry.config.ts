@@ -13,8 +13,9 @@ interface SentryConfig {
 
 interface SentryAuthConfig {
   authToken: string;
-  org: string;
-  project: string;
+  orgSlug: string;
+  projectSlug: string;
+  projectId: string;
 }
 
 interface AppConfig {
@@ -40,8 +41,8 @@ function loadAppConfig(): AppConfig {
       credentials: process.env.SENTRY_AUTH_TOKEN || '',
       environment: process.env.NODE_ENV || 'development',
       release: `v${process.env.npm_package_version || '0.0.0'}`,
-      organization: process.env.SENTRY_ORG || 'o4508958675107841',
-      project: process.env.SENTRY_PROJECT || '4508958681661520',
+      organization: process.env.SENTRY_ORG || 'antonio59',
+      project: process.env.SENTRY_PROJECT || 'aafairshare',
     },
   };
 
@@ -73,6 +74,7 @@ export const sentryConfig: SentryConfig = {
 // Sentry authentication configuration
 export const sentryAuthConfig: SentryAuthConfig = {
   authToken: config.monitoring.credentials,
-  org: config.monitoring.organization,
-  project: config.monitoring.project,
+  orgSlug: config.monitoring.organization,
+  projectSlug: config.monitoring.project,
+  projectId: '4508958681661520',
 };

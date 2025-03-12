@@ -4,7 +4,7 @@ import { sentryConfig, sentryAuthConfig } from '../config/sentry/sentry.config';
 
 interface ReleaseOptions {
   version: string;
-  projects: string[];
+  projectSlugs: string[];
   environment: string;
 }
 
@@ -44,7 +44,7 @@ function executeCommand(command: string): CommandResult {
  * @param options - Release configuration options
  */
 async function createSentryRelease(options: ReleaseOptions): Promise<void> {
-  const { version, projects, environment } = options;
+  const { version, projectSlugs, environment } = options;
 
   try {
     // Validate Sentry configuration
@@ -74,7 +74,7 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
 
     // Set commits for the release
     const setCommitsResult = executeCommand(
-      `npx @sentry/cli releases set-commits ${version} --commit "o4508958675107841/4508958681661520@${commitHash}"`
+      `npx @sentry/cli releases set-commits ${version} --commit "antonio59/aafairshare@${commitHash}"`
     );
     if (!setCommitsResult.success) {
       throw new Error('Failed to set commits for release');
@@ -82,8 +82,8 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
 
     // Associate release with projects
     const deployResults = await Promise.all(
-      projects.map(project =>
-        executeCommand(`npx @sentry/cli releases deploys ${version} new -e ${environment} -p ${project}`)
+      projectSlugs.map(projectSlug =>
+        executeCommand(`npx @sentry/cli releases deploys ${version} new -e ${environment} -p ${projectSlug}`)
       )
     );
 
@@ -95,7 +95,7 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
     console.log(`✅ Successfully created Sentry release ${version}`);
     console.log(`   Environment: ${environment}`);
     console.log(`   Commit: ${commitHash}`);
-    console.log(`   Projects: ${projects.join(', ')}`);
+    console.log(`   Projects: ${projectSlugs.join(', ')}`);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -110,6 +110,6 @@ const packageVersion = process.env.npm_package_version || '1.0.0';
 // Create the release
 createSentryRelease({
   version: `v${packageVersion}`,
-  projects: ['4508958681661520'],
+  projectSlugs: ['aafairshare'],
   environment: process.env.NODE_ENV || 'production',
 }).catch(console.error);
