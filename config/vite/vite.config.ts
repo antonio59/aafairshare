@@ -3,6 +3,7 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import tsconfigPaths from 'vite-tsconfig-paths';
 
 const rootDir = path.resolve(__dirname, '../..');
 
@@ -14,7 +15,22 @@ const TAILWIND_CONFIG_PATH = path.resolve(__dirname, '../tailwind/tailwind.confi
 // https://vitejs.dev/config/
 export default defineConfig({
   root: rootDir,
-  plugins: [react()],
+  plugins: [
+    react(),
+    tsconfigPaths()
+  ],
+  resolve: {
+    alias: {
+      '@': path.resolve(rootDir, 'src'),
+      '@core': path.resolve(rootDir, 'src/core'),
+      '@features': path.resolve(rootDir, 'src/features'),
+      '@components': path.resolve(rootDir, 'src/components'),
+      '@lib': path.resolve(rootDir, 'src/lib'),
+      '@utils': path.resolve(rootDir, 'src/utils'),
+      '@hooks': path.resolve(rootDir, 'src/hooks'),
+      '@config': path.resolve(rootDir, 'config')
+    }
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
