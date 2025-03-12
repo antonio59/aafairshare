@@ -22,10 +22,16 @@ export default defineConfig({
     tsconfigPaths()
   ],
   resolve: {
-    alias: {
-      '@': path.resolve(__dirname, '../../src')
-    },
-    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
+    alias: [
+      { find: '@', replacement: path.resolve(__dirname, '../../src') },
+      { find: '@features', replacement: path.resolve(__dirname, '../../src/features') },
+      { find: '@core', replacement: path.resolve(__dirname, '../../src/core') },
+      { find: '@components', replacement: path.resolve(__dirname, '../../src/components') },
+      { find: '@lib', replacement: path.resolve(__dirname, '../../src/lib') },
+      { find: '@utils', replacement: path.resolve(__dirname, '../../src/utils') },
+      { find: '@hooks', replacement: path.resolve(__dirname, '../../src/hooks') },
+      { find: '@config', replacement: path.resolve(__dirname, '../../config') }
+    ]
   },
   css: {
     modules: {
@@ -37,7 +43,7 @@ export default defineConfig({
     target: 'esnext',
     minify: 'terser',
     rollupOptions: {
-      external: process.env.NODE_ENV === 'production' ? [] : undefined,
+      external: [],
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
