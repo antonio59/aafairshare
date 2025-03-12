@@ -1,6 +1,6 @@
 import { execSync } from 'child_process';
 
-async function runCommand(command: string, ignoreError = false) {
+async function runCommand(command, ignoreError = false) {
   try {
     console.log(`Running: ${command}`);
     execSync(command, { 
