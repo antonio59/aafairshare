@@ -323,7 +323,7 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
         location_id: locationId,
         // Add support for multiple locations
         locations: selectedLocations,
-        paid_by: user.id,
+        paid_by: user?.id,
         split_type: selectedSplitType
       };
 
@@ -373,13 +373,23 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
           onClose();
         }, 1500);
       } else {
+        // This should no longer be needed since createExpense now throws errors
+        // for null results, but keeping as a fallback
+        console.warn('Operation succeeded but returned no data');
         throw new Error(`Failed to ${expenseToEdit ? 'update' : 'create'} expense: No success response received`);
       }
     } catch (err) {
       const error = err as Error;
       console.error('Error creating/updating expense:', error);
+      
       // Provide more specific error message
       let errorMessage = error.message || `Failed to ${expenseToEdit ? 'update' : 'create'} expense. Please try again.`;
+      
+      // Handle authentication errors specially
+      if (errorMessage.includes('Authentication error')) {
+        console.warn('Authentication issue detected');
+        errorMessage = 'Your session may have expired. Please refresh the page and try again.';
+      }
       
       // Check for database-specific errors
       if ((error as any).code === 'PGRST204') {
@@ -389,7 +399,6 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
       setError(errorMessage);
     } finally {
       setLoading(false);
-      console.log('Form submission completed');
     }
   };
 

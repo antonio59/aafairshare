@@ -1212,6 +1212,14 @@ export const getExpenseAnalytics = async (startDate: string, endDate: string) =>
 export async function createExpense(expense: ExpenseCreate): Promise<Expense | null> {
   try {
     console.log('Creating expense:', expense);
+    
+    // Check authentication first to avoid unnecessary processing
+    const { data: authData } = await supabase.auth.getUser();
+    if (!authData?.user) {
+      console.error('Authentication error: User not authenticated');
+      throw new Error('Authentication error: Please sign in again');
+    }
+    
     const result = await createNewExpense(expense);
     
     // Ensure we invalidate the cache on data change
@@ -1223,12 +1231,22 @@ export async function createExpense(expense: ExpenseCreate): Promise<Expense | n
       console.log('Expense created successfully:', result.id);
     } else {
       console.warn('Expense creation returned null');
+      // Throw a specific error for null result to provide better debugging
+      throw new Error('Expense creation failed: No expense data returned from server');
     }
     
     return result;
   } catch (error) {
-    logger.error('Error creating expense:', error);
-    return null;
+    // Convert error to a proper type
+    const err = error as Error;
+    // Log with more detailed information
+    logger.error('Error creating expense:', { 
+      message: err.message, 
+      stack: err.stack,
+      expense: JSON.stringify(expense, null, 2)
+    });
+    // Re-throw the error to allow proper handling in the UI
+    throw error;
   }
 }
 
