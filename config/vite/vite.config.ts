@@ -35,16 +35,8 @@ export default defineConfig({
     sourcemap: true,
     target: 'esnext',
     minify: 'terser',
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true
-      }
-    },
     rollupOptions: {
-      input: {
-        main: path.resolve(__dirname, '../../index.html')
-      },
+      external: process.env.NODE_ENV === 'production' ? [] : undefined,
       output: {
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
@@ -59,6 +51,12 @@ export default defineConfig({
         },
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]'
+      }
+    },
+    terserOptions: {
+      compress: {
+        drop_console: process.env.NODE_ENV === 'production',
+        drop_debugger: process.env.NODE_ENV === 'production'
       }
     }
   },
@@ -79,6 +77,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['@supabase/supabase-js'],
+    exclude: [],
     esbuildOptions: {
       define: {
         global: 'globalThis'
