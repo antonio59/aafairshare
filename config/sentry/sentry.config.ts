@@ -9,6 +9,9 @@ interface SentryConfig {
   release: string;
   tracesSampleRate: number;
   attachStacktrace: boolean;
+  replaysSessionSampleRate: number;
+  replaysOnErrorSampleRate: number;
+  enabled: boolean;
 }
 
 interface SentryAuthConfig {
@@ -69,6 +72,9 @@ export const sentryConfig: SentryConfig = {
   release: config.monitoring.release,
   tracesSampleRate: 1.0,
   attachStacktrace: true,
+  replaysSessionSampleRate: 0.1,
+  replaysOnErrorSampleRate: 1.0,
+  enabled: config.monitoring.environment === 'production',
 };
 
 // Sentry authentication configuration
