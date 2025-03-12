@@ -74,7 +74,7 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
 
     // Set commits for the release
     const setCommitsResult = executeCommand(
-      `npx @sentry/cli releases set-commits ${version} --commit "antonio59/aafairshare@${commitHash}"`
+      `npx @sentry/cli releases set-commits ${version} --commit "o4508958675107841/4508958681661520@${commitHash}"`
     );
     if (!setCommitsResult.success) {
       throw new Error('Failed to set commits for release');
@@ -110,6 +110,6 @@ const packageVersion = process.env.npm_package_version || '1.0.0';
 // Create the release
 createSentryRelease({
   version: `v${packageVersion}`,
-  projects: ['aafairshare-web', 'aafairshare-functions'],
+  projects: ['4508958681661520'],
   environment: process.env.NODE_ENV || 'production',
 }).catch(console.error);
