@@ -2,54 +2,65 @@ import type { Config } from 'tailwindcss';
 import typography from '@tailwindcss/typography';
 import path from 'path';
 
+const rootDir = path.resolve(__dirname, '..');
+
 const config: Config = {
   content: [
-    path.join(__dirname, '../index.html'),
-    path.join(__dirname, '../src/**/*.{js,ts,jsx,tsx}')
+    path.join(rootDir, 'src/**/*.{js,jsx,ts,tsx,html,css}'),
+    path.join(rootDir, 'index.html'),
+    path.join(rootDir, 'src/styles/**/*.{css,scss}'),
+    path.join(rootDir, 'src/features/**/*.{js,jsx,ts,tsx}'),
+    path.join(rootDir, 'src/core/**/*.{js,jsx,ts,tsx}')
   ],
+  darkMode: 'class',
   theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
     extend: {
       colors: {
-        background: '#ffffff',
-        foreground: '#0f172a',
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
         primary: {
-          DEFAULT: '#2563eb',
-          foreground: '#ffffff',
+          DEFAULT: 'hsl(var(--primary))',
+          foreground: 'hsl(var(--primary-foreground))',
         },
         secondary: {
-          DEFAULT: '#6b7280',
-          foreground: '#ffffff',
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
         },
         muted: {
-          DEFAULT: '#f1f5f9',
-          foreground: '#64748b',
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
-          DEFAULT: '#f59e0b',
-          foreground: '#ffffff',
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
         },
-        danger: {
-          DEFAULT: '#dc2626',
-          foreground: '#ffffff',
+        popover: {
+          DEFAULT: 'hsl(var(--popover))',
+          foreground: 'hsl(var(--popover-foreground))',
         },
-        success: {
-          DEFAULT: '#16a34a',
-          foreground: '#ffffff',
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
         },
       },
-      animation: {
-        'scale-in': 'scaleIn 0.2s ease-in-out',
-        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-      },
-      keyframes: {
-        scaleIn: {
-          '0%': { transform: 'scale(0.95)', opacity: '0' },
-          '100%': { transform: 'scale(1)', opacity: '1' },
-        },
-        pulse: {
-          '0%, 100%': { opacity: '1' },
-          '50%': { opacity: '0.7' },
-        },
+      borderRadius: {
+        lg: 'var(--radius)',
+        md: 'calc(var(--radius) - 2px)',
+        sm: 'calc(var(--radius) - 4px)',
       },
     },
   },

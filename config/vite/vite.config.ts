@@ -15,17 +15,30 @@ export default defineConfig({
   plugins: [react()],
   css: {
     postcss: POSTCSS_CONFIG_PATH,
+    devSourcemap: true,
+    modules: {
+      localsConvention: 'camelCase',
+      scopeBehaviour: 'local'
+    }
+  },
+  resolve: {
+    alias: {
+      '@': path.resolve(rootDir, './src')
+    }
   },
   build: {
     outDir: 'dist',
     sourcemap: true,
-    cssCodeSplit: true,
+    cssCodeSplit: false,
     rollupOptions: {
       input: {
         main: path.resolve(rootDir, 'index.html')
       },
       output: {
-        assetFileNames: 'assets/[name]-[hash][extname]',
+        assetFileNames: (assetInfo) => {
+          if (assetInfo.name === 'index.css') return 'assets/index.css';
+          return 'assets/[name]-[hash][extname]';
+        },
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js'
       }
