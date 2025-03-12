@@ -1,0 +1,24 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "types": ["node"],
+    "paths": {
+      "@/*": ["../../src/*"],
+      "@scripts/*": ["../../scripts/*"],
+      "@config/*": ["../../config/*"]
+    }
+  },
+  "include": [
+    "../../scripts/**/*.ts",
+    "../../config/**/*.ts",
+    "../../netlify/**/*.ts",
+    "../../config/vite/vite.config.ts",
+    "../../config/vitest/vitest.config.ts",
+    "../../config/tailwind/tailwind.config.ts",
+    "../../config/postcss/postcss.config.ts"
+  ]
+} 

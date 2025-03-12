@@ -1,0 +1,23 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ESNext"],
+    "types": ["vite/client", "vitest", "@testing-library/jest-dom"],
+    "paths": {
+      "@/*": ["../../src/*"],
+      "@components/*": ["../../src/components/*"],
+      "@lib/*": ["../../src/lib/*"],
+      "@utils/*": ["../../src/utils/*"],
+      "@hooks/*": ["../../src/hooks/*"],
+      "@config/*": ["../../config/*"]
+    }
+  },
+  "include": [
+    "../../src/**/*.ts",
+    "../../src/**/*.tsx",
+    "../../tests/**/*.ts",
+    "../../tests/**/*.tsx"
+  ],
+  "references": [{ "path": "./tsconfig.node.json" }]
+} 
