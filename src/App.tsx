@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Header, Footer } from '@/features/shared/components';
-import { MonthlyExpenses, NewExpenseModal } from '@/features/expenses/components';
-import ExpenseDetailPage from '@/features/expenses/components/ExpenseDetailPage';
-import { SettlementsPage } from '@/features/settlements/components';
-import { AnalyticsPage } from '@/features/analytics/components';
-import { SettingsPage, CategoryManagementPage } from '@/features/settings/components';
-import { AuthPage, ProtectedRoute } from '@/features/auth/components';
-import { AuthProvider } from '@/core/contexts/AuthContext';
-import { CurrencyProvider } from '@/core/contexts/CurrencyContext';
-import { ErrorBoundary } from '@/core/components/ErrorBoundary';
+import { Header, Footer } from '@features/shared/components';
+import { MonthlyExpenses, NewExpenseModal } from '@features/expenses/components';
+import ExpenseDetailPage from '@features/expenses/components/ExpenseDetailPage';
+import { SettlementsPage } from '@features/settlements/components';
+import { AnalyticsPage } from '@features/analytics/components';
+import { SettingsPage, CategoryManagementPage } from '@features/settings/components';
+import { AuthPage, ProtectedRoute } from '@features/auth/components';
+import { AuthProvider } from '@core/contexts/AuthContext';
+import { CurrencyProvider } from '@core/contexts/CurrencyContext';
+import { ErrorBoundary } from '@core/components/ErrorBoundary';
 
 interface AppProps {}
 

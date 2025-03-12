@@ -5,6 +5,8 @@ import react from '@vitejs/plugin-react';
 import path from 'path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
+const rootDir = path.resolve(__dirname, '../..');
+
 // Config file paths
 const POSTCSS_CONFIG_PATH = path.resolve(__dirname, '../postcss/postcss.config.ts');
 const TAILWIND_CONFIG_PATH = path.resolve(__dirname, '../tailwind/tailwind.config.ts');
@@ -12,6 +14,7 @@ const TAILWIND_CONFIG_PATH = path.resolve(__dirname, '../tailwind/tailwind.confi
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  root: rootDir,
   plugins: [
     react({
       include: '**/*.{jsx,tsx}',
@@ -22,16 +25,16 @@ export default defineConfig({
     tsconfigPaths()
   ],
   resolve: {
-    alias: [
-      { find: '@', replacement: path.resolve(__dirname, '../../src') },
-      { find: '@features', replacement: path.resolve(__dirname, '../../src/features') },
-      { find: '@core', replacement: path.resolve(__dirname, '../../src/core') },
-      { find: '@components', replacement: path.resolve(__dirname, '../../src/components') },
-      { find: '@lib', replacement: path.resolve(__dirname, '../../src/lib') },
-      { find: '@utils', replacement: path.resolve(__dirname, '../../src/utils') },
-      { find: '@hooks', replacement: path.resolve(__dirname, '../../src/hooks') },
-      { find: '@config', replacement: path.resolve(__dirname, '../../config') }
-    ]
+    alias: {
+      '@': path.resolve(rootDir, './src'),
+      '@features': path.resolve(rootDir, './src/features'),
+      '@core': path.resolve(rootDir, './src/core'),
+      '@components': path.resolve(rootDir, './src/components'),
+      '@lib': path.resolve(rootDir, './src/lib'),
+      '@utils': path.resolve(rootDir, './src/utils'),
+      '@hooks': path.resolve(rootDir, './src/hooks'),
+      '@config': path.resolve(rootDir, './config')
+    }
   },
   css: {
     modules: {
@@ -39,10 +42,12 @@ export default defineConfig({
     }
   },
   build: {
+    outDir: path.resolve(rootDir, 'dist'),
     sourcemap: true,
     target: 'esnext',
     minify: 'terser',
     rollupOptions: {
+      input: path.resolve(rootDir, 'index.html'),
       external: [],
       output: {
         manualChunks: (id) => {
