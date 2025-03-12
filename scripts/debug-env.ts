@@ -3,8 +3,8 @@
 /**
  * Debug Environment Script
  * 
- * This script outputs information about the current environment
- * to help diagnose build issues on Netlify.
+ * This script helps diagnose build issues by printing
+ * relevant environment information.
  */
 
 import { existsSync, readdirSync } from 'fs';

@@ -17,13 +17,13 @@ version: v1.25.0
 # Specify paths to scan or exclude from scanning
 exclude:
   global:
-    - node_modules
     - dist
+    - build
+    - coverage
+    - node_modules
     - .next
-    - netlify/functions-dist
     - playwright-report
     - test-results
-    - coverage
     - '*.log'
     - '.git/**'
     - '**/*.test.ts'
@@ -41,3 +41,10 @@ cli-args:
   all-projects: true # Scan all projects in the workspace
   strict-out-of-sync: true # Ensure lockfile is in sync with package.json
   target-reference: main # Use main branch as reference for new issues
+
+# New ignore section
+ignore:
+  SNYK-JS-INFLIGHT-6095116:
+    - '*':
+        reason: No direct fix available
+        expires: 2024-12-31T00:00:00.000Z

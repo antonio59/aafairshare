@@ -1,47 +1,36 @@
-# TypeScript Configuration and Best Practices
-
-## Overview
-This project uses TypeScript with a modular configuration structure for enhanced type safety, better code organization, and improved development experience.
+# TypeScript Configuration Guide
 
 ## Configuration Structure
 
 ```
-config/
-├── typescript/
-│   ├── tsconfig.base.json    # Base shared configuration
-│   ├── tsconfig.json         # Main application configuration
-│   ├── tsconfig.node.json    # Node.js scripts configuration
-│   └── tsconfig.netlify.json # Netlify functions configuration
+config/typescript/
+├── tsconfig.json        # Base configuration
+├── tsconfig.node.json   # Node.js specific configuration
+└── tsconfig.app.json    # Application-specific configuration
 ```
 
-### Base Configuration (tsconfig.base.json)
-The base configuration provides shared TypeScript settings used across all configurations:
-- Target: ES2022
-- Module: ESNext
-- Strict type checking enabled
-- Path aliases for consistent imports
-- Common library includes
+## Configurations
 
-### Main Configuration (tsconfig.json)
-Extends the base configuration with React and testing-specific settings:
-- React JSX support
-- Testing library types
-- Source directory includes
-- Component and utility path aliases
+### Base Configuration (tsconfig.json)
+The root configuration that other configs extend from.
 
-### Node.js Configuration (tsconfig.node.json)
-Specialized configuration for Node.js scripts and tooling:
-- Node.js type definitions
-- Script directory includes
-- Build tool configurations
-- Utility script settings
+### Node Configuration (tsconfig.node.json)
+Configuration for Node.js environments and build scripts:
+- Build tools
+- Development scripts
+- Test configurations
 
-### Netlify Configuration (tsconfig.netlify.json)
-Configuration specific to Netlify functions and serverless:
-- Serverless function settings
-- Output directory configuration
-- Node.js runtime settings
-- Function-specific includes
+### Application Configuration (tsconfig.app.json)
+Configuration specific to the React application:
+- React/JSX settings
+- Module resolution
+- Path aliases
+
+## Deployment
+
+- Vercel for deployment
+- Automatic TypeScript compilation
+- Type checking in CI/CD pipeline
 
 ## Path Aliases
 The project uses TypeScript path aliases for better code organization:
@@ -126,7 +115,6 @@ The TypeScript build process is integrated with:
 - Vite for development and production builds
 - Vitest for testing
 - ESLint for linting
-- Netlify for deployment
 
 ## Continuous Integration
 TypeScript checks are part of the CI/CD pipeline:

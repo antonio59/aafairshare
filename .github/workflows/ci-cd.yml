@@ -100,10 +100,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
         
-      - name: Build application
+      - name: Run Tests
+        run: npm run test:ci
+        env:
+          NODE_ENV: test
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+
+      - name: Build
         run: npm run build
         env:
-          NODE_ENV: production
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -120,39 +129,43 @@ jobs:
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
     outputs:
-      deploy_url: ${{ steps.netlify-deploy.outputs.deploy-url }}
+      deploy_url: ${{ steps.vercel-deploy.outputs.preview-url }}
+    environment:
+      name: production
+      url: ${{ steps.vercel-deploy.outputs.preview-url }}
     steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: build-artifacts
-          path: dist
-          
-      - name: Set up environment variables
-        run: |
-          echo "Setting up production environment variables"
-          # Set up any environment-specific configuration here
-        
-      - name: Deploy to Netlify
-        id: netlify-deploy
-        uses: nwtgck/actions-netlify@v2
-        with:
-          publish-dir: './dist'
-          production-branch: main
-          github-token: ${{ github.token }}
-          deploy-message: "Production deployment from GitHub Actions"
-          enable-pull-request-comment: false
-          enable-commit-comment: true
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
         env:
-          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
-        timeout-minutes: 5
+          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+        
+      - name: Deploy to Vercel
+        id: vercel-deploy
+        uses: amondnet/vercel-action@v25
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
+          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
+          working-directory: ./
+          vercel-args: '--prod'
       
       - name: Display deployment URL
         run: |
-          echo "Deployed to Netlify URL: ${{ steps.netlify-deploy.outputs.deploy-url }}"
-          echo "Deployment details URL may be available in the GitHub UI"
-          echo "deploy_url=${{ steps.netlify-deploy.outputs.deploy-url }}" >> $GITHUB_OUTPUT
+          echo "Deployed to Vercel URL: ${{ steps.vercel-deploy.outputs.preview-url }}"
+          echo "deploy_url=${{ steps.vercel-deploy.outputs.preview-url }}" >> $GITHUB_OUTPUT
           
   e2e-tests:
     name: Run E2E Tests
@@ -176,45 +189,27 @@ jobs:
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
       
-      - name: Set production URL
+      - name: Set test URLs
         id: set-url
         run: |
-          # Set the BASE_URL with a default value if the secret is not available
-          if [[ -n "${{ secrets.SITE_URL || '' }}" ]]; then
-            echo "Using configured site URL from secrets"
-            echo "BASE_URL=${{ secrets.SITE_URL || 'https://aafairshare.online' }}" >> $GITHUB_ENV
-          else
-            echo "Using default site URL"
-            echo "BASE_URL=https://aafairshare.online" >> $GITHUB_ENV
-          fi
-          
-          # Set the NETLIFY_URL with a default value if the output is not available
-          if [ -n "${{ needs.deploy-production.outputs.deploy_url }}" ]; then
-            echo "Using Netlify URL from deployment step"
-            echo "NETLIFY_URL=${{ needs.deploy-production.outputs.deploy_url }}" >> $GITHUB_ENV
-          else
-            echo "Using default Netlify URL"
-            echo "NETLIFY_URL=https://aafairshare.netlify.app" >> $GITHUB_ENV
-          fi
-          
-          # Print the URLs for debugging
-          echo "Using BASE_URL: $BASE_URL"
-          echo "Using NETLIFY_URL: $NETLIFY_URL"
+          echo "BASE_URL=https://aafairshare.online" >> $GITHUB_ENV
+          echo "PREVIEW_URL=${{ needs.deploy-production.outputs.deploy_url }}" >> $GITHUB_ENV
       
-      - name: Debug E2E environment 
+      - name: Debug test environment 
         run: |
           echo "Current Environment Variables:"
-          env | grep -E "BASE_URL|NETLIFY_URL|NODE_ENV"
-          echo "Testing connectivity to URL:"
+          env | grep -E "BASE_URL|PREVIEW_URL|NODE_ENV"
+          echo "Testing connectivity to production URL:"
           curl -I $BASE_URL || echo "Failed to connect to BASE_URL"
           
-      - name: Run E2E tests against production
+      - name: Run E2E tests
         run: npx playwright test --retries=2
         env:
           CI: true
-          # Add additional environment variables needed for tests here
+          BASE_URL: ${{ env.BASE_URL }}
+          PREVIEW_URL: ${{ env.PREVIEW_URL }}
       
-      - name: Upload test artifacts even if tests fail
+      - name: Upload test artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:

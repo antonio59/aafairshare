@@ -34,7 +34,7 @@ X-CSRF-Token: UUID v4 token
 ```
 
 ### 3. Content Security Policy
-- **Location**: `netlify.toml`
+- **Location**: `vercel.json`
 - **Implementation**:
 ```ini
 default-src 'self'
@@ -61,6 +61,12 @@ Referrer-Policy: strict-origin-when-cross-origin
 Permissions-Policy: camera=(), microphone=(), geolocation=()
 X-XSS-Protection: 1; mode=block
 ```
+
+## Security Headers
+
+- **Location**: `vercel.json`
+- **Purpose**: Define security headers for all routes
+- **Implementation**: Headers are automatically applied by Vercel Edge
 
 ## Automated Security Checks
 

@@ -18,8 +18,8 @@ Our application uses the following infrastructure:
 
 ### Frontend
 
-- **Hosting**: Netlify
-- **CDN**: Netlify Edge
+- **Hosting**: Vercel
+- **CDN**: Vercel Edge Network
 - **Runtime**: Node.js 20.x
 
 ### Backend
@@ -96,7 +96,7 @@ Environment variables are managed through:
 
 1. **Local Development**: `.env.local` file (not committed to repository)
 2. **CI/CD Pipeline**: GitHub Secrets and Environment variables
-3. **Production**: Netlify Environment variables
+3. **Production**: Vercel Environment variables
 
 See [Environment Configuration Management](./environment-config.md) for details.
 

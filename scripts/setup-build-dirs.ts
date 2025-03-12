@@ -8,92 +8,48 @@
  * and works in all build environments.
  */
 
-import { mkdir, writeFile } from 'fs/promises';
-import { existsSync } from 'fs';
+import { mkdir } from 'fs/promises';
 import { join } from 'path';
 
-interface DirectorySetup {
+interface BuildDirectory {
   path: string;
   description: string;
-  placeholderFile?: {
-    name: string;
-    content: string;
-  };
 }
 
-// Define required directories and their placeholder files
-const directories: DirectorySetup[] = [
-  { 
+const BUILD_DIRECTORIES: BuildDirectory[] = [
+  {
     path: 'dist',
-    description: 'Build output directory'
+    description: 'Main build output directory'
   },
-  { 
-    path: 'netlify/functions-dist',
-    description: 'Netlify Functions build directory'
+  {
+    path: 'coverage',
+    description: 'Test coverage reports'
   },
-  { 
+  {
     path: 'playwright-report',
-    description: 'Playwright test reports',
-    placeholderFile: {
-      name: 'index.html',
-      content: '<html><body><h1>Tests skipped</h1></body></html>'
-    }
+    description: 'Playwright test reports'
   },
-  { 
+  {
     path: 'test-results',
-    description: 'Test results directory',
-    placeholderFile: {
-      name: 'results.json',
-      content: JSON.stringify({ skipped: true, timestamp: new Date().toISOString() })
-    }
+    description: 'Test results output'
   }
 ];
 
-async function setupBuildDirectories(): Promise<void> {
-  const maxRetries = 3;
-  const retryDelay = 1000; // 1 second
-
-  for (const dir of directories) {
-    let attempts = 0;
-    while (attempts < maxRetries) {
-      try {
-        const fullPath = join(process.cwd(), dir.path);
-        
-        // Create directory if it doesn't exist
-        if (!existsSync(fullPath)) {
-          await mkdir(fullPath, { recursive: true });
-          console.log(`✅ Created ${dir.path} (${dir.description})`);
-        } else {
-          console.log(`ℹ️ ${dir.path} already exists`);
-        }
-
-        // Create placeholder file if specified
-        if (dir.placeholderFile) {
-          const filePath = join(fullPath, dir.placeholderFile.name);
-          if (!existsSync(filePath)) {
-            await writeFile(filePath, dir.placeholderFile.content);
-            console.log(`✅ Created placeholder file: ${filePath}`);
-          }
-        }
-
-        break;
-      } catch (error) {
-        attempts++;
-        if (attempts === maxRetries) {
-          console.error(`❌ Failed to setup ${dir.path} after ${maxRetries} attempts`);
-          throw error;
-        }
-        console.log(`Retrying setup of ${dir.path} (attempt ${attempts}/${maxRetries})`);
-        await new Promise(resolve => setTimeout(resolve, retryDelay));
-      }
-    }
+async function createDirectory(dir: BuildDirectory) {
+  try {
+    await mkdir(join(process.cwd(), dir.path), { recursive: true });
+    console.log(`✓ Created ${dir.description}: ${dir.path}`);
+  } catch (error) {
+    console.error(`✗ Failed to create ${dir.path}:`, error);
   }
-
-  console.log('\n🎉 Build directory setup completed successfully');
 }
 
-// Run the directory setup
-setupBuildDirectories().catch(error => {
-  console.error('❌ Fatal error:', error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+async function main() {
+  console.log('Setting up build directories...\n');
+  
+  await Promise.all(BUILD_DIRECTORIES.map(createDirectory));
+  
+  console.log('\nDirectory setup complete! 🎉\n');
+}
+
+main().catch(console.error);

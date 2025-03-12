@@ -94,11 +94,16 @@ When creating GitHub Actions workflows:
 2. Ensure workflows specify the correct environment: `environment: production`
 3. Pass secrets to steps using environment variables or with parameters
 
-### In Netlify
+### In Vercel
 
-1. Go to your Netlify site settings
-2. Navigate to Build & Deploy → Environment
-3. Add environment variables for each environment
+1. Go to your Vercel project settings
+2. Navigate to Settings → Environment Variables
+3. Add the required environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+   - `VITE_SENTRY_DSN`
+4. Choose the environments (Production, Preview, Development)
+5. Click "Save" to apply the changes
 
 ## Runtime Configuration
 

@@ -1,5 +1,5 @@
 {
-  "extends": "./tsconfig.base.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "composite": true,
     "module": "ESNext",
@@ -7,15 +7,14 @@
     "allowSyntheticDefaultImports": true,
     "types": ["node"],
     "paths": {
-      "@/*": ["./src/*"],
-      "@scripts/*": ["./scripts/*"],
-      "@config/*": ["./config/*"]
+      "@/*": ["../../src/*"],
+      "@scripts/*": ["../../scripts/*"],
+      "@config/*": ["../*"]
     }
   },
   "include": [
-    "scripts/**/*.ts",
-    "config/**/*.ts",
-    "netlify/**/*.ts",
-    "e2e/**/*.ts"
+    "../../scripts/**/*.ts",
+    "../**/*.ts",
+    "../../e2e/**/*.ts"
   ]
 } 
