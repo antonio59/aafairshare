@@ -67,7 +67,7 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
     const commitHash = getCommitResult.message.trim();
 
     // Create release using Sentry CLI
-    const createReleaseResult = executeCommand(`npx @sentry/cli releases new ${version}`);
+    const createReleaseResult = executeCommand(`npx @sentry/cli releases new ${version} -p 4508958681661520`);
     if (!createReleaseResult.success) {
       throw new Error('Failed to create Sentry release');
     }
@@ -82,8 +82,8 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
 
     // Associate release with projects
     const deployResults = await Promise.all(
-      projectSlugs.map(projectSlug =>
-        executeCommand(`npx @sentry/cli releases deploys ${version} new -e ${environment} -p ${projectSlug}`)
+      projectSlugs.map(() =>
+        executeCommand(`npx @sentry/cli releases deploys ${version} new -e ${environment} -p 4508958681661520`)
       )
     );
 
