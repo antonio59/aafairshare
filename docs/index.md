@@ -16,6 +16,7 @@ This directory contains detailed technical documentation for the Expense Sharing
 - [performance-testing.md](./performance-testing.md) - Performance testing approaches, tools, and workflow integration.
 
 ### Development
+- [TYPESCRIPT.md](./TYPESCRIPT.md) - TypeScript configuration, best practices, and code organization.
 - [DEVELOPMENT_TOOLS.md](./DEVELOPMENT_TOOLS.md) - Development utilities, scripts, and workflow documentation.
 - [testing-strategy.md](./testing-strategy.md) - Testing strategy and approach.
 - [testing-setup-guide.md](./testing-setup-guide.md) - Detailed setup for testing environment.

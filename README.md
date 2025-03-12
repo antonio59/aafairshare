@@ -12,6 +12,15 @@ This is a React-based expense sharing application built with Vite and Supabase. 
 - npm or pnpm package manager
 - Supabase account and project
 
+## TypeScript Configuration
+This project uses a modular TypeScript configuration for enhanced type safety and better code organization. See [docs/TYPESCRIPT.md](./docs/TYPESCRIPT.md) for detailed documentation.
+
+### Key Features
+- Strict type checking enabled
+- Path aliases for better imports
+- Specialized configs for different contexts
+- Advanced error handling with type guards
+
 ## Environment Variables
 Create a `.env` file in the root directory with the following variables:
 
@@ -40,14 +49,21 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    The project includes several utility scripts to assist with development:
    
    ```bash
-   # Fix TypeScript issues
+   # TypeScript Fixes and Validation
    npm run fix:ts           # Fix all TypeScript issues
    npm run fix:ts:unused    # Fix only unused variables
    npm run fix:ts:comments  # Fix TypeScript comments
    npm run fix:ts:entities  # Fix unescaped entities in JSX
+   
+   # Development and Testing
+   npm run dev              # Start development server
+   npm run test             # Run tests with Vitest
+   npm run build           # Build for production
    ```
    
-   For more information about development tools and scripts, see [docs/DEVELOPMENT_TOOLS.md](./docs/DEVELOPMENT_TOOLS.md).
+   For more information about:
+   - Development tools and scripts: [docs/DEVELOPMENT_TOOLS.md](./docs/DEVELOPMENT_TOOLS.md)
+   - TypeScript configuration: [docs/TYPESCRIPT.md](./docs/TYPESCRIPT.md)
 
 ## Production Deployment
 
