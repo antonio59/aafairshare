@@ -18,29 +18,40 @@ interface SentryAuthConfig {
 }
 
 /**
- * Load environment variables with validation
+ * Load and validate environment variables
  * @returns Validated environment configuration
  */
 function loadEnvironment() {
-  const env = {
-    NODE_ENV: process.env.NODE_ENV || 'development',
+  // Required environment variables
+  const requiredVars = {
     MONITORING_DSN: process.env.VITE_SENTRY_DSN,
     AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+  };
+
+  // Optional environment variables with defaults
+  const optionalVars = {
+    NODE_ENV: process.env.NODE_ENV || 'development',
     ORG_ID: process.env.SENTRY_ORG || 'antonio59',
     PROJECT_ID: process.env.SENTRY_PROJECT || 'aafairshare',
     APP_VERSION: process.env.npm_package_version || '0.0.0',
   };
 
   // Validate required variables
-  const missingVars = Object.entries(env)
-    .filter(([key, value]) => !value && key !== 'NODE_ENV')
+  const missingVars = Object.entries(requiredVars)
+    .filter(([_, value]) => !value)
     .map(([key]) => key);
 
   if (missingVars.length > 0) {
-    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    throw new Error(
+      `Missing required environment variables:\n${missingVars.map(v => `  - ${v}`).join('\n')}`
+    );
   }
 
-  return env;
+  // Combine and return validated environment
+  return {
+    ...requiredVars,
+    ...optionalVars,
+  } as const;
 }
 
 // Load and validate environment
