@@ -10,7 +10,7 @@
     "dev": "vite",
     "dev:clean": "rm -rf node_modules/.vite && NODE_ENV=development ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
-    "build": "ROLLUP_SKIP_NATIVES=true vite build",
+    "build": "vite build",
     "preview": "vite preview",
     "security:audit": "npm audit --json > npm-audit.json || true",
     "security:fix": "npm audit fix",
@@ -53,6 +53,7 @@
     "chart.js": "^4.4.1",
     "dayjs": "^1.11.13",
     "esbuild": "0.25.1",
+    "@esbuild/linux-x64": "0.25.1",
     "glob": "11.0.1",
     "lucide-react": "^0.479.0",
     "pdfkit": "^0.16.0",
@@ -124,5 +125,8 @@
     "ws": "8.18.1",
     "@rollup/rollup-linux-x64-gnu": "4.12.0",
     "rollup": "4.12.0"
+  },
+  "optionalDependencies": {
+    "@esbuild/linux-x64": "0.25.1"
   }
 }

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "ROLLUP_SKIP_NATIVES=true npm run build",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "npm install --force",
+  "installCommand": "npm install",
   "outputDirectory": "dist",
   "framework": "vite",
   "github": {
@@ -46,8 +46,5 @@
       ]
     }
   ],
-  "regions": ["iad1"],
-  "env": {
-    "ROLLUP_SKIP_NATIVES": "true"
-  }
+  "regions": ["iad1"]
 } 
