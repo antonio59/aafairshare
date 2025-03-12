@@ -2,7 +2,7 @@
  * Supabase Import Migration Script
  * 
  * This script migrates deprecated Supabase client imports to the standardized path.
- * For detailed technical documentation, see docs/SUPABASE_MIGRATION.md
+ * For detailed technical documentation, see docs/supabase-migration.md
  * 
  * Usage options: 
  * 1. Using npx: npx tsx scripts/migrations/migrate-supabase-imports.ts

@@ -8,7 +8,7 @@
 #
 # For detailed documentation, see:
 # - README.md (Migration section)
-# - docs/SUPABASE_MIGRATION.md (Technical details)
+# - docs/supabase-migration.md (Technical details)
 # ==============================================
 
 # Get the directory where this script is located
@@ -43,12 +43,12 @@ EXIT_CODE=$?
 if [ $EXIT_CODE -eq 0 ]; then
     echo ""
     echo "✅ Migration completed successfully!"
-    echo "   See docs/SUPABASE_MIGRATION.md for follow-up steps and verification."
+    echo "   See docs/supabase-migration.md for follow-up steps and verification."
 else
     echo ""
     echo "❌ Migration encountered issues (exit code: $EXIT_CODE)."
     echo "   Please check the output above and refer to the troubleshooting"
-    echo "   section in docs/SUPABASE_MIGRATION.md for help."
+    echo "   section in docs/supabase-migration.md for help."
 fi
 
 exit $EXIT_CODE 

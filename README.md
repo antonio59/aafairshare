@@ -13,7 +13,7 @@ This is a React-based expense sharing application built with Vite and Supabase. 
 - Supabase account and project
 
 ## TypeScript Configuration
-This project uses a modular TypeScript configuration for enhanced type safety and better code organization. See [docs/TYPESCRIPT.md](./docs/TYPESCRIPT.md) for detailed documentation.
+This project uses a modular TypeScript configuration for enhanced type safety and better code organization. See [docs/typescript.md](./docs/typescript.md) for detailed documentation.
 
 ### Key Features
 - Strict type checking enabled
@@ -62,38 +62,38 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    ```
    
    For more information about:
-   - Development tools and scripts: [docs/DEVELOPMENT_TOOLS.md](./docs/DEVELOPMENT_TOOLS.md)
-   - TypeScript configuration: [docs/TYPESCRIPT.md](./docs/TYPESCRIPT.md)
+   - Development tools and scripts: [docs/development-tools.md](./docs/development-tools.md)
+   - TypeScript configuration: [docs/typescript.md](./docs/typescript.md)
 
 ## Production Deployment
-
-### Building the Application
-1. Build the production bundle:
-   ```bash
-   npm run build
-   # or
-   pnpm build
-   ```
-
-2. Preview the production build locally:
-   ```bash
-   npm run preview
-   # or
-   pnpm preview
-   ```
 
 ### Vercel Deployment
 The application is configured for deployment on Vercel:
 
-1. Push your code to a Git repository
-2. Import your project to Vercel
-3. Vercel will automatically detect the build settings
-4. Environment variables will be automatically pulled from your Vercel project
+1. Push your code to the GitHub repository
+2. Vercel will automatically deploy from the main branch
+3. Preview deployments are created for pull requests
+4. Production deployments happen automatically on merge to main
 
 ### Environment Variables on Vercel
-Set the following environment variables in Vercel's dashboard:
+Set the following environment variables in your Vercel project settings:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
+- `VITE_SENTRY_DSN`
+
+### Deployment Commands
+```bash
+# Deploy to staging/preview
+npm run deploy:staging
+
+# Deploy to production
+npm run deploy:production
+```
+
+### Automatic Deployments
+- Push to `main` branch triggers production deployment
+- Pull requests create preview deployments
+- All deployments run through CI/CD pipeline with tests
 
 ## Security Best Practices
 
@@ -125,20 +125,9 @@ Set the following environment variables in Vercel's dashboard:
 3. Check Vercel deployment logs for any issues
 4. Monitor application error logs
 
-### Automated Database Backups
-The project uses GitHub Actions for automated database backups:
-- Daily schema-only backups
-- Weekly full database backups
-- Automatic storage in both GitHub Artifacts and S3
-- Error notifications via Slack
+## Data Management
 
-For details on the backup configuration and process, see [docs/DEVELOPMENT_TOOLS.md](./docs/DEVELOPMENT_TOOLS.md#database-backup-workflow).
-
-### Troubleshooting
-1. Check Vercel deployment status and build logs
-2. Verify environment variables are correctly set
-3. Review Supabase database connectivity
-4. Check browser console for client-side errors
+Expenses can be exported directly from the UI in the Settings page. Navigate to Settings > Export Data to download your expense data in CSV format.
 
 ## Support
 For issues and support:
@@ -178,7 +167,7 @@ This application implements comprehensive security measures:
 - Performance monitoring
 - User session replay for critical issues
 
-For detailed security documentation, see [docs/SECURITY.md](./docs/SECURITY.md)
+For detailed security documentation, see [docs/security.md](./docs/security.md)
 For Sentry integration details, see [docs/sentry-integration.md](./docs/sentry-integration.md)
 
 ## Automated Security Monitoring
@@ -204,7 +193,7 @@ npm run security:update
 
 ## Architecture
 
-This application follows a feature-based architecture for better scalability and maintainability. See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed documentation.
+This application follows a feature-based architecture for better scalability and maintainability. See [docs/architecture.md](./docs/architecture.md) for detailed documentation.
 
 ### Key Features
 - **Expenses**: Complete expense management
@@ -228,115 +217,12 @@ scripts/              # Utility scripts
 └── ...              # Other utility scripts
 
 docs/                 # Detailed documentation
-├── ARCHITECTURE.md  # Architecture details
-├── SECURITY.md      # Security implementation
-├── PERFORMANCE_OPTIMIZATIONS.md # Performance details
-└── SUPABASE_MIGRATION.md # Migration guides
+├── architecture.md  # Architecture details
+├── security.md      # Security implementation
+├── performance-optimizations.md # Performance details
+└── supabase-migration.md # Migration guides
 
 config/              # Configuration files
 ├── postcss.config.ts # PostCSS configuration
 └── tailwind.config.ts # Tailwind CSS configuration
 ```
-
-### Feature Organization
-Each feature is self-contained with its own:
-- Components
-- Hooks
-- API integration
-- Utils
-- Types
-```
-
-## Performance Features
-
-### Database Optimizations
-
-- **Strategic Indexing**: Optimized database indexes on frequently queried fields for faster data retrieval
-- **Query Optimization**: Efficient query patterns and parameterized queries for better database performance
-- **Connection Pooling**: Managed database connections for optimal resource utilization
-- **Type Safety**: Updated TypeScript definitions to match the database schema including all tables and indexes
-
-### Background Processing
-
-- **Task Queue System**: Background processing for long-running operations like reports and settlements
-- **Web Workers**: Offloading intensive calculations from the main thread for better UI responsiveness
-- **Progress Tracking**: Real-time progress updates for long-running tasks
-
-### Robustness Features
-
-- **Error Handling**: Comprehensive error handling with fallbacks for all potential failure points
-- **Type Guards**: Custom type validation to ensure data integrity throughout the application
-- **Lifecycle Management**: Careful tracking of component mount state to prevent memory leaks
-- **Request Timeouts**: Protection against unresponsive API calls with configurable timeouts
-- **Progressive Enhancement**: Graceful degradation when advanced features like Web Workers are unavailable
-
-## Maintenance and Migrations
-
-### Supabase Client Migration
-
-The application initially used multiple Supabase client instances, which could cause warnings and potential issues:
-
-```
-WARNING: Using deprecated supabase import from lib/supabase.ts. 
-Update your import to use: import { supabase } from "@/core/api/supabase" instead.
-```
-
-#### Migration Solution
-
-We've implemented a standardized approach to Supabase client usage:
-
-1. **Single Client Instance**: All Supabase operations should use the client from `@/core/api/supabase`
-2. **Backward Compatibility**: The old import path (`lib/supabase`) still works but displays a warning
-3. **Automated Migration**: Scripts are provided to update imports automatically
-
-For detailed documentation on the migration, see [docs/SUPABASE_MIGRATION.md](./docs/SUPABASE_MIGRATION.md).
-
-#### Running the Migration Script
-
-We provide several methods to update imports in your codebase:
-
-**Option 1: Using npm script (easiest)**
-```bash
-npm run migrate:supabase
-```
-
-**Option 2: Using the shell script directly**
-```bash
-# Make the script executable if needed
-chmod +x scripts/migrations/migrate-imports.sh
-
-# Run the migration
-./scripts/migrations/migrate-imports.sh
-```
-
-**Option 3: Running the TypeScript script directly**
-```bash
-# Using npx with tsx
-npx tsx scripts/migrations/migrate-supabase-imports.ts
-
-# Alternatively, using ts-node
-npx ts-node scripts/migrations/migrate-supabase-imports.ts
-```
-
-#### What the Migration Script Does
-
-The migration script:
-1. Scans the codebase for imports using the pattern `import { supabase } from '../lib/supabase'`
-2. Replaces them with the standardized import: `import { supabase } from '@/core/api/supabase'`
-3. Provides a detailed report of changes made
-
-#### Manual Migration Steps
-
-If you prefer to manually update imports:
-
-1. Search the codebase for `from 'lib/supabase'` or `from '../lib/supabase'` patterns
-2. Replace each occurrence with `from '@/core/api/supabase'`
-3. Ensure path aliases are properly configured in your `tsconfig.json`
-
-#### Benefits of Standardized Imports
-
-- Eliminates console warnings
-- Prevents multiple Supabase client instances
-- Reduces potential authentication conflicts
-- Ensures consistent cache management
-- Improves code maintainability

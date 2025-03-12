@@ -125,4 +125,4 @@ Our comprehensive performance testing approach includes:
 
 For more details on our performance testing implementation, see:
 - [Performance Testing Documentation](./performance-testing.md)
-- [Performance Optimizations Documentation](./PERFORMANCE_OPTIMIZATIONS.md) 
+- [Performance Optimizations Documentation](./performance-optimizations.md) 
