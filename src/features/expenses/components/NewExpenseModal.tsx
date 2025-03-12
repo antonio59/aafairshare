@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { X, _Plus, _DollarSign, Calendar, Tag, _MapPin, Users, _Upload, _Search, ChevronUp, ChevronDown, SplitSquareVertical, UserMinus } from 'lucide-react';
-import { useCurrency } from '@/core/contexts/CurrencyContext';
+import { useCurrency } from '../../../core/contexts/CurrencyContext';
 import { createExpense, updateExpense } from '../api/expenseApi';
-import { useAuth } from '@/core/contexts/AuthContext';
-import { supabase } from '@/core/api/supabase';
-import { getCurrentISODate } from '@/features/shared/utils/date-utils';
-import { validateExpense, sanitizeAmount } from '@/features/shared/utils/validation';
-import { useCSRF } from '@/features/shared/utils/csrf';
+import { useAuth } from '../../../core/contexts/AuthContext';
+import { supabase } from '../../../core/api/supabase';
+import { getCurrentISODate } from '../../shared/utils/date-utils';
+import { validateExpense, sanitizeAmount } from '../../shared/utils/validation';
+import { useCSRF } from '../../shared/utils/csrf';
 import LocationCombobox from './LocationCombobox';
 
 interface NewExpenseModalProps {

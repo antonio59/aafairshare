@@ -1,5 +1,5 @@
-import { supabase } from '@/core/api/supabase';
-import { createLogger } from '@/core/utils/logger';
+import { supabase } from '../../../core/api/supabase';
+import { createLogger } from '../../../core/utils/logger';
 import { Database } from '../../../core/types/supabase.types';
 
 // Create a logger for this module
@@ -309,4 +309,4 @@ export const saveBudgetSettings = async (
       updated_at: new Date().toISOString()
     };
   }
-}; 
+};

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/core/api/supabase';
+import { supabase } from '../../../core/api/supabase';
 import { formatMonthYear } from '../../../utils/date-utils';
 
 /**
@@ -141,4 +141,4 @@ export function useSettlementGuard(expenseId: string | null): SettlementGuardRes
   }, [expenseId]);
 
   return { isLoading, isSettled, monthYear, message };
-} 
+}

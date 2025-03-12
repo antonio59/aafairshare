@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, X, Edit, Save, AlertCircle, Check } from 'lucide-react';
-import { supabase } from '@/core/api/supabase';
+import { supabase } from '../../../core/api/supabase';
 
 export const LocationManager = () => {
   const [locations, setLocations] = useState([]);

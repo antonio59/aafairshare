@@ -9,7 +9,7 @@ import { Task, _TaskStatus, taskQueue } from './task-queue';
 import { createLogger } from '@/core/utils/logger';
 import { getExpenseAnalytics } from '@/features/expenses/api/expenseApi';
 import { createSettlement } from '@/features/settlements/api/settlement-operations';
-import { supabase } from '@/core/api/supabase';
+import { supabase } from '../core/api/supabase';
 import { Database } from '@/core/types/supabase.types';
 
 // Create a logger for this module
@@ -564,4 +564,4 @@ async function handleDataImport(task: Task): Promise<any> {
 }
 
 // Initialize handlers when this module is imported
-initializeTaskHandlers(); 
+initializeTaskHandlers();
