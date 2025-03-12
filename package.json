@@ -117,7 +117,6 @@
     "postcss-nesting": "13.0.1",
     "rollup": "4.35.0",
     "serve": "14.2.4",
-    "snyk": "1.1295.4",
     "standard-version": "^9.5.0",
     "storybook": "8.6.4",
     "tailwindcss": "3.4.1",
@@ -130,10 +129,5 @@
     "vitest": "3.0.8",
     "web-vitals": "4.2.4",
     "ws": "8.18.1"
-  },
-  "optionalDependencies": {
-    "@esbuild/linux-x64": "0.25.1",
-    "@rollup/rollup-linux-x64-gnu": "4.35.0",
-    "@rollup/rollup-linux-x64-musl": "4.35.0"
   }
 }
