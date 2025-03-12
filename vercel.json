@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build && npm run sentry:sourcemaps",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "dist",
@@ -8,10 +8,6 @@
   "github": {
     "silent": true,
     "autoAlias": true
-  },
-  "env": {
-    "VITE_SUPABASE_URL": "https://ccwcbnfnvkmwubkuvzns.supabase.co",
-    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjd2NibmZudmttd3Via3V2em5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExMzI0MDcsImV4cCI6MjA1NjcwODQwN30.tgbRreo_VKimkIcs9FvV6Vy1nUaAmLwd8ptwHXmI8GI"
   },
   "rewrites": [
     {
@@ -25,7 +21,7 @@
       "headers": [
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://ccwcbnfnvkmwubkuvzns.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://ccwcbnfnvkmwubkuvzns.supabase.co https://api.exchangerate-api.com; frame-ancestors 'none';"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://ccwcbnfnvkmwubkuvzns.supabase.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://ccwcbnfnvkmwubkuvzns.supabase.co https://api.exchangerate-api.com https://*.ingest.sentry.io; frame-ancestors 'none';"
         },
         {
           "key": "X-Frame-Options",
