@@ -23,7 +23,7 @@ This directory contains detailed technical documentation for the Expense Sharing
 - [testing-readme.md](./testing-readme.md) - Overview of testing structure and practices.
 
 ### Monitoring and Error Tracking
-- [sentry-integration.md](./sentry-integration.md) - Sentry setup, configuration, and usage for error tracking and monitoring.
+- Error tracking is handled through custom error boundaries and logging.
 
 ### Migrations
 - [supabase-migration.md](./supabase-migration.md) - Guide for migrating to the standardized Supabase client approach.

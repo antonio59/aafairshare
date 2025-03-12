@@ -185,7 +185,7 @@ const SettlementBalanceCards: React.FC<SettlementBalanceCardsProps> = ({ balance
       console.log('Calculated total unsettled:', totalUnsettled);
       console.log('Calculated net balance:', netBalance);
     }
-  }, [balances]);
+  }, [balances, calculateTotalUnsettled, calculateNetBalance]);
 
   // Safely calculate values with fallbacks to 0
   const totalUnsettled = calculateTotalUnsettled() || 0;

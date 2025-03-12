@@ -20,6 +20,7 @@
     "security:snyk:monitor": "snyk monitor --all-projects",
     "security:snyk:fix": "snyk wizard",
     "migrate:supabase": "chmod +x ./scripts/migrations/migrate-imports.sh && ./scripts/migrations/migrate-imports.sh",
+    "gen:types": "npx supabase gen types typescript --project-id ccwcbnfnvkmwubkuvzns --schema public > src/core/types/supabase.types.ts",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run --config config/vitest/vitest.config.ts",

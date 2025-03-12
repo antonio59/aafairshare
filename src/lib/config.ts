@@ -14,9 +14,6 @@ interface AppConfig {
   supabaseUrl: string;
   supabaseAnonKey: string;
   apiUrl: string;
-  sentryDsn: string | undefined;
-  sentryEnvironment: string | undefined;
-  sentryTracesSampleRate: number;
   featureFlags: FeatureFlags;
   isProduction: boolean;
   isDevelopment: boolean;
@@ -54,9 +51,6 @@ const config: AppConfig = {
   supabaseUrl: import.meta.env.VITE_SUPABASE_URL,
   supabaseAnonKey: import.meta.env.VITE_SUPABASE_ANON_KEY,
   apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  sentryDsn: import.meta.env.VITE_SENTRY_DSN,
-  sentryEnvironment: import.meta.env.VITE_SENTRY_ENVIRONMENT,
-  sentryTracesSampleRate: Number(import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE || 0.1),
   featureFlags: parseFeatureFlags(),
   isProduction: import.meta.env.VITE_ENVIRONMENT === 'production',
   isDevelopment: import.meta.env.VITE_ENVIRONMENT === 'development',

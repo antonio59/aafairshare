@@ -19,7 +19,6 @@ We use the following environments:
 | `VITE_SUPABASE_URL` | Supabase instance URL | All |
 | `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | All |
 | `VITE_API_URL` | Backend API URL | All |
-| `VITE_SENTRY_DSN` | Sentry error tracking DSN | Staging, Production |
 | `VITE_ENVIRONMENT` | Current environment name | All |
 | `VITE_FEATURE_FLAGS` | Feature flags (JSON string) | All |
 
@@ -71,13 +70,13 @@ The database backup workflow (`.github/workflows/db-backup.yml`) requires the fo
 
 | Secret Name | Description | Used In |
 |-------------|-------------|---------|
-| `SUPABASE_URL` | Supabase project URL | Database backup script |
-| `SUPABASE_SERVICE_KEY` | Supabase service key with admin access | Database backup script |
+| `SB_URL` | Supabase project URL | Database backup script |
+| `SB_SERVICE_KEY` | Supabase service key with admin access | Database backup script |
 | `DB_HOST` | Database host address | Database backup script |
 | `DB_PORT` | Database port | Database backup script |
 | `DB_NAME` | Database name | Database backup script |
 | `DB_USER` | Database username | Database backup script |
-| `SUPABASE_DB_PASSWORD` | Database password | Database backup script |
+| `DB_PASSWORD` | Database password | Database backup script |
 | `AWS_ACCESS_KEY_ID` | AWS access key for S3 access | S3 upload step |
 | `AWS_SECRET_ACCESS_KEY` | AWS secret key for S3 access | S3 upload step |
 | `AWS_REGION` | AWS region for S3 bucket | S3 upload step |
@@ -101,7 +100,6 @@ When creating GitHub Actions workflows:
 3. Add the required environment variables:
    - `VITE_SUPABASE_URL`
    - `VITE_SUPABASE_ANON_KEY`
-   - `VITE_SENTRY_DSN`
 4. Choose the environments (Production, Preview, Development)
 5. Click "Save" to apply the changes
 

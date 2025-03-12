@@ -33,7 +33,6 @@ Our application uses the following infrastructure:
 
 - **CI/CD**: GitHub Actions
 - **Version Control**: Git/GitHub
-- **Monitoring**: Sentry
 - **Backup Storage**: AWS S3
 - **Secret Management**: GitHub Secrets
 
@@ -104,16 +103,16 @@ See [Environment Configuration Management](./environment-config.md) for details.
 
 ### Error Tracking
 
-We use Sentry for error tracking and monitoring:
+We use custom error boundaries and logging for error tracking:
 
-- Real-time error reporting
-- Performance monitoring
-- User session recording for error reproduction
+- Client-side error boundaries for React components
+- Server-side error logging
+- Component-level error handling
 
 Implementation details:
-- Sentry is initialized in `src/lib/sentry.ts`
-- Each environment has its own Sentry project
-- Custom error boundaries wrap critical components
+- Error boundaries are defined in `src/components/error-boundary.tsx`
+- Critical components are wrapped with error boundaries
+- Browser console errors are logged in development
 
 ### Alerting Channels
 

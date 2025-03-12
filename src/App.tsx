@@ -20,7 +20,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/auth';
   const [showNewExpenseModal, setShowNewExpenseModal] = useState<boolean>(false);
-  const [expenseRefreshTrigger, setExpenseRefreshTrigger] = useState<number>(0);
 
   const handleNewExpense = () => {
     console.log('DEBUG: handleNewExpense called');
@@ -40,7 +39,6 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           onClose={() => setShowNewExpenseModal(false)}
           onExpenseCreated={() => {
             setShowNewExpenseModal(false);
-            setExpenseRefreshTrigger(prev => prev + 1);
           }}
         />
       )}
@@ -54,7 +52,6 @@ export const App: React.FC<AppProps> = () => {
   console.log('DEBUG: App component rendering');
   
   const [_isMobile, setIsMobile] = useState<boolean>(false);
-  const [expenseRefreshTrigger, setExpenseRefreshTrigger] = useState<number>(0);
 
   // Check screen size on load and resize
   useEffect(() => {
@@ -98,7 +95,7 @@ export const App: React.FC<AppProps> = () => {
                 <Route path="/" element={
                   <ProtectedRoute>
                     <MonthlyExpenses 
-                      refreshTrigger={expenseRefreshTrigger} 
+                      refreshTrigger={0} 
                       onNewExpense={() => {}} 
                       onViewMore={handleViewAllExpenses} 
                     />

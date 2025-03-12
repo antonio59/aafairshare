@@ -1,15 +1,14 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { _AlertTriangle, _Check } from 'lucide-react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { AlertTriangle, Check } from 'lucide-react';
 import { 
   calculateUserBalances,
-  getUserSettlements, _markSettlementComplete,
+  getUserSettlements,
   createSettlement
 } from '../api/settlement-operations';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { useCurrency } from '../../../core/contexts/CurrencyContext';
-import { ErrorBoundary, _LoadingSpinner, StatusMessage } from '../../shared/components';
+import { ErrorBoundary, StatusMessage } from '../../shared/components';
 import { useErrorHandler } from '../../shared/hooks/useErrorHandler';
-import { _formatDateToUK } from '../../shared/utils/date-utils';
 import { supabase } from '../../../core/api/supabase';
 import SettlementBalanceCards from './SettlementBalanceCards';
 import SettlementList from './SettlementList';
@@ -94,7 +93,7 @@ export default function SettlementsPage() {
     isLoading: loading,
     clearError,
     setError,
-    handleError, _withErrorHandling,
+    handleError,
     setIsLoading
   } = useErrorHandler({ context: 'SettlementsPage' });
   
@@ -104,14 +103,19 @@ export default function SettlementsPage() {
   // Reference to prevent multiple quick submit attempts
   const _isSubmitting = useRef(false);
 
-  useEffect(() => {
-    loadSettlementData();
-  }, [user]);
+  /**
+   * Get settlement details for a month
+   * @param {string} monthYear - Month and year
+   * @returns {object|null} - Settlement details or null
+   */
+  const getSettlementDetails = (monthYear: string) => {
+    return settlements.settlements?.find(s => s.month_year === monthYear) || null;
+  };
 
   /**
    * Load settlements data including balances and partial payments
    */
-  const loadSettlementData = async () => {
+  const loadSettlementData = useCallback(async () => {
     try {
       setIsLoading(true);
       clearError();
@@ -157,7 +161,11 @@ export default function SettlementsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setIsLoading, clearError, setBalances, setSettlements, handleError]);
+
+  useEffect(() => {
+    loadSettlementData();
+  }, [user, loadSettlementData]);
 
   /**
    * Handle settling a month
@@ -208,7 +216,7 @@ export default function SettlementsPage() {
       }
       
       // Call the API to delete the settlement
-      const { _data, error } = await supabase
+      const { error } = await supabase
         .from('settlements')
         .delete()
         .eq('id', settlementDetails.id);
@@ -289,186 +297,4 @@ export default function SettlementsPage() {
     // Month can be settled if it's in the past
     return (year < currentYear) || (year === currentYear && monthIndex < currentMonth);
   };
-
-  /**
-   * Determine if the current user owes money for a month
-   * @param {object} monthData - Month data
-   * @returns {boolean} - Whether the current user owes money
-   */
-  const currentUserOwesForMonth = (monthData: any): boolean => {
-    // If netBalance is negative, the user owes money
-    return monthData.netBalance < 0;
-  };
-
-  /**
-   * Get settlement details for a month
-   * @param {string} monthYear - Month and year
-   * @returns {object|null} - Settlement details or null
-   */
-  const getSettlementDetails = (monthYear: string) => {
-    return settlements.settlements?.find(s => s.month_year === monthYear) || null;
-  };
-
-  /**
-   * Calculate total partial payments for a month
-   * @param {string} monthYear - Month and year
-   * @returns {number} - Total partial payments
-   */
-  const getTotalPartialPayments = (monthYear: string): number => {
-    const payments = partialPayments[monthYear] || [];
-    return payments.reduce((sum: number, payment: any) => sum + parseFloat(payment.amount || 0), 0);
-  };
-
-  /**
-   * Check if month has partial payments
-   * @param {string} monthYear - Month and year
-   * @returns {boolean} - Whether the month has partial payments
-   */
-  const hasPartialPayments = (monthYear: string): boolean => {
-    return partialPayments[monthYear] && partialPayments[monthYear].length > 0;
-  };
-
-  /**
-   * Get remaining amount to pay after partial payments
-   * @param {object} monthData - Month data
-   * @returns {number} - Remaining amount
-   */
-  const getRemainingAmount = (monthData: any): number => {
-    // Ensure we have valid numeric values
-    const ensureNumber = (value: any): number => {
-      if (typeof value === 'number') return value;
-      if (typeof value === 'string') return parseFloat(value) || 0;
-      return 0;
-    };
-    
-    // Calculate total partial payments
-    const totalPartial = getTotalPartialPayments(monthData.month);
-    
-    // Calculate the amount owed (absolute value of netBalance)
-    const netBalance = ensureNumber(monthData.netBalance);
-    const owedAmount = Math.abs(netBalance);
-    
-    // Return the remaining amount (at least 0)
-    return Math.max(0, owedAmount - totalPartial);
-  };
-
-  // Filter active and settled months
-  const activeMonths = balances.monthlyExpenses?.filter(month => 
-    !settlements.settlements?.some(s => 
-      s.month_year === month.month && s.status === 'completed'
-    )
-  ) || [];
-
-  const settledMonths = balances.monthlyExpenses?.filter(month => 
-    settlements.settlements?.some(s => 
-      s.month_year === month.month && s.status === 'completed'
-    )
-  ) || [];
-
-  // Clear success message after 5 seconds
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => {
-        setSuccess('');
-      }, 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
-
-  if (!user) {
-    return (
-      <div className="bg-white rounded-xl p-6 shadow-sm text-center">
-        <p className="text-gray-600">Please log in to view settlements.</p>
-      </div>
-    );
-  }
-
-  return (
-    <ErrorBoundary 
-      fallback={
-        <div className="bg-white rounded-xl p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-gray-800 mb-2">Error Loading Settlements</h2>
-          <p className="text-gray-600 mb-4">We're having trouble loading your settlements data as _data.</p>
-          <button 
-            onClick={() => loadSettlementData()}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Try Again
-          </button>
-        </div>
-      }
-    >
-      <div className="space-y-6">
-        {/* Balance Cards */}
-        <SettlementBalanceCards 
-          balances={balances} 
-          loading={loading} 
-          formatAmount={formatAmount}
-        />
-
-        {/* Success/Error Messages */}
-        {error && (
-          <StatusMessage 
-            type="error" 
-            message={error} 
-            onDismiss={clearError}
-          />
-        )}
-        
-        {success && (
-          <StatusMessage 
-            type="success" 
-            message={success} 
-            onDismiss={() => setSuccess('')}
-          />
-        )}
-
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8">
-            <button
-              className={`pb-4 px-1 ${activeTab === 'active' 
-                ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
-                : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('active')}
-            >
-              Active Months
-            </button>
-            <button
-              className={`pb-4 px-1 ${activeTab === 'settled' 
-                ? 'border-b-2 border-blue-500 text-blue-600 font-medium' 
-                : 'text-gray-500 hover:text-gray-700'
-              }`}
-              onClick={() => setActiveTab('settled')}
-            >
-              Settled History
-            </button>
-          </nav>
-        </div>
-
-        {/* Settlement as _Settlement as _Settlement List */}
-        <SettlementList 
-          months={activeTab === 'active' ? activeMonths : settledMonths}
-          activeTab={activeTab}
-          loading={loading}
-          formatAmount={formatAmount}
-          partialPaymentMode={partialPaymentMode}
-          selectedMonth={selectedMonth}
-          partialAmount={partialAmount}
-          handlePartialPaymentChange={handlePartialPaymentChange}
-          togglePartialPayment={togglePartialPayment}
-          handleSettleMonth={handleSettleMonth}
-          handleUnsettleMonth={handleUnsettleMonth}
-          hasPartialPayments={hasPartialPayments}
-          getRemainingAmount={getRemainingAmount}
-          isCurrentMonth={isCurrentMonth}
-          canSettleMonth={canSettleMonth}
-          currentUserOwesForMonth={currentUserOwesForMonth}
-          getSettlementDetails={getSettlementDetails}
-          getTotalPartialPayments={getTotalPartialPayments}
-        />
-      </div>
-    </ErrorBoundary>
-  );
 }

@@ -1,5 +1,5 @@
 /* eslint-env serviceworker */
-/* global self, caches */
+/* global self, caches, fetch */
 
 // Service Worker for AAFairShare
 const CACHE_NAME = 'aafairshare-cache-v1';

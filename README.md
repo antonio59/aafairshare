@@ -79,7 +79,6 @@ The application is configured for deployment on Vercel:
 Set the following environment variables in your Vercel project settings:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
-- `VITE_SENTRY_DSN`
 
 ### Deployment Commands
 ```bash
@@ -162,13 +161,11 @@ This application implements comprehensive security measures:
 - Resource loading restrictions
 
 ### Error Monitoring & Tracking
-- Sentry integration for error tracking
-- Detailed error context and breadcrumbs
-- Performance monitoring
-- User session replay for critical issues
+- Custom error boundaries for component-level error handling
+- Detailed error logging and reporting
+- Client-side error recovery
 
 For detailed security documentation, see [docs/security.md](./docs/security.md)
-For Sentry integration details, see [docs/sentry-integration.md](./docs/sentry-integration.md)
 
 ## Automated Security Monitoring
 

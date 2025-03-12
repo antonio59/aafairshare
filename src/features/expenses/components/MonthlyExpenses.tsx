@@ -414,7 +414,7 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     };
 
     return processDataOnMainThread();
-  }, [filteredExpenses]);
+  }, [filteredExpenses, currentMonthData]);
   
   // Helper functions (without useCallback)
   function showError(errorKey: string, message: string) {
@@ -760,7 +760,7 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         subscriptionRef.current = null;
       }
     };
-  }, []);
+  }, [setupSubscription]);
   
   // This effect runs whenever the refreshTrigger changes
   // This ensures that the component re-loads data when an expense is created or deleted elsewhere
@@ -968,7 +968,10 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     selectedDate.month, 
     selectedDate.year, 
     formatCurrency, 
-    onNewExpense
+    onNewExpense,
+    handleDelete,
+    handleEditClick,
+    handleExpenseClick
   ]);
   
   return (

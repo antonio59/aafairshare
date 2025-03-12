@@ -37,6 +37,41 @@ The `scripts/` directory contains utility scripts used for development, maintena
   ./scripts/run-migration.sh
   ```
 
+#### Supabase TypeScript Type Generation
+
+- **`gen:types`** - Generates TypeScript types from the Supabase database schema
+  ```bash
+  npm run gen:types
+  ```
+
+  This command uses the Supabase CLI to generate TypeScript type definitions that match your database schema. The generated types are saved to `src/core/types/supabase.types.ts`.
+
+  **When to run this command:**
+  - After making changes to your database schema
+  - After running migrations
+  - Before committing code that interacts with modified database tables
+
+  **CI/CD Integration:**
+  
+  The type generation is integrated into the CI/CD pipeline to ensure type definitions always stay in sync with the database schema. This is handled in our GitHub Actions workflows.
+
+  The workflow:
+  1. Generates the latest types from the production database
+  2. Compares with existing types in the repository
+  3. If differences exist, creates a commit with updated types
+  4. Includes these updated types in the deployment process
+
+  This ensures that all deployed code uses accurate and up-to-date types that match the actual database structure.
+
+  **Manual type checking:**
+  
+  Before starting development work that interacts with the database, it's recommended to run:
+  ```bash
+  npm run gen:types && npm run typecheck
+  ```
+  
+  This will generate the latest types and verify your code is compatible with the current database schema.
+
 #### Development Server
 
 - **`start-dev.sh`** - Starts the development server with proper cleanup

@@ -53,7 +53,7 @@ export default function RecentExpenses({ onViewMore, refreshTrigger, onNewExpens
     };
 
     fetchExpenses();
-  }, [user, refreshTrigger, loadData]);
+  }, [user, refreshTrigger, loadData, handleError, setIsLoading]);
   
   // Loading state
   if (isLoading && !expenses.length) {

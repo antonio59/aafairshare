@@ -1,28 +1,53 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '../api/supabase';
-import { _initializeUserSettings } from '../services/settingsService';
+// Either use the function or comment it out/prefix with underscore
+// import { _initializeUserSettings } from '../services/settingsService';
 import { createLogger } from '../utils/logger';
 
 // Create a logger for this module
 const logger = createLogger('AuthContext');
 
+// Define proper types for the user and profile objects
+interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  preferences: {
+    currency: string;
+    notifications: boolean;
+    theme: string;
+  };
+  language: string;
+  [key: string]: any; // Allow for additional properties
+}
+
+interface SupabaseUser {
+  id: string;
+  email?: string;
+  user_metadata?: {
+    name?: string;
+    [key: string]: any;
+  };
+  [key: string]: any; // Allow for additional properties
+}
+
 interface AuthContextType {
-  user: any | null;
-  profile: any | null;
+  user: SupabaseUser | null;
+  profile: UserProfile | null;
   loading: boolean;
   authError: string | null;
   signIn: (email: string, password: string) => Promise<{ success: boolean; message?: string }>;
   signUp: (email: string, password: string, name: string) => Promise<{ success: boolean; message?: string }>;
   signOut: () => Promise<{ success: boolean }>;
-  fetchUserProfile: (userId: string) => Promise<any | null>;
+  fetchUserProfile: (userId: string) => Promise<UserProfile | null>;
   clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<any | null>(null);
-  const [profile, setProfile] = useState<any | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
 

@@ -1,6 +1,6 @@
-import React, { useState, useEffect, _useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { _getExpense, deleteExpense, getExpenseDetails } from '../api/expenseApi';
+import { deleteExpense, getExpenseDetails } from '../api/expenseApi';
 import NewExpenseModal from './NewExpenseModal';
 import { Edit, ArrowLeft, Trash, AlertTriangle, Info } from 'lucide-react';
 import { useCurrency } from '../../../core/contexts/CurrencyContext';
@@ -63,7 +63,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   
   console.log("ExpenseDetailPage: Rendering with URL param ID:", id);
   
-  const loadExpense = async () => {
+  const loadExpense = useCallback(async () => {
     try {
       setLoading(true);
       clearError();
@@ -105,7 +105,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, setLoading, setError, setErrorType, setExpense]);
 
   useEffect(() => {
     console.log("ExpenseDetailPage: useEffect triggered");
@@ -115,7 +115,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
       setErrorType('general');
       setLoading(false);
     });
-  }, [id]);
+  }, [id, loadExpense]);
 
   useEffect(() => {
     if (expense) {
