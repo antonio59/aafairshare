@@ -8,9 +8,40 @@ interface ReleaseOptions {
   environment: string;
 }
 
+interface CommandResult {
+  success: boolean;
+  message: string;
+  error?: Error;
+}
+
+/**
+ * Execute a shell command safely
+ * @param command - Command to execute
+ * @returns Result of command execution
+ */
+function executeCommand(command: string): CommandResult {
+  try {
+    const output = execSync(command, { stdio: 'inherit' });
+    return {
+      success: true,
+      message: output?.toString() || 'Command executed successfully'
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: 'Command execution failed',
+      error: error instanceof Error ? error : new Error(String(error))
+    };
+  }
+}
+
 /**
  * Creates a new Sentry release with source maps and commit data
  * @param options Release configuration options
+ */
+/**
+ * Create a new Sentry release with source maps and commit data
+ * @param options - Release configuration options
  */
 async function createSentryRelease(options: ReleaseOptions): Promise<void> {
   const { version, projects, environment } = options;
@@ -29,17 +60,36 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
     });
 
     // Get the current git commit hash
-    const commitHash = execSync('git rev-parse HEAD').toString().trim();
+    const getCommitResult = executeCommand('git rev-parse HEAD');
+    if (!getCommitResult.success) {
+      throw new Error('Failed to get git commit hash');
+    }
+    const commitHash = getCommitResult.message.trim();
 
     // Create release using Sentry CLI
-    execSync(`npx @sentry/cli releases new ${version}`, { stdio: 'inherit' });
+    const createReleaseResult = executeCommand(`npx @sentry/cli releases new ${version}`);
+    if (!createReleaseResult.success) {
+      throw new Error('Failed to create Sentry release');
+    }
 
     // Set commits for the release
-    execSync(`npx @sentry/cli releases set-commits ${version} --commit "antonio59/aafairshare@${commitHash}"`, { stdio: 'inherit' });
+    const setCommitsResult = executeCommand(
+      `npx @sentry/cli releases set-commits ${version} --commit "antonio59/aafairshare@${commitHash}"`
+    );
+    if (!setCommitsResult.success) {
+      throw new Error('Failed to set commits for release');
+    }
 
     // Associate release with projects
-    for (const project of projects) {
-      execSync(`npx @sentry/cli releases deploys ${version} new -e ${environment} -p ${project}`, { stdio: 'inherit' });
+    const deployResults = await Promise.all(
+      projects.map(project =>
+        executeCommand(`npx @sentry/cli releases deploys ${version} new -e ${environment} -p ${project}`)
+      )
+    );
+
+    const failedDeploys = deployResults.filter(result => !result.success);
+    if (failedDeploys.length > 0) {
+      throw new Error(`Failed to deploy release to ${failedDeploys.length} projects`);
     }
 
     console.log(`✅ Successfully created Sentry release ${version}`);
@@ -48,7 +98,8 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
     console.log(`   Projects: ${projects.join(', ')}`);
 
   } catch (error) {
-    console.error('❌ Failed to create Sentry release:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('❌ Failed to create Sentry release:', errorMessage);
     process.exit(1);
   }
 }
