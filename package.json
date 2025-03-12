@@ -43,7 +43,8 @@
     "release": "standard-version",
     "deploy:staging": "vercel",
     "deploy:production": "vercel --prod",
-    "sentry:release": "tsx scripts/create-sentry-release.ts",
+    "sentry:validate": "tsx scripts/validateSentry.ts",
+    "sentry:release": "npm run sentry:validate && tsx scripts/create-sentry-release.ts",
     "sentry:sourcemaps": "./node_modules/.bin/sentry-cli sourcemaps inject ./dist && ./node_modules/.bin/sentry-cli sourcemaps upload ./dist --release=${SENTRY_RELEASE}"
   },
   "dependencies": {

@@ -1,12 +1,24 @@
 import { execSync } from 'child_process';
 
-function validateEnvironment() {
+async function validateEnvironment() {
   const requiredVars = ['SENTRY_AUTH_TOKEN', 'SENTRY_ORG', 'SENTRY_PROJECT'];
   const missing = requiredVars.filter(name => !process.env[name]);
   
   if (missing.length > 0) {
-    console.error('❌ Missing required environment variables:', missing.join(', '));
-    process.exit(1);
+    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+  }
+
+  // Verify Sentry project access
+  try {
+    execSync('./node_modules/.bin/sentry-cli projects list', {
+      stdio: 'inherit',
+      env: {
+        ...process.env,
+        SENTRY_LOG_LEVEL: 'debug'
+      }
+    });
+  } catch (error) {
+    throw new Error('Failed to verify Sentry project access. Please check your credentials and project configuration.');
   }
 }
 
