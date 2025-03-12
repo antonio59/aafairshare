@@ -82,18 +82,16 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
    pnpm preview
    ```
 
-### Netlify Deployment
-The application is configured for deployment on Netlify:
+### Vercel Deployment
+The application is configured for deployment on Vercel:
 
 1. Push your code to a Git repository
-2. Connect your repository to Netlify
-3. Configure the following build settings:
-   - Build command: `npm run build`
-   - Publish directory: `dist`
-   - Node version: 18
+2. Import your project to Vercel
+3. Vercel will automatically detect the build settings
+4. Environment variables will be automatically pulled from your Vercel project
 
-### Environment Variables on Netlify
-Set the following environment variables in Netlify's dashboard:
+### Environment Variables on Vercel
+Set the following environment variables in Vercel's dashboard:
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_ANON_KEY`
 
@@ -110,7 +108,7 @@ Set the following environment variables in Netlify's dashboard:
 - Sensitive data is never exposed in client-side code
 
 ### Frontend Security
-- Content Security Policy (CSP) headers are configured in netlify.toml
+- Content Security Policy (CSP) headers are configured
 - Security headers are set for protection against common web vulnerabilities
 - HTTPS is enforced for all connections
 
@@ -124,7 +122,7 @@ Set the following environment variables in Netlify's dashboard:
 ### Regular Tasks
 1. Monitor Supabase database usage and performance
 2. Review and update dependencies regularly
-3. Check Netlify deployment logs for any issues
+3. Check Vercel deployment logs for any issues
 4. Monitor application error logs
 
 ### Automated Database Backups
@@ -137,20 +135,14 @@ The project uses GitHub Actions for automated database backups:
 For details on the backup configuration and process, see [docs/DEVELOPMENT_TOOLS.md](./docs/DEVELOPMENT_TOOLS.md#database-backup-workflow).
 
 ### Troubleshooting
-1. Check Netlify deployment status and build logs
+1. Check Vercel deployment status and build logs
 2. Verify environment variables are correctly set
 3. Review Supabase database connectivity
 4. Check browser console for client-side errors
 
-### Backup
-- Supabase handles database backups automatically
-- Maintain a backup of environment configurations
-- Keep deployment configuration files in version control
-- Automated backups via GitHub Actions to S3 storage
-
 ## Support
 For issues and support:
-1. Check the deployment logs in Netlify dashboard
+1. Check the deployment logs in Vercel dashboard
 2. Review Supabase logs for backend issues
 3. Contact the development team for critical issues
 
