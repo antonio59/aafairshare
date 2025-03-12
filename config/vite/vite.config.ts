@@ -7,20 +7,33 @@ import path from 'path';
 const rootDir = path.resolve(__dirname, '../..');
 
 // Config file paths
-const POSTCSS_CONFIG_PATH = path.resolve(__dirname, '../postcss/postcss.config.ts');
-const TAILWIND_CONFIG_PATH = path.resolve(__dirname, '../tailwind/tailwind.config.ts');
+const POSTCSS_CONFIG_PATH = path.resolve(rootDir, 'config/postcss.config.ts');
+const TAILWIND_CONFIG_PATH = path.resolve(rootDir, 'config/tailwind.config.ts');
 // Tailwind config should be referenced in postcss.config.ts
 
 // https://vitejs.dev/config/
 export default defineConfig({
   root: rootDir,
   plugins: [react()],
+  css: {
+    postcss: POSTCSS_CONFIG_PATH,
+    modules: {
+      localsConvention: 'camelCase',
+      generateScopedName: '[local]_[hash:base64:5]'
+    }
+  },
   build: {
     outDir: 'dist',
     sourcemap: true,
+    cssCodeSplit: true,
     rollupOptions: {
       input: {
         main: path.resolve(rootDir, 'index.html')
+      },
+      output: {
+        assetFileNames: 'assets/[name]-[hash][extname]',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        entryFileNames: 'assets/[name]-[hash].js'
       }
     }
   },
