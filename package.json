@@ -11,13 +11,9 @@
     "dev": "NODE_ENV=development ./scripts/start-dev.sh",
     "dev:clean": "rm -rf node_modules/.vite && NODE_ENV=development ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
-    "build": "tsx scripts/setup-build-dirs.ts && npm run build:netlify-functions && npx vite build --config config/vite/vite.config.ts",
+    "build": "npx vite build --config config/vite/vite.config.ts",
     "create-dist": "tsx scripts/setup-build-dirs.ts",
-    "ensure-dirs": "node netlify/functions-dist/scripts/ensure-directories.js",
-    "build:ci": "tsx scripts/ci-build.ts",
     "preview": "vite preview",
-    "netlify:node-check": "node -e \"if (process.env.SKIP_NODE_CHECK === 'true') { console.log('Node version check skipped'); } else if (process.versions.node.split('.')[0] < 20) { console.error('❌ Node.js 20+ is required'); process.exit(1); } else { console.log('✅ Using Node.js', process.versions.node); }\"",
-    "preinstall": "npm run netlify:node-check && npx npm-force-resolutions",
     "security:audit": "npm audit",
     "security:fix": "npm audit fix",
     "security:update": "npm update --save",
@@ -48,10 +44,7 @@
     "release": "standard-version",
     "deploy:staging": "NODE_ENV=staging tsx scripts/deploy.js staging",
     "deploy:production": "NODE_ENV=production tsx scripts/deploy.js production",
-    "sentry:release": "tsx scripts/create-sentry-release.ts",
-    "build:netlify-functions": "tsc -p config/typescript/tsconfig.netlify.json",
-    "prebuild": "tsx scripts/create-directories.ts && tsc -p config/typescript/tsconfig.netlify.json",
-    "test:netlify-build": "tsx scripts/test-netlify-build.ts"
+    "sentry:release": "tsx scripts/create-sentry-release.ts"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
