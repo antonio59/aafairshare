@@ -143,3 +143,19 @@ createSentryRelease({
   console.error('Unhandled error:', error);
   process.exit(1);
 });
+
+const version = process.env.VITE_APP_VERSION || `1.0.0-${Date.now()}`;
+
+// Create a new Sentry release
+execSync(`./node_modules/.bin/sentry-cli releases new ${version}`, { stdio: 'inherit' });
+
+// Set commits for the release
+try {
+  const commit = execSync('git rev-parse HEAD').toString().trim();
+  execSync(`./node_modules/.bin/sentry-cli releases set-commits ${version} --commit "antonio59/aafairshare@${commit}"`, { stdio: 'inherit' });
+} catch (error) {
+  console.warn('Could not set commit for release:', error);
+}
+
+// Set the release version for the build
+console.log(`::set-output name=SENTRY_RELEASE::${version}`);
