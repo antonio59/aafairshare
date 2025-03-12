@@ -3,7 +3,6 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 const rootDir = path.resolve(__dirname, '../..');
 
@@ -15,46 +14,13 @@ const TAILWIND_CONFIG_PATH = path.resolve(__dirname, '../tailwind/tailwind.confi
 // https://vitejs.dev/config/
 export default defineConfig({
   root: rootDir,
-  base: './',
-  plugins: [
-    react({
-      include: '**/*.{jsx,tsx}',
-      babel: {
-        plugins: ['@babel/plugin-transform-react-jsx']
-      }
-    }),
-    tsconfigPaths()
-  ],
-  resolve: {
-    alias: {
-      '@': path.resolve(rootDir, 'src'),
-      '@core': path.resolve(rootDir, 'src/core')
-    }
-  },
-  css: {
-    modules: {
-      localsConvention: 'camelCase'
-    }
-  },
+  plugins: [react()],
   build: {
     outDir: 'dist',
-    assetsDir: 'assets',
     sourcemap: true,
-    target: 'esnext',
-    minify: 'terser',
     rollupOptions: {
       input: {
         main: path.resolve(rootDir, 'index.html')
-      },
-      external: [],
-      output: {
-        manualChunks: undefined
-      }
-    },
-    terserOptions: {
-      compress: {
-        drop_console: process.env.NODE_ENV === 'production',
-        drop_debugger: process.env.NODE_ENV === 'production'
       }
     }
   },

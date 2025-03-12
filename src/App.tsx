@@ -12,10 +12,10 @@ import {
   CategoryManagementPage,
   AuthPage,
   ProtectedRoute
-} from '@/features';
-import { AuthProvider } from '@core/contexts/AuthContext';
-import { CurrencyProvider } from '@core/contexts/CurrencyContext';
-import { ErrorBoundary } from '@core/components/ErrorBoundary';
+} from './features';
+import { AuthProvider } from './core/contexts/AuthContext';
+import { CurrencyProvider } from './core/contexts/CurrencyContext';
+import { ErrorBoundary } from './core/components/ErrorBoundary';
 
 interface AppProps {}
 
