@@ -1,5 +1,5 @@
 [build]
-  command = "npm ci && tsx scripts/setup-build-dirs.ts && npx tsc -p tsconfig.netlify.json && npx vite build"
+  command = "npm ci && tsx scripts/setup-build-dirs.ts && npx tsc -p config/typescript/tsconfig.netlify.json && npx vite build"
   publish = "dist"
   functions = "netlify/functions-dist"
 

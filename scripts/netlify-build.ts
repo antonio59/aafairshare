@@ -190,7 +190,7 @@ function installDependencies(): CommandResult {
  */
 function compileTypeScript(): CommandResult {
   console.log('Compiling TypeScript for Netlify functions...');
-  return runCommand('npx', ['tsc', '-p', 'tsconfig.netlify.json']);
+  return runCommand('npx', ['tsc', '-p', 'config/typescript/tsconfig.netlify.json']);
 }
 
 /**
