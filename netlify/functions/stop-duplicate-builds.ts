@@ -36,10 +36,9 @@ interface EventPayload {
  * - Generic HEAD builds that would be redundant with commit-specific builds
  * 
  * @param event - The incoming webhook event
- * @param context - The Netlify function context
  * @returns Response object with statusCode and message
  */
-const handler: Handler = async (event: HandlerEvent, context: HandlerContext) => {
+const handler: Handler = async (event: HandlerEvent) => {
   // We need to parse the payload to access the build data
   const payload = JSON.parse(event.body || '{}') as EventPayload;
   
