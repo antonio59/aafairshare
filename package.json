@@ -43,7 +43,8 @@
     "release": "standard-version",
     "deploy:staging": "vercel",
     "deploy:production": "vercel --prod",
-    "sentry:release": "tsx scripts/create-sentry-release.ts"
+    "sentry:release": "tsx scripts/create-sentry-release.ts",
+    "sentry:sourcemaps": "sentry-cli sourcemaps inject ./dist && sentry-cli sourcemaps upload ./dist"
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
