@@ -1,20 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Mail, Lock, User, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { supabase } from '../../../core/api/supabase';
 
-export default function AuthPage() {
+interface AuthPageProps {
+  mode?: 'login' | 'signup';
+}
+
+export default function AuthPage({ mode = 'login' }: AuthPageProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<boolean | string>(false);
   const [error, setError] = useState('');
-  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(mode === 'signup');
   const { signIn, signUp, user, profile } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Update isSignUp when mode prop changes
+  useEffect(() => {
+    setIsSignUp(mode === 'signup');
+  }, [mode]);
 
   // Redirect if already authenticated
   useEffect(() => {
@@ -164,12 +173,12 @@ export default function AuthPage() {
         </form>
 
         <div className="mt-6 text-center">
-          <button
-            onClick={() => setIsSignUp(!isSignUp)}
+          <Link
+            to={isSignUp ? '/login' : '/signup'}
             className="text-sm text-rose-600 hover:text-rose-500 focus:outline-none focus:underline transition-colors"
           >
             {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-          </button>
+          </Link>
         </div>
       </div>
       

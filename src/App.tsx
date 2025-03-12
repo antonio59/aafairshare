@@ -109,7 +109,9 @@ export const App: React.FC<AppProps> = () => {
                 <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
                 <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
                 <Route path="/categories" element={<ProtectedRoute><CategoryManagementPage /></ProtectedRoute>} />
-                <Route path="/auth" element={<AuthPage />} />
+                <Route path="/auth" element={<Navigate to="/login" replace />} />
+                <Route path="/login" element={<AuthPage mode="login" />} />
+                <Route path="/signup" element={<AuthPage mode="signup" />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </AppLayout>

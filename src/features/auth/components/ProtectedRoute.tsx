@@ -42,8 +42,8 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
 
   // If user is not authenticated, redirect to auth page
   if (!user) {
-    console.log('ProtectedRoute: No user, redirecting to auth page');
-    return <Navigate to="/auth" state={{ from: location }} replace />;
+    console.log('ProtectedRoute: No user, redirecting to login page');
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
   // If profile is incomplete and timeout has passed, redirect to settings
