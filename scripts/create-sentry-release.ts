@@ -74,7 +74,7 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
 
     // Set commits for the release
     const setCommitsResult = executeCommand(
-      `npx @sentry/cli releases set-commits ${version} --commit "sentry/4508958681661520@${commitHash}"`
+      `npx @sentry/cli releases set-commits ${version} --commit "o4508958675107841/4508958681661520@${commitHash}"`
     );
     if (!setCommitsResult.success) {
       throw new Error('Failed to set commits for release');
