@@ -314,7 +314,7 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     }
   };
   
-  const { user } = useAuth();
+  const { user, refreshSession } = useAuth();
   const { handleError } = useErrorHandler();
 
   // Track component mount state with a ref
@@ -453,12 +453,15 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         setTimeout(() => reject(new Error('Request timed out')), 15000);
       });
       
+      // calculateUserBalances already has fetchWithRetry built in
+      const calculationPromise = calculateUserBalances({
+        startDate,
+        limit: 200 // Reasonable limit to prevent loading too much data
+      });
+      
       // Race between the actual request and the timeout
       const result = await Promise.race([
-        calculateUserBalances({
-          startDate,
-          limit: 200 // Reasonable limit to prevent loading too much data
-        }),
+        calculationPromise,
         timeoutPromise
       ]) as any; // Type assertion needed due to race with timeout promise
       
@@ -490,11 +493,19 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         setAllCategories(Array.from(categories));
         setLoading(false);
       }
-    } catch (err: any) {
-      console.error('Error loading expenses:', err);
+    } catch (error) {
+      console.error('Failed to load expenses data:', error);
+      
       if (mountedRef.current) {
-        setError('Failed to load expenses. Please try again.');
+        showError('load', 'Failed to load expenses data. Please try refreshing.');
         setLoading(false);
+        
+        // Try to refresh the session on error
+        try {
+          await refreshSession();
+        } catch (refreshError) {
+          console.error('Failed to refresh session:', refreshError);
+        }
       }
     }
   }

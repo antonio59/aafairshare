@@ -41,6 +41,7 @@ interface AuthContextType {
   signOut: () => Promise<{ success: boolean }>;
   fetchUserProfile: (userId: string) => Promise<UserProfile | null>;
   clearError: () => void;
+  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -50,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [lastRefreshAttempt, setLastRefreshAttempt] = useState<number>(0);
 
   // Fetch user profile function
   const fetchUserProfile = async (userId: string) => {
@@ -116,6 +118,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log('DEBUG: Error in createUserProfile:', error);
       logger.error('User profile creation error', error);
       return null;
+    }
+  };
+
+  // Add a session refresh function
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      console.log('DEBUG: Attempting to refresh session');
+      
+      // Prevent multiple refresh attempts in quick succession
+      const now = Date.now();
+      if (now - lastRefreshAttempt < 10000) {
+        console.log('DEBUG: Skipping refresh, too soon since last attempt');
+        return false;
+      }
+      
+      setLastRefreshAttempt(now);
+      setLoading(true);
+      
+      // Try to refresh the session
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.log('DEBUG: Error refreshing session:', error);
+        setAuthError('Session expired. Please log in again.');
+        // Force sign out on refresh failure
+        await supabase.auth.signOut();
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+        return false;
+      }
+      
+      if (data?.session) {
+        console.log('DEBUG: Session refreshed successfully');
+        setUser(data.session.user);
+        
+        // Refresh profile data too
+        if (data.session.user.id) {
+          await fetchUserProfile(data.session.user.id);
+        }
+        
+        setAuthError(null);
+        setLoading(false);
+        return true;
+      }
+      
+      console.log('DEBUG: No session after refresh attempt');
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return false;
+    } catch (error) {
+      console.log('DEBUG: Exception during session refresh:', error);
+      setAuthError('Failed to refresh session. Please log in again.');
+      setUser(null);
+      setProfile(null);
+      setLoading(false);
+      return false;
     }
   };
 
@@ -340,7 +400,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signOut,
     fetchUserProfile,
-    clearError
+    clearError,
+    refreshSession
   };
 
   return (

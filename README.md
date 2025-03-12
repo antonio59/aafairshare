@@ -223,3 +223,72 @@ config/              # Configuration files
 ├── postcss.config.ts # PostCSS configuration
 └── tailwind.config.ts # Tailwind CSS configuration
 ```
+
+## Keeping Supabase Instance Active
+
+To prevent your Supabase instance from pausing due to inactivity (common with free tier instances), this project includes a script that pings the Supabase instance weekly.
+
+### Manual Execution
+
+You can manually trigger the ping script with:
+
+```bash
+npm run keep-supabase-alive
+```
+
+### Setting Up the Weekly Cron Job
+
+To automatically keep your Supabase instance active, you can set up a cron job to run weekly:
+
+```bash
+npm run setup-supabase-cron
+```
+
+This will:
+1. Set up a cron job that runs every Sunday at 1:00 AM
+2. Log the output to `logs/supabase-ping.log`
+3. Create the logs directory if it doesn't exist
+
+### Verifying the Cron Job
+
+To verify that the cron job was set up correctly:
+
+```bash
+crontab -l
+```
+
+You should see a line containing `keep-supabase-alive`.
+
+## Troubleshooting
+
+### Blank Screen Issue
+
+If you encounter a situation where the application becomes blank/white (with only the header and footer visible), this is typically caused by an authentication issue where your session token has expired but hasn't been properly refreshed.
+
+To resolve this:
+
+1. **Clear browser cache and cookies** - This will log you out and force a fresh authentication
+2. **Try refreshing the page** - The app includes an automatic session refresh mechanism that might resolve the issue
+3. **Check your network connection** - The app requires a stable internet connection to communicate with Supabase
+
+If the issue persists:
+
+1. Log out completely and log back in
+2. Make sure your browser is updated to the latest version
+3. Try using a different browser to rule out browser-specific issues
+
+The application has been updated with improved error handling and session refresh mechanisms that should prevent this issue in most cases.
+
+### Developer Notes
+
+If you're developing or maintaining this application, we've implemented the following improvements to handle authentication and network errors:
+
+1. **Session Refresh Mechanism**: Added retry logic with automatic session refresh for API calls
+2. **Network Error Detection**: Added online/offline detection with visual feedback
+3. **Loading States**: Improved loading states to avoid blank screens during data fetching
+4. **Global Error Handling**: Added global error catching for fetch operations
+
+The core utilities for these features are in:
+- `src/utils/api-fetcher.ts` - Retry utility with session refresh
+- `src/core/contexts/AuthContext.tsx` - Extended auth context with refresh capability
+- `src/features/auth/components/ProtectedRoute.tsx` - Enhanced error handling for route protection

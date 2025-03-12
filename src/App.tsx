@@ -11,7 +11,7 @@ import SettingsPage from './features/settings/components/SettingsPage';
 import CategoryManagementPage from './features/settings/components/CategoryManagementPage';
 import AuthPage from './features/auth/components/AuthPage';
 import ProtectedRoute from './features/auth/components/ProtectedRoute';
-import { AuthProvider } from './core/contexts/AuthContext';
+import { AuthProvider, useAuth } from './core/contexts/AuthContext';
 import { CurrencyProvider } from './core/contexts/CurrencyContext';
 import { ErrorBoundary } from './core/components/ErrorBoundary';
 
@@ -20,15 +20,63 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
   const isAuthPage = location.pathname === '/auth';
   const [showNewExpenseModal, setShowNewExpenseModal] = useState<boolean>(false);
+  const [networkError, setNetworkError] = useState<boolean>(false);
+  const { refreshSession } = useAuth();
 
   const handleNewExpense = () => {
     console.log('DEBUG: handleNewExpense called');
     setShowNewExpenseModal(true);
   };
 
+  // Listen for online/offline events
+  useEffect(() => {
+    const handleOffline = () => {
+      console.log('DEBUG: Network is offline');
+      setNetworkError(true);
+    };
+
+    const handleOnline = async () => {
+      console.log('DEBUG: Network is back online, attempting to refresh session');
+      setNetworkError(false);
+      
+      try {
+        // Try to refresh the session when we're back online
+        await refreshSession();
+      } catch (error) {
+        console.error('DEBUG: Error refreshing session after reconnect:', error);
+      }
+    };
+
+    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline);
+
+    return () => {
+      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener('online', handleOnline);
+    };
+  }, [refreshSession]);
+
   return (
     <div className={`min-h-screen ${!isAuthPage ? 'bg-gray-50' : ''}`}>
       {!isAuthPage && <Header onNewExpense={handleNewExpense} />}
+      
+      {/* Network error message */}
+      {networkError && (
+        <div className="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-4 sticky top-0 z-50">
+          <div className="flex items-center">
+            <div className="py-1">
+              <svg className="h-6 w-6 text-red-500 mr-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-medium">Network connection lost</p>
+              <p className="text-sm">Check your internet connection and try again.</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
       <main className={!isAuthPage ? 'max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24' : ''}>
         {children}
       </main>

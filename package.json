@@ -11,6 +11,7 @@
     "dev:clean": "rm -rf node_modules/.vite && NODE_ENV=development ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
     "build": "vite build",
+    "build:vercel": "npm install @rollup/rollup-linux-x64-gnu@4.35.0 @rollup/rollup-linux-x64-musl@4.35.0 && vite build",
     "preview": "vite preview",
     "security:audit": "npm audit --json > npm-audit.json || true",
     "security:fix": "npm audit fix",
@@ -21,6 +22,8 @@
     "security:snyk:fix": "snyk wizard",
     "migrate:supabase": "chmod +x ./scripts/migrations/migrate-imports.sh && ./scripts/migrations/migrate-imports.sh",
     "gen:types": "npx supabase gen types typescript --project-id ccwcbnfnvkmwubkuvzns --schema public > src/core/types/supabase.types.ts",
+    "keep-supabase-alive": "tsx scripts/keep-supabase-alive.ts",
+    "setup-supabase-cron": "chmod +x ./scripts/setup-supabase-cron.sh && ./scripts/setup-supabase-cron.sh",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:run": "vitest run --config config/vitest/vitest.config.ts",
@@ -43,7 +46,8 @@
     "prepare-release": "node scripts/prepare-release.js",
     "release": "standard-version",
     "deploy:staging": "vercel",
-    "deploy:production": "vercel --prod"
+    "deploy:production": "vercel --prod",
+    "postinstall": "node -e \"try { require('node-gyp-build/bin/node-gyp-build.js') } catch(e) { console.error('Optional dependency failed', e) }\""
   },
   "dependencies": {
     "@microsoft/fetch-event-source": "^2.0.1",
@@ -128,6 +132,8 @@
     "ws": "8.18.1"
   },
   "optionalDependencies": {
-    "@esbuild/linux-x64": "0.25.1"
+    "@esbuild/linux-x64": "0.25.1",
+    "@rollup/rollup-linux-x64-gnu": "4.35.0",
+    "@rollup/rollup-linux-x64-musl": "4.35.0"
   }
 }

@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "buildCommand": "npm run build",
+  "buildCommand": "npm run build:vercel",
   "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "installCommand": "rm -rf node_modules package-lock.json && npm install",
   "framework": "vite",
   "outputDirectory": "dist",
   "github": {

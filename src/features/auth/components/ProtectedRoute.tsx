@@ -7,9 +7,11 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { user, loading, profile } = useAuth();
+  const { user, loading, profile, refreshSession } = useAuth();
   const location = useLocation();
   const [showProfileTimeout, setShowProfileTimeout] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [refreshAttempts, setRefreshAttempts] = useState(0);
 
   // Add debug logging
   useEffect(() => {
@@ -33,11 +35,44 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
       return () => clearTimeout(timer);
     }
   }, [user, loading, profile]);
+  
+  // Add a global error handler for fetch errors to detect auth issues
+  useEffect(() => {
+    const handleGlobalError = async (event: ErrorEvent) => {
+      // Check if this is a fetch error and we're not already refreshing
+      if (event.error?.message?.includes('fetch') && !isRefreshing && refreshAttempts < 3) {
+        console.log('ProtectedRoute: Detected fetch error, attempting session refresh');
+        setIsRefreshing(true);
+        setRefreshAttempts(prev => prev + 1);
+        
+        try {
+          const success = await refreshSession();
+          console.log('ProtectedRoute: Session refresh result:', success);
+        } catch (err) {
+          console.error('ProtectedRoute: Error during refresh:', err);
+        } finally {
+          setIsRefreshing(false);
+        }
+      }
+    };
+    
+    // Add global error handler
+    window.addEventListener('error', handleGlobalError);
+    
+    // Clean up
+    return () => {
+      window.removeEventListener('error', handleGlobalError);
+    };
+  }, [refreshSession, isRefreshing, refreshAttempts]);
 
-  // If auth is still loading, show nothing
-  if (loading) {
-    console.log('ProtectedRoute: Loading auth state...');
-    return null;
+  // If auth is still loading or we're refreshing, show a loading indicator
+  if (loading || isRefreshing) {
+    console.log('ProtectedRoute: Loading auth state or refreshing session...');
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   // If user is not authenticated, redirect to auth page

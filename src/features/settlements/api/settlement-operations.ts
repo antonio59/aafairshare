@@ -12,6 +12,7 @@ import { DbExpense,
   generateSelectString, formatErrorResponse, formatSuccessResponse,
   createErrorHandler
 } from '../../../core/utils/supabase-helpers';
+import { fetchAuthWithRetry, fetchDataWithRetry } from '../../../utils/api-fetcher';
 
 // Create a logger for this module
 const logger = createLogger('SettlementOps');
@@ -265,8 +266,14 @@ export async function calculateUserBalances(
       }
     }
     
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('No authenticated user found');
+    // Use fetchAuthWithRetry for auth requests to handle token expiration
+    const authResponse = await fetchAuthWithRetry<any>(() => supabase.auth.getUser());
+    
+    if (authResponse.error || !authResponse.data?.user) {
+      throw new Error('No authenticated user found');
+    }
+    
+    const user = authResponse.data.user;
     
     logger.info('calculateUserBalances: Starting calculation for user:', user.id, {
       forceRefresh, startDate, endDate, limit, page
@@ -291,8 +298,8 @@ export async function calculateUserBalances(
       .order('date', { ascending: false })
       .range(page * limit, (page + 1) * limit - 1);
       
-    // Execute query
-    const response = await query;
+    // Execute query with retry capability
+    const response = await fetchDataWithRetry(() => query);
     
     if (response.error) {
       throw response.error;
