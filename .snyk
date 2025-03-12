@@ -35,8 +35,8 @@ exclude:
 # Setting fail-on to all will make the CLI return a non-zero exit code if any issues are found
 # Set org to use a specific organization in Snyk
 cli-args:
-  severity-threshold: medium # Alert on medium and high severity issues
-  fail-on: upgradable # Only fail if there are upgradeable dependencies
+  severity-threshold: high # Only alert on high severity issues
+  fail-on: all # Fail on any detected issues
   json: true # Enable JSON output for better CI integration
   all-projects: true # Scan all projects in the workspace
   strict-out-of-sync: true # Ensure lockfile is in sync with package.json

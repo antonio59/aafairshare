@@ -60,7 +60,6 @@ export default defineConfig({
         chunkFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash][extname]'
       }
-      }
     }
   },
   server: {
@@ -75,11 +74,9 @@ export default defineConfig({
       host: 'localhost'
     }
   },
-  // Add Node.js polyfills for browser compatibility
   define: {
     'process.env': {}
   },
-  // Provide node polyfills and include dependencies
   optimizeDeps: {
     include: ['@supabase/supabase-js'],
     esbuildOptions: {
@@ -90,7 +87,6 @@ export default defineConfig({
         {
           name: 'node-globals',
           setup(build) {
-            // Provide empty shims for Node.js globals
             build.onResolve({ filter: /^(stream|util|events|crypto|fs|path|buffer)$/ }, args => {
               return { path: args.path, namespace: 'node-globals' };
             });
@@ -108,6 +104,6 @@ export default defineConfig({
     exclude: []
   },
   worker: {
-    format: 'es' // Use ES modules for workers
+    format: 'es'
   }
 });

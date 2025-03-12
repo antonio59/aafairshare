@@ -41,17 +41,33 @@ const directories: DirectoryConfig[] = [
 ];
 
 async function ensureDirectories(): Promise<void> {
-  try {
-    for (const dir of directories) {
-      const fullPath = join(process.cwd(), dir.path);
-      
-      if (!existsSync(fullPath)) {
-        await mkdir(fullPath, { recursive: true });
-        console.log(`✅ Created ${dir.path} (${dir.description})`);
-      } else {
-        console.log(`ℹ️ ${dir.path} already exists`);
+  const maxRetries = 3;
+  const retryDelay = 1000; // 1 second
+
+  for (const dir of directories) {
+    let attempts = 0;
+    while (attempts < maxRetries) {
+      try {
+        const fullPath = join(process.cwd(), dir.path);
+        
+        if (!existsSync(fullPath)) {
+          await mkdir(fullPath, { recursive: true });
+          console.log(`✅ Created ${dir.path} (${dir.description})`);
+          break;
+        } else {
+          console.log(`ℹ️ ${dir.path} already exists`);
+          break;
+        }
+      } catch (error) {
+        attempts++;
+        if (attempts === maxRetries) {
+          throw error;
+        }
+        console.log(`Retrying creation of ${dir.path} (attempt ${attempts}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
       }
     }
+  }
     
     // Create .keep file in Netlify Functions directory
     const netlifyFunctionsDir = join(process.cwd(), 'netlify/functions-dist');

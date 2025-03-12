@@ -7,18 +7,19 @@
     "esModuleInterop": true,
     "isolatedModules": true,
     "skipLibCheck": true,
-    "outDir": "../../netlify/functions-dist",
+    "baseUrl": ".",
+    "outDir": "netlify/functions-dist",
     "types": ["node"],
     "paths": {
-      "@/*": ["../../src/*"],
-      "@lib/*": ["../../src/lib/*"],
-      "@utils/*": ["../../src/utils/*"],
-      "@config/*": ["../../config/*"]
+      "@/*": ["src/*"],
+      "@lib/*": ["src/lib/*"],
+      "@utils/*": ["src/utils/*"],
+      "@config/*": ["config/*"]
     }
   },
   "include": [
-    "../../netlify/functions/**/*.ts",
-    "../../netlify/plugins/**/*.ts"
+    "netlify/functions/**/*.ts",
+    "netlify/plugins/**/*.ts"
   ],
   "exclude": [
     "node_modules",

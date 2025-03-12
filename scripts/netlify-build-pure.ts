@@ -138,8 +138,13 @@ async function main(): Promise<void> {
     // 1. Ensure directories exist
     const dirsResult = await ensureDirectories();
     if (!dirsResult.success) {
-      console.warn(`Warning: Some directories could not be created: ${dirsResult.message}`);
-      // Continue with build process despite directory creation issues
+      // Instead of just warning, we'll try to create directories one more time
+      console.log('Retrying directory creation...');
+      const retryResult = await ensureDirectories();
+      if (!retryResult.success) {
+        console.error(`Failed to create directories after retry: ${retryResult.message}`);
+        process.exit(1);
+      }
     }
     
     // 2. Compile TypeScript for Netlify functions
@@ -171,4 +176,4 @@ main().catch(error => {
   const errorMessage = error instanceof Error ? error.message : String(error);
   console.error('Unhandled error:', errorMessage);
   process.exit(1);
-}); 
+});

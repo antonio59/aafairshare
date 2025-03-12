@@ -39,11 +39,10 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
         
       - name: Run Snyk to check for vulnerabilities
         uses: snyk/actions/node@master
-        continue-on-error: true # Don't fail the build for vulnerabilities
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
         with:
@@ -72,10 +71,10 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
       
       - name: Lint code
-        run: npm run lint || echo "Linting failed but continuing"
+        run: npm run lint
         
       - name: Run unit and integration tests
         run: npm run test:coverage
@@ -99,7 +98,7 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
         
       - name: Build application
         run: npm run build
@@ -172,7 +171,7 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+        run: npm ci
         
       - name: Install Playwright browsers
         run: npx playwright install --with-deps
@@ -210,7 +209,7 @@ jobs:
           curl -I $BASE_URL || echo "Failed to connect to BASE_URL"
           
       - name: Run E2E tests against production
-        run: npx playwright test --retries=2 || echo "E2E tests failed but continuing the workflow"
+        run: npx playwright test --retries=2
         env:
           CI: true
           # Add additional environment variables needed for tests here
@@ -223,4 +222,4 @@ jobs:
           path: |
             playwright-report/
             test-results/
-          retention-days: 7 
+          retention-days: 7
