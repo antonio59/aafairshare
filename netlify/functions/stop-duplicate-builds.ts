@@ -1,4 +1,4 @@
-import { Handler, HandlerEvent, HandlerContext } from "@netlify/functions";
+import { Handler, HandlerEvent } from "@netlify/functions";
 
 /**
  * Interface representing the Netlify build payload structure
