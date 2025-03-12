@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Header, Footer, _MobileEnhancedNavigation } from '@/features/shared/components';
+import { Header, Footer } from '@/features/shared/components';
 import { MonthlyExpenses, NewExpenseModal } from '@/features/expenses/components';
 import ExpenseDetailPage from '@/features/expenses/components/ExpenseDetailPage';
 import { SettlementsPage } from '@/features/settlements/components';
@@ -64,41 +64,33 @@ export const App: React.FC<AppProps> = () => {
           }}>
             <div className="min-h-screen bg-gray-50">
               <Routes>
-                <Route path="/auth" element={
-                  <>
-                    {console.log('DEBUG: Rendering AuthPage route')}
-                    <AuthPage />
-                  </>
-                } />
+                <Route path="/auth" element={<AuthPage />} />
                 
                 <Route path="/" element={
-                  <>
-                    {console.log('DEBUG: Rendering home route with ProtectedRoute')}
-                    <ProtectedRoute>
-                      <>
-                        <Header onNewExpense={handleNewExpense} />
-                        <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                          <MonthlyExpenses 
-                            onViewMore={handleViewAllExpenses} 
-                            refreshTrigger={expenseRefreshTrigger}
-                            onNewExpense={handleNewExpense}
-                          />
-                        </main>
-                        <Footer />
-                      </>
-                    </ProtectedRoute>
-                  </>
+                  <ProtectedRoute>
+                    <div>
+                      <Header onNewExpense={handleNewExpense} />
+                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
+                        <MonthlyExpenses 
+                          onViewMore={handleViewAllExpenses} 
+                          refreshTrigger={expenseRefreshTrigger}
+                          onNewExpense={handleNewExpense}
+                        />
+                      </main>
+                      <Footer />
+                    </div>
+                  </ProtectedRoute>
                 } />
                 
                 <Route path="/settlements/*" element={
                   <ProtectedRoute>
-                    <>
+                    <div>
                       <Header onNewExpense={handleNewExpense} />
                       <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
                         <SettlementsPage />
                       </main>
                       <Footer />
-                    </>
+                    </div>
                   </ProtectedRoute>
                 } />
                 
