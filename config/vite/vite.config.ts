@@ -20,16 +20,9 @@ export default defineConfig({
     tsconfigPaths()
   ],
   resolve: {
-    alias: {
-      '@': path.resolve(rootDir, 'src'),
-      '@core': path.resolve(rootDir, 'src/core'),
-      '@features': path.resolve(rootDir, 'src/features'),
-      '@components': path.resolve(rootDir, 'src/components'),
-      '@lib': path.resolve(rootDir, 'src/lib'),
-      '@utils': path.resolve(rootDir, 'src/utils'),
-      '@hooks': path.resolve(rootDir, 'src/hooks'),
-      '@config': path.resolve(rootDir, 'config')
-    }
+    alias: [
+      { find: '@', replacement: path.resolve(rootDir, 'src') }
+    ]
   },
   build: {
     outDir: 'dist',
