@@ -36,8 +36,8 @@ interface AppConfig {
 function loadAppConfig(): AppConfig {
   const config: AppConfig = {
     monitoring: {
-      endpoint: process.env.VITE_APP_MONITORING_DSN || '',
-      credentials: process.env.APP_MONITORING_TOKEN || '',
+      endpoint: process.env.VITE_SENTRY_DSN || '',
+      credentials: process.env.SENTRY_AUTH_TOKEN || '',
       environment: process.env.NODE_ENV || 'development',
       release: `v${process.env.npm_package_version || '0.0.0'}`,
       organization: process.env.SENTRY_ORG || 'antonio59',
