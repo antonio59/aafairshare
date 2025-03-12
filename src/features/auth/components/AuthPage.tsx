@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Mail, User, Lock, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { _supabase } from '../../../core/api/supabase';
+import { supabase } from '../../../core/api/supabase';
 
 export default function AuthPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
+  const [success, setSuccess] = useState<boolean | string>(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const { signIn, signUp, user, profile } = useAuth();
@@ -25,9 +25,6 @@ export default function AuthPage() {
       }
     }
   }, [user, profile, navigate, location]);
-
-  // Test styles
-  const testClasses = "bg-red-500 text-white p-4 rounded-lg shadow-lg fixed top-4 right-4";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,66 +59,122 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 to-purple-600 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md bg-white p-8 rounded-xl shadow-2xl">
-        <div className="text-center">
-          <h2 className="text-3xl font-extrabold text-gray-900 mb-6">
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4">
+      {/* App Logo or Name */}
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold text-rose-600">AAFairShare</h1>
+        <p className="text-sm text-gray-500">Split expenses fairly with friends and family</p>
+      </div>
+      
+      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-md">
+        <div className="text-center mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">
             {isSignUp ? 'Create Account' : 'Welcome Back'}
           </h2>
-          <p className="text-gray-600 mb-8">
+          <p className="text-sm text-gray-500 mt-1">
             {isSignUp ? 'Start tracking your expenses' : 'Sign in to your account'}
           </p>
         </div>
 
-        <form className="space-y-6" onSubmit={handleSubmit}>
+        {error && (
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
+            {error}
+          </div>
+        )}
+
+        {typeof success === 'string' && (
+          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm flex items-center">
+            <CheckCircle className="h-4 w-4 mr-2" />
+            {success}
+          </div>
+        )}
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
+          {isSignUp && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Full Name
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <User className="h-5 w-5 text-gray-400" />
+                </div>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                  placeholder="John Doe"
+                  required={isSignUp}
+                />
+              </div>
+            </div>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Email
             </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter your email"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Mail className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                placeholder="email@example.com"
+                required
+              />
+            </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-              placeholder="Enter your password"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-gray-400" />
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                placeholder="••••••••"
+                required
+              />
+            </div>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors"
           >
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            ) : (
+              <ArrowRight className="h-5 w-5 mr-2" />
+            )}
             {isSignUp ? 'Create Account' : 'Sign In'}
           </button>
         </form>
 
-        <div className="mt-6">
+        <div className="mt-6 text-center">
           <button
             onClick={() => setIsSignUp(!isSignUp)}
-            className="w-full text-center text-sm text-indigo-600 hover:text-indigo-500"
+            className="text-sm text-rose-600 hover:text-rose-500 focus:outline-none focus:underline transition-colors"
           >
             {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
           </button>
         </div>
       </div>
-
-      {/* Test element */}
-      <div className={testClasses}>
-        If you can see this styled in red, Tailwind is working!
+      
+      <div className="mt-8 text-center text-xs text-gray-500">
+        &copy; {new Date().getFullYear()} AAFairShare. All rights reserved.
       </div>
     </div>
   );

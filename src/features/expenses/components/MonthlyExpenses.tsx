@@ -8,9 +8,9 @@ import { calculateUserBalances } from '../../settlements/api/settlement-operatio
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { deleteExpense, invalidateExpensesCache } from '../api/expenseApi';
 import { useErrorHandler } from '../../shared/hooks/useErrorHandler';
-import { ErrorBoundary, LoadingSpinner, _StatusMessage } from '../../shared/components';
-import { formatDateToUK, _formatTime, MONTHS, _getYear } from '../../shared/utils/date-utils';
-import { _formatDecimal, _safeSum } from '../../../utils/number-utils';
+import { ErrorBoundary, LoadingSpinner, StatusMessage } from '../../shared/components';
+import { formatDateToUK, formatTime, MONTHS, getYear } from '../../shared/utils/date-utils';
+import { formatDecimal, safeSum } from '../../../utils/number-utils';
 import { supabase } from '../../../core/api/supabase';
 
 // Type definitions to fix linter errors
@@ -111,7 +111,7 @@ const ExpenseCard = memo(({ expense, formatCurrency, onDelete, onEdit, onClick }
   
   const handleDelete = (e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(expense.id, !!expense._isPaidByCurrentUser);
+    onDelete(expense.id, !!expense.isPaidByCurrentUser);
   };
   
   const handleClick = () => {
@@ -314,8 +314,8 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     }
   };
   
-  const { _user } = useAuth();
-  const { _handleError } = useErrorHandler();
+  const { user } = useAuth();
+  const { handleError } = useErrorHandler();
 
   // Track component mount state with a ref
   const mountedRef = useRef(false);
@@ -973,10 +973,10 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
   
   return (
     <ErrorBoundary fallback={<div>Something went wrong with expenses</div>}>
-      <div className="bg-gray-50 rounded-xl p-4 md:p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 md:p-6">
         {renderMonthTitle}
         
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
           <h3 className="text-sm font-medium text-gray-600">
             {filteredExpenses?.length || 0} expense(s) this month
             {filteredExpenses?.length > 0 && (
@@ -988,9 +988,9 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
           
           <button
             onClick={toggleFilters}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50"
+            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 text-sm"
           >
-            <Filter size={16} className="mr-1" />
+            <Filter size={14} />
             <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
           </button>
         </div>

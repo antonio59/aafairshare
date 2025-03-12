@@ -1,28 +1,11 @@
 import type { Config } from 'tailwindcss';
-import typography from '@tailwindcss/typography';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const rootDir = path.resolve(__dirname, '..');
 
 const config: Config = {
   content: [
-    path.join(rootDir, 'src/**/*.{js,jsx,ts,tsx,html,css}'),
-    path.join(rootDir, 'index.html'),
-    path.join(rootDir, 'src/styles/**/*.{css,scss}'),
-    path.join(rootDir, 'src/features/**/*.{js,jsx,ts,tsx}'),
-    path.join(rootDir, 'src/core/**/*.{js,jsx,ts,tsx}')
+    './src/**/*.{js,jsx,ts,tsx}',
+    './index.html',
   ],
-  darkMode: 'class',
   theme: {
-    container: {
-      center: true,
-      padding: '2rem',
-      screens: {
-        '2xl': '1400px',
-      },
-    },
     extend: {
       colors: {
         border: 'hsl(var(--border))',
@@ -66,7 +49,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [typography],
+  plugins: [require('@tailwindcss/typography')],
 };
 
 export default config; 

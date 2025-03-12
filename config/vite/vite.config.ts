@@ -3,23 +3,22 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(__dirname, '../..');
+const configDir = path.resolve(__dirname, '..');
 
 // Config file paths
-const POSTCSS_CONFIG_PATH = path.resolve(rootDir, 'config/postcss.config.ts');
+const POSTCSS_CONFIG_PATH = path.resolve(configDir, 'postcss.config.ts');
 
 // https://vitejs.dev/config/
 export default defineConfig({
   root: rootDir,
   plugins: [react()],
   css: {
-    postcss: POSTCSS_CONFIG_PATH,
-    devSourcemap: true,
-    modules: {
-      localsConvention: 'camelCase',
-      scopeBehaviour: 'local'
-    }
+    postcss: path.resolve(rootDir, 'postcss.config.cjs'),
+    devSourcemap: true
   },
   resolve: {
     alias: {

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './features/shared/components/Header';
 import Footer from './features/shared/components/Footer';
 import MonthlyExpenses from './features/expenses/components/MonthlyExpenses';
@@ -15,12 +15,44 @@ import { AuthProvider } from './core/contexts/AuthContext';
 import { CurrencyProvider } from './core/contexts/CurrencyContext';
 import { ErrorBoundary } from './core/components/ErrorBoundary';
 
+// Layout component to handle conditional rendering of Header and Footer
+const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const location = useLocation();
+  const isAuthPage = location.pathname === '/auth';
+  const [showNewExpenseModal, setShowNewExpenseModal] = useState<boolean>(false);
+  const [expenseRefreshTrigger, setExpenseRefreshTrigger] = useState<number>(0);
+
+  const handleNewExpense = () => {
+    console.log('DEBUG: handleNewExpense called');
+    setShowNewExpenseModal(true);
+  };
+
+  return (
+    <div className={`min-h-screen ${!isAuthPage ? 'bg-gray-50' : ''}`}>
+      {!isAuthPage && <Header onNewExpense={handleNewExpense} />}
+      <main className={!isAuthPage ? 'max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24' : ''}>
+        {children}
+      </main>
+      {!isAuthPage && <Footer />}
+      {showNewExpenseModal && (
+        <NewExpenseModal
+          isOpen={showNewExpenseModal}
+          onClose={() => setShowNewExpenseModal(false)}
+          onExpenseCreated={() => {
+            setShowNewExpenseModal(false);
+            setExpenseRefreshTrigger(prev => prev + 1);
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
 interface AppProps {}
 
 export const App: React.FC<AppProps> = () => {
   console.log('DEBUG: App component rendering');
   
-  const [showNewExpenseModal, setShowNewExpenseModal] = useState<boolean>(false);
   const [_isMobile, setIsMobile] = useState<boolean>(false);
   const [expenseRefreshTrigger, setExpenseRefreshTrigger] = useState<number>(0);
 
@@ -43,11 +75,6 @@ export const App: React.FC<AppProps> = () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-  const handleNewExpense = () => {
-    console.log('DEBUG: handleNewExpense called');
-    setShowNewExpenseModal(true);
-  };
   
   // Handler for view more button in expenses component
   const handleViewAllExpenses = () => {
@@ -66,112 +93,26 @@ export const App: React.FC<AppProps> = () => {
             v7_relativeSplatPath: true,
             v7_startTransition: true 
           }}>
-            <div className="min-h-screen bg-gray-50">
+            <AppLayout>
               <Routes>
-                <Route path="/auth" element={<AuthPage />} />
-                
                 <Route path="/" element={
                   <ProtectedRoute>
-                    <div>
-                      <Header onNewExpense={handleNewExpense} />
-                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                        <MonthlyExpenses 
-                          onViewMore={handleViewAllExpenses} 
-                          refreshTrigger={expenseRefreshTrigger}
-                          onNewExpense={handleNewExpense}
-                        />
-                      </main>
-                      <Footer />
-                    </div>
+                    <MonthlyExpenses 
+                      refreshTrigger={expenseRefreshTrigger} 
+                      onNewExpense={() => {}} 
+                      onViewMore={handleViewAllExpenses} 
+                    />
                   </ProtectedRoute>
                 } />
-                
-                <Route path="/settlements/*" element={
-                  <ProtectedRoute>
-                    <div>
-                      <Header onNewExpense={handleNewExpense} />
-                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                        <SettlementsPage />
-                      </main>
-                      <Footer />
-                    </div>
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/analytics/*" element={
-                  <ProtectedRoute>
-                    <>
-                      <Header onNewExpense={handleNewExpense} />
-                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                        <AnalyticsPage />
-                      </main>
-                      <Footer />
-                    </>
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/settings/*" element={
-                  <ProtectedRoute>
-                    <>
-                      <Header onNewExpense={handleNewExpense} />
-                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                        <SettingsPage />
-                      </main>
-                      <Footer />
-                    </>
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/categories/*" element={
-                  <ProtectedRoute>
-                    <>
-                      <Header onNewExpense={handleNewExpense} />
-                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                        <CategoryManagementPage />
-                      </main>
-                      <Footer />
-                    </>
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/expenses/edit/:id" element={
-                  <ProtectedRoute>
-                    <div>
-                      <Header onNewExpense={handleNewExpense} />
-                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                        <ExpenseDetailPage isEditMode={true} />
-                      </main>
-                      <Footer />
-                    </div>
-                  </ProtectedRoute>
-                } />
-                
-                <Route path="/expenses/:id" element={
-                  <ProtectedRoute>
-                    <div>
-                      <Header onNewExpense={handleNewExpense} />
-                      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24">
-                        <ExpenseDetailPage />
-                      </main>
-                      <Footer />
-                    </div>
-                  </ProtectedRoute>
-                } />
-                
+                <Route path="/expenses/:id" element={<ProtectedRoute><ExpenseDetailPage /></ProtectedRoute>} />
+                <Route path="/settlements" element={<ProtectedRoute><SettlementsPage /></ProtectedRoute>} />
+                <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                <Route path="/categories" element={<ProtectedRoute><CategoryManagementPage /></ProtectedRoute>} />
+                <Route path="/auth" element={<AuthPage />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-              
-              {showNewExpenseModal && (
-                <NewExpenseModal
-                  isOpen={showNewExpenseModal}
-                  onClose={() => setShowNewExpenseModal(false)}
-                  onExpenseCreated={() => {
-                    setShowNewExpenseModal(false);
-                    setExpenseRefreshTrigger(prev => prev + 1);
-                  }}
-                />
-              )}
-            </div>
+            </AppLayout>
           </Router>
         </CurrencyProvider>
       </AuthProvider>
