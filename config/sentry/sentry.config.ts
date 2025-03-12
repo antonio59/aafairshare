@@ -24,8 +24,8 @@ interface SentryAuthConfig {
 function loadEnvironment() {
   // Required environment variables
   const requiredVars = {
-    monitoringEndpoint: process.env.VITE_SENTRY_DSN,
-    authToken: process.env.SENTRY_AUTH_TOKEN,
+    dsn: process.env.VITE_SENTRY_DSN,
+    token: process.env.SENTRY_AUTH_TOKEN,
   };
 
   // Optional environment variables with defaults
@@ -59,7 +59,7 @@ const env = loadEnvironment();
 
 // Base Sentry configuration
 export const sentryConfig: SentryConfig = {
-  dsn: env.monitoringEndpoint!,
+  dsn: env.dsn!,
   environment: env.NODE_ENV,
   release: `v${env.APP_VERSION}`,
   tracesSampleRate: 1.0,
@@ -68,7 +68,7 @@ export const sentryConfig: SentryConfig = {
 
 // Sentry authentication configuration
 export const sentryAuthConfig: SentryAuthConfig = {
-  authToken: env.authToken!,
+  authToken: env.token!,
   org: env.ORG_ID,
   project: env.PROJECT_ID,
 };
