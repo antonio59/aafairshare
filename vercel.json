@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "npm run sentry:validate && npm run sentry:release && npm run build && npm run sentry:sourcemaps",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "outputDirectory": "dist",
