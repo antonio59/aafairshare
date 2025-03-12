@@ -1,5 +1,6 @@
+/* eslint-env node */
 // This file is used to check that Netlify is using the correct Node.js version
-exports.handler = async function(event, context) {
+exports.handler = async function(_event, _context) {
   try {
     // Log the Node.js version being used
     console.log(`Node.js version in function: ${process.version}`);
@@ -29,4 +30,4 @@ exports.handler = async function(event, context) {
       })
     };
   }
-}; 
+};

@@ -22,7 +22,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      '@': path.resolve(__dirname, '../../src')
     },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
   },
@@ -33,21 +33,33 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    target: 'esnext',
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true
+      }
+    },
     rollupOptions: {
       input: {
-        main: path.resolve(__dirname, 'index.html')
+        main: path.resolve(__dirname, '../../index.html')
       },
       output: {
-        // Ensure Web Workers are properly handled
         manualChunks: (id) => {
           if (id.includes('node_modules')) {
+            if (id.includes('react')) return 'react-vendor';
+            if (id.includes('@supabase')) return 'supabase-vendor';
             return 'vendor';
           }
-          if (id.includes('.worker.')) {
-            return 'workers';
-          }
+          if (id.includes('.worker.')) return 'workers';
+          if (id.includes('features/')) return 'features';
+          if (id.includes('core/')) return 'core';
           return null;
-        }
+        },
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash][extname]'
+      }
       }
     }
   },
@@ -98,4 +110,4 @@ export default defineConfig({
   worker: {
     format: 'es' // Use ES modules for workers
   }
-}); 
+});

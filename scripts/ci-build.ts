@@ -67,7 +67,7 @@ function main(): void {
     
     // TypeScript compilation
     logSection('TypeScript Compilation');
-    runCommand('tsc -p tsconfig.netlify.json');
+    runCommand('tsc -p config/typescript/tsconfig.netlify.json');
     
     // Build Netlify functions
     logSection('Building Netlify Functions');
@@ -83,7 +83,7 @@ function main(): void {
     
     // Build frontend
     logSection('Building Frontend');
-    runCommand('npx vite build');
+    runCommand('npx vite build --config config/vite/vite.config.ts');
     
     // Create Sentry release if not skipped
     if (!skipSentry) {

@@ -63,15 +63,58 @@ const defaultReporter: ReportHandler = (metric: Metric) => {
 };
 
 // Function to send metrics to an analytics service (placeholder)
-const sendToAnalytics = (
-  {name, value, rating}: {name: string, value: number, rating: string}
-) => {
-  // This is just a placeholder for where you would implement your analytics logic
-  // For example:
-  // window.gtag('event', 'web_vitals', { name, value, rating });
-  // or
-  // navigator.sendBeacon('/analytics', JSON.stringify({name, value, rating}));
+// Enhanced reporter with analytics integration
+const sendToAnalytics = (metric: Metric) => {
+  const body = {
+    name: metric.name,
+    value: metric.value,
+    rating: getRating(metric.name, metric.value),
+    id: metric.id,
+    navigationType: metric.navigationType
+  };
+
+  // Use Navigator.sendBeacon() for better performance
+  const blob = new Blob([JSON.stringify(body)], { type: 'application/json' });
+  navigator.sendBeacon('/api/analytics/vitals', blob);
 };
+
+// Initialize web vitals monitoring with enhanced reporting
+export function initWebVitals(reportHandler: ReportHandler = defaultReporter) {
+  vitalsMetrics.forEach((metric) => {
+    switch (metric) {
+      case 'CLS':
+        onCLS((result) => {
+          reportHandler(result);
+          sendToAnalytics(result);
+        });
+        break;
+      case 'FID':
+        onFID((result) => {
+          reportHandler(result);
+          sendToAnalytics(result);
+        });
+        break;
+      case 'FCP':
+        onFCP((result) => {
+          reportHandler(result);
+          sendToAnalytics(result);
+        });
+        break;
+      case 'LCP':
+        onLCP((result) => {
+          reportHandler(result);
+          sendToAnalytics(result);
+        });
+        break;
+      case 'TTFB':
+        onTTFB((result) => {
+          reportHandler(result);
+          sendToAnalytics(result);
+        });
+        break;
+    }
+  });
+}
 
 // Function to report all web vitals metrics
 export function reportWebVitals(onReport: ReportHandler = defaultReporter): void {
@@ -105,4 +148,4 @@ export function collectWebVitals(): Promise<Record<string, Metric>> {
   });
 }
 
-export default reportWebVitals; 
+export default reportWebVitals;
