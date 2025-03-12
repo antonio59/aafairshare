@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo, useMemo, useRef } from 'react';
+import React, { useState, useEffect, memo, useMemo, useRef, useCallback } from 'react';
 import { Edit, Receipt, Calendar, ChevronLeft, ChevronRight, Filter, ArrowUpDown, Search, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FixedSizeList as List } from 'react-window';
@@ -295,24 +295,12 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
   const errorTimeoutRef = useRef<number | null>(null);
   
   // Create our own formatCurrency function using the context's formatAmount
-  const formatCurrency = (value: number | string): string => {
-    try {
-      // Convert string values to numbers for the formatAmount function
-      const numericValue = typeof value === 'string' ? parseFloat(value) : value;
-      
-      // Use the context's formatAmount if available, or provide a fallback
-      if (currencyContext && typeof currencyContext.formatAmount === 'function') {
-        return currencyContext.formatAmount(isNaN(numericValue) ? 0 : numericValue);
-      }
-      
-      // Fallback formatter if context not available
-      return `£${isNaN(numericValue) ? 0 : numericValue.toFixed(2)}`;
-    } catch (err) {
-      // If anything goes wrong, return a safe default
-      console.error('Error formatting currency:', err);
-      return `£0.00`;
+  const formatCurrency = useCallback((value: number | string): string => {
+    if (typeof value === 'string') {
+      value = parseFloat(value) || 0;
     }
-  };
+    return currencyContext.formatAmount(value);
+  }, [currencyContext.formatAmount]);
   
   const { user, refreshSession } = useAuth();
   const { handleError } = useErrorHandler();
@@ -353,40 +341,38 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
   
   // Apply filters and sorting - memoized
   const filteredExpenses = useMemo(() => {
-    console.log('Filtering expenses, count before:', currentMonthData.expenses?.length || 0);
+    console.log('Filtering expenses, count:', currentMonthData.expenses?.length || 0);
     
     if (!Array.isArray(currentMonthData.expenses)) {
-      console.warn('currentMonthData.expenses is not an array:', currentMonthData);
       return [];
     }
-    
-    // Apply search and category filters
-    return currentMonthData.expenses.filter((expense: Expense) => {
-      const matchesSearch = !searchQuery || 
-        (expense.category?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-        (expense.notes?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false) ||
-        (expense.location?.toLowerCase().includes(searchQuery.toLowerCase()) ?? false);
-        
-      const matchesCategories = selectedCategories.length === 0 || 
-        (expense.category && selectedCategories.includes(expense.category));
-        
-      return matchesSearch && matchesCategories;
-    }).sort((a: Expense, b: Expense) => {
-      switch (sortBy) {
-        case 'date':
-          return sortOrder === 'asc' 
-            ? new Date(a.date).getTime() - new Date(b.date).getTime()
-            : new Date(b.date).getTime() - new Date(a.date).getTime();
-        case 'amount':
-          const amountA = typeof a.amount === 'string' ? parseFloat(a.amount) : (a.amount || 0);
-          const amountB = typeof b.amount === 'string' ? parseFloat(b.amount) : (b.amount || 0);
-          return sortOrder === 'asc' ? amountA - amountB : amountB - amountA;
-        case 'category':
-          return sortOrder === 'asc' 
-            ? (a.category || '').localeCompare(b.category || '')
-            : (b.category || '').localeCompare(a.category || '');
-        default:
-          return 0;
+
+    return currentMonthData.expenses.filter(expense => {
+      // Filter by search query
+      if (searchQuery && !matchesSearchQuery(expense, searchQuery)) {
+        return false;
+      }
+      
+      // Filter by selected categories
+      if (selectedCategories.length > 0 && expense.category) {
+        if (!selectedCategories.includes(expense.category)) {
+          return false;
+        }
+      }
+      
+      return true;
+    }).sort((a, b) => {
+      // Sort by the selected field
+      if (sortBy === 'date') {
+        return sortOrder === 'asc' 
+          ? new Date(a.date).getTime() - new Date(b.date).getTime()
+          : new Date(b.date).getTime() - new Date(a.date).getTime();
+      } else if (sortBy === 'amount') {
+        const aAmount = typeof a.amount === 'string' ? parseFloat(a.amount) : a.amount;
+        const bAmount = typeof b.amount === 'string' ? parseFloat(b.amount) : b.amount;
+        return sortOrder === 'asc' ? aAmount - bAmount : bAmount - aAmount;
+      } else {
+        return 0;
       }
     });
   }, [currentMonthData.expenses, searchQuery, selectedCategories, sortBy, sortOrder]);
@@ -414,7 +400,7 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     };
 
     return processDataOnMainThread();
-  }, [filteredExpenses, currentMonthData]);
+  }, [filteredExpenses]);
   
   // Helper functions (without useCallback)
   function showError(errorKey: string, message: string) {
@@ -583,8 +569,8 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     }
   }
   
-  // Handle delete without useCallback
-  async function handleDelete(expenseId: string, _isPaidByCurrentUser: boolean) {
+  // Wrap handleDelete in useCallback
+  const handleDelete = useCallback(async (expenseId: string, _isPaidByCurrentUser: boolean) => {
     if (!expenseId || !mountedRef.current) return;
     
     try {
@@ -616,7 +602,7 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         showError('delete', `Error deleting expense: ${err.message || 'Unknown error'}`);
       }
     }
-  }
+  }, [currentMonthData.month, currentMonthData.year, loadData, showError]);
   
   // Navigation helpers (without useCallback)
   function handlePrevMonth() {
@@ -682,42 +668,16 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     });
   }
   
-  // Make the navigation handlers more robust (without useCallback)
-  function handleEditClick(e: React.MouseEvent, expense: Expense) {
-    if (!e || !expense) {
-      console.error('Invalid edit click parameters:', { e, expense });
-      return;
-    }
-    
+  // Wrap handleEditClick in useCallback
+  const handleEditClick = useCallback((e: React.MouseEvent, expense: Expense) => {
     e.stopPropagation();
-    
-    if (!isValidExpense(expense)) {
-      console.error('Invalid expense object:', expense);
-      return;
-    }
-    
-    if (navigate) {
-      // Navigate directly to the expense page with a state parameter indicating edit mode
-      // This avoids the UUID parsing error with the "edit" segment in the URL
-      navigate(`/expenses/${expense.id}`, { state: { editMode: true } });
-    }
-  }
+    navigate(`/expenses/edit/${expense.id}`);
+  }, [navigate]);
   
-  function handleExpenseClick(expense: Expense) {
-    if (!expense) {
-      console.error('Invalid expense click parameter:', expense);
-      return;
-    }
-    
-    if (!isValidExpense(expense)) {
-      console.error('Invalid expense object:', expense);
-      return;
-    }
-    
-    if (navigate) {
-      navigate(`/expenses/${expense.id}`);
-    }
-  }
+  // Wrap handleExpenseClick in useCallback
+  const handleExpenseClick = useCallback((expense: Expense) => {
+    navigate(`/expenses/${expense.id}`);
+  }, [navigate]);
   
   // Effect for initial data loading
   useEffect(() => {

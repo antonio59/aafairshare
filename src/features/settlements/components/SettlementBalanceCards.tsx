@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useCallback } from 'react';
 import { ArrowUpDown, Info, PoundSterling, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 type BalanceStatus = 'positive' | 'negative' | 'neutral';
@@ -115,7 +115,7 @@ export const BalanceCard: React.FC<BalanceCardProps> = ({
  */
 const SettlementBalanceCards: React.FC<SettlementBalanceCardsProps> = ({ balances, loading, formatAmount }) => {
   // Calculate total unsettled amount from monthly expenses
-  const calculateTotalUnsettled = (): number => {
+  const calculateTotalUnsettled = useCallback((): number => {
     // Safety check - ensure we have monthlyExpenses array
     if (!balances || !Array.isArray(balances.monthlyExpenses)) {
       console.log('No valid monthlyExpenses array found', balances);
@@ -128,23 +128,21 @@ const SettlementBalanceCards: React.FC<SettlementBalanceCardsProps> = ({ balance
         .filter((month: MonthData) => {
           // Ensure month is a valid object with netBalance property
           if (!month || typeof month.netBalance !== 'number') {
-            console.log('Invalid month object', month);
             return false;
           }
-          // Only include months where the user owes money (negative netBalance)
-          // and the month is not already settled
-          return month.netBalance < 0 && !month.isSettled;
+          
+          // Only include unsettled months with negative balance (user owes money)
+          return !month.isSettled && month.netBalance < 0;
         })
         .reduce((total: number, month: MonthData) => {
-          // Safely add the absolute value of netBalance
-          const absBalance = Math.abs(Number(month.netBalance) || 0);
-          return total + absBalance;
+          // Sum up the absolute values of negative balances
+          return total + Math.abs(month.netBalance);
         }, 0);
-    } catch (err) {
-      console.error('Error calculating total unsettled amount:', err);
+    } catch (error) {
+      console.error('Error calculating total unsettled amount:', error);
       return 0;
     }
-  };
+  }, [balances]);
   
   // Calculate user's final net balance
   const calculateNetBalance = (): number => {
@@ -185,7 +183,7 @@ const SettlementBalanceCards: React.FC<SettlementBalanceCardsProps> = ({ balance
       console.log('Calculated total unsettled:', totalUnsettled);
       console.log('Calculated net balance:', netBalance);
     }
-  }, [balances, calculateTotalUnsettled, calculateNetBalance]);
+  }, [calculateTotalUnsettled, calculateNetBalance]);
 
   // Safely calculate values with fallbacks to 0
   const totalUnsettled = calculateTotalUnsettled() || 0;

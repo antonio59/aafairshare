@@ -13,11 +13,14 @@ interface UserProfile {
   email: string;
   name: string;
   preferences: {
-    currency: string;
-    notifications: boolean;
-    theme: string;
-  };
-  language: string;
+    currency?: string;
+    notifications?: boolean;
+    theme?: string;
+    [key: string]: any;
+  } | null;
+  language: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
   [key: string]: any; // Allow for additional properties
 }
 
@@ -30,6 +33,9 @@ interface SupabaseUser {
   };
   [key: string]: any; // Allow for additional properties
 }
+
+// Define a type for JSON data from Supabase
+type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -52,6 +58,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [lastRefreshAttempt, setLastRefreshAttempt] = useState<number>(0);
+  // Remove or comment out the unused variable
+  // const _isMobile = window.innerWidth < 768;
 
   // Fetch user profile function
   const fetchUserProfile = async (userId: string) => {
@@ -112,9 +120,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       
       console.log('DEBUG: Setting profile with new data:', data);
-      setProfile(data);
-      return data;
-    } catch (error) {
+      setProfile(data as UserProfile);
+      return data as UserProfile;
+    } catch (error: unknown) {
       console.log('DEBUG: Error in createUserProfile:', error);
       logger.error('User profile creation error', error);
       return null;
@@ -222,10 +230,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setProfile(null);
           }
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.log('DEBUG: Error in getSession:', error);
         if (isEffectActive) {
-          setAuthError(error.message || 'An error occurred');
+          const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+          setAuthError(errorMessage);
         }
       } finally {
         if (isEffectActive) {
