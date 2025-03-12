@@ -6,7 +6,8 @@ import path from 'path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 
 // Config file paths
-const POSTCSS_CONFIG_PATH = path.resolve(__dirname, 'config/postcss.config.ts');
+const POSTCSS_CONFIG_PATH = path.resolve(__dirname, '../postcss/postcss.config.ts');
+const TAILWIND_CONFIG_PATH = path.resolve(__dirname, '../tailwind/tailwind.config.ts');
 // Tailwind config should be referenced in postcss.config.ts
 
 // https://vitejs.dev/config/
