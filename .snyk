@@ -17,11 +17,11 @@ version: v1.25.0
 # Specify paths to scan or exclude from scanning
 exclude:
   global:
-    - dist
-    - build
-    - coverage
-    - node_modules
-    - .next
+    - node_modules/**
+    - dist/**
+    - build/**
+    - coverage/**
+    - .next/**
     - playwright-report
     - test-results
     - '*.log'

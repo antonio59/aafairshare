@@ -16,17 +16,17 @@ interface CommandResult {
 
 /**
  * Execute a shell command safely
- * @param command - Command to execute
- * @returns Result of command execution
  */
 function executeCommand(command: string): CommandResult {
   try {
-    const output = execSync(command, { stdio: 'inherit' });
+    const output = execSync(command, { stdio: 'pipe' });
     return {
       success: true,
-      message: output?.toString() || 'Command executed successfully'
+      message: output?.toString().trim() || 'Command executed successfully'
     };
   } catch (error) {
+    console.error(`Command failed: ${command}`);
+    console.error(error);
     return {
       success: false,
       message: 'Command execution failed',
@@ -36,80 +36,110 @@ function executeCommand(command: string): CommandResult {
 }
 
 /**
- * Creates a new Sentry release with source maps and commit data
- * @param options Release configuration options
- */
-/**
  * Create a new Sentry release with source maps and commit data
- * @param options - Release configuration options
  */
 async function createSentryRelease(options: ReleaseOptions): Promise<void> {
   const { version, projectSlugs, environment } = options;
 
   try {
-    // Validate Sentry configuration
-    if (!sentryAuthConfig.authToken) {
-      throw new Error('Sentry auth token is required. Set SENTRY_AUTH_TOKEN environment variable.');
+    // Validate environment variables
+    const requiredEnvVars = {
+      'SENTRY_AUTH_TOKEN': process.env.SENTRY_AUTH_TOKEN,
+      'SENTRY_ORG': process.env.SENTRY_ORG || sentryAuthConfig.orgSlug,
+      'SENTRY_PROJECT': process.env.SENTRY_PROJECT || sentryAuthConfig.projectSlug,
+      'VITE_SENTRY_DSN': process.env.VITE_SENTRY_DSN || sentryConfig.dsn
+    };
+
+    const missingVars = Object.entries(requiredEnvVars)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingVars.length > 0) {
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
     }
 
-    // Initialize Sentry with our configuration
+    // Initialize Sentry
     Sentry.init({
       ...sentryConfig,
       environment,
       enabled: true,
     });
 
-    // Get the current git commit hash
-    const getCommitResult = executeCommand('git rev-parse HEAD');
-    if (!getCommitResult.success) {
+    // Get git information
+    const gitCommit = executeCommand('git rev-parse HEAD');
+    if (!gitCommit.success) {
       throw new Error('Failed to get git commit hash');
     }
-    const commitHash = getCommitResult.message.trim();
 
-    // Create release using Sentry CLI
-    const createReleaseResult = executeCommand(`npx @sentry/cli releases new ${version} -p 4508958681661520`);
-    if (!createReleaseResult.success) {
+    const gitBranch = executeCommand('git rev-parse --abbrev-ref HEAD');
+    if (!gitBranch.success) {
+      throw new Error('Failed to get git branch');
+    }
+
+    // Create release
+    console.log(`Creating Sentry release ${version}...`);
+    const createRelease = executeCommand(`npx @sentry/cli releases new ${version}`);
+    if (!createRelease.success) {
       throw new Error('Failed to create Sentry release');
     }
 
-    // Set commits for the release
-    const setCommitsResult = executeCommand(
-      `npx @sentry/cli releases set-commits ${version} --commit "antonio59/aafairshare@${commitHash}"`
+    // Set commits
+    console.log('Setting commits...');
+    const setCommits = executeCommand(
+      `npx @sentry/cli releases set-commits ${version} --commit "${sentryAuthConfig.orgSlug}/${sentryAuthConfig.projectSlug}@${gitCommit.message}"`
     );
-    if (!setCommitsResult.success) {
-      throw new Error('Failed to set commits for release');
+    if (!setCommits.success) {
+      throw new Error('Failed to set commits');
     }
 
-    // Associate release with projects
-    const deployResults = await Promise.all(
-      projectSlugs.map(() =>
-        executeCommand(`npx @sentry/cli releases deploys ${version} new -e ${environment} -p 4508958681661520`)
-      )
+    // Upload source maps
+    console.log('Uploading source maps...');
+    const uploadSourcemaps = executeCommand(
+      `npx @sentry/cli releases files ${version} upload-sourcemaps ./dist --rewrite`
     );
-
-    const failedDeploys = deployResults.filter(result => !result.success);
-    if (failedDeploys.length > 0) {
-      throw new Error(`Failed to deploy release to ${failedDeploys.length} projects`);
+    if (!uploadSourcemaps.success) {
+      throw new Error('Failed to upload source maps');
     }
 
-    console.log(`✅ Successfully created Sentry release ${version}`);
+    // Finalize release
+    console.log('Finalizing release...');
+    const finalizeRelease = executeCommand(`npx @sentry/cli releases finalize ${version}`);
+    if (!finalizeRelease.success) {
+      throw new Error('Failed to finalize release');
+    }
+
+    // Create deployment
+    console.log(`Creating deployment for ${environment}...`);
+    const createDeployment = executeCommand(
+      `npx @sentry/cli releases deploys ${version} new -e ${environment}`
+    );
+    if (!createDeployment.success) {
+      throw new Error('Failed to create deployment');
+    }
+
+    console.log('✅ Sentry release completed successfully:');
+    console.log(`   Version: ${version}`);
     console.log(`   Environment: ${environment}`);
-    console.log(`   Commit: ${commitHash}`);
+    console.log(`   Commit: ${gitCommit.message}`);
+    console.log(`   Branch: ${gitBranch.message}`);
     console.log(`   Projects: ${projectSlugs.join(', ')}`);
 
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    console.error('❌ Failed to create Sentry release:', errorMessage);
+    console.error('❌ Sentry release creation failed:');
+    console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
   }
 }
 
-// Get the current package version
+// Get version and create release
 const packageVersion = process.env.npm_package_version || '1.0.0';
+const environment = process.env.NODE_ENV || 'production';
 
-// Create the release
 createSentryRelease({
   version: `v${packageVersion}`,
-  projectSlugs: ['aafairshare'],
-  environment: process.env.NODE_ENV || 'production',
-}).catch(console.error);
+  projectSlugs: [sentryAuthConfig.projectSlug],
+  environment,
+}).catch(error => {
+  console.error('Unhandled error:', error);
+  process.exit(1);
+});

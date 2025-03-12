@@ -104,15 +104,15 @@ jobs:
         run: npm run test:ci
         env:
           NODE_ENV: test
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
 
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
           
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -121,9 +121,61 @@ jobs:
           path: dist/
           retention-days: 7
   
+  lighthouse:
+    name: Lighthouse Performance Tests
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
+          
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install Chrome
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser
+          
+      - name: Restore Lighthouse cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            lighthouse-reports
+            .lighthouseci
+          key: lighthouse-cache-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('package.json') }}
+          restore-keys: |
+            lighthouse-cache-${{ runner.os }}-${{ runner.arch }}-
+            
+      - name: Run Lighthouse tests
+        run: |
+          npx serve dist -p 3000 &
+          sleep 5
+          npm run test:performance -- --url=http://localhost:3000
+          kill $(lsof -t -i:3000)
+          
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: lighthouse-reports/
+          retention-days: 30
+  
   deploy-production:
     name: Deploy to Production
-    needs: build
+    needs: [build, lighthouse]
     runs-on: ubuntu-latest
     if: |
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
@@ -135,6 +187,14 @@ jobs:
       url: ${{ steps.vercel-deploy.outputs.preview-url }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for Sentry to get commit data
+      
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: dist
       
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -144,13 +204,6 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
-
-      - name: Build
-        run: npm run build
-        env:
-          VITE_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          VITE_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
         
       - name: Deploy to Vercel
         id: vercel-deploy
@@ -161,6 +214,32 @@ jobs:
           vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
           working-directory: ./
           vercel-args: '--prod'
+          
+      - name: Create Sentry release
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
+          SENTRY_ORG: 'antonio59'
+          SENTRY_PROJECT: 'aafairshare'
+          VITE_SENTRY_DSN: ${{ secrets.VITE_SENTRY_DSN }}
+          NODE_ENV: 'production'
+        run: |
+          # Get version from package.json
+          VERSION=$(node -p "require('./package.json').version")
+          
+          # Create release
+          npx @sentry/cli releases new v$VERSION
+          
+          # Associate commits with the release
+          npx @sentry/cli releases set-commits v$VERSION --auto
+          
+          # Upload source maps
+          npx @sentry/cli releases files v$VERSION upload-sourcemaps ./dist --rewrite
+          
+          # Finalize the release
+          npx @sentry/cli releases finalize v$VERSION
+          
+          # Create deployment
+          npx @sentry/cli releases deploys v$VERSION new -e production
       
       - name: Display deployment URL
         run: |
