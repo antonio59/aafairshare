@@ -1,5 +1,6 @@
 import { execSync } from 'child_process';
 import * as Sentry from '@sentry/node';
+import { sentryConfig, sentryAuthConfig } from '../config/sentry/sentry.config';
 
 interface ReleaseOptions {
   version: string;
@@ -15,13 +16,14 @@ async function createSentryRelease(options: ReleaseOptions): Promise<void> {
   const { version, projects, environment } = options;
 
   try {
-    // Validate required environment variables
-    if (!process.env.SENTRY_AUTH_TOKEN) {
-      throw new Error('SENTRY_AUTH_TOKEN environment variable is required');
+    // Validate Sentry configuration
+    if (!sentryAuthConfig.authToken) {
+      throw new Error('Sentry auth token is required. Set SENTRY_AUTH_TOKEN environment variable.');
     }
 
-    // Initialize Sentry with minimal config
+    // Initialize Sentry with our configuration
     Sentry.init({
+      ...sentryConfig,
       environment,
       enabled: true,
     });

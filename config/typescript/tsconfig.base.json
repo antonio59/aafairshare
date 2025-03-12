@@ -18,12 +18,13 @@
     "forceConsistentCasingInFileNames": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@components/*": ["./src/components/*"],
-      "@lib/*": ["./src/lib/*"],
-      "@utils/*": ["./src/utils/*"],
-      "@hooks/*": ["./src/hooks/*"],
-      "@config/*": ["./config/*"]
+      "@/*": ["../../src/*"],
+      "@components/*": ["../../src/components/*"],
+      "@lib/*": ["../../src/lib/*"],
+      "@utils/*": ["../../src/utils/*"],
+      "@hooks/*": ["../../src/hooks/*"],
+      "@config/*": ["../../config/*"],
+      "@sentry/*": ["../../config/sentry/*"]
     }
   },
   "include": ["src"],
