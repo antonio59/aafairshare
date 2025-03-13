@@ -11,7 +11,7 @@
     "dev:clean": "rm -rf node_modules/.vite && NODE_ENV=development ./scripts/start-dev.sh",
     "clean": "rm -rf node_modules/.vite",
     "build": "vite build",
-    "build:vercel": "npm install @rollup/rollup-linux-x64-gnu@4.35.0 @rollup/rollup-linux-x64-musl@4.35.0 && vite build",
+    "build:vercel": "npm install @rollup/rollup-linux-x64-gnu@4.35.0 && vite build",
     "preview": "vite preview",
     "security:audit": "npm audit --json > npm-audit.json || true",
     "security:fix": "npm audit fix",
