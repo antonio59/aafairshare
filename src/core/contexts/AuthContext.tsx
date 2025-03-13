@@ -7,6 +7,9 @@ import { createLogger } from '../utils/logger';
 // Create a logger for this module
 const logger = createLogger('AuthContext');
 
+// Define a type for JSON data from Supabase
+type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
+
 // Define proper types for the user and profile objects
 interface UserProfile {
   id: string;
@@ -24,6 +27,18 @@ interface UserProfile {
   [key: string]: any; // Allow for additional properties
 }
 
+// Define the shape of data returned from Supabase
+interface SupabaseUserRecord {
+  id: string;
+  email: string;
+  name: string;
+  preferences: Json;
+  language: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+  [key: string]: any;
+}
+
 interface SupabaseUser {
   id: string;
   email?: string;
@@ -33,9 +48,6 @@ interface SupabaseUser {
   };
   [key: string]: any; // Allow for additional properties
 }
-
-// Define a type for JSON data from Supabase
-type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
 interface AuthContextType {
   user: SupabaseUser | null;
@@ -62,7 +74,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // const _isMobile = window.innerWidth < 768;
 
   // Fetch user profile function
-  const fetchUserProfile = async (userId: string) => {
+  const fetchUserProfile = async (userId: string): Promise<UserProfile | null> => {
     try {
       console.log('DEBUG: fetchUserProfile called for userId:', userId);
       
@@ -77,8 +89,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data && !error) {
         console.log('DEBUG: Setting profile with data:', data);
-        setProfile(data);
-        return data;
+        // Safely cast the Supabase data to our UserProfile type
+        const userProfile: UserProfile = {
+          id: data.id,
+          email: data.email,
+          name: data.name,
+          preferences: data.preferences as UserProfile['preferences'],
+          language: data.language,
+          created_at: data.created_at,
+          updated_at: data.updated_at
+        };
+        setProfile(userProfile);
+        return userProfile;
       }
       
       // If no profile found, return null but don't throw an error
@@ -304,7 +326,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single();
 
         if (error) throw error;
-        setProfile(data);
+        
+        // Safely cast the data to our UserProfile type
+        if (data) {
+          const userProfile: UserProfile = {
+            id: data.id,
+            email: data.email,
+            name: data.name,
+            preferences: data.preferences as UserProfile['preferences'],
+            language: data.language,
+            created_at: data.created_at,
+            updated_at: data.updated_at
+          };
+          setProfile(userProfile);
+        }
       } catch (error: any) {
         logger.error('Error fetching profile:', error);
         setProfile(null);

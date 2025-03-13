@@ -100,6 +100,21 @@ function isValidExpense(expense: any): expense is Expense {
   );
 }
 
+// Function to check if an expense matches a search query
+function matchesSearchQuery(expense: Expense, query: string): boolean {
+  if (!query) return true;
+  
+  const searchLower = query.toLowerCase();
+  
+  // Check various fields for matches
+  return (
+    (expense.category?.toLowerCase().includes(searchLower) ?? false) ||
+    (expense.notes?.toLowerCase().includes(searchLower) ?? false) ||
+    (expense.location?.toLowerCase().includes(searchLower) ?? false) ||
+    (expense.paidByName?.toLowerCase().includes(searchLower) ?? false)
+  );
+}
+
 // Create memoized sub-components to prevent unnecessary re-renders
 
 // Memoized expense card component with updated clean design
