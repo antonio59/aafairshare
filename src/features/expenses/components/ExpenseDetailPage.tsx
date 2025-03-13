@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { deleteExpense, getExpenseDetails } from '../api/expenseApi';
+import { deleteExpense, getExpenseDetails, Expense } from '../api/expenseApi';
 import NewExpenseModal from './NewExpenseModal';
 import { Edit, ArrowLeft, Trash, AlertTriangle, Info } from 'lucide-react';
 import { useCurrency } from '../../../core/contexts/CurrencyContext';
@@ -11,8 +11,23 @@ interface ExpenseDetailPageProps {
   isEditMode?: boolean;
 }
 
+// Type definitions to make code more robust
+interface ApiResponse<T> {
+  data?: T;
+  error?: {
+    message: string;
+    code?: string;
+    status?: number;
+  };
+  success?: boolean;
+  message?: string;
+}
+
+// Define error type options
+type ErrorType = 'not_found' | 'not_authorized' | 'general' | null;
+
 const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
-  const { id } = useParams();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
   const { formatAmount } = useCurrency();
@@ -21,17 +36,17 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   const editModeFromState = location.state?.editMode === true;
   const shouldShowEditModal = isEditMode || editModeFromState;
   
-  const [expense, setExpense] = useState<any>(null);
+  const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showEditModal, setShowEditModal] = useState(shouldShowEditModal);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(shouldShowEditModal);
   const [editModalError, setEditModalError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<'not_found' | 'not_authorized' | 'general' | null>(null);
+  const [errorType, setErrorType] = useState<ErrorType>(null);
   
   // Helper to get expense ID from URL
-  const getExpenseId = () => {
+  const getExpenseId = useCallback((): string => {
     if (!id) return '';
     
     // Handle direct UUID pattern (/expenses/123)
@@ -56,7 +71,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
     
     // For any other patterns, return the ID as is
     return id;
-  };
+  }, [id, location.pathname]);
   
   // Use the settlement hook
   const { isLoading: settlementLoading, isSettled, message: settlementMessage } = useSettlementGuard(getExpenseId());
@@ -64,48 +79,57 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   console.log("ExpenseDetailPage: Rendering with URL param ID:", id);
   
   const loadExpense = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    setErrorType(null);
+    
     try {
-      setLoading(true);
-      clearError();
-      
       const expenseId = getExpenseId();
-      console.log('Loading expense details:', expenseId);
+      if (!expenseId) {
+        setError('Invalid expense ID');
+        setErrorType('not_found');
+        setExpense(null);
+        return;
+      }
       
-      try {
-        const expenseData = await getExpenseDetails(expenseId);
-        setExpense(expenseData);
-      } catch (err: any) {
-        console.error('Error loading expense:', err);
+      // Call the API to get expense details
+      const response = await getExpenseDetails(expenseId) as ApiResponse<Expense>;
+      
+      if (response.error) {
+        console.error('Error fetching expense:', response.error);
+        setError(response.error.message || 'Failed to load expense');
         
-        // Handle specific error codes
-        if (err.code === 'NOT_FOUND') {
-          setError('Expense not found');
+        // Set appropriate error type based on error
+        if (response.error.status === 404) {
           setErrorType('not_found');
-        } else if (err.code === 'UNAUTHORIZED') {
-          setError('You need to be logged in to view this expense');
+        } else if (response.error.status === 403) {
           setErrorType('not_authorized');
-        } else if (err.code === 'PERMISSION_DENIED') {
-          setError('You do not have permission to view this expense');
-          setErrorType('not_authorized');
-        } else if (err.code === 'INVALID_ID') {
-          setError('Invalid expense ID');
-          setErrorType('not_found');
         } else {
-          setError(err.message || 'An error occurred loading the expense');
           setErrorType('general');
         }
         
         setExpense(null);
+        return;
       }
-    } catch (error) {
+      
+      if (!response.data) {
+        setError('Expense not found');
+        setErrorType('not_found');
+        setExpense(null);
+        return;
+      }
+      
+      setExpense(response.data);
+    } catch (error: unknown) {
       console.error('Unexpected error in loadExpense:', error);
-      setError((error as Error).message || 'An unexpected error occurred');
+      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      setError(errorMessage);
       setErrorType('general');
       setExpense(null);
     } finally {
       setLoading(false);
     }
-  }, [id, setLoading, setError, setErrorType, setExpense]);
+  }, [getExpenseId]);
 
   useEffect(() => {
     console.log("ExpenseDetailPage: useEffect triggered");
@@ -178,7 +202,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
       setLoading(true);
       console.log('Attempting to delete expense:', getExpenseId());
       
-      const result = await deleteExpense(getExpenseId());
+      const result = await deleteExpense(getExpenseId()) as ApiResponse<{success: boolean}>;
       
       if (result.success) {
         console.log('Expense deleted successfully, navigating to expenses list');
@@ -256,25 +280,27 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   };
 
   const renderLocations = () => {
+    if (!expense) return null;
+    
     // Show a single location
-    if (expense.location && !expense.all_locations) {
+    if (expense._location && !expense._all_locations) {
       return (
         <div>
           <h2 className="text-sm font-medium text-gray-500">Location</h2>
-          <p className="text-gray-900">{expense.location}</p>
+          <p className="text-gray-900">{expense._location}</p>
         </div>
       );
     }
     
     // Show multiple locations
-    if (expense.all_locations && expense.all_locations.length > 0) {
+    if (expense._all_locations && expense._all_locations.length > 0) {
       return (
         <div>
           <h2 className="text-sm font-medium text-gray-500">
-            {expense.all_locations.length > 1 ? 'Locations' : 'Location'}
+            {expense._all_locations.length > 1 ? 'Locations' : 'Location'}
           </h2>
           <div className="flex flex-wrap gap-2 mt-1">
-            {expense.all_locations.map((location: string, index: number) => (
+            {expense._all_locations.map((location: string, index: number) => (
               <div key={index} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs bg-gray-100 text-gray-800">
                 {location}
               </div>
@@ -388,7 +414,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
         <div className="p-6">
           <div className="mb-6">
             <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-              {expense.category || 'Uncategorized'}
+              {expense._category || 'Uncategorized'}
             </h1>
             <p className="text-3xl font-bold text-rose-500">
               {formatAmount(expense.amount)}
@@ -445,7 +471,18 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
               setIsEditModalOpen(false);
               loadExpense();
             }}
-            expenseToEdit={expense}
+            expenseToEdit={{
+              id: expense?.id,
+              amount: expense?.amount || 0,
+              category: expense?._category || '',
+              description: expense?._description || '',
+              date: expense?.date || '',
+              location: expense?._location || '',
+              currency: expense?._currency || 'USD',
+              user_id: expense?.paid_by || '',
+              notes: expense?.notes || '',
+              split_type: expense?.split_type || 'equal'
+            }}
           />
         </ErrorBoundary>
       )}

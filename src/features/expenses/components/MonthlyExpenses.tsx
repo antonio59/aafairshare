@@ -24,12 +24,13 @@ interface Expense {
   isPaidByCurrentUser?: boolean;
   paidByName?: string;
   splitType?: string;
+  [key: string]: any; // Allow for additional properties
 }
 
 interface ExpenseCardProps {
   expense: Expense;
-  formatCurrency: (value: number | string) => string;
-  onDelete: (id: string, _isPaidByCurrentUser: boolean) => void;
+  formatCurrency: (amount: number | string) => string;
+  onDelete: (id: string, canDelete: boolean) => void;
   onEdit: (e: React.MouseEvent, expense: Expense) => void;
   onClick: (expense: Expense) => void;
 }
@@ -354,21 +355,34 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     }) || { expenses: [] };
   }, [allMonthlyData, selectedDate.month, selectedDate.year]);
   
-  // Apply filters and sorting - memoized
-  const filteredExpenses = useMemo(() => {
-    console.log('Filtering expenses, count:', currentMonthData.expenses?.length || 0);
+  // Sort expenses by date (newest first) or amount
+  const sortedExpenses = useMemo(() => {
+    if (!currentMonthData.expenses?.length) return [];
     
-    if (!Array.isArray(currentMonthData.expenses)) {
-      return [];
-    }
-
-    return currentMonthData.expenses.filter(expense => {
-      // Filter by search query
-      if (searchQuery && !matchesSearchQuery(expense, searchQuery)) {
+    return [...currentMonthData.expenses].sort((a: Expense, b: Expense) => {
+      if (sortBy === 'amount') {
+        return sortOrder === 'asc' 
+          ? Number(a.amount) - Number(b.amount) 
+          : Number(b.amount) - Number(a.amount);
+      }
+      
+      // Default sort by date (newest first)
+      return sortOrder === 'asc'
+        ? new Date(a.date).getTime() - new Date(b.date).getTime()
+        : new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+  }, [currentMonthData.expenses, sortBy, sortOrder]);
+  
+  // Filter and search expenses
+  const filteredExpenses = useMemo(() => {
+    if (!sortedExpenses?.length) return [];
+    
+    return sortedExpenses.filter((expense: Expense) => {
+      if (!matchesSearchQuery(expense, searchQuery)) {
         return false;
       }
       
-      // Filter by selected categories
+      // Apply category filter
       if (selectedCategories.length > 0 && expense.category) {
         if (!selectedCategories.includes(expense.category)) {
           return false;
@@ -376,21 +390,8 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       }
       
       return true;
-    }).sort((a, b) => {
-      // Sort by the selected field
-      if (sortBy === 'date') {
-        return sortOrder === 'asc' 
-          ? new Date(a.date).getTime() - new Date(b.date).getTime()
-          : new Date(b.date).getTime() - new Date(a.date).getTime();
-      } else if (sortBy === 'amount') {
-        const aAmount = typeof a.amount === 'string' ? parseFloat(a.amount) : a.amount;
-        const bAmount = typeof b.amount === 'string' ? parseFloat(b.amount) : b.amount;
-        return sortOrder === 'asc' ? aAmount - bAmount : bAmount - aAmount;
-      } else {
-        return 0;
-      }
     });
-  }, [currentMonthData.expenses, searchQuery, selectedCategories, sortBy, sortOrder]);
+  }, [sortedExpenses, searchQuery, selectedCategories]);
   
   // Group expenses by date for display - memoized with Web Worker
   const groupedExpenses = useMemo(() => {
