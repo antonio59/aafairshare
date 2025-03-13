@@ -1,64 +1,44 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
-  Calendar, ChevronDown, BarChart2, _PieChart, TrendingUp, _Download, _MapPin, ChevronLeft, ChevronRight, _Clock,
-  DollarSign, Target, _AlertTriangle, Calendar as _CalendarIcon, _ArrowUpRight, _ArrowDownRight, Activity, Settings,
+  Calendar, ChevronDown, BarChart2, TrendingUp, ChevronLeft, ChevronRight,
+  DollarSign, Target, Activity, Settings,
   FileSpreadsheet, FileText
 } from 'lucide-react';
-import { getExpenseAnalytics } from '../../expenses/api/expenseApi';
+import { 
+  fetchExpenseAnalytics, 
+  calculateBudgetStatus
+} from '../api/analyticsApi';
 import { getUserBudget, saveBudgetSettings } from '../api/budgetApi';
-import { useCurrency } from '../../../core/contexts/CurrencyContext';
+import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { _ErrorBoundary, _LoadingSpinner, _StatusMessage } from '../../shared/components';
-import { _useErrorHandler } from '../../shared/hooks/useErrorHandler';
 import { formatDateToUK } from '../../shared/utils/date-utils';
-import { _formatDecimal } from '../../../utils/number-utils';
 import { CategoryDistributionChart } from './CategoryDistributionChart';
 import { ExpenseTrendChart } from './ExpenseTrendChart';
 import { LocationSpendingChart } from './LocationSpendingChart';
 import { BudgetSettingsModal } from './BudgetSettingsModal';
-
-// Define interfaces for the component's state
-interface CategoryData {
-  category: string;
-  amount: number;
-}
-
-interface LocationData {
-  location: string;
-  amount: number;
-}
-
-interface TimeData {
-  period: string;
-  amount: number;
-}
-
-interface DailyTrendData {
-  date: string;
-  amount: number;
-}
-
-interface TrendData {
-  daily: DailyTrendData[];
-}
-
-interface BudgetStatus {
-  current: number;
-  target: number;
-  status: 'on_track' | 'warning' | 'at_risk';
-}
+import { 
+  CategoryData, 
+  LocationData, 
+  BudgetStatus,
+  DateRangeOption,
+  AnalyticsResponse
+} from '../types';
+import { ApiResponse } from '../../../core/types/expenses';
+import { exportAnalyticsToCSV, exportAnalyticsToPDF } from '../api/exportService';
+import { toast } from 'react-hot-toast';
+import { ExportDialog } from './ExportDialog';
+import { Button } from '../../../components/ui/button';
 
 export default function AnalyticsPage() {
   const { user } = useAuth();
-  const { formatAmount, _currency } = useCurrency();
+  // formatAmount is now imported directly
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState('month'); // month, quarter, year, custom
+  const [dateRange, setDateRange] = useState<DateRangeOption>('month');
   const [categoryData, setCategoryData] = useState<CategoryData[]>([]);
   const [locationData, setLocationData] = useState<LocationData[]>([]);
-  const [timeData, setTimeData] = useState<TimeData[]>([]);
-  const [trendData, setTrendData] = useState<TrendData>({ daily: [] });
+  const [trendData, setTrendData] = useState<{ daily: Array<{ date: string; amount: number }> }>({ daily: [] });
   const [showDateRangeDropdown, setShowDateRangeDropdown] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
   const [selectedQuarter, setSelectedQuarter] = useState(Math.floor(new Date().getMonth() / 3) + 1);
@@ -66,12 +46,14 @@ export default function AnalyticsPage() {
   const dropdownRef = useRef<HTMLDivElement | null>(null);
   const [spendingVelocity, setSpendingVelocity] = useState(0);
   const [projectedSpending, setProjectedSpending] = useState(0);
-  const [budgetStatus, setBudgetStatus] = useState<BudgetStatus>({
-    current: 0,
-    target: 2000,
-    status: 'on_track'
-  });
+  const [budgetStatus, setBudgetStatus] = useState<BudgetStatus | null>(null);
   const [isBudgetModalOpen, setIsBudgetModalOpen] = useState(false);
+  const [budgetTarget, setBudgetTarget] = useState(0);
+  const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'pdf' | 'csv'>('pdf');
+
+  // Calculate totals
+  const totalSpending = categoryData.reduce((total, item) => total + item.amount, 0);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -87,6 +69,44 @@ export default function AnalyticsPage() {
     };
   }, []);
 
+  const handleDateRangeChange = (newRange: DateRangeOption): void => {
+    setDateRange(newRange);
+    if (newRange !== 'custom') {
+      setShowDateRangeDropdown(false);
+    }
+  };
+
+  // Add current month option to date range display
+  const getCurrentMonthOption = (): React.ReactElement => {
+    const today = new Date();
+    const currentMonth = today.getMonth();
+    const currentYear = today.getFullYear();
+    
+    return (
+      <button 
+        onClick={() => {
+          // Update state
+          setDateRange('custom');
+          setCustomDateType('month');
+          setSelectedMonth(currentMonth);
+          setSelectedYear(currentYear);
+          setShowDateRangeDropdown(false);
+        }}
+        className={`flex items-center w-full text-left px-3 py-2 text-sm rounded-md ${
+          dateRange === 'custom' && 
+          customDateType === 'month' && 
+          selectedMonth === currentMonth && 
+          selectedYear === currentYear
+            ? 'bg-rose-100 text-rose-700 font-medium' 
+            : 'hover:bg-gray-100'
+        }`}
+      >
+        <span className="w-3 h-3 rounded-full bg-rose-500 mr-2"></span>
+        Current Month
+      </button>
+    );
+  };
+
   useEffect(() => {
     const loadAnalytics = async () => {
       if (!user) {
@@ -96,7 +116,7 @@ export default function AnalyticsPage() {
       
       try {
         setLoading(true);
-        setError('');
+        setError(null);
         
         // Calculate date ranges
         let endDate = new Date();
@@ -141,7 +161,7 @@ export default function AnalyticsPage() {
         } else {
           // Default ranges (last month, last quarter, last year)
           switch (dateRange) {
-            case 'quarter':
+            case 'quarter': {
               // Last quarter
               const currentMonth = endDate.getMonth();
               const currentQuarter = Math.floor(currentMonth / 3);
@@ -157,15 +177,17 @@ export default function AnalyticsPage() {
                 endDate = new Date(endDate.getFullYear(), lastQuarterEndMonth + 1, 0);
               }
               break;
+            }
               
-            case 'year':
+            case 'year': {
               // Last year - Jan 1 to Dec 31 of previous year
               startDate = new Date(endDate.getFullYear() - 1, 0, 1);
               endDate = new Date(endDate.getFullYear() - 1, 11, 31);
               break;
+            }
               
             case 'month':
-            default:
+            default: {
               // Last month - 1st to last day of previous month
               const prevMonth = endDate.getMonth() - 1;
               const yearOfPrevMonth = prevMonth < 0 ? endDate.getFullYear() - 1 : endDate.getFullYear();
@@ -174,6 +196,7 @@ export default function AnalyticsPage() {
               startDate = new Date(yearOfPrevMonth, monthIndex, 1);
               endDate = new Date(yearOfPrevMonth, monthIndex + 1, 0);
               break;
+            }
           }
           
           // Reset the time to ensure full day coverage
@@ -191,11 +214,11 @@ export default function AnalyticsPage() {
           endDateObject: endDate.toISOString()
         });
         
-        let analyticsData;
+        let analyticsResponse: ApiResponse<AnalyticsResponse>;
         try {
           // Fetch analytics data
-          analyticsData = await getExpenseAnalytics(formattedStartDate, formattedEndDate);
-          console.log('Analytics data received:', analyticsData);
+          analyticsResponse = await fetchExpenseAnalytics(dateRange, formattedStartDate, formattedEndDate);
+          console.log('Analytics data received:', analyticsResponse);
         } catch (analyticsError) {
           console.error('Error fetching analytics data:', analyticsError);
           setError('Failed to load analytics data. Please try again.');
@@ -203,41 +226,26 @@ export default function AnalyticsPage() {
           return;
         }
 
+        if (!analyticsResponse.success || !analyticsResponse.data) {
+          setError(analyticsResponse.message || 'Failed to load analytics data');
+          setLoading(false);
+          return;
+        }
+
+        const analyticsData = analyticsResponse.data;
+
         // Ensure numeric values for calculations
-        const ensureNumber = (value: any) => {
+        const ensureNumber = (value: unknown): number => {
           if (typeof value === 'string') {
             return parseFloat(value) || 0;
           }
           return typeof value === 'number' ? value : 0;
         };
         
-        // Make sure we have properly formatted data
-        const normalizedAnalyticsData = {
-          ...analyticsData,
-          categoryData: (analyticsData.categoryData || []).map((cat: any) => ({
-            ...cat,
-            amount: ensureNumber(cat.amount)
-          })),
-          locationData: (analyticsData.locationData || []).map((loc: any) => ({
-            ...loc,
-            amount: ensureNumber(loc.amount)
-          })), _timeData: (analyticsData._timeData || []).map((time: any) => ({
-            ...time,
-            amount: ensureNumber(time.amount)
-          })),
-          trendData: {
-            daily: (((analyticsData.trendData || {}) as any).daily || []).map((day: any) => ({
-              ...day,
-              amount: ensureNumber(day.amount)
-            }))
-          },
-          totalSpending: ensureNumber(analyticsData.totalSpending)
-        };
-        
-        setCategoryData(normalizedAnalyticsData.categoryData);
-        setLocationData(normalizedAnalyticsData.locationData);
-        setTimeData(normalizedAnalyticsData._timeData);
-        setTrendData(normalizedAnalyticsData.trendData as TrendData);
+        // Map data to component state
+        setCategoryData(analyticsData.categoryDistribution || []);
+        setLocationData(analyticsData.locationDistribution || []);
+        setTrendData({ daily: analyticsData.dailyTrend || [] });
 
         // Fetch user's budget settings - specifically for the current user
         let budgetSettings;
@@ -261,23 +269,30 @@ export default function AnalyticsPage() {
         
         // Calculate weekly average (amount per week)
         const weeksInPeriod = daysInPeriod / 7;
-        const weeklyAverage = normalizedAnalyticsData.totalSpending / weeksInPeriod;
+        const weeklyAverage = analyticsData.totalSpent / weeksInPeriod;
         setSpendingVelocity(weeklyAverage);
 
         // Calculate projected spending for current month
         const daysInMonth = new Date(endDate.getFullYear(), endDate.getMonth() + 1, 0).getDate();
-        const projected = calculateProjectedSpending(normalizedAnalyticsData.totalSpending, daysInPeriod, daysInMonth);
+        const projected = calculateProjectedSpending(analyticsData.totalSpent, daysInPeriod, daysInMonth);
         setProjectedSpending(projected);
 
         // Update budget status with user's actual budget target
         const budgetTarget = ensureNumber(budgetSettings?.monthly_target) || 2000;
-        const budgetProgress = (normalizedAnalyticsData.totalSpending / budgetTarget) * 100;
-        setBudgetStatus(prev => ({
-          ...prev,
-          current: normalizedAnalyticsData.totalSpending,
+        const budgetProgress = (analyticsData.totalSpent / budgetTarget) * 100;
+        const newBudgetStatus: BudgetStatus = {
+          current: analyticsData.totalSpent,
           target: budgetTarget,
           status: budgetProgress > 90 ? 'at_risk' : budgetProgress > 75 ? 'warning' : 'on_track'
-        }));
+        };
+        setBudgetStatus(newBudgetStatus);
+
+        // Also fetch budget status
+        const budgetResponse = await calculateBudgetStatus();
+        if (budgetResponse.success && budgetResponse.data) {
+          setBudgetStatus(budgetResponse.data);
+          setBudgetTarget(budgetResponse.data.target);
+        }
       } catch (error) {
         console.error('Error loading analytics:', error);
         setError('Failed to load analytics data. Please try again.');
@@ -288,28 +303,6 @@ export default function AnalyticsPage() {
     
     loadAnalytics();
   }, [user, dateRange, customDateType, selectedMonth, selectedYear, selectedQuarter]);
-  
-  // Calculate totals
-  const totalSpending = categoryData.reduce((total, item) => total + item.amount, 0);
-  
-  // Sort categories by amount
-  const _sortedCategories = [...categoryData].sort((a, b) => b.amount - a.amount);
-  
-  // Sort locations by amount
-  const _sortedLocations = [...locationData].sort((a, b) => b.amount - a.amount);
-  
-  // Format month labels
-  const _formatMonth = (monthStr: string): string => {
-    const date = new Date(monthStr + '-01');
-    return date.toLocaleString('default', { month: 'short', year: 'numeric' });
-  };
-
-  const handleDateRangeChange = (newRange: string): void => {
-    setDateRange(newRange);
-    if (newRange !== 'custom') {
-      setShowDateRangeDropdown(false);
-    }
-  };
 
   const handleMonthChange = (direction: 'prev' | 'next'): void => {
     let newMonth = selectedMonth;
@@ -387,66 +380,9 @@ export default function AnalyticsPage() {
     }
   };
 
-  const handleExport = async (format: 'pdf' | 'csv'): Promise<void> => {
-    try {
-      setLoading(true);
-      setError('');
-      
-      // Generate unique filename
-      const filename = `expense_report_${Date.now()}.${format}`;
-      
-      if (format === 'csv') {
-        // Create CSV content
-        const csvContent = [
-          ['AaFairShare Expense Report'],
-          ['Date Range:', getDateRangeDisplayText()],
-          ['Total Spending:', formatAmount(totalSpending)],
-          [''],
-          ['Category', 'Amount', 'Percentage'],
-          ...categoryData.map(cat => [
-            cat.category,
-            formatAmount(cat.amount),
-            `${((cat.amount / totalSpending) * 100).toFixed(1)}%`
-          ]),
-          [''],
-          ['Location', 'Amount', 'Percentage'],
-          ...locationData.map(loc => [
-            loc.location,
-            formatAmount(loc.amount),
-            `${((loc.amount / totalSpending) * 100).toFixed(1)}%`
-          ])
-        ];
-        
-        // Convert to CSV string
-        const csvString = csvContent.map(row => row.join(',')).join('\n');
-        
-        // Create download link
-        const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        
-        // Create temporary link for download
-        const link = document.createElement('a');
-        link.href = url;
-        link.setAttribute('download', filename);
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-      else if (format === 'pdf') {
-        // For PDF would integrate with PDF generation library
-        alert('PDF export functionality is not yet implemented');
-      }
-    } catch (error) {
-      console.error('Error exporting data:', error);
-      setError('Failed to export report. Please try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Add new helper functions
-  const _calculateDailyAverage = (expenses: number, days: number): number => {
-    return expenses / (days || 1);
+  const handleExportClick = (format: 'pdf' | 'csv') => {
+    setExportFormat(format);
+    setIsExportDialogOpen(true);
   };
 
   const calculateProjectedSpending = (currentSpending: number, daysInPeriod: number, totalDays: number): number => {
@@ -459,147 +395,25 @@ export default function AnalyticsPage() {
       await saveBudgetSettings({ monthly_target: budgetAmount });
       
       // Update local budget state
-      setBudgetStatus(prev => ({
-        ...prev,
-        target: budgetAmount,
-        status: (prev.current / budgetAmount) * 100 > 90 
-          ? 'at_risk' 
-          : (prev.current / budgetAmount) * 100 > 75 
-            ? 'warning' 
-            : 'on_track'
-      }));
+      if (budgetStatus) {
+        const current = budgetStatus.current;
+        const budgetProgress = (current / budgetAmount) * 100;
+        const newStatus: BudgetStatus = {
+          current,
+          target: budgetAmount,
+          status: budgetProgress > 90 
+            ? 'at_risk' 
+            : budgetProgress > 75 
+              ? 'warning' 
+              : 'on_track'
+        };
+        setBudgetStatus(newStatus);
+      }
       
     } catch (error) {
       console.error('Error saving budget:', error);
       throw error;
     }
-  };
-
-  // Add current month option to date range display
-  const getCurrentMonthOption = (): React.ReactElement => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    
-    // Calculate first and last day of current month
-    const _firstDayOfMonth = new Date(currentYear, currentMonth, 1);
-    const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
-    
-    return (
-      <button 
-        onClick={() => {
-          // Important: Call loadAnalytics directly with the specific date range
-          // instead of relying on state updates which might not be reflected immediately
-          const startDate = new Date(currentYear, currentMonth, 1);
-          const endDate = new Date(currentYear, currentMonth + 1, 0);
-          
-          startDate.setHours(0, 0, 0, 0);
-          endDate.setHours(23, 59, 59, 999);
-          
-          // Update state
-          setDateRange('custom');
-          setCustomDateType('month');
-          setSelectedMonth(currentMonth);
-          setSelectedYear(currentYear);
-          setShowDateRangeDropdown(false);
-          
-          // Log the dates for debugging
-          console.log('Current month selection - immediate load:', {
-            month: currentMonth,
-            year: currentYear,
-            startDate: startDate.toISOString(),
-            endDate: endDate.toISOString(),
-            formattedStartDate: startDate.toISOString().split('T')[0],
-            formattedEndDate: endDate.toISOString().split('T')[0]
-          });
-          
-          // Force an immediate load with these specific dates
-          setLoading(true);
-          getExpenseAnalytics(
-            startDate.toISOString().split('T')[0], 
-            endDate.toISOString().split('T')[0]
-          ).then(data => {
-            console.log('Direct load analytics data:', data);
-            
-            // Process data immediately to avoid state update delays
-            const ensureNumber = (value: any) => {
-              if (typeof value === 'string') {
-                return parseFloat(value) || 0;
-              }
-              return typeof value === 'number' ? value : 0;
-            };
-            
-            // Make sure we have properly formatted data
-            const normalizedData = {
-              ...data,
-              categoryData: (data.categoryData || []).map((cat: any) => ({
-                ...cat,
-                amount: ensureNumber(cat.amount)
-              })),
-              locationData: (data.locationData || []).map((loc: any) => ({
-                ...loc,
-                amount: ensureNumber(loc.amount)
-              })), _timeData: (data._timeData || []).map((time: any) => ({
-                ...time,
-                amount: ensureNumber(time.amount)
-              })),
-              trendData: {
-                daily: (((data.trendData || {}) as any).daily || []).map((day: any) => ({
-                  ...day,
-                  amount: ensureNumber(day.amount)
-                }))
-              },
-              totalSpending: ensureNumber(data.totalSpending)
-            };
-            
-            // Update component state with normalized data
-            setCategoryData(normalizedData.categoryData);
-            setLocationData(normalizedData.locationData);
-            setTimeData(normalizedData._timeData);
-            setTrendData(normalizedData.trendData as TrendData);
-            
-            // Update spending metrics
-            const days = lastDayOfMonth.getDate(); // number of days in month
-            const weeksInPeriod = days / 7;
-            const weeklyAverage = normalizedData.totalSpending / weeksInPeriod;
-            setSpendingVelocity(weeklyAverage);
-            
-            // Get budget
-            getUserBudget(user?.id).then(budgetSettings => {
-              const budgetTarget = ensureNumber(budgetSettings?.monthly_target) || 2000;
-              const budgetProgress = (normalizedData.totalSpending / budgetTarget) * 100;
-              
-              setBudgetStatus(prev => ({
-                ...prev,
-                current: normalizedData.totalSpending,
-                target: budgetTarget,
-                status: budgetProgress > 90 ? 'at_risk' : budgetProgress > 75 ? 'warning' : 'on_track'
-              }));
-              
-              setLoading(false);
-            }).catch(err => {
-              console.warn('Error loading budget settings', err);
-              setLoading(false);
-            });
-          }).catch(err => {
-            console.error('Direct load analytics error:', err);
-            setError('Failed to load analytics data. Please try again.');
-            setLoading(false);
-          });
-        }}
-        className={`flex items-center w-full text-left px-3 py-2 text-sm rounded-md ${
-          dateRange === 'custom' && 
-          customDateType === 'month' && 
-          selectedMonth === currentMonth && 
-          selectedYear === currentYear
-            ? 'bg-rose-100 text-rose-700 font-medium' 
-            : 'hover:bg-gray-100'
-        }`}
-      >
-        <span className="w-3 h-3 rounded-full bg-rose-500 mr-2"></span>
-        Current Month
-      </button>
-    );
   };
 
   if (!user) {
@@ -617,28 +431,28 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto p-4 space-y-8">
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-800">Expense Analytics</h2>
           
           <div className="flex items-center space-x-3">
             {/* Export buttons */}
-            <div className="flex space-x-2">
-              <button 
-                onClick={() => handleExport('pdf')} 
-                className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
+            <div className="flex justify-end space-x-4">
+              <Button
+                variant="outline"
+                onClick={() => handleExportClick('csv')}
+                disabled={loading}
               >
-                <FileText className="w-4 h-4 mr-1 text-rose-500" />
-                PDF
-              </button>
-              <button 
-                onClick={() => handleExport('csv')} 
-                className="flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500"
+                Export CSV
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleExportClick('pdf')}
+                disabled={loading}
               >
-                <FileSpreadsheet className="w-4 h-4 mr-1 text-rose-500" />
-                CSV
-              </button>
+                Export PDF
+              </Button>
             </div>
             
             <div className="relative inline-block">
@@ -689,7 +503,7 @@ export default function AnalyticsPage() {
                         <button 
                           onClick={() => {
                             setCustomDateType('month');
-                            handleDateRangeChange('custom');
+                            handleDateRangeChange('custom' as DateRangeOption);
                           }}
                           className={`flex-1 text-center py-2 text-sm rounded-md ${customDateType === 'month' && dateRange === 'custom' ? 'bg-rose-100 text-rose-700 font-medium' : 'hover:bg-gray-100'}`}
                         >
@@ -698,7 +512,7 @@ export default function AnalyticsPage() {
                         <button 
                           onClick={() => {
                             setCustomDateType('quarter');
-                            handleDateRangeChange('custom');
+                            handleDateRangeChange('custom' as DateRangeOption);
                           }}
                           className={`flex-1 text-center py-2 text-sm rounded-md ${customDateType === 'quarter' && dateRange === 'custom' ? 'bg-rose-100 text-rose-700 font-medium' : 'hover:bg-gray-100'}`}
                         >
@@ -815,7 +629,7 @@ export default function AnalyticsPage() {
               <BarChart2 size={24} className="text-gray-500" />
             </div>
             <h3 className="text-lg font-medium text-gray-800 mb-2">No expense data yet</h3>
-            <p className="text-gray-500 mb-4">As you add expenses, you'll see analytics and insights here.</p>
+            <p className="text-gray-500 mb-4">As you add expenses, you&apos;ll see analytics and insights here.</p>
           </div>
         ) : (
           <div className="p-6">
@@ -894,15 +708,15 @@ export default function AnalyticsPage() {
                 </h3>
                 <div className="flex items-center space-x-2">
                   <div className={`text-sm font-medium px-3 py-1 rounded-full ${
-                    budgetStatus.status === 'on_track' 
+                    budgetStatus?.status === 'on_track' 
                       ? 'bg-green-100 text-green-800' 
-                      : budgetStatus.status === 'warning' 
+                      : budgetStatus?.status === 'warning' 
                         ? 'bg-amber-100 text-amber-800' 
                         : 'bg-red-100 text-red-800'
                   }`}>
-                    {budgetStatus.status === 'on_track' 
+                    {budgetStatus?.status === 'on_track' 
                       ? 'On Track' 
-                      : budgetStatus.status === 'warning' 
+                      : budgetStatus?.status === 'warning' 
                         ? 'Warning' 
                         : 'At Risk'}
                   </div>
@@ -920,22 +734,22 @@ export default function AnalyticsPage() {
                 <div className="flex items-center justify-between mb-2">
                   <div>
                     <span className="text-xs font-semibold inline-block text-rose-600">
-                      {Math.round((budgetStatus.current / budgetStatus.target) * 100)}%
+                      {budgetStatus ? Math.round((budgetStatus.current / budgetStatus.target) * 100) : 0}%
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="text-xs font-semibold inline-block text-rose-600">
-                      {formatAmount(budgetStatus.current)} / {formatAmount(budgetStatus.target)}
+                      {formatAmount(budgetStatus?.current || 0)} / {formatAmount(budgetStatus?.target || 0)}
                     </span>
                   </div>
                 </div>
                 <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-rose-200">
                   <div 
-                    style={{ width: `${Math.min(100, (budgetStatus.current / budgetStatus.target) * 100)}%` }} 
+                    style={{ width: `${budgetStatus ? Math.min(100, (budgetStatus.current / budgetStatus.target) * 100) : 0}%` }} 
                     className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
-                      budgetStatus.status === 'on_track' 
+                      budgetStatus?.status === 'on_track' 
                         ? 'bg-green-500' 
-                        : budgetStatus.status === 'warning' 
+                        : budgetStatus?.status === 'warning' 
                           ? 'bg-amber-500' 
                           : 'bg-red-500'
                     }`}
@@ -955,8 +769,23 @@ export default function AnalyticsPage() {
       <BudgetSettingsModal
         isOpen={isBudgetModalOpen}
         onClose={() => setIsBudgetModalOpen(false)}
-        currentBudget={budgetStatus.target}
+        currentBudget={budgetTarget}
         onSave={handleSaveBudget}
+      />
+
+      {/* Export Dialog */}
+      <ExportDialog
+        isOpen={isExportDialogOpen}
+        onClose={() => setIsExportDialogOpen(false)}
+        data={{
+          categoryData: categoryData,
+          locationData: locationData,
+          trendData: trendData.daily || [],
+          totalSpent: totalSpending,
+          budgetStatus: budgetStatus,
+          dateRange: getDateRangeDisplayText()
+        }}
+        formatAmount={formatAmount}
       />
     </div>
   );

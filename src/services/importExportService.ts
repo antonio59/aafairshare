@@ -1,6 +1,5 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../core/api/supabase';
 import { getExpenses } from '../features/expenses/api/expenseApi';
-import { _createClient } from '@supabase/supabase-js';
 
 type ExportFormat = 'json' | 'csv' | 'pdf';
 

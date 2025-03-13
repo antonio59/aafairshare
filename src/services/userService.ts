@@ -1,23 +1,14 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../core/api/supabase';
 import { createLogger } from '../utils/logger';
 import { User, UserResponse, AdminUserAttributes } from '@supabase/supabase-js';
 
 // Create a logger for this module
 const logger = createLogger('UserService');
 
-interface UserPreferences {
-  currency: string;
-  notifications?: boolean;
-  theme?: 'light' | 'dark';
-  [key: string]: unknown;
-}
-
 interface UserData {
   id: string;
   name?: string;
   email: string;
-  preferences: UserPreferences;
-  language: string;
   updated_at: string;
   [key: string]: unknown;
 }
@@ -93,8 +84,6 @@ export const getUsers = async (): Promise<UserData[]> => {
       id: user.id,
       name: user.name || '',
       email: user.email || '',
-      preferences: user.preferences || { currency: 'GBP' },
-      language: user.language || 'en',
       updated_at: user.updated_at
     }));
     

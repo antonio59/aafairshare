@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Target, X, DollarSign, Save } from 'lucide-react';
-import { useCurrency } from '../../../core/contexts/CurrencyContext';
+import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 
 interface BudgetSettingsModalProps {
   isOpen: boolean;
@@ -20,7 +20,7 @@ export function BudgetSettingsModal({
   const [budgetAmount, setBudgetAmount] = useState<string>(currentBudget.toString());
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string>('');
-  const { _formatAmount, currency } = useCurrency();
+  const currency = "GBP";
 
   useEffect(() => {
     // Reset form when modal opens

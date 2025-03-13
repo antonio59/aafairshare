@@ -1,75 +1,75 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { X, _Plus, _DollarSign, Calendar, Tag, _MapPin, Users, _Upload, _Search, ChevronUp, ChevronDown, SplitSquareVertical, UserMinus } from 'lucide-react';
-import { useCurrency } from '../../../core/contexts/CurrencyContext';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { X, Calendar, Tag, Users, ChevronUp, ChevronDown, SplitSquareVertical, UserMinus } from 'lucide-react';
+import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 import { createExpense, updateExpense } from '../api/expenseApi';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { supabase } from '../../../core/api/supabase';
 import { getCurrentISODate } from '../../shared/utils/date-utils';
-import { validateExpense, sanitizeAmount } from '../../shared/utils/validation';
+import { validateExpenseCreate, sanitizeAmount } from '../../../core/utils/validation';
 import { useCSRF } from '../../shared/utils/csrf';
 import LocationCombobox from './LocationCombobox';
+import { Expense, ExpenseCreate } from '../../../core/types/expenses';
 
 interface NewExpenseModalProps {
   isOpen: boolean;
   onClose: () => void;
   onExpenseCreated: () => void;
-  expenseToEdit?: Expense; // Using the Expense type instead of any
+  expenseToEdit?: Expense;
 }
 
-type Expense = {
-  id?: string;
-  amount: number;
-  category: string;
-  description: string;
-  date: string;
+// Type definitions for form data
+interface ExpenseFormData extends Partial<ExpenseCreate> {
+  category?: string;
+  category_id?: string | null;
   location?: string;
-  currency: string;
-  user_id: string;
-  notes?: string;
-  split_type?: string;
-  categories?: string[];
-  locations?: string[];
+  location_id?: string | null;
+  paid_by?: string;
 }
 
-// Helper function to format date to UK format
-const _formatToUKDate = (dateString: string): string => {
-  try {
-    if (!dateString) return 'DD/MM/YYYY';
-    const [year, month, day] = dateString.split(/T|-/);
-    return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${year}`;
-  } catch (error) {
-    console.error('Date formatting error:', error);
-    return 'DD/MM/YYYY';
-  }
-};
+// Type definitions for database entities
+interface CategoryEntity {
+  id: string;
+  category: string;
+}
 
-// Helper function to format date to ISO format
-const _formatToISODate = (dateString: string): string => {
-  try {
-    if (!dateString) return getCurrentISODate();
-    const [day, month, year] = dateString.split('/');
-    return `${year}-${month}-${day}`;
-  } catch (error) {
-    console.error('Date formatting error:', error);
-    return getCurrentISODate();
-  }
-};
+interface LocationEntity {
+  id: string;
+  location: string;
+}
 
-export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, expenseToEdit }: NewExpenseModalProps) {
+export default function NewExpenseModal({ 
+  isOpen, 
+  onClose, 
+  onExpenseCreated, 
+  expenseToEdit 
+}: NewExpenseModalProps) {
   const { user, profile } = useAuth();
-  const { currency, formatAmount: _formatAmount, supportedCurrencies } = useCurrency();
+  // currency is always GBP now
+const currency = "GBP";
+const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
+  
+  // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [_success, setSuccess] = useState(false);
-  const [selectedSplitType, setSelectedSplitType] = useState(expenseToEdit?.split_type || 'equal'); // 'equal' or 'none'
-  const [categories, setCategories] = useState<Array<{id: string, category: string}>>([]);
-  const [locations, setLocations] = useState<Array<{id: string, location: string}>>([]);
+  const [success, setSuccess] = useState(false);
+  const [selectedSplitType, setSelectedSplitType] = useState(expenseToEdit?.split_type || 'equal');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  
+  // Data state
+  const [categories, setCategories] = useState<CategoryEntity[]>([]);
+  const [locations, setLocations] = useState<LocationEntity[]>([]);
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
+  
+  // UI interaction state
   const [categorySearchTerm, setCategorySearchTerm] = useState('');
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  
+  // References
   const categoryInputRef = useRef<HTMLInputElement>(null);
   const categoryDropdownRef = useRef<HTMLDivElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  
+  // Constants
   const MAX_NOTES_LENGTH = 500;
   
   // Initialize with current date if no date is provided
@@ -91,9 +91,10 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
     }
   }, [expenseToEdit]);
 
+  // Create a safe expense object with proper defaults
   const safeExpense = useMemo(() => {
     // Initialize with safe defaults
-    const defaultExpense = {
+    const defaultExpense: ExpenseFormData = {
       date: initialDate,
       amount: expenseToEdit?.amount || 0,
       category: '',
@@ -107,23 +108,25 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
     
     // If we're editing an expense, handle the category and location mapping
     if (expenseToEdit) {
-      // Handle category - might be in different formats based on the API response
-      if (expenseToEdit.categories && expenseToEdit.categories.category) {
-        // From getExpenseDetails format
+      // Handle category - might be in different formats
+      if (expenseToEdit._category) {
+        defaultExpense.category = expenseToEdit._category;
+        defaultExpense.category_id = expenseToEdit.category_id;
+      } else if (expenseToEdit.categories && expenseToEdit.categories.category) {
         defaultExpense.category = expenseToEdit.categories.category;
         defaultExpense.category_id = expenseToEdit.categories.id;
       } else if (expenseToEdit.category) {
-        // Legacy or formatted data
         defaultExpense.category = expenseToEdit.category;
       }
       
-      // Handle location - might be in different formats based on the API response
-      if (expenseToEdit.locations && expenseToEdit.locations.location) {
-        // From getExpenseDetails format
+      // Handle location - might be in different formats
+      if (expenseToEdit._location) {
+        defaultExpense.location = expenseToEdit._location;
+        defaultExpense.location_id = expenseToEdit.location_id;
+      } else if (expenseToEdit.locations && expenseToEdit.locations.location) {
         defaultExpense.location = expenseToEdit.locations.location;
         defaultExpense.location_id = expenseToEdit.locations.id;
       } else if (expenseToEdit.location) {
-        // Legacy or formatted data
         defaultExpense.location = expenseToEdit.location;
       }
       
@@ -137,92 +140,112 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
     return defaultExpense;
   }, [expenseToEdit, initialDate, user?.id]);
 
-  const [expenseData, setExpenseData] = useState(safeExpense);
+  const [expenseData, setExpenseData] = useState<ExpenseFormData>(safeExpense);
 
-  const _csrf = useCSRF();
+  const csrf = useCSRF();
 
-  useEffect(() => {
-    // Load locations
-    const loadLocations = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('locations')
-          .select('id, location')
-          .order('location');
-        
-        if (error) throw error;
-        
-        if (data) {
-          // Convert to unknown first before type assertion
-          setLocations((data as unknown) as Array<{id: string, location: string}>);
-        }
-      } catch (error) {
-        console.error('Error loading locations:', error);
+  // Load reference data (categories and locations)
+  const loadReferenceData = useCallback(async () => {
+    try {
+      // Load locations
+      const { data: locationData, error: locationError } = await supabase
+        .from('locations')
+        .select('id, location')
+        .order('location');
+      
+      if (locationError) throw locationError;
+      
+      if (locationData) {
+        setLocations(locationData as LocationEntity[]);
       }
-    };
-    
-    // Load categories
-    const loadCategories = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('categories')
-          .select('id, category')
-          .order('category');
+      
+      // Load categories
+      const { data: categoryData, error: categoryError } = await supabase
+        .from('categories')
+        .select('id, category')
+        .order('category');
+      
+      if (categoryError) throw categoryError;
+      
+      if (categoryData && categoryData.length > 0) {
+        setCategories(categoryData as CategoryEntity[]);
         
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          // Convert to unknown first before type assertion
-          setCategories((data as unknown) as Array<{id: string, category: string}>);
-          // Set default category if not editing
-          if (!expenseToEdit && data.length > 0) {
-            const typedData = (data as unknown) as Array<{id: string, category: string}>;
-            setExpenseData((prev: any) => ({ 
-              ...prev, 
-              category: typedData[0].category, 
-              category_id: typedData[0].id 
-            }));
-          }
+        // Set default category if not editing
+        if (!expenseToEdit && categoryData.length > 0) {
+          setExpenseData(prev => ({ 
+            ...prev, 
+            category: categoryData[0].category, 
+            category_id: categoryData[0].id 
+          }));
         }
-      } catch (error) {
-        console.error('Error loading categories:', error);
       }
-    };
-    
-    loadLocations();
-    loadCategories();
+    } catch (error) {
+      console.error('Error loading reference data:', error);
+      setError('Failed to load categories and locations. Please try again.');
+    }
   }, [expenseToEdit]);
 
+  // Initialize data on component mount
   useEffect(() => {
-    // Update currency when it changes in context
-    setExpenseData((prev: any) => ({ ...prev, currency }));
+    loadReferenceData();
+  }, [loadReferenceData]);
+
+  // Update currency when it changes in context
+  useEffect(() => {
+    setExpenseData(prev => ({ ...prev, currency }));
   }, [currency]);
 
+  // Initialize selected locations if editing an expense
   useEffect(() => {
-    // Initialize selected locations if editing an expense
     if (expenseToEdit?.all_locations && Array.isArray(expenseToEdit.all_locations)) {
       setSelectedLocations(expenseToEdit.all_locations);
     } else if (expenseToEdit?.location) {
       setSelectedLocations([expenseToEdit.location]);
+    } else if (expenseToEdit?._location) {
+      setSelectedLocations([expenseToEdit._location]);
     }
   }, [expenseToEdit]);
 
+  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setExpenseData((prev: any) => ({ 
+    setExpenseData(prev => ({ 
       ...prev, 
       [name]: value ?? '' 
     }));
+    
+    // Clear validation error for this field when it changes
+    if (validationErrors[name]) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated[name];
+        return updated;
+      });
+    }
   };
 
+  // Handle form cancellation
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
     onClose();
   };
 
+  // Handle amount changes with sanitization
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedAmount = sanitizeAmount(e.target.value);
-    setExpenseData((prev: any) => ({ ...prev, amount: sanitizedAmount }));
+    setExpenseData(prev => ({ 
+      ...prev, 
+      amount: sanitizedAmount ?? 0
+    }));
+    
+    // Clear validation error for this field when it changes
+    if (validationErrors.amount) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated.amount;
+        return updated;
+      });
+    }
   };
 
   // Auto-format amount on blur for better user experience
@@ -230,250 +253,265 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
     if (expenseData.amount) {
       // Format to 2 decimal places if needed
       const formattedAmount = Number(expenseData.amount).toFixed(2);
-      setExpenseData((prev: any) => ({ 
+      setExpenseData(prev => ({ 
         ...prev, 
-        amount: formattedAmount === '0.00' ? '' : formattedAmount 
+        amount: formattedAmount === '0.00' ? 0 : parseFloat(formattedAmount) 
       }));
     }
   };
 
+  // Handle location change
   const handleLocationChange = (location: string | null) => {
     if (location === null) {
       // Clear all locations
       setSelectedLocations([]);
-      setExpenseData((prev: any) => ({ 
+      setExpenseData(prev => ({ 
         ...prev, 
-        location: null 
+        location: undefined,
+        location_id: null
       }));
     } else if (!selectedLocations.includes(location)) {
       // Add new location
       const newLocations = [...selectedLocations, location];
       setSelectedLocations(newLocations);
-      // Set the primary location to the first one for backward compatibility
-      setExpenseData((prev: any) => ({ 
-        ...prev, 
-        location: newLocations[0] 
-      }));
-    } else {
-      // Remove existing location
-      const newLocations = selectedLocations.filter(loc => loc !== location);
-      setSelectedLocations(newLocations);
-      // Update primary location or set to null if empty
-      setExpenseData((prev: any) => ({ 
-        ...prev, 
-        location: newLocations.length > 0 ? newLocations[0] : null 
-      }));
-    }
-  };
-
-  const handleCreateNewLocation = async (locationName: string): Promise<void> => {
-    try {
-      const { data, error } = await supabase
-        .from('locations')
-        .insert({ location: locationName })
-        .select('id, location')
-        .single();
       
-      if (error) throw error;
-      
-      if (data) {
-        setLocations(prev => [...prev, data as unknown as {id: string, location: string}]);
-        setExpenseData((prev: any) => ({ 
+      // Update primary location in expense data
+      const locationObj = locations.find(l => l.location === location);
+      if (locationObj) {
+        setExpenseData(prev => ({ 
           ...prev, 
-          location: locationName 
+          location: location,
+          location_id: locationObj.id
+        }));
+      } else {
+        setExpenseData(prev => ({ 
+          ...prev, 
+          location: location,
+          location_id: null
         }));
       }
-    } catch (error) {
-      console.error('Error creating new location:', error);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Starting expense update/creation');
-    setLoading(true);
-    setError('');
-    setValidationErrors({});
-
-    try {
-      // Find the category ID for the selected category name
-      let categoryId = null;
-      if (expenseData.category) {
-        const categoryObj = categories.find(c => c.category === expenseData.category);
-        if (categoryObj) {
-          categoryId = categoryObj.id;
-        }
-      }
-
-      // Find the location ID for the selected location name
-      let locationId = null;
-      if (expenseData.location) {
-        const locationObj = locations.find(l => l.location === expenseData.location);
-        if (locationObj) {
-          locationId = locationObj.id;
-        }
-      }
-
-      // Create formatted expense data with required fields for ExpenseCreate
-      const formattedExpenseData: any = {
-        amount: parseFloat(expenseData.amount),
-        date: expenseData.date,
-        category_id: categoryId,
-        notes: expenseData.notes || '',
-        location_id: locationId,
-        // Add support for multiple locations
-        locations: selectedLocations,
-        paid_by: user?.id,
-        split_type: selectedSplitType
-      };
-
-      // Validate the expense data
-      const validation = validateExpense(formattedExpenseData);
-      if (!validation.success) {
-        setValidationErrors(
-          validation.errors.reduce((acc, err) => ({
-            ...acc,
-            [err.field]: err.message
-          }), {})
-        );
-        throw new Error('Validation failed');
-      }
-
-      console.log('Submitting expense data:', formattedExpenseData);
-
-      let result;
-      try {
-        if (expenseToEdit) {
-          // updateExpense only takes the expense ID and data, no headers
-          result = await updateExpense(expenseToEdit.id, formattedExpenseData);
-          // updateExpense returns a boolean
-          console.log('Received result from updateExpense:', result);
-        } else {
-          result = await createExpense(formattedExpenseData);
-          // createExpense returns the created expense or null
-          console.log('Received result from createExpense:', result);
-        }
-      } catch (err) {
-        const apiError = err as Error;
-        console.error('API call failed:', apiError);
-        throw new Error(`Failed to ${expenseToEdit ? 'update' : 'create'} expense: ${apiError.message}`);
-      }
-      
-      // Check if the operation was successful
-      const isSuccess = expenseToEdit ? (result === true) : (result !== null);
-      
-      if (isSuccess) {
-        setSuccess(true);
-        // Trigger refresh immediately
-        if (onExpenseCreated) {
-          onExpenseCreated();
-        }
-        // Close modal after a short delay
-        setTimeout(() => {
-          onClose();
-        }, 1500);
+  // Handle removing a location
+  const handleRemoveLocation = (location: string) => {
+    const updatedLocations = selectedLocations.filter(loc => loc !== location);
+    setSelectedLocations(updatedLocations);
+    
+    // If we removed the primary location, update it to the first remaining one or null
+    if (expenseData.location === location) {
+      if (updatedLocations.length > 0) {
+        const newPrimaryLocation = updatedLocations[0];
+        const locationObj = locations.find(l => l.location === newPrimaryLocation);
+        
+        setExpenseData(prev => ({ 
+          ...prev, 
+          location: newPrimaryLocation,
+          location_id: locationObj?.id || null
+        }));
       } else {
-        // This should no longer be needed since createExpense now throws errors
-        // for null results, but keeping as a fallback
-        console.warn('Operation succeeded but returned no data');
-        throw new Error(`Failed to ${expenseToEdit ? 'update' : 'create'} expense: No success response received`);
+        setExpenseData(prev => ({ 
+          ...prev, 
+          location: undefined,
+          location_id: null
+        }));
       }
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error creating/updating expense:', error);
-      
-      // Provide more specific error message
-      let errorMessage = error.message || `Failed to ${expenseToEdit ? 'update' : 'create'} expense. Please try again.`;
-      
-      // Handle authentication errors specially
-      if (errorMessage.includes('Authentication error')) {
-        console.warn('Authentication issue detected');
-        errorMessage = 'Your session may have expired. Please refresh the page and try again.';
-      }
-      
-      // Check for database-specific errors
-      if ((error as any).code === 'PGRST204') {
-        errorMessage = 'Database schema error: The category or location fields may have changed. Please check your data format.';
-      }
-      
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
     }
   };
 
-  const _getCurrencySymbol = () => {
-    return supportedCurrencies[currency]?.symbol || '$';
+  // Toggle category dropdown
+  const handleToggleCategoryDropdown = () => {
+    setShowCategoryDropdown(prev => !prev);
+    if (!showCategoryDropdown && categoryInputRef.current) {
+      // Focus the input when opening dropdown
+      setTimeout(() => categoryInputRef.current?.focus(), 0);
+    }
   };
 
-  // Filter categories based on search
+  // Handle category selection
+  const handleCategorySelect = (categoryObj: CategoryEntity) => {
+    setExpenseData(prev => ({ 
+      ...prev, 
+      category: categoryObj.category,
+      category_id: categoryObj.id
+    }));
+    setShowCategoryDropdown(false);
+    setCategorySearchTerm('');
+    
+    // Clear validation error for this field
+    if (validationErrors.category_id) {
+      setValidationErrors(prev => {
+        const updated = { ...prev };
+        delete updated.category_id;
+        return updated;
+      });
+    }
+  };
+
+  // Filter categories based on search term
   const filteredCategories = useMemo(() => {
     if (!categorySearchTerm.trim()) return categories;
+    
     return categories.filter(cat => 
       cat.category.toLowerCase().includes(categorySearchTerm.toLowerCase())
     );
   }, [categories, categorySearchTerm]);
 
-  // Close category dropdown on outside click
+  // Toggle split type
+  const handleToggleSplitType = (splitType: string) => {
+    setSelectedSplitType(splitType);
+    setExpenseData(prev => ({ 
+      ...prev, 
+      split_type: splitType 
+    }));
+  };
+
+  // Handle form submission
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setValidationErrors({});
+    setSuccess(false);
+
+    try {
+      // Find the category ID for the selected category name
+      let categoryId = expenseData.category_id;
+      if (expenseData.category && !categoryId) {
+        const categoryObj = categories.find(c => c.category === expenseData.category);
+        categoryId = categoryObj?.id || null;
+      }
+
+      // Find the location ID for the selected location name
+      let locationId = expenseData.location_id;
+      if (expenseData.location && !locationId) {
+        const locationObj = locations.find(l => l.location === expenseData.location);
+        locationId = locationObj?.id || null;
+      }
+
+      // Create formatted expense data with required fields
+      const formattedExpenseData: ExpenseCreate = {
+        amount: typeof expenseData.amount === 'string' 
+          ? parseFloat(expenseData.amount) 
+          : (expenseData.amount || 0),
+        date: expenseData.date || getCurrentISODate(),
+        category_id: categoryId,
+        notes: expenseData.notes || '',
+        location_id: locationId,
+        locations: selectedLocations,
+        paid_by: expenseData.paid_by || user?.id || '',
+        split_type: selectedSplitType
+      };
+
+      // Validate the expense data
+      const validation = validateExpenseCreate(formattedExpenseData);
+      
+      if (!validation.valid) {
+        const errors = validation.errors || {};
+        setValidationErrors(errors);
+        throw new Error('Validation failed');
+      }
+
+      let result;
+      const csrfToken = await csrf.getToken();
+
+      if (expenseToEdit?.id) {
+        // Update existing expense
+        result = await updateExpense(
+          expenseToEdit.id, 
+          formattedExpenseData,
+          csrfToken
+        );
+      } else {
+        // Create new expense
+        result = await createExpense(
+          formattedExpenseData,
+          csrfToken
+        );
+      }
+
+      if (result.success) {
+        setSuccess(true);
+        
+        // Reset form if creating new (not updating)
+        if (!expenseToEdit) {
+          setExpenseData({
+            date: getCurrentISODate(),
+            amount: 0,
+            category: categories.length > 0 ? categories[0].category : '',
+            category_id: categories.length > 0 ? categories[0].id : null,
+            notes: '',
+            location: '',
+            location_id: null,
+            paid_by: user?.id || '',
+            split_type: 'equal'
+          });
+          setSelectedLocations([]);
+          
+          // Reset the form to clear any browser validation states
+          formRef.current?.reset();
+        }
+        
+        // Notify parent component
+        onExpenseCreated();
+        
+        // Close modal after a short delay to show success message
+        setTimeout(() => {
+          onClose();
+        }, 1000);
+      } else {
+        throw new Error(result.message || 'Failed to save expense');
+      }
+    } catch (err: any) {
+      console.error('Error saving expense:', err);
+      
+      // Set appropriate error message
+      if (err.message === 'Validation failed' && Object.keys(validationErrors).length > 0) {
+        setError('Please fix the highlighted errors');
+      } else {
+        setError(err.message || 'Failed to save expense. Please try again.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle clicking outside of category dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target as Node)) {
+      if (
+        categoryDropdownRef.current && 
+        !categoryDropdownRef.current.contains(event.target as Node) &&
+        categoryInputRef.current && 
+        !categoryInputRef.current.contains(event.target as Node)
+      ) {
         setShowCategoryDropdown(false);
       }
     }
-
+    
     document.addEventListener('mousedown', handleClickOutside);
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-  const handleCategorySelect = (category: string) => {
-    setExpenseData((prev: any) => ({ ...prev, category }));
-    setShowCategoryDropdown(false);
-    setCategorySearchTerm('');
-  };
   
-  // Get commonly used categories (up to 4)
-  const commonCategories = useMemo(() => {
-    return categories.slice(0, 4);
-  }, [categories]);
-
-  // Handle notes change with character limit
-  const handleNotesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const value = e.target.value;
-    if (value.length <= MAX_NOTES_LENGTH) {
-      setExpenseData((prev: any) => ({ 
-        ...prev, 
-        notes: value 
-      }));
+  // Escape key to close modal
+  useEffect(() => {
+    function handleEscapeKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        onClose();
+      }
     }
-  };
-  
-  // Calculate remaining characters for notes
-  const notesRemainingChars = MAX_NOTES_LENGTH - (expenseData.notes?.length || 0);
-  const isNotesLimitNear = notesRemainingChars < 50;
-
-  // Helper function to get today's date in YYYY-MM-DD format
-  const getTodayDate = () => {
-    return new Date().toISOString().split('T')[0];
-  };
-  
-  // Helper function to get yesterday's date in YYYY-MM-DD format
-  const getYesterdayDate = () => {
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
-  };
-  
-  // Helper function to set date to a specific day
-  const setDateToDay = (dateString: string) => {
-    setExpenseData((prev: any) => ({ ...prev, date: dateString }));
-  };
+    
+    window.addEventListener('keydown', handleEscapeKey);
+    return () => {
+      window.removeEventListener('keydown', handleEscapeKey);
+    };
+  }, [onClose]);
 
   return (
     <div className={`fixed inset-0 z-50 overflow-y-auto ${isOpen ? '' : 'hidden'}`}>
-      <div className="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:block sm:p-0">
+      <div className="flex items-center justify-center min-h-screen p-4 text-center sm:block sm:p-0">
         {/* Background overlay */}
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div className="absolute inset-0 bg-gray-500 bg-opacity-75"></div>
@@ -489,15 +527,28 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
               <button
                 onClick={onClose}
                 className="bg-white rounded-md text-gray-400 hover:text-gray-500 focus:outline-none"
+                aria-label="Close"
               >
                 <span className="sr-only">Close</span>
-                <X className="h-6 w-6" aria-hidden="true" />
+                <X className="h-5 w-5 md:h-6 md:w-6" aria-hidden="true" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-5">
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded-md mb-4 text-sm">
+                {error}
+              </div>
+            )}
+            
+            {success && (
+              <div className="bg-green-50 border border-green-200 text-green-700 px-3 py-2 rounded-md mb-4 text-sm">
+                Expense saved successfully!
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} ref={formRef} className="space-y-4 md:space-y-5">
               {/* Two-column layout for small fields on larger screens */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                 {/* Amount field */}
                 <div>
                   <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
@@ -511,10 +562,10 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
                       type="text"
                       id="amount"
                       name="amount"
-                      value={expenseData.amount}
+                      value={expenseData.amount || ''}
                       onChange={handleAmountChange}
                       onBlur={handleAmountBlur}
-                      className={`w-full pl-12 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 ${
+                      className={`w-full pl-10 pr-3 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                         validationErrors.amount ? 'border-red-500' : 'border-gray-300'
                       }`}
                       placeholder="0.00"
@@ -530,7 +581,7 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
                 {/* Date field */}
                 <div>
                   <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
-                    When did you pay?
+                    When was this expense?
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 flex items-center pl-3">
@@ -540,121 +591,90 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
                       type="date"
                       id="date"
                       name="date"
-                      value={expenseData.date}
+                      value={expenseData.date || ''}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                      className={`w-full pl-10 pr-3 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.date ? 'border-red-500' : 'border-gray-300'
+                      }`}
                       required
                     />
-                  </div>
-                  
-                  {/* Quick date selection buttons */}
-                  <div className="flex gap-2 mt-2">
-                    <button
-                      type="button"
-                      onClick={() => setDateToDay(getTodayDate())}
-                      className={`px-3 py-1 text-xs rounded-full ${
-                        expenseData.date === getTodayDate() 
-                          ? 'bg-rose-100 text-rose-600' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      Today
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setDateToDay(getYesterdayDate())}
-                      className={`px-3 py-1 text-xs rounded-full ${
-                        expenseData.date === getYesterdayDate() 
-                          ? 'bg-rose-100 text-rose-600' 
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      Yesterday
-                    </button>
+                    {validationErrors.date && (
+                      <p className="mt-1 text-xs text-red-500">{validationErrors.date}</p>
+                    )}
                   </div>
                 </div>
               </div>
 
-              {/* Category field - full width */}
+              {/* Category field */}
               <div>
                 <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
+                  What category was this expense?
                 </label>
-                
-                {/* Quick category buttons */}
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {commonCategories.map((category) => (
-                    <button
-                      key={category.id}
-                      type="button"
-                      className={`px-3 py-1 text-sm rounded-lg ${
-                        expenseData.category === category.category
-                          ? 'bg-rose-100 text-rose-600'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                      onClick={() => handleCategorySelect(category.category)}
-                    >
-                      {category.category.charAt(0).toUpperCase() + category.category.slice(1)}
-                    </button>
-                  ))}
-                </div>
-                
-                {/* Searchable dropdown */}
-                <div className="relative" ref={categoryDropdownRef}>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                      <Tag size={16} className="text-gray-400" />
-                    </div>
-                    <input
-                      ref={categoryInputRef}
-                      type="text"
-                      id="categorySearch"
-                      value={categorySearchTerm}
-                      onChange={(e) => setCategorySearchTerm(e.target.value)}
-                      onFocus={() => setShowCategoryDropdown(true)}
-                      placeholder="Search or select a category"
-                      className={`w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 ${
-                        validationErrors.category_id ? 'border-red-500' : 'border-gray-300'
-                      }`}
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-2">
-                      <button
-                        type="button"
-                        className="text-gray-400 hover:text-gray-600"
-                        onClick={() => setShowCategoryDropdown(!showCategoryDropdown)}
-                      >
-                        {showCategoryDropdown ? (
-                          <ChevronUp size={16} />
-                        ) : (
-                          <ChevronDown size={16} />
-                        )}
-                      </button>
-                    </div>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Tag size={16} className="text-gray-400" />
                   </div>
                   
-                  {/* Dropdown menu */}
-                  {showCategoryDropdown && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                      <div className="p-1">
-                        {filteredCategories.length > 0 ? (
-                          filteredCategories.map((category) => (
+                  {showCategoryDropdown ? (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        ref={categoryInputRef}
+                        value={categorySearchTerm}
+                        onChange={(e) => setCategorySearchTerm(e.target.value)}
+                        placeholder="Search categories..."
+                        className="w-full pl-10 pr-3 py-2 text-sm md:text-base border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={handleToggleCategoryDropdown}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3"
+                      >
+                        <ChevronUp size={16} className="text-gray-400" />
+                      </button>
+                      
+                      <div 
+                        ref={categoryDropdownRef}
+                        className="absolute left-0 right-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
+                      >
+                        {filteredCategories.length === 0 ? (
+                          <div className="py-2 px-3 text-sm text-gray-500">
+                            No categories found
+                          </div>
+                        ) : (
+                          filteredCategories.map(category => (
                             <button
                               key={category.id}
                               type="button"
-                              className={`flex items-center w-full px-3 py-2 text-sm rounded-md ${
-                                expenseData.category === category.category
-                                  ? 'bg-rose-100 text-rose-600'
-                                  : 'hover:bg-gray-100'
-                              }`}
-                              onClick={() => handleCategorySelect(category.category)}
+                              onClick={() => handleCategorySelect(category)}
+                              className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                             >
-                              {category.category.charAt(0).toUpperCase() + category.category.slice(1)}
+                              {category.category}
                             </button>
                           ))
-                        ) : (
-                          <div className="px-3 py-2 text-sm text-gray-500">No categories found</div>
                         )}
                       </div>
+                    </div>
+                  ) : (
+                    <div className="relative">
+                      <input
+                        type="text"
+                        readOnly
+                        value={expenseData.category || ''}
+                        placeholder="Select a category"
+                        className={`w-full pl-10 pr-10 py-2 text-sm md:text-base border rounded-lg cursor-pointer ${
+                          validationErrors.category_id ? 'border-red-500' : 'border-gray-300'
+                        }`}
+                        onClick={handleToggleCategoryDropdown}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleToggleCategoryDropdown}
+                        className="absolute inset-y-0 right-0 flex items-center pr-3"
+                      >
+                        <ChevronDown size={16} className="text-gray-400" />
+                      </button>
                     </div>
                   )}
                   
@@ -662,68 +682,107 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
                     <p className="mt-1 text-xs text-red-500">{validationErrors.category_id}</p>
                   )}
                 </div>
-                
-                {/* Display selected category if any */}
-                {expenseData.category && (
-                  <p className="mt-1 text-xs text-gray-500">
-                    Selected: <span className="font-medium">{expenseData.category}</span>
-                  </p>
-                )}
               </div>
 
-              {/* Location field - full width */}
+              {/* Location field */}
               <div>
                 <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                  Where was this expense?
+                  Where was this expense? (Optional)
                 </label>
                 <LocationCombobox
-                  locations={locations}
-                  value={null}
+                  locations={locations.map(loc => loc.location)}
+                  selectedLocation={expenseData.location || null}
                   onChange={handleLocationChange}
-                  allowMultiple={true}
-                  selectedValues={selectedLocations}
-                  onCreateNew={handleCreateNewLocation}
-                  placeholder="Search or create locations..."
+                  validationError={validationErrors.location_id}
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  Select multiple locations or create new ones. Press Enter to add.
-                </p>
-              </div>
-
-              {/* Notes field - full width */}
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                  Notes (optional)
-                </label>
-                <div className="relative">
-                  <textarea
-                    id="notes"
-                    name="notes"
-                    value={expenseData.notes ?? ''}
-                    onChange={handleNotesChange}
-                    placeholder="Add any additional details about this expense"
-                    className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 ${
-                      isNotesLimitNear ? 'border-amber-300' : 'border-gray-300'
-                    }`}
-                    rows={3}
-                  />
-                  <div className={`absolute bottom-2 right-2 text-xs ${
-                    isNotesLimitNear ? 'text-amber-500' : 'text-gray-400'
-                  }`}>
-                    {expenseData.notes?.length || 0}/{MAX_NOTES_LENGTH}
+                
+                {/* Selected locations pills */}
+                {selectedLocations.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {selectedLocations.map(location => (
+                      <div 
+                        key={location}
+                        className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-xs"
+                      >
+                        <span>{location}</span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveLocation(location)}
+                          className="ml-1 text-gray-500 hover:text-red-500 focus:outline-none"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                </div>
-                {isNotesLimitNear && (
-                  <p className="mt-1 text-xs text-amber-500">
-                    {notesRemainingChars === 0 
-                      ? 'Maximum character limit reached' 
-                      : `${notesRemainingChars} characters remaining`}
-                  </p>
                 )}
               </div>
 
-              {/* Two-column layout for split settings on larger screens */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Notes field */}
+              <div>
+                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
+                  Any notes? (Optional)
+                </label>
+                <textarea
+                  id="notes"
+                  name="notes"
+                  value={expenseData.notes || ''}
+                  onChange={handleChange}
+                  maxLength={MAX_NOTES_LENGTH}
+                  className={`w-full p-3 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                    validationErrors.notes ? 'border-red-500' : 'border-gray-300'
+                  }`}
+                  rows={3}
+                  placeholder="Add any details about this expense"
+                />
+                {expenseData.notes && (
+                  <div className="mt-1 text-xs text-gray-500 text-right">
+                    {expenseData.notes.length}/{MAX_NOTES_LENGTH}
+                  </div>
+                )}
+                {validationErrors.notes && (
+                  <p className="mt-1 text-xs text-red-500">{validationErrors.notes}</p>
+                )}
+              </div>
+
+              {/* Split Type and Paid By */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+                {/* Split type field */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    How should this be split?
+                  </label>
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSplitType('equal')}
+                      className={`flex-1 py-2 px-3 text-sm rounded-lg flex items-center justify-center focus:outline-none border transition-colors ${
+                        selectedSplitType === 'equal'
+                          ? 'bg-blue-50 border-blue-300 text-blue-700'
+                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <SplitSquareVertical size={16} className="mr-2" />
+                      <span>Split 50/50</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleToggleSplitType('none')}
+                      className={`flex-1 py-2 px-3 text-sm rounded-lg flex items-center justify-center focus:outline-none border transition-colors ${
+                        selectedSplitType === 'none'
+                          ? 'bg-blue-50 border-blue-300 text-blue-700'
+                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                    >
+                      <UserMinus size={16} className="mr-2" />
+                      <span>No Split</span>
+                    </button>
+                  </div>
+                  {validationErrors.split_type && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.split_type}</p>
+                  )}
+                </div>
+
                 {/* Who paid field */}
                 <div>
                   <label htmlFor="paid_by" className="block text-sm font-medium text-gray-700 mb-1">
@@ -738,7 +797,7 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
                       name="paid_by"
                       value={expenseData.paid_by ?? ''}
                       onChange={handleChange}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+                      className="w-full pl-10 pr-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       {/* Display the payer from expense data if available */}
                       {expenseToEdit && expenseToEdit.user_info ? (
@@ -749,67 +808,33 @@ export default function NewExpenseModal({ isOpen, onClose, onExpenseCreated, exp
                         <option value={user?.id}>{profile?.name || user?.email}</option>
                       )}
                     </select>
-                  </div>
-                </div>
-
-                {/* Split type field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Split type
-                  </label>
-                  <div className="flex space-x-2">
-                    <button
-                      type="button"
-                      className={`flex items-center flex-1 p-2 border rounded-lg transition-colors ${
-                        selectedSplitType === 'equal' 
-                          ? 'border-rose-500 bg-rose-50 text-rose-600' 
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                      onClick={() => setSelectedSplitType('equal')}
-                    >
-                      <SplitSquareVertical size={18} className={`mr-2 ${selectedSplitType === 'equal' ? 'text-rose-500' : 'text-gray-400'}`} />
-                      <span className="text-sm">Equal Split</span>
-                    </button>
-                    
-                    <button
-                      type="button"
-                      className={`flex items-center flex-1 p-2 border rounded-lg transition-colors ${
-                        selectedSplitType === 'none' 
-                          ? 'border-rose-500 bg-rose-50 text-rose-600' 
-                          : 'border-gray-300 hover:bg-gray-50'
-                      }`}
-                      onClick={() => setSelectedSplitType('none')}
-                    >
-                      <UserMinus size={18} className={`mr-2 ${selectedSplitType === 'none' ? 'text-rose-500' : 'text-gray-400'}`} />
-                      <span className="text-sm">No Split</span>
-                    </button>
+                    {validationErrors.paid_by && (
+                      <p className="mt-1 text-xs text-red-500">{validationErrors.paid_by}</p>
+                    )}
                   </div>
                 </div>
               </div>
-              
-              {/* Error display */}
-              {error && (
-                <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
-                  {error}
-                </div>
-              )}
 
-              {/* Form buttons */}
+              {/* Action buttons */}
               <div className="flex justify-end space-x-3 pt-2">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
                   disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 text-sm font-medium text-white bg-rose-600 border border-transparent rounded-lg hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className={`px-4 py-2 rounded-lg text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+                    loading
+                      ? 'bg-blue-400 cursor-not-allowed'
+                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
+                  }`}
                   disabled={loading}
                 >
-                  {loading ? 'Saving...' : expenseToEdit ? 'Update Expense' : 'Add Expense'}
+                  {loading ? 'Saving...' : expenseToEdit ? 'Save Changes' : 'Add Expense'}
                 </button>
               </div>
             </form>

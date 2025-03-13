@@ -1,27 +1,46 @@
 'use client';
 
 import React from 'react';
-import { PieChart, _DollarSign } from 'lucide-react';
+import { PieChart, DollarSign } from 'lucide-react';
+import { CategoryData, AnalyticsChartProps } from '../types';
 
-interface CategoryData {
-  category: string;
-  amount: number;
-}
-
-interface CategoryDistributionChartProps {
+interface CategoryDistributionChartProps extends Omit<AnalyticsChartProps, 'data'> {
   categories: CategoryData[];
   formatAmount: (amount: number) => string;
-  title?: string;
 }
 
 export function CategoryDistributionChart({
   categories,
   formatAmount,
-  title = 'Category Distribution'
+  title = 'Category Distribution',
+  loading = false,
+  error = null,
+  className = ''
 }: CategoryDistributionChartProps) {
+  if (loading) {
+    return (
+      <div className={`bg-white p-6 rounded-lg shadow-sm text-center ${className}`}>
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-12 w-12 bg-gray-200 rounded-full mb-4"></div>
+          <div className="h-4 w-3/4 bg-gray-200 rounded mb-2"></div>
+          <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`bg-white p-6 rounded-lg shadow-sm text-center ${className}`}>
+        <PieChart className="mx-auto h-8 w-8 text-red-400 mb-2" />
+        <p className="text-sm text-red-500">{error}</p>
+      </div>
+    );
+  }
+
   if (!categories || categories.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+      <div className={`bg-white p-6 rounded-lg shadow-sm text-center ${className}`}>
         <PieChart className="mx-auto h-8 w-8 text-gray-400 mb-2" />
         <p className="text-sm text-gray-500">No category data available</p>
       </div>

@@ -1,26 +1,27 @@
 import React from 'react';
-import { Home, FileText, BarChart2, Settings } from 'lucide-react';
+import { Home, Receipt, Calculator, User } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 export default function Footer() {
   const location = useLocation();
   const navigate = useNavigate();
   
+  // Simplified mobile navigation - only essential items
   const tabs = [
     { id: 'home', label: 'Home', icon: Home, path: '/' },
-    { id: 'settlements', label: 'Settlements', icon: FileText, path: '/settlements' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart2, path: '/analytics' },
-    { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
+    { id: 'expenses', label: 'Expenses', icon: Receipt, path: '/expenses' },
+    { id: 'settlements', label: 'Settlements', icon: Calculator, path: '/settlements' },
+    { id: 'profile', label: 'Profile', icon: User, path: '/settings' }
   ];
 
-  const isActive = (path) => {
+  const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
   };
   
   return (
-    <footer className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 z-10">
+    <footer className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-2 px-4 z-10">
       <nav className="max-w-6xl mx-auto">
         <ul className="flex justify-around items-center">
           {tabs.map(tab => (

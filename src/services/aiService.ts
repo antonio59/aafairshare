@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../core/api/supabase';
 import { User } from '@supabase/supabase-js';
 
 // Get API key from environment

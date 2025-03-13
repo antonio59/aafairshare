@@ -3,6 +3,13 @@
 import { supabase } from '../../../core/api/supabase';
 import { createLogger } from '../../../core/utils/logger';
 import { Database } from '../../../core/types/supabase.types';
+import {
+  Expense,
+  ExpenseCreate,
+  ExpenseUpdate,
+  ApiResponse
+} from '../../../core/types/expenses';
+import { invalidateQueries } from '../../../core/utils/query-cache';
 
 // Create a logger for this module
 const logger = createLogger('expenseApi');
@@ -15,414 +22,260 @@ type DbUser = Database['public']['Tables']['users']['Row'];
 type DbCategory = Database['public']['Tables']['categories']['Row'];
 type DbLocation = Database['public']['Tables']['locations']['Row'];
 
-// Cache implementation
-interface Cache<T> {
-  data: T | null;
-  timestamp: number;
-  expiresAt: number;
+// Type for API response
+interface ApiErrorResponse {
+  error: string;
+  details?: any;
 }
 
-// Cache TTL set to 2 minutes (120000ms)
-const CACHE_TTL = 120000;
-
-// Cache object with parameterized keys
-interface ExpensesCache {
-  [key: string]: Cache<{
-    expenses: Expense[];
-    pagination: {
-      total: number;
-      page: number;
-      limit: number;
-      pages: number;
-    }
-  }>;
+// Function to check if string is valid ISO date
+function isValidISODate(dateStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return false;
+  }
+  const date = new Date(dateStr);
+  return date instanceof Date && !isNaN(date.getTime());
 }
 
-const expensesCache: ExpensesCache = {};
-
-// Cache helper functions
-function getCachedExpenses(
-  userId: string, 
-  limit: number, 
-  page: number, 
-  filters?: ExpenseFilters
-): { expenses: Expense[], pagination: any } | null {
-  const filterKey = filters ? JSON.stringify(filters) : 'default';
-  const cacheKey = `${userId}:${limit}:${page}:${filterKey}`;
+// Function to parse UK format date (DD/MM/YYYY) to ISO format (YYYY-MM-DD)
+function parseUKDate(dateStr: string): string {
+  if (!dateStr) return '';
   
-  if (!expensesCache[cacheKey]) return null;
-  
-  const cache = expensesCache[cacheKey];
-  const now = Date.now();
-  
-  if (cache.data && now < cache.expiresAt) {
-    logger.info('Using cached expenses from', new Date(cache.timestamp).toISOString());
-    return cache.data;
+  // If it's already in ISO format, return it
+  if (isValidISODate(dateStr)) {
+    return dateStr;
   }
   
-  return null;
+  try {
+    // Parse UK format
+    const parts = dateStr.split('/');
+    if (parts.length !== 3) {
+      logger.warn('Invalid date format, expected DD/MM/YYYY:', dateStr);
+      return dateStr; // Return as-is if not UK format
+    }
+    
+    const day = parts[0];
+    const month = parts[1];
+    const year = parts[2];
+    
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    logger.error('Error parsing date:', error);
+    return dateStr; // Return as-is in case of error
+  }
 }
 
-function setCachedExpenses(
-  userId: string,
-  limit: number,
-  page: number,
-  data: { expenses: Expense[], pagination: any },
-  filters?: ExpenseFilters
-): void {
-  const filterKey = filters ? JSON.stringify(filters) : 'default';
-  const cacheKey = `${userId}:${limit}:${page}:${filterKey}`;
-  const now = Date.now();
-  
-  expensesCache[cacheKey] = {
-    data,
-    timestamp: now,
-    expiresAt: now + CACHE_TTL
-  };
-  
-  logger.info('Updated expenses cache at', new Date(now).toISOString());
-}
+// In-memory cache for expenses
+let expensesCache: Record<string, any> = {};
 
 /**
- * Invalidates the expenses cache, forcing a fresh fetch on next request
- * 
- * This function clears all cached expense data, ensuring that subsequent
- * calls to fetch expense data will retrieve fresh data from the server.
- * It should be called after any operation that modifies expenses (create,
- * update, delete) to ensure the UI shows the most current data.
- * 
- * @returns {void}
+ * Clear the expenses cache
+ * Forces a fresh fetch on next call to getExpenses
  */
 export function invalidateExpensesCache(): void {
-  // Create a timestamp for logging
-  const timestamp = new Date().toISOString();
-  
-  // Log the cache invalidation for debugging purposes
-  logger.info(`Invalidating expenses cache at ${timestamp}`);
-  
-  // Clear all cached items by setting their data to null
-  Object.keys(expensesCache).forEach(key => {
-    expensesCache[key] = {
-      data: null,
-      timestamp: 0,
-      expiresAt: 0
-    };
-  });
-  
-  // Also clear any persisted cache in localStorage
-  try {
-    localStorage.removeItem('expensesCache');
-  } catch (_e) {
-    // Ignore localStorage errors (might happen in SSR or if storage is full)
-    logger.warn('Failed to clear localStorage cache:', _e);
-  }
-  
-  // Log completion
-  logger.info('Expenses cache cleared successfully');
-}
-
-// Helper function to parse and format dates
-const parseUKDate = (dateString: string): string => {
-  // If the date is in UK format (dd/mm/yyyy), convert it
-  if (dateString.includes('/')) {
-    const parts = dateString.split('/');
-    return `${parts[2]}-${parts[1]}-${parts[0]}`;
-  }
-  return dateString;
-};
-
-const _formatToUKDate = (dateString: string): string => {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
-  } catch (_e) {
-    return dateString;
-  }
-};
-
-// Define the main Expense interface
-export interface Expense extends DbExpense {
-  // Additional fields not in the database schema but used in the frontend
-  _currency?: string;
-  _description?: string;
-  _category?: string;
-  _location?: string;
-  split_with?: string;
-  // These fields come from joined relations and are populated after fetch
-  categories?: DbCategory;
-  locations?: DbLocation;
-  users?: DbUser;
-  // Status property for filtering
-  status?: string;
-  // Use for analytics
-  tags?: string[];
-  image_url?: string;
-  // Support for multiple locations
-  _all_locations?: string[];
-  // User information
-  paid_by_name?: string;
-  paid_by_email?: string;
-  // Ownership flag
-  isOwner?: boolean;
-}
-
-// Define interfaces for create and update operations
-export interface ExpenseCreate extends DbExpenseInsert {
-  _currency?: string;
-  _description?: string;
-  // For backward compatibility, allow category as _category and location as _location names
-  // These will be converted to category_id and location_id
-  category?: string;
-  location?: string;
-  // New field for multiple locations
-  locations?: string[];
-  location_ids?: string[];
-  // Additional fields that may be present
-  tags?: string[];
-  image_url?: string;
-}
-
-export interface ExpenseUpdate extends DbExpenseUpdate {
-  _currency?: string;
-  _description?: string;
-  // For backward compatibility in existing code
-  _category?: string; // Will be ignored in database operations
-  _location?: string; // Will be ignored in database operations
-}
-
-// Type for location junction query result
-interface LocationJunctionResult {
-  locations: {
-    id: string;
-    _location: string;
-  };
-}
-
-// Define filter interface for expenses
-export interface ExpenseFilters {
-  startDate?: string;
-  endDate?: string;
-  _category?: string | string[];
-  _location?: string | string[];
-  minAmount?: number;
-  maxAmount?: number;
-  splitType?: string;
-  searchTerm?: string;
-  sortBy?: string;
-  sortOrder?: 'asc' | 'desc';
+  logger.info('Invalidating expenses cache');
+  expensesCache = {};
+  // Also invalidate any related queries
+  invalidateQueries(['expenses']);
 }
 
 /**
- * Creates a new expense in the database
+ * Create a new expense
  * 
- * @param {ExpenseCreate} expenseData - The expense data
- * @returns {Promise<Expense | null>} - The created expense or null
+ * @param expenseData - The expense data to create
+ * @param csrfToken - Optional CSRF token for security
+ * @returns Promise with the created expense or error
  */
-export const createNewExpense = async (expenseData: ExpenseCreate) => {
+export async function createExpense(
+  expenseData: ExpenseCreate,
+  csrfToken?: string
+): Promise<ApiResponse<Expense>> {
   try {
+    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      return {
+        success: false,
+        message: 'User not authenticated',
+      };
     }
 
-    // Parse the date if it's in UK format
+    // Process date input - ensure it's in ISO format
     const date = parseUKDate(expenseData.date);
-
-    // Process category
-    let categoryId: string | null = null;
     
-    // If category_id is provided directly, use it
-    if (expenseData.category_id) {
-      categoryId = expenseData.category_id;
-      logger.info('Using provided category_id:', { categoryId });
-    } 
-    // If category name is provided, look it up
-    else if (expenseData._category) {
-      logger.info('Looking up _category by name:', { _category: expenseData.category as _category });
-      
-      // First check if the category exists
-      const { data: categoryData, error: categoryError } = await supabase
+    // Validate the date
+    if (!isValidISODate(date)) {
+      return {
+        success: false,
+        message: 'Invalid date format. Use YYYY-MM-DD or DD/MM/YYYY',
+      };
+    }
+    
+    // Handle category logic
+    let categoryId = expenseData.category_id;
+    if (expenseData.category && !categoryId) {
+      // If category name is provided but no ID, try to find or create it
+      const { data: categories } = await supabase
         .from('categories')
-        .select('id')
-        .eq('_category', expenseData.category)
-        .single();
-      
-      if (categoryError && categoryError.code !== 'PGRST116') {
-        logger.error('Error finding _category:', categoryError);
-      }
-      
-      if (categoryData && !('error' in categoryData)) {
-        // Safe type assertion after checking it's not an error
-        categoryId = (categoryData as unknown as { id: string }).id;
+        .select('id, category')
+        .eq('category', expenseData.category)
+        .limit(1);
+        
+      if (categories && categories.length > 0) {
+        // Use existing category
+        categoryId = categories[0].id;
+      } else {
+        // Create new category
+        const { data: newCategory, error: categoryError } = await supabase
+          .from('categories')
+          .insert({ category: expenseData.category })
+          .select()
+          .single();
+          
+        if (categoryError) {
+          logger.error('Error creating category:', categoryError);
+          return {
+            success: false,
+            message: `Error creating category: ${categoryError.message}`,
+          };
+        }
+        
+        categoryId = newCategory.id;
       }
     }
-    logger.info('Found _category:', { categoryId });
-
-    // Handle locations
-    let locationId = null;
+    
+    // Handle location logic - primary location & multiple locations
+    let locationId = expenseData.location_id;
     let locationIds: string[] = [];
     
-    // If location_ids array is provided directly, use it
-    if (expenseData.location_ids && Array.isArray(expenseData.location_ids) && expenseData.location_ids.length > 0) {
-      locationIds = expenseData.location_ids;
-      logger.info('Using provided location_ids:', { locationIds });
-      
-      // Set the primary location_id to the first one for backward compatibility
-      locationId = locationIds[0];
-    } 
-    // If locations array is provided, look them up or create them
-    else if (expenseData.locations && Array.isArray(expenseData.locations) && expenseData.locations.length > 0) {
-      logger.info('Processing multiple locations:', { locations: expenseData.locations });
-      
-      for (const locationName of expenseData.locations) {
-        // Skip empty location as _location as _location names
-        if (!locationName) continue;
+    // Handle a single location (location field)
+    if (expenseData.location && !locationId) {
+      const { data: locations } = await supabase
+        .from('locations')
+        .select('id, location')
+        .eq('location', expenseData.location)
+        .limit(1);
         
-        // Check if the location exists
-        const { data: locationData, error: locationError } = await supabase
+      if (locations && locations.length > 0) {
+        // Use existing location
+        locationId = locations[0].id;
+        locationIds.push(locationId);
+      } else {
+        // Create new location
+        const { data: newLocation, error: locationError } = await supabase
           .from('locations')
-          .select('id')
-          .eq('_location', locationName)
+          .insert({ location: expenseData.location })
+          .select()
           .single();
           
-        if (locationError && locationError.code !== 'PGRST116') {
-          logger.error('Error finding _location:', locationError);
+        if (locationError) {
+          logger.error('Error creating location:', locationError);
+          return {
+            success: false,
+            message: `Error creating location: ${locationError.message}`,
+          };
         }
+        
+        locationId = newLocation.id;
+        locationIds.push(locationId);
+      }
+    } else if (locationId) {
+      locationIds.push(locationId);
+    }
+    
+    // Handle multiple locations (locations array field)
+    if (expenseData.locations && Array.isArray(expenseData.locations)) {
+      // For each location in the array
+      for (const loc of expenseData.locations) {
+        // Skip if it's the same as the primary location
+        if (expenseData.location && loc === expenseData.location) {
+          continue;
+        }
+        
+        // Find or create location
+        const { data: locations } = await supabase
+          .from('locations')
+          .select('id, location')
+          .eq('location', loc)
+          .limit(1);
           
-        if (locationData && !('error' in locationData)) {
-          // Safe type assertion after checking it's not an error
-          const id = (locationData as unknown as { id: string }).id;
-          locationIds.push(id);
+        if (locations && locations.length > 0) {
+          if (!locationIds.includes(locations[0].id)) {
+            locationIds.push(locations[0].id);
+          }
         } else {
-          // Create new location as _location as _location
-          logger.info('Creating new _location:', { location: locationName });
-          
-          const { data: newLocation, error: newLocationError } = await supabase
+          // Create new location
+          const { data: newLocation, error: locationError } = await supabase
             .from('locations')
-            .insert({
-              _location: locationName
-            })
-            .select('id')
+            .insert({ location: loc })
+            .select()
             .single();
             
-          if (newLocationError) {
-            logger.error('Error creating _location:', newLocationError);
-            throw newLocationError;
+          if (locationError) {
+            logger.warn(`Error creating additional location "${loc}":`, locationError);
+            // Don't fail the entire operation, just log and continue
+            continue;
           }
           
-          if (newLocation && !('error' in newLocation)) {
-            // Safe type assertion after checking it's not an error
-            const id = (newLocation as unknown as { id: string }).id;
-            locationIds.push(id);
+          if (!locationIds.includes(newLocation.id)) {
+            locationIds.push(newLocation.id);
           }
-        }
-      }
-      
-      // Set the primary location_id to the first one for backward compatibility
-      if (locationIds.length > 0) {
-        locationId = locationIds[0];
-      }
-    }
-    // Fall back to the single location field for backward compatibility
-    else if (expenseData.location_id) {
-      locationId = expenseData.location_id;
-      locationIds = [locationId];
-      logger.info('Using provided location_id:', { locationId });
-    } 
-    // If location name is provided, look it up or create it
-    else if (expenseData._location) {
-      logger.info('Processing _location:', { _location: expenseData.location as _location });
-      
-      // Check if the location exists
-      const { data: locationData, error: locationError } = await supabase
-        .from('locations')
-        .select('id')
-        .eq('_location', expenseData.location)
-        .single();
-        
-      if (locationError && locationError.code !== 'PGRST116') {
-        logger.error('Error finding _location:', locationError);
-      }
-        
-      if (locationData && !('error' in locationData)) {
-        // Safe type assertion after checking it's not an error
-        locationId = (locationData as unknown as { id: string }).id;
-        locationIds = [locationId];
-        logger.info('Found existing _location:', { locationId });
-      } else {
-        // Create new location as _location as _location
-        logger.info('Creating new _location:', { location: expenseData.location });
-        
-        const { data: newLocation, error: newLocationError } = await supabase
-          .from('locations')
-          .insert({
-            _location: expenseData.location as _location
-          })
-          .select('id')
-          .single();
-          
-        if (newLocationError) {
-          logger.error('Error creating _location:', newLocationError);
-          throw newLocationError;
-        }
-        
-        if (newLocation && !('error' in newLocation)) {
-          // Safe type assertion after checking it's not an error
-          locationId = (newLocation as unknown as { id: string }).id;
-          locationIds = [locationId];
-          logger.info('Created new _location:', { locationId });
         }
       }
     }
 
     // Create the expense record with required fields
-    // Create a simpler expense object and cast it to the required type
-    // to work around TypeScript strictness
-    const expenseToCreate = {
+    const expenseToCreate: DbExpenseInsert = {
       amount: expenseData.amount,
       date: date,
       paid_by: user.id,
-      category_id: categoryId || '',  // Empty string as fallback for required field
+      category_id: categoryId || null,
+      notes: expenseData.notes || '',
+      location_id: locationId || null,
+      split_type: expenseData.split_type || 'equal',
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    } as DbExpenseInsert;
-
-    // Add optional fields only if they exist
-    if (locationId) expenseToCreate.location_id = locationId;
-    if (expenseData.notes) expenseToCreate.notes = expenseData.notes;
-    if (expenseData.split_type) expenseToCreate.split_type = expenseData.split_type;
+    };
 
     logger.info('Creating expense with data:', { expenseToCreate });
+
+    // Add CSRF header if provided
+    const headers: Record<string, string> = {};
+    if (csrfToken) {
+      headers['x-csrf-token'] = csrfToken;
+    }
 
     const { data: expense, error } = await supabase
       .from('expenses')
       .insert(expenseToCreate)
       .select(`
         *,
-        categories (*),
-        locations (*),
-        users (*)
+        categories(id, category),
+        locations(id, location),
+        users(id, email, name)
       `)
       .single();
 
     if (error) {
       logger.error('Error creating expense:', error);
-      throw error;
+      return {
+        success: false,
+        message: `Error creating expense: ${error.message}`,
+      };
     }
 
     if (!expense) {
       logger.error('No expense returned after creation');
-      return null;
+      return {
+        success: false,
+        message: 'Failed to create expense: No data returned',
+      };
     }
 
     // If we have multiple locations, add them to the junction table
     if (locationIds.length > 1) {
       const expenseLocationsToInsert = locationIds.map(locId => ({
-        expense_id: (expense as unknown as { id: string }).id,
+        expense_id: expense.id,
         location_id: locId
       }));
       
@@ -437,946 +290,843 @@ export const createNewExpense = async (expenseData: ExpenseCreate) => {
       }
     }
 
-    // Safely cast the response to a proper type
-    const safeExpense = expense as unknown as Record<string, any>;
-    
+    // Format the expense for the frontend
     const formattedExpense: Expense = {
-      ...safeExpense as Expense, _category: safeExpense.categories?.category as _category as _category || null, _location: safeExpense.locations?.location as _location as _location || null,
+      id: expense.id,
+      amount: expense.amount,
+      date: expense.date,
+      notes: expense.notes || null,
+      split_type: expense.split_type,
+      paid_by: expense.paid_by,
+      category_id: expense.category_id || null,
+      location_id: expense.location_id || null,
+      created_at: expense.created_at,
+      updated_at: expense.updated_at,
+      // Add derived fields for convenience
+      _category: expense.categories?.category,
+      _location: expense.locations?.location,
+      paid_by_name: expense.users?.name || expense.users?.email,
+      isOwner: expense.paid_by === user.id,
     };
 
-    return formattedExpense;
-  } catch (error) {
-    logger.error('Error in createNewExpense:', error);
-    throw error;
-  }
-};
+    // Invalidate cache after successful creation
+    invalidateExpensesCache();
 
-/**
- * Fetches user expenses with pagination, filtering, and caching
- * 
- * @param {number} limit - Number of expenses per page
- * @param {number} page - Page number (0-indexed)
- * @param {ExpenseFilters} filters - Optional filters for the query
- * @param {boolean} forceRefresh - Force refresh cache
- * @returns {Promise} - Object with expenses and pagination info
- */
-export const fetchUserExpenses = async (
-  limit = 5, 
-  page = 0, 
-  filters?: ExpenseFilters, 
-  forceRefresh = false
-) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    // Check cache first if not forcing refresh
-    if (!forceRefresh) {
-      const cachedData = getCachedExpenses(user.id, limit, page, filters);
-      if (cachedData) {
-        return cachedData;
-      }
-    }
-
-    const offset = page * limit;
-    let query = supabase.from('expenses').select('*', { count: 'exact', head: true });
-
-    // Apply filters if provided
-    if (filters) {
-      if (filters.startDate) {
-        query = query.gte('date', filters.startDate);
-      }
-      
-      if (filters.endDate) {
-        query = query.lte('date', filters.endDate);
-      }
-      
-      if (filters._category) {
-        // For category as _category as _category filtering, fetch the category IDs first and then apply them
-        if (Array.isArray(filters._category) && filters.category.length > 0) {
-          try {
-            const { data: categoryData, error: categoryError } = await supabase
-              .from('categories')
-              .select('id')
-              .in('_category', filters.category);
-              
-            if (categoryError) {
-              logger.warn('Error fetching categories:', categoryError);
-            } else if (categoryData && categoryData.length > 0) {
-              // Safe array mapping with fallback
-              const categoryIds = categoryData
-                .filter(cat => cat && typeof cat === 'object' && 'id' in cat)
-                .map(cat => (cat as unknown as { id: string }).id);
-                
-              if (categoryIds.length > 0) {
-                query = query.in('category_id', categoryIds);
-              }
-            }
-          } catch (err) {
-            logger.warn('Exception in _category filtering:', err);
-          }
-        } else if (typeof filters._category === 'string') {
-          try {
-            const { data: categoryData, error: categoryError } = await supabase
-              .from('categories')
-              .select('id')
-              .eq('_category', filters.category)
-              .single();
-              
-            if (categoryError) {
-              logger.warn('Error fetching _category:', categoryError);
-            } else if (categoryData && typeof categoryData === 'object' && 'id' in categoryData) {
-              query = query.eq('category_id', (categoryData as unknown as { id: string }).id);
-            }
-          } catch (err) {
-            logger.warn('Exception in _category filtering:', err);
-          }
-        }
-      }
-      
-      if (filters._location) {
-        // For location as _location as _location filtering, fetch the location IDs first and then apply them
-        if (Array.isArray(filters._location) && filters.location.length > 0) {
-          try {
-            const { data: locationData, error: locationError } = await supabase
-              .from('locations')
-              .select('id')
-              .in('_location', filters.location);
-              
-            if (locationError) {
-              logger.warn('Error fetching locations:', locationError);
-            } else if (locationData && locationData.length > 0) {
-              // Safe array mapping with fallback
-              const locationIds = locationData
-                .filter(loc => loc && typeof loc === 'object' && 'id' in loc)
-                .map(loc => (loc as unknown as { id: string }).id);
-                
-              if (locationIds.length > 0) {
-                query = query.in('location_id', locationIds);
-              }
-            }
-          } catch (err) {
-            logger.warn('Exception in _location filtering:', err);
-          }
-        } else if (typeof filters._location === 'string') {
-          try {
-            const { data: locationData, error: locationError } = await supabase
-              .from('locations')
-              .select('id')
-              .eq('_location', filters.location)
-              .single();
-              
-            if (locationError) {
-              logger.warn('Error fetching _location:', locationError);
-            } else if (locationData && typeof locationData === 'object' && 'id' in locationData) {
-              query = query.eq('location_id', (locationData as unknown as { id: string }).id);
-            }
-          } catch (err) {
-            logger.warn('Exception in _location filtering:', err);
-          }
-        }
-      }
-      
-      if (filters.minAmount !== undefined) {
-        query = query.gte('amount', filters.minAmount);
-      }
-      
-      if (filters.maxAmount !== undefined) {
-        query = query.lte('amount', filters.maxAmount);
-      }
-      
-      if (filters.splitType) {
-        query = query.eq('split_type', filters.splitType);
-      }
-    }
-
-    // Always filter by current user
-    query = query.eq('paid_by', user.id);
-    
-    // Get total count for pagination
-    const { count, error: countError } = await query;
-
-    if (countError) {
-      throw countError;
-    }
-
-    // Build query for actual data
-    let dataQuery = supabase
-      .from('expenses')
-      .select(`
-        *,
-        categories (*),
-        locations (*),
-        users (*)
-      `)
-      .eq('paid_by', user.id);
-      
-    // Apply the same filters to the data query
-    if (filters) {
-      if (filters.startDate) {
-        dataQuery = dataQuery.gte('date', filters.startDate);
-      }
-      
-      if (filters.endDate) {
-        dataQuery = dataQuery.lte('date', filters.endDate);
-      }
-      
-      // Apply the same category filters
-      if (filters._category) {
-        // For category as _category as _category filtering, fetch the category IDs first and then apply them
-        if (Array.isArray(filters._category) && filters.category.length > 0) {
-          const { data: categoryData } = await supabase
-            .from('categories')
-            .select('id')
-            .in('_category', filters.category);
-            
-          if (categoryData && categoryData.length > 0) {
-            // Type assertion to ensure we can access id property
-            const categoryIds = categoryData.map(cat => ((cat as unknown) as { id: string }).id);
-            dataQuery = dataQuery.in('category_id', categoryIds);
-          }
-        } else if (typeof filters._category === 'string') {
-          const { data: categoryData } = await supabase
-            .from('categories')
-            .select('id')
-            .eq('_category', filters.category)
-            .single();
-            
-          if (categoryData) {
-            // Type assertion to ensure we can access id property
-            dataQuery = dataQuery.eq('category_id', ((categoryData as unknown) as { id: string }).id);
-          }
-        }
-      }
-      
-      // Apply the same location filters
-      if (filters._location) {
-        // For location as _location as _location filtering, fetch the location IDs first and then apply them
-        if (Array.isArray(filters._location) && filters.location.length > 0) {
-          const { data: locationData } = await supabase
-            .from('locations')
-            .select('id')
-            .in('_location', filters.location);
-            
-          if (locationData && locationData.length > 0) {
-            // Type assertion to ensure we can access id property
-            const locationIds = locationData.map(loc => ((loc as unknown) as { id: string }).id);
-            dataQuery = dataQuery.in('location_id', locationIds);
-          }
-        } else if (typeof filters._location === 'string') {
-          const { data: locationData } = await supabase
-            .from('locations')
-            .select('id')
-            .eq('_location', filters.location)
-            .single();
-            
-          if (locationData) {
-            // Type assertion to ensure we can access id property
-            dataQuery = dataQuery.eq('location_id', ((locationData as unknown) as { id: string }).id);
-          }
-        }
-      }
-      
-      if (filters.minAmount !== undefined) {
-        dataQuery = dataQuery.gte('amount', filters.minAmount);
-      }
-      
-      if (filters.maxAmount !== undefined) {
-        dataQuery = dataQuery.lte('amount', filters.maxAmount);
-      }
-      
-      if (filters.splitType) {
-        dataQuery = dataQuery.eq('split_type', filters.splitType);
-      }
-      
-      // Apply sorting if specified
-      if (filters.sortBy) {
-        dataQuery = dataQuery.order(filters.sortBy, { 
-          ascending: filters.sortOrder === 'asc' 
-        });
-      } else {
-        // Default sorting
-        dataQuery = dataQuery.order('date', { ascending: false });
-      }
-    } else {
-      // Default sorting
-      dataQuery = dataQuery.order('date', { ascending: false });
-    }
-    
-    // Apply pagination
-    dataQuery = dataQuery.range(offset, offset + limit - 1);
-
-    // Execute query
-    const { data, error } = await dataQuery;
-
-    if (error) {
-      throw error;
-    }
-
-    // Format data for frontend with proper type handling
-    const typedData = data as unknown as Array<Expense & {
-      categories?: DbCategory;
-      locations?: DbLocation;
-      users?: DbUser;
-      paid_by?: string;
-    }>;
-    
-    const expenses = typedData.map(expense => ({
-      ...expense, _category: expense.categories?.category as _category as _category || undefined, _location: expense.locations?.location as _location as _location || undefined,
-      isPaidByCurrentUser: expense.paid_by === user.id,
-      // Clean up nested objects
-      categories: undefined,
-      locations: undefined,
-      users: undefined
-    }));
-
-    const result = {
-      expenses,
-      pagination: {
-        total: count || 0,
-        page,
-        limit,
-        pages: Math.ceil((count || 0) / limit)
-      }
-    };
-    
-    // Cache the result
-    setCachedExpenses(user.id, limit, page, result, filters);
-
-    return result;
-  } catch (error) {
-    console.error('Error fetching expenses:', error);
     return {
-      expenses: [],
-      pagination: {
-        total: 0,
-        page,
-        limit,
-        pages: 0
-      }
+      success: true,
+      data: formattedExpense,
+      message: 'Expense created successfully',
+    };
+  } catch (error: any) {
+    logger.error('Error in createExpense:', error);
+    return {
+      success: false,
+      message: error.message || 'An unexpected error occurred creating the expense',
     };
   }
-};
+}
 
 /**
  * Update an existing expense
  * 
- * @param {string} expenseId - The ID of the expense to update
- * @param {ExpenseUpdate} expenseData - The updated expense data
- * @returns {Promise<boolean>} - Whether the update was successful
+ * @param expenseId - The ID of the expense to update
+ * @param expenseData - The updated expense data
+ * @param csrfToken - Optional CSRF token for security
+ * @returns Promise with the update result
  */
-export async function updateExpense(expenseId: string, expenseData: ExpenseUpdate): Promise<boolean> {
+export async function updateExpense(
+  expenseId: string,
+  expenseData: Partial<ExpenseUpdate>,
+  csrfToken?: string
+): Promise<ApiResponse<Expense>> {
   try {
+    // Validate expense ID
+    if (!expenseId || typeof expenseId !== 'string') {
+      return {
+        success: false,
+        message: 'Invalid expense ID',
+      };
+    }
+
+    // Get current user
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      throw new Error('User not authenticated');
+      return {
+        success: false,
+        message: 'User not authenticated',
+      };
     }
 
     // Filter out properties that don't exist in the database schema
-    const { _category, _location, _currency, _description, _user_id,
-      locations, // Add this to remove the locations field
-      _all_locations, // Also filter out all_locations if present
+    const { 
+      _category, _location, _currency, _description, 
+      locations, all_locations, category, location,
       ...validExpenseData 
     } = expenseData as any;
 
     logger.info(`Updating expense with ID ${expenseId}`, validExpenseData);
 
-    // Parse date if provided
+    // Process date if provided
     if (validExpenseData.date) {
       validExpenseData.date = parseUKDate(validExpenseData.date);
+      
+      // Validate the date
+      if (!isValidISODate(validExpenseData.date)) {
+        return {
+          success: false,
+          message: 'Invalid date format. Use YYYY-MM-DD or DD/MM/YYYY',
+        };
+      }
+    }
+    
+    // Handle category logic if provided
+    if (category && !validExpenseData.category_id) {
+      // Try to find or create the category
+      const { data: categories } = await supabase
+        .from('categories')
+        .select('id, category')
+        .eq('category', category)
+        .limit(1);
+        
+      if (categories && categories.length > 0) {
+        // Use existing category
+        validExpenseData.category_id = categories[0].id;
+      } else {
+        // Create new category
+        const { data: newCategory, error: categoryError } = await supabase
+          .from('categories')
+          .insert({ category })
+          .select()
+          .single();
+          
+        if (categoryError) {
+          logger.error('Error creating category during update:', categoryError);
+          return {
+            success: false,
+            message: `Error creating category: ${categoryError.message}`,
+          };
+        }
+        
+        validExpenseData.category_id = newCategory.id;
+      }
+    }
+    
+    // Handle location logic if provided
+    if (location && !validExpenseData.location_id) {
+      // Try to find or create the location
+      const { data: locations } = await supabase
+        .from('locations')
+        .select('id, location')
+        .eq('location', location)
+        .limit(1);
+        
+      if (locations && locations.length > 0) {
+        // Use existing location
+        validExpenseData.location_id = locations[0].id;
+      } else {
+        // Create new location
+        const { data: newLocation, error: locationError } = await supabase
+          .from('locations')
+          .insert({ location })
+          .select()
+          .single();
+          
+        if (locationError) {
+          logger.error('Error creating location during update:', locationError);
+          return {
+            success: false,
+            message: `Error creating location: ${locationError.message}`,
+          };
+        }
+        
+        validExpenseData.location_id = newLocation.id;
+      }
     }
 
     // Add updated_at timestamp
     validExpenseData.updated_at = new Date().toISOString();
 
-    const { error } = await supabase
+    // Add CSRF header if provided
+    const headers: Record<string, string> = {};
+    if (csrfToken) {
+      headers['x-csrf-token'] = csrfToken;
+    }
+
+    // First, check if the expense exists and if user has permission
+    const { data: existingExpense, error: fetchError } = await supabase
+      .from('expenses')
+      .select('id, paid_by')
+      .eq('id', expenseId)
+      .single();
+      
+    if (fetchError) {
+      logger.error('Error fetching expense for update:', fetchError);
+      return {
+        success: false,
+        message: `Error fetching expense: ${fetchError.message}`,
+      };
+    }
+    
+    if (!existingExpense) {
+      return {
+        success: false,
+        message: 'Expense not found',
+      };
+    }
+    
+    // Check if user owns the expense
+    if (existingExpense.paid_by !== user.id) {
+      return {
+        success: false,
+        message: 'You can only update expenses you created',
+      };
+    }
+
+    // Perform the update
+    const { data: updatedExpense, error } = await supabase
       .from('expenses')
       .update(validExpenseData)
       .eq('id', expenseId)
-      .eq('paid_by', user.id);
+      .select(`
+        *,
+        categories(id, category),
+        locations(id, location),
+        users(id, email, name)
+      `)
+      .single();
 
     if (error) {
       logger.error('Error updating expense:', error);
-      return false;
+      return {
+        success: false,
+        message: `Error updating expense: ${error.message}`,
+      };
+    }
+    
+    if (!updatedExpense) {
+      logger.error('No expense returned after update');
+      return {
+        success: false,
+        message: 'Failed to update expense: No data returned',
+      };
     }
 
-    // Update the locations in the junction table if locations were provided
-    if (locations && Array.isArray(locations) && locations.length > 0) {
-      try {
-        // First delete existing locations
-        await supabase
-          .from('expense_locations')
-          .delete()
-          .eq('expense_id', expenseId);
+    // Handle multiple locations if provided
+    if (locations && Array.isArray(locations)) {
+      // First, delete all existing associations
+      const { error: deleteError } = await supabase
+        .from('expense_locations')
+        .delete()
+        .eq('expense_id', expenseId);
+        
+      if (deleteError) {
+        logger.error('Error deleting expense locations:', deleteError);
+        // Continue despite error
+      }
+      
+      // Get or create location IDs for each location
+      const locationIds: string[] = [];
+      for (const loc of locations) {
+        // Find or create location
+        const { data: existingLocs } = await supabase
+          .from('locations')
+          .select('id')
+          .eq('location', loc)
+          .limit(1);
           
-        // Then add new locations
-        const locationPromises = locations.map(async (locationName) => {
-          // First try to find the location as _location as _location
-          const { data: locationData } = await supabase
+        if (existingLocs && existingLocs.length > 0) {
+          locationIds.push(existingLocs[0].id);
+        } else {
+          // Create new location
+          const { data: newLoc, error: newLocError } = await supabase
             .from('locations')
-            .select('id')
-            .eq('_location', locationName)
+            .insert({ location: loc })
+            .select()
             .single();
             
-          let locationId = (locationData as unknown as { id?: string })?.id;
-            
-          // If location doesn't exist, create it
-          if (!locationId) {
-            const { data: newLocation } = await supabase
-              .from('locations')
-              .insert({ _location: locationName })
-              .select('id')
-              .single();
-              
-            locationId = (newLocation as unknown as { id?: string })?.id;
+          if (newLocError) {
+            logger.error(`Error creating location "${loc}":`, newLocError);
+            continue;
           }
-            
-          if (locationId) {
-            // Add to junction table
-            return supabase
-              .from('expense_locations')
-              .insert({
-                expense_id: expenseId,
-                location_id: locationId
-              });
-          }
-        });
           
-        await Promise.all(locationPromises);
-      } catch (locationError) {
-        logger.error('Error updating expense locations:', locationError);
-        // Continue even if location as _location as _location update fails
+          locationIds.push(newLoc.id);
+        }
+      }
+      
+      // Insert all associations
+      if (locationIds.length > 0) {
+        const expenseLocations = locationIds.map(locId => ({
+          expense_id: expenseId,
+          location_id: locId
+        }));
+        
+        const { error: insertError } = await supabase
+          .from('expense_locations')
+          .insert(expenseLocations);
+          
+        if (insertError) {
+          logger.error('Error inserting expense locations:', insertError);
+          // Continue despite error
+        }
       }
     }
 
-    // Invalidate cache on data change
+    // Format the expense for the frontend
+    const formattedExpense: Expense = {
+      id: updatedExpense.id,
+      amount: updatedExpense.amount,
+      date: updatedExpense.date,
+      notes: updatedExpense.notes || null,
+      split_type: updatedExpense.split_type,
+      paid_by: updatedExpense.paid_by,
+      category_id: updatedExpense.category_id || null,
+      location_id: updatedExpense.location_id || null,
+      created_at: updatedExpense.created_at,
+      updated_at: updatedExpense.updated_at,
+      // Add derived fields for convenience
+      _category: updatedExpense.categories?.category,
+      _location: updatedExpense.locations?.location,
+      paid_by_name: updatedExpense.users?.name || updatedExpense.users?.email,
+      isOwner: updatedExpense.paid_by === user.id,
+    };
+
+    // Invalidate cache after successful update
     invalidateExpensesCache();
 
-    return true;
-  } catch (error) {
+    return {
+      success: true,
+      data: formattedExpense,
+      message: 'Expense updated successfully',
+    };
+  } catch (error: any) {
     logger.error('Error in updateExpense:', error);
-    return false;
+    return {
+      success: false,
+      message: error.message || 'An unexpected error occurred updating the expense',
+    };
   }
 }
 
 /**
- * Get detailed information about a specific expense
+ * Get details of a specific expense
  * 
- * This function retrieves comprehensive information about an expense, including:
- * - Basic expense data (amount, date, notes, etc.)
- * - Related category and location information
- * - User details for the person who paid
- * - Additional metadata like ownership status
- * 
- * It includes validation for UUID format and user authentication, and
- * enhances the returned data with frontend-specific fields.
- * 
- * @param {string} expenseId - The UUID of the expense to retrieve
- * @returns {Promise<Expense | null>} The expense details or null if not found
- * @throws Will throw an error if the UUID is invalid, the user is not authenticated,
- *         or there's a database error
+ * @param expenseId - The ID of the expense to get
+ * @returns Promise with the expense details or error
  */
-export const getExpenseDetails = async (expenseId: string): Promise<Expense | null> => {
+export async function getExpenseDetails(expenseId: string): Promise<ApiResponse<Expense>> {
   try {
-    if (!expenseId) {
-      const error = new Error('Expense ID is required');
-      // @ts-expect-error - Adding custom property for error type
-      error.code = 'INVALID_ID';
-      throw error;
+    // Validate expense ID
+    if (!expenseId || typeof expenseId !== 'string') {
+      return {
+        success: false,
+        message: 'Invalid expense ID',
+      };
     }
 
-    // Validate UUID format to prevent SQL injection and database errors
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(expenseId)) {
-      logger.error('Invalid UUID format in getExpenseDetails:', expenseId);
-      const error = new Error('Invalid expense ID format');
-      // @ts-expect-error - Adding custom property for error type
-      error.code = 'INVALID_UUID';
-      throw error;
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not authenticated',
+      };
     }
 
-    // Get current user to check ownership
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    if (!currentUser) {
-      const error = new Error('User not authenticated');
-      // @ts-expect-error - Adding custom property for error type
-      error.code = 'UNAUTHORIZED';
-      throw error;
+    logger.info(`Fetching expense details for ID ${expenseId}`);
+
+    // Check cache first
+    const cacheKey = `expense_${expenseId}`;
+    if (expensesCache[cacheKey]) {
+      logger.info(`Using cached data for expense ${expenseId}`);
+      return {
+        success: true,
+        data: expensesCache[cacheKey],
+        message: 'Expense details retrieved from cache',
+      };
     }
 
-    // First get the basic expense data
-    const { data, error } = await supabase
+    // Fetch from database with related data
+    const { data: expense, error } = await supabase
       .from('expenses')
       .select(`
         *,
-        categories (*),
-        locations (*),
-        users:paid_by (*)
+        categories(id, category),
+        locations(id, location),
+        users:paid_by(id, email, name)
       `)
       .eq('id', expenseId)
       .single();
       
     if (error) {
-      logger.error('Database error fetching expense:', error);
-      
-      if (error.code === 'PGRST116') {
-        // This is the "not found" error code from PostgREST
-        const notFoundError = new Error('Expense not found');
-        // @ts-expect-error - Adding custom property for error type
-        notFoundError.code = 'NOT_FOUND';
-        throw notFoundError;
-      }
-      
-      throw error;
+      logger.error('Error fetching expense details:', error);
+      return {
+        success: false,
+        message: `Error fetching expense details: ${error.message}`,
+      };
     }
     
-    if (!data) {
-      const notFoundError = new Error('Expense not found');
-      // @ts-expect-error - Adding custom property for error type
-      notFoundError.code = 'NOT_FOUND';
-      throw notFoundError;
+    if (!expense) {
+      return {
+        success: false,
+        message: 'Expense not found',
+      };
     }
 
-    // Get all locations for this expense from the junction table
-    const { data: locationData, error: locationError } = await supabase
+    // Also fetch any additional locations
+    const { data: additionalLocations, error: locError } = await supabase
       .from('expense_locations')
       .select(`
-        locations (id, _location)
+        locations(id, location)
       `)
       .eq('expense_id', expenseId);
-
-    if (locationError) {
-      console.error('Error fetching expense locations:', locationError);
-      // Continue with the basic expense data
+      
+    if (locError) {
+      logger.error('Error fetching additional locations:', locError);
+      // Continue despite error
     }
 
-    // Cast the response to handle nested fields - two-step casting to avoid TypeScript errors
-    const expense = data as unknown as Expense & {
-      users?: { id: string; name: string; email: string };
-    };
-
-    // Format the expense data for the frontend
+    // Format the expense for the frontend
     const formattedExpense: Expense = {
-      ...expense, _category: expense.categories?.category as _category as _category || undefined, _location: expense.locations?.location as _location as _location || undefined,
-      // Process user information for "Paid By" field
-      paid_by_name: expense.users?.name || expense.users?.email || 'Unknown',
-      paid_by_email: expense.users?.email || undefined,
-      // Set isOwner flag based on whether the current user is the creator
-      isOwner: currentUser.id === expense.paid_by,
-      // Add all locations from the junction table
-      _all_locations: locationData ? 
-        locationData.map((item: any) => item.locations?._location).filter(Boolean) : 
-        []
+      id: expense.id,
+      amount: expense.amount,
+      date: expense.date,
+      notes: expense.notes || null,
+      split_type: expense.split_type,
+      paid_by: expense.paid_by,
+      category_id: expense.category_id || null,
+      location_id: expense.location_id || null,
+      created_at: expense.created_at,
+      updated_at: expense.updated_at,
+      // Add derived fields for convenience
+      _category: expense.categories?.category,
+      _location: expense.locations?.location,
+      paid_by_name: expense.users?.name || expense.users?.email,
+      isOwner: expense.paid_by === user.id,
+      // Add any additional locations
+      _all_locations: additionalLocations 
+        ? additionalLocations.map(item => item.locations.location) 
+        : []
     };
 
-    // Log for debugging
-    console.log('Expense details retrieved successfully:', expenseId);
-    
-    return formattedExpense;
-  } catch (error) {
-    logger.error('Error fetching expense details:', error);
-    throw error;
-  }
-};
+    // Cache the result
+    expensesCache[cacheKey] = formattedExpense;
 
-/**
- * Get analytics data for expenses in a date range
- * This function leverages Web Workers for heavy computation
- * 
- * @param {string} startDate - Start date for analytics range
- * @param {string} endDate - End date for analytics range
- * @returns {Promise} - Object with analytics data
- */
-export const getExpenseAnalytics = async (startDate: string, endDate: string) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    console.log('Analytics date range (original):', { startDate, endDate });
-    // Add timestamps for better inclusivity
-    const startDateWithTime = `${startDate}T00:00:00.000Z`;
-    const endDateWithTime = `${endDate}T23:59:59.999Z`;
-    console.log('Analytics date range (with time):', { startDateWithTime, endDateWithTime });
-
-    // Fetch expenses in date range - show ALL expenses (not filtered by user)
-    // This ensures both users see the same analytics data
-    const { data: expensesData, error } = await supabase
-      .from('expenses')
-      .select(`
-        *,
-        categories (*),
-        locations (*)
-      `)
-      // Removed the .eq('paid_by', user.id) filter to show all expenses
-      .gte('date', startDate)
-      .lte('date', endDate)
-      .order('date', { ascending: true });
-
-    if (error) {
-      console.error('Supabase query error:', error);
-      throw error;
-    }
-
-    // Type assertion to help TypeScript understand the data structure
-    const typedExpensesData = expensesData as unknown as Array<DbExpense & {
-      categories?: DbCategory;
-      locations?: DbLocation;
-    }>;
-
-    // Debug: Log raw expense data
-    console.log(`Raw expenses from Supabase (${typedExpensesData?.length || 0} items):`, typedExpensesData);
-    console.log('Query filters used:', { 
-      date_gte: startDate, 
-      date_lte: endDate 
-    });
-
-    // Check if any user ID is owned by the current user
-    if (typedExpensesData?.length) {
-      console.log('User IDs in data:', typedExpensesData.map(_e => e.paid_by));
-      console.log('Current user ID:', user.id);
-      console.log('Expenses matching current user:', 
-        typedExpensesData.filter(_e => e.paid_by === user.id).length);
-    }
-
-    // Use the Web Worker for heavy calculations instead of processing on the main thread
-    try {
-      // Import the worker manager only when needed (dynamic import)
-      const { processAnalyticsData } = await import('../../../utils/worker-manager');
-      
-      // Process the data using the Web Worker
-      const result = await processAnalyticsData(typedExpensesData);
-      
-      console.log('Analytics processed by Web Worker:', result);
-      return result;
-    } catch (workerError) {
-      // If the Worker fails, fall back to processing on the main thread
-      console.error('Web Worker processing failed, falling back to main thread:', workerError);
-      
-      // Use the typedExpensesData for analytics processing
-      if (!typedExpensesData || typedExpensesData.length === 0) {
-        return {
-          categoryData: [],
-          locationData: [],
-          timeData: [],
-          trendData: {
-            daily: []
-          },
-          totals: {
-            overall: 0,
-            average: 0
-          }
-        };
-      }
-
-      // Group expenses by category and calculate totals
-      const categoryData = typedExpensesData.reduce((acc, expense) => {
-        const _category = expense.categories?.category as _category as _category || 'Uncategorized';
-        if (!acc[_category]) {
-          acc[category] = 0;
-        }
-        const amount = parseFloat(String(expense.amount || '0'));
-        console.log(`Adding expense: ${amount} to _category ${ _category} (date: ${expense.date})`);
-        acc[category] += amount;
-        return acc;
-      }, {} as Record<string, number>);
-
-      // Debug: Log category totals
-      console.log('Category data:', categoryData);
-
-      const categoryChartData = Object.keys(categoryData).map(category => ({ _category,
-        amount: parseFloat(categoryData[_category].toFixed(2))
-      }));
-
-      // Debug: Log final category chart data
-      console.log('Final _category chart data:', categoryChartData);
-
-      // Process data for location chart
-      const locationData: Record<string, number> = {};
-      typedExpensesData.forEach(expense => {
-        const _location = expense.locations?.location as _location as _location || 'Unknown';
-        if (!locationData[_location]) {
-          locationData[location] = 0;
-        }
-        locationData[location] += parseFloat(String(expense.amount || '0'));
-      });
-
-      const locationChartData = Object.keys(locationData).map(location => ({ _location,
-        amount: parseFloat(locationData[_location].toFixed(2))
-      }));
-
-      // Process data for time chart (by month)
-      const timeData: Record<string, number> = {};
-      typedExpensesData.forEach(expense => {
-        const date = new Date(String(expense.date || ''));
-        const monthYear = date.toLocaleDateString('en-GB', {
-          month: 'short',
-          year: 'numeric'
-        });
-
-        if (!timeData[monthYear]) {
-          timeData[monthYear] = 0;
-        }
-        const amount = parseFloat(String(expense.amount || '0'));
-        console.log(`Adding ${amount} to month ${monthYear} (date: ${expense.date})`);
-        timeData[monthYear] += amount;
-      });
-
-      // Debug: Log month totals
-      console.log('Time data by month:', timeData);
-
-      // Convert to array and sort by date
-      const timeChartData = Object.keys(timeData).map(monthYear => ({
-        period: monthYear,
-        amount: parseFloat(timeData[monthYear].toFixed(2))
-      }));
-
-      // Sort time data chronologically
-      timeChartData.sort((a, b) => {
-        const dateA = new Date(a.period);
-        const dateB = new Date(b.period);
-        return dateA.getTime() - dateB.getTime();
-      });
-
-      // Debug: Log final time chart data
-      console.log('Final time chart data:', timeChartData);
-
-      // Calculate daily spending trend
-      const dailySpending: Record<string, number> = {};
-      typedExpensesData.forEach(expense => {
-        const date = String(expense.date || '');
-        if (!dailySpending[date]) {
-          dailySpending[date] = 0;
-        }
-        const amount = parseFloat(String(expense.amount || '0'));
-        console.log(`Adding ${amount} to daily trend (date: ${date})`);
-        dailySpending[date] += amount;
-      });
-
-      const trendData = {
-        daily: Object.keys(dailySpending).map(date => ({
-          date,
-          amount: parseFloat(dailySpending[date].toFixed(2))
-        })).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-      };
-
-      console.log('Daily spending trend data:', trendData.daily);
-
-      let totalSpending = 0;
-      
-      // Calculate total spending directly from expenses
-      typedExpensesData.forEach(exp => {
-        const amount = parseFloat(String(exp.amount || '0'));
-        console.log(`Adding to total: ${amount} (date: ${exp.date})`);
-        totalSpending += amount;
-      });
-
-      console.log(`Total spending calculated: ${totalSpending.toFixed(2)}`);
-      
-      const result = {
-        categoryData: categoryChartData,
-        locationData: locationChartData,
-        timeData: timeChartData,
-        trendData,
-        totalSpending: parseFloat(totalSpending.toFixed(2)),
-        expenseCount: typedExpensesData.length
-      };
-      
-      console.log('Final analytics result:', result);
-      return result;
-    }
-  } catch (error) {
-    console.error('Error fetching analytics:', error);
-    return { 
-      categoryData: [], 
-      locationData: [],
-      timeData: [],
-      trendData: {
-        daily: []
-      },
-      totalSpending: 0,
-      expenseCount: 0 
+    return {
+      success: true,
+      data: formattedExpense,
+      message: 'Expense details retrieved successfully',
     };
-  }
-};
-
-/**
- * Create an expense - Legacy method, use createNewExpense instead
- * 
- * @param {ExpenseCreate} expense - The expense data
- * @returns {Promise<Expense | null>} - The created expense or null
- */
-export async function createExpense(expense: ExpenseCreate): Promise<Expense | null> {
-  try {
-    console.log('Creating expense:', expense);
-    
-    // Check authentication first to avoid unnecessary processing
-    const { data: authData } = await supabase.auth.getUser();
-    if (!authData?.user) {
-      console.error('Authentication error: User not authenticated');
-      throw new Error('Authentication error: Please sign in again');
-    }
-    
-    const result = await createNewExpense(expense);
-    
-    // Ensure we invalidate the cache on data change
-    console.log('Invalidating cache after creating expense');
-    invalidateExpensesCache();
-    
-    // Log success for debugging
-    if (result) {
-      console.log('Expense created successfully:', result.id);
-    } else {
-      console.warn('Expense creation returned null');
-      // Throw a specific error for null result to provide better debugging
-      throw new Error('Expense creation failed: No expense data returned from server');
-    }
-    
-    return result;
-  } catch (error) {
-    // Convert error to a proper type
-    const err = error as Error;
-    // Log with more detailed information
-    logger.error('Error creating expense:', { 
-      message: err.message, 
-      stack: err.stack,
-      expense: JSON.stringify(expense, null, 2)
-    });
-    // Re-throw the error to allow proper handling in the UI
-    throw error;
+  } catch (error: any) {
+    logger.error('Error in getExpenseDetails:', error);
+    return {
+      success: false,
+      message: error.message || 'An unexpected error occurred retrieving expense details',
+    };
   }
 }
 
 /**
  * Delete an expense
  * 
- * This function handles the complete deletion workflow for an expense:
- * 1. Validates the expense ID format
- * 2. Checks user authentication
- * 3. Verifies the user has permission to delete the expense
- * 4. Performs the deletion operation
- * 5. Invalidates cache to ensure UI consistency
- * 
- * @param {string} expenseId - The UUID of the expense to delete
- * @returns {Promise<{ success: boolean, message: string }>} Result object with success status and message
+ * @param expenseId - The ID of the expense to delete
+ * @returns Promise with the result of the operation
  */
-export const deleteExpense = async (expenseId: string): Promise<{ success: boolean, message: string }> => {
-  if (!expenseId || typeof expenseId !== 'string') {
-    logger.error('Invalid expense ID for deletion:', expenseId);
-    return { success: false, message: 'Invalid expense ID' };
-  }
-
+export async function deleteExpense(expenseId: string): Promise<ApiResponse<null>> {
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      logger.error('User not authenticated for deletion');
-      return { success: false, message: 'You must be logged in to delete expenses' };
+    // Validate expense ID
+    if (!expenseId || typeof expenseId !== 'string') {
+      return {
+        success: false,
+        message: 'Invalid expense ID',
+      };
     }
-    
-    // Get the expense to verify ownership
-    logger.info(`Fetching expense ${expenseId} for deletion validation`);
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not authenticated',
+      };
+    }
+
+    logger.info(`Attempting to delete expense ${expenseId}`);
+
+    // First, check if the expense exists and if user has permission
     const { data: expense, error: fetchError } = await supabase
       .from('expenses')
-      .select('*')
+      .select('id, paid_by')
       .eq('id', expenseId)
       .single();
       
     if (fetchError) {
       logger.error('Error fetching expense for deletion:', fetchError);
-      return { success: false, message: `Error fetching expense: ${fetchError.message}` };
+      return {
+        success: false,
+        message: `Error fetching expense: ${fetchError.message}`,
+      };
     }
     
     if (!expense) {
-      logger.error('Expense not found for deletion:', expenseId);
-      return { success: false, message: 'Expense not found' };
-    }
-
-    // Check if the current user owns this expense
-    if ((expense as unknown as { paid_by: string }).paid_by !== user.id) {
-      logger.error('User attempted to delete another user\'s expense:', { 
-        expenseId, 
-        ownerId: (expense as unknown as { paid_by: string }).paid_by, 
-        requesterId: user.id 
-      });
       return {
         success: false,
-        message: 'You can only delete expenses you created'
+        message: 'Expense not found',
+      };
+    }
+    
+    // Check if user owns the expense
+    if (expense.paid_by !== user.id) {
+      return {
+        success: false,
+        message: 'You can only delete expenses you created',
       };
     }
 
-    // Proceed with deletion
-    logger.info(`Deleting expense ${expenseId}`);
-    const { error: deleteError } = await supabase
+    // First delete any expense_locations records
+    const { error: deleteLocError } = await supabase
+      .from('expense_locations')
+      .delete()
+      .eq('expense_id', expenseId);
+      
+    if (deleteLocError) {
+      logger.error('Error deleting expense locations:', deleteLocError);
+      // Continue despite error
+    }
+
+    // Now delete the expense
+    const { error } = await supabase
       .from('expenses')
       .delete()
       .eq('id', expenseId);
-
-    if (deleteError) {
-      logger.error('Error deleting expense:', deleteError);
-      return { success: false, message: `Error deleting expense: ${deleteError.message}` };
+      
+    if (error) {
+      logger.error('Error deleting expense:', error);
+      return {
+        success: false,
+        message: `Error deleting expense: ${error.message}`,
+      };
     }
 
-    // If we got here, deletion was successful
-    logger.info(`Successfully deleted expense ${expenseId}`);
+    // Clear from cache
+    const cacheKey = `expense_${expenseId}`;
+    if (expensesCache[cacheKey]) {
+      delete expensesCache[cacheKey];
+    }
     
-    // Invalidate cache immediately after successful deletion
-    console.log('Invalidating cache after expense deletion');
+    // Also invalidate any other cached data that might include this expense
     invalidateExpensesCache();
-    
-    return { success: true, message: 'Expense deleted successfully' };
-  } catch (error) {
-    const err = error as Error;
-    logger.error('Unexpected error in deleteExpense:', err);
-    return { success: false, message: `Unexpected error: ${err.message}` };
-  }
-};
 
-/**
- * Get a simple version of an expense by ID
- * 
- * This is a lightweight version of getExpenseDetails that returns
- * just the basic expense data without additional processing.
- * Used when only basic expense information is needed.
- * 
- * @param {string} id - The UUID of the expense to retrieve
- * @returns {Promise<Expense | null>} Basic expense data or null if not found
- */
-export async function getExpense(id: string): Promise<Expense | null> {
-  try {
-    const response = await getExpenseDetails(id);
-    return response;
-  } catch (error) {
-    logger.error('Error in getExpense:', error);
-    return null;
+    return {
+      success: true,
+      message: 'Expense deleted successfully',
+      data: null,
+    };
+  } catch (error: any) {
+    logger.error('Error in deleteExpense:', error);
+    return {
+      success: false,
+      message: error.message || 'An unexpected error occurred deleting the expense',
+    };
   }
 }
 
 /**
- * Get expenses for a user
+ * Get expense analytics data for a specific date range
  * 
- * @param {string} userId - The user ID
- * @returns {Promise<Expense[]>} - Array of expenses
+ * @param dateRange - The date range to get analytics for (e.g., 'month', 'quarter', 'year')
+ * @param startDate - The start date of the range (ISO format)
+ * @param endDate - The end date of the range (ISO format)
+ * @returns Promise with the analytics data or error
  */
-export async function getExpenses(userId: string): Promise<Expense[]> {
+export async function getExpenseAnalytics(
+  dateRange: 'month' | 'quarter' | 'year' | 'custom' = 'month',
+  startDate?: string,
+  endDate?: string
+): Promise<ApiResponse<any>> {
   try {
-    const { data, error } = await supabase
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return {
+        success: false,
+        message: 'User not authenticated',
+      };
+    }
+
+    // Calculate date range if not provided
+    let finalStartDate = startDate;
+    let finalEndDate = endDate;
+    
+    if (!finalStartDate || !finalEndDate) {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonth = now.getMonth();
+
+      if (dateRange === 'month') {
+        // Current month
+        finalStartDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-01`;
+        const lastDay = new Date(currentYear, currentMonth + 1, 0).getDate();
+        finalEndDate = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${lastDay}`;
+      } else if (dateRange === 'quarter') {
+        // Current quarter
+        const quarterStartMonth = Math.floor(currentMonth / 3) * 3;
+        finalStartDate = `${currentYear}-${String(quarterStartMonth + 1).padStart(2, '0')}-01`;
+        const quarterEndMonth = quarterStartMonth + 2;
+        const lastDay = new Date(currentYear, quarterEndMonth + 1, 0).getDate();
+        finalEndDate = `${currentYear}-${String(quarterEndMonth + 1).padStart(2, '0')}-${lastDay}`;
+      } else if (dateRange === 'year') {
+        // Current year
+        finalStartDate = `${currentYear}-01-01`;
+        finalEndDate = `${currentYear}-12-31`;
+      }
+    }
+
+    // Validate dates
+    if (!finalStartDate || !finalEndDate || !isValidISODate(finalStartDate) || !isValidISODate(finalEndDate)) {
+      return {
+        success: false,
+        message: 'Invalid date format. Use YYYY-MM-DD',
+      };
+    }
+
+    // Query expenses for the date range
+    const { data: expenses, error } = await supabase
       .from('expenses')
       .select(`
-        *,
-        categories (*),
-        locations (*)
+        id, 
+        amount, 
+        date, 
+        notes,
+        categories(id, category),
+        locations(id, location),
+        users!paid_by(id, name, email)
       `)
-      .eq('paid_by', userId)
+      .eq('user_id', user.id)
+      .gte('date', finalStartDate)
+      .lte('date', finalEndDate)
       .order('date', { ascending: false });
 
-    if (error) throw error;
-    return (data || []) as unknown as Expense[];
+    if (error) {
+      logger.error('Error fetching expenses for analytics:', error);
+      return {
+        success: false,
+        message: `Error fetching expenses: ${error.message}`,
+      };
+    }
+
+    if (!expenses || expenses.length === 0) {
+      return {
+        success: true,
+        data: {
+          categoryDistribution: [],
+          locationDistribution: [],
+          dailyTrend: [],
+          timeDistribution: [],
+          totalSpent: 0,
+          count: 0
+        },
+        message: 'No expenses found for the selected period',
+      };
+    }
+
+    // Process expenses for analytics
+    const categoryMap = new Map<string, number>();
+    const locationMap = new Map<string, number>();
+    const dailyTrend: { date: string; amount: number }[] = [];
+    const timeMap = new Map<string, number>();
+    let totalSpent = 0;
+
+    // Group expenses by date for daily trend
+    const dateMap = new Map<string, number>();
+
+    expenses.forEach((expense: any) => {
+      const amount = parseFloat(expense.amount) || 0;
+      totalSpent += amount;
+
+      // Category distribution
+      const category = expense.categories?.category || 'Uncategorized';
+      categoryMap.set(category, (categoryMap.get(category) || 0) + amount);
+
+      // Location distribution
+      const location = expense.locations?.location || 'Unknown';
+      locationMap.set(location, (locationMap.get(location) || 0) + amount);
+
+      // Daily trend
+      const date = expense.date;
+      dateMap.set(date, (dateMap.get(date) || 0) + amount);
+
+      // Time distribution (by hour of day)
+      const createdAt = expense.created_at ? new Date(expense.created_at) : new Date();
+      const hour = createdAt.getHours();
+      const timeOfDay = hour < 12 ? 'Morning' : hour < 18 ? 'Afternoon' : 'Evening';
+      timeMap.set(timeOfDay, (timeMap.get(timeOfDay) || 0) + amount);
+    });
+
+    // Convert maps to arrays for the response
+    const categoryDistribution = Array.from(categoryMap.entries()).map(([category, amount]) => ({
+      category,
+      amount
+    }));
+
+    const locationDistribution = Array.from(locationMap.entries()).map(([location, amount]) => ({
+      location,
+      amount
+    }));
+
+    // Sort dates for the trend
+    const sortedDates = Array.from(dateMap.entries())
+      .sort(([dateA], [dateB]) => new Date(dateA).getTime() - new Date(dateB).getTime());
+
+    const dailyTrendData = sortedDates.map(([date, amount]) => ({
+      date,
+      amount
+    }));
+
+    const timeDistribution = Array.from(timeMap.entries()).map(([period, amount]) => ({
+      period,
+      amount
+    }));
+
+    return {
+      success: true,
+      data: {
+        categoryDistribution,
+        locationDistribution,
+        dailyTrend: dailyTrendData,
+        timeDistribution,
+        totalSpent,
+        count: expenses.length
+      }
+    };
   } catch (error) {
-    logger.error('Error fetching expenses:', error);
+    logger.error('Error in getExpenseAnalytics:', error);
+    return {
+      success: false,
+      message: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}`,
+    };
+  }
+}
+
+/**
+ * Get all expenses for a user
+ * 
+ * @param userId - The user ID to get expenses for
+ * @param options - Optional parameters for filtering and pagination
+ * @returns Promise with the expenses or error
+ */
+export async function getExpenses(
+  userId?: string,
+  options: {
+    startDate?: string;
+    endDate?: string;
+    categoryId?: string;
+    locationId?: string;
+    limit?: number;
+    offset?: number;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  } = {}
+): Promise<Expense[]> {
+  try {
+    // If userId is not provided, get the current user
+    let finalUserId = userId;
+    if (!finalUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        logger.error('User not authenticated');
+        return [];
+      }
+      finalUserId = user.id;
+    }
+
+    // Check if we have cached expenses for this user
+    const cacheKey = `expenses_${finalUserId}_${JSON.stringify(options)}`;
+    if (expensesCache[cacheKey]) {
+      logger.info('Returning cached expenses');
+      return expensesCache[cacheKey];
+    }
+
+    // Build the query
+    let query = supabase
+      .from('expenses')
+      .select(`
+        id, 
+        amount, 
+        date, 
+        notes,
+        split_type,
+        categories(id, category),
+        locations(id, location),
+        users!paid_by(id, name, email)
+      `)
+      .eq('user_id', finalUserId);
+
+    // Apply filters
+    if (options.startDate && isValidISODate(options.startDate)) {
+      query = query.gte('date', options.startDate);
+    }
+
+    if (options.endDate && isValidISODate(options.endDate)) {
+      query = query.lte('date', options.endDate);
+    }
+
+    if (options.categoryId) {
+      query = query.eq('category_id', options.categoryId);
+    }
+
+    if (options.locationId) {
+      query = query.eq('location_id', options.locationId);
+    }
+
+    // Apply sorting
+    const sortBy = options.sortBy || 'date';
+    const sortOrder = options.sortOrder || 'desc';
+    query = query.order(sortBy, { ascending: sortOrder === 'asc' });
+
+    // Apply pagination
+    if (options.limit) {
+      query = query.limit(options.limit);
+    }
+
+    if (options.offset) {
+      query = query.range(options.offset, options.offset + (options.limit || 10) - 1);
+    }
+
+    // Execute the query
+    const { data: expenses, error } = await query;
+
+    if (error) {
+      logger.error('Error fetching expenses:', error);
+      return [];
+    }
+
+    if (!expenses) {
+      return [];
+    }
+
+    // Transform the data to match the Expense interface
+    const transformedExpenses: Expense[] = expenses.map((expense: any) => ({
+      id: expense.id,
+      amount: parseFloat(expense.amount),
+      date: expense.date,
+      notes: expense.notes || '',
+      category: expense.categories?.category || 'Uncategorized',
+      category_id: expense.categories?.id,
+      location: expense.locations?.location || 'Unknown',
+      location_id: expense.locations?.id,
+      split_type: expense.split_type || 'none',
+      paid_by: expense.users?.id || finalUserId,
+      paid_by_name: expense.users?.name || 'You',
+      created_at: expense.created_at,
+      updated_at: expense.updated_at
+    }));
+
+    // Cache the results
+    expensesCache[cacheKey] = transformedExpenses;
+
+    return transformedExpenses;
+  } catch (error) {
+    logger.error('Error in getExpenses:', error);
     return [];
   }
 }

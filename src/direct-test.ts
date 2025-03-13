@@ -1,66 +1,113 @@
 import { createClient } from '@supabase/supabase-js';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createLogger } from './core/utils/logger';
 
-// Get environment variables directly
+const logger = createLogger('DirectTest');
+
+// Use hardcoded credentials for testing
 const supabaseUrl = 'https://ccwcbnfnvkmwubkuvzns.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNjd2NibmZudmttd3Via3V2em5zIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDExMzI0MDcsImV4cCI6MjA1NjcwODQwN30.tgbRreo_VKimkIcs9FvV6Vy1nUaAmLwd8ptwHXmI8GI';
 
-console.log('Creating direct Supabase client with URL:', supabaseUrl);
+logger.info('Testing direct Supabase connection with CORS handling');
 
-// Create a simple Supabase client
-const supabase: SupabaseClient = createClient(supabaseUrl, supabaseKey, {
+// Create a custom fetch with CORS mode
+const customFetch = (input: RequestInfo | URL, options?: RequestInit) => {
+  // Convert input to string if needed
+  const url = typeof input === 'string' ? input : input.toString();
+  
+  // Log the request details
+  console.log('Direct API Request:', {
+    url,
+    method: options?.method || 'GET',
+    hasAuth: options?.headers && 'Authorization' in options.headers
+  });
+
+  // Add explicit CORS handling
+  const fetchOptions = {
+    ...options,
+    mode: 'cors' as RequestMode,
+    headers: {
+      ...options?.headers,
+      'apikey': supabaseKey,
+      'Origin': window.location.origin,
+      'Content-Type': 'application/json'
+    }
+  };
+
+  return fetch(input, fetchOptions).then(response => {
+    // Log response details
+    console.log('API Response:', {
+      status: response.status,
+      ok: response.ok,
+      statusText: response.statusText,
+      url: response.url,
+      cors: response.type
+    });
+    
+    if (!response.ok) {
+      console.error('Response not OK:', {
+        status: response.status,
+        statusText: response.statusText
+      });
+    }
+    return response;
+  });
+};
+
+// Create Supabase client with custom fetch
+const supabase = createClient(supabaseUrl, supabaseKey, {
   auth: {
-    persistSession: false,
     autoRefreshToken: false,
-    detectSessionInUrl: false
+    persistSession: false
+  },
+  global: {
+    fetch: customFetch
   }
 });
 
-console.log('Direct Supabase client created');
-
-interface SettingsRow {
-  id: string;
-  user_id: string;
-  currency: string;
-  theme: string;
-  created_at: string;
-  updated_at: string;
-}
-
-// Test Supabase connection
-async function testDirectConnection(): Promise<void> {
+// Export function to test connection
+export async function testDirectConnection() {
   try {
-    console.log('Testing direct connection...');
-    
-    // Test auth
-    console.log('Testing auth directly...');
-    const { data: authData, error: authError } = await supabase.auth.getSession();
-    console.log('Direct auth test result:', { 
-      hasSession: !!authData?.session,
-      hasError: !!authError,
-      errorMessage: authError?.message
-    });
-
-    // Test database query
-    console.log('Testing database query directly...');
-    const { data: dbData, error: dbError } = await supabase
+    // Test with a simple query
+    console.log('Testing direct Supabase query...');
+    const { data, error } = await supabase
       .from('settings')
       .select('*')
-      .limit(1) as { data: SettingsRow[] | null, error: Error | null };
+      .limit(1);
     
-    console.log('Direct database test result:', { 
-      hasData: !!dbData,
-      dataCount: dbData?.length,
-      hasError: !!dbError,
-      errorMessage: dbError?.message
-    });
-
-    console.log('All direct tests completed');
-  } catch (error) {
-    console.error('Error during direct tests:', error instanceof Error ? error.message : String(error));
+    if (error) {
+      console.error('Direct query error:', error);
+      return false;
+    }
+    
+    console.log('Direct query successful:', data);
+    return true;
+  } catch (err) {
+    console.error('Exception in direct test:', err);
+    return false;
   }
 }
 
-testDirectConnection();
-
-export default testDirectConnection; 
+// Function to test authentication specifically
+export async function testDirectAuth(email: string, password: string) {
+  try {
+    console.log('Testing direct authentication...');
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) {
+      console.error('Direct auth error:', error);
+      return { success: false, error };
+    }
+    
+    console.log('Direct auth successful:', { 
+      user: data.user?.email,
+      hasSession: !!data.session
+    });
+    return { success: true, data };
+  } catch (err) {
+    console.error('Exception in direct auth test:', err);
+    return { success: false, error: err };
+  }
+} 

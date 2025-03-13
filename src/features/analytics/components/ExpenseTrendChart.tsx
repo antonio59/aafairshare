@@ -2,33 +2,55 @@
 
 import React from 'react';
 import { 
-  TrendingUp, ArrowUpRight, ArrowDownRight, _Calendar 
+  TrendingUp, ArrowUpRight, ArrowDownRight, Calendar
 } from 'lucide-react';
-import { _formatDecimal } from '../../../utils/number-utils';
+import { DailyTrendData, AnalyticsChartProps } from '../types';
 
-interface TrendData {
-  date: string;
-  amount: number;
-}
-
-interface ExpenseTrendChartProps {
-  trendData: TrendData[];
+interface ExpenseTrendChartProps extends Omit<AnalyticsChartProps, 'data'> {
+  trendData: DailyTrendData[];
   formatAmount: (amount: number) => string;
-  title?: string;
 }
 
 export function ExpenseTrendChart({ 
   trendData, 
   formatAmount, 
-  title = 'Monthly Spending Trends'
+  title = 'Monthly Spending Trends',
+  loading = false,
+  error = null,
+  className = ''
 }: ExpenseTrendChartProps) {
-  // Debug logs for incoming data
-  console.log('ExpenseTrendChart received trendData:', trendData);
+  if (loading) {
+    return (
+      <div className={`bg-white p-6 rounded-lg shadow-sm ${className}`}>
+        <div className="animate-pulse space-y-4">
+          <div className="flex justify-between">
+            <div className="h-5 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-5 bg-gray-200 rounded w-16"></div>
+          </div>
+          <div className="h-48 bg-gray-200 rounded"></div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`bg-white p-6 rounded-lg shadow-sm text-center ${className}`}>
+        <TrendingUp className="mx-auto h-8 w-8 text-red-400 mb-2" />
+        <p className="text-sm text-red-500">{error}</p>
+      </div>
+    );
+  }
   
   if (!trendData || trendData.length === 0) {
-    console.log('No trend data available');
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+      <div className={`bg-white p-6 rounded-lg shadow-sm text-center ${className}`}>
         <TrendingUp className="mx-auto h-8 w-8 text-gray-400 mb-2" />
         <p className="text-sm text-gray-500">No trend data available</p>
       </div>
@@ -39,7 +61,6 @@ export function ExpenseTrendChart({
   const sortedData = [...trendData].sort((a, b) => 
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
-  console.log('Sorted trend data:', sortedData);
   
   // Group expenses by month
   const monthlyData: Record<string, number> = {};
@@ -50,10 +71,8 @@ export function ExpenseTrendChart({
     if (!monthlyData[monthKey]) {
       monthlyData[monthKey] = 0;
     }
-    console.log(`Adding ${item.amount} to month ${monthKey} (from date ${item.date})`);
     monthlyData[monthKey] += item.amount;
   });
-  console.log('Grouped monthly data:', monthlyData);
   
   // Convert monthly data to array
   const monthlyTrends = Object.keys(monthlyData).map(monthKey => {
@@ -64,7 +83,6 @@ export function ExpenseTrendChart({
       label: new Date(year, month - 1).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     };
   }).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  console.log('Monthly trends data for visualization:', monthlyTrends);
   
   // Use monthly trends for visualization
   const trendDataForViz = monthlyTrends;
@@ -112,17 +130,8 @@ export function ExpenseTrendChart({
   // Calculate max value for chart scaling
   const maxValue = Math.max(...trendDataForViz.map(point => point.amount));
   
-  // Format a date to show month name
-  const _formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      month: 'short',
-      year: 'numeric'
-    });
-  };
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
+    <div className={`bg-white p-6 rounded-lg shadow-sm ${className}`}>
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-medium text-gray-800 flex items-center">
           <TrendingUp className="mr-2 h-5 w-5 text-rose-500" />

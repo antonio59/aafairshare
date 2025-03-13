@@ -9,7 +9,6 @@ interface UserSettings {
   user_id: string;
   currency: string;
   theme: 'light' | 'dark';
-  language: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -18,7 +17,7 @@ export async function getUserSettings(userId: string): Promise<UserSettings | nu
   try {
     const response: PostgrestSingleResponse<UserSettings> = await supabase
       .from('user_settings')
-      .select('id, user_id, currency, theme, language, created_at, updated_at')
+      .select('id, user_id, currency, theme, created_at, updated_at')
       .eq('user_id', userId)
       .single();
 
@@ -50,8 +49,7 @@ export async function initializeUserSettings(userId: string): Promise<boolean> {
     const defaultSettings: Omit<UserSettings, 'id' | 'created_at' | 'updated_at'> = {
       user_id: userId,
       currency: 'GBP',
-      theme: 'light',
-      language: 'en'
+      theme: 'light'
     };
 
     const { error } = await supabase

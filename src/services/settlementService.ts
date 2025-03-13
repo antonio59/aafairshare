@@ -1,9 +1,10 @@
-import { supabase } from '../lib/supabase';
+import { supabase } from '../core/api/supabase';
 import { User } from '@supabase/supabase-js';
 import { 
   calculateUserBalances, 
   createSettlement as createNewSettlement, 
-  getUserSettlements, _markSettlementComplete,
+  getUserSettlements, 
+  markSettlementComplete,
   BalanceResult,
   Settlement
 } from '../features/settlements/api/settlement-operations';

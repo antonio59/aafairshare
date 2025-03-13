@@ -3,7 +3,7 @@ import { Edit, Receipt, Calendar, ChevronLeft, ChevronRight, Filter, ArrowUpDown
 import { useNavigate } from 'react-router-dom';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
-import { useCurrency } from '../../../core/contexts/CurrencyContext';
+import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 import { calculateUserBalances } from '../../settlements/api/settlement-operations';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { deleteExpense, invalidateExpensesCache } from '../api/expenseApi';
@@ -12,21 +12,10 @@ import { ErrorBoundary, LoadingSpinner, StatusMessage } from '../../shared/compo
 import { formatDateToUK, formatTime, MONTHS, getYear } from '../../shared/utils/date-utils';
 import { formatDecimal, safeSum } from '../../../utils/number-utils';
 import { supabase } from '../../../core/api/supabase';
+import { Expense, GroupedExpenses, MonthlyExpenseData, ApiResponse } from '../../../core/types/expenses';
+import { sanitizeAmount, isEmpty } from '../../../core/utils/validation';
 
-// Type definitions to fix linter errors
-interface Expense {
-  id: string;
-  date: string;
-  amount: number | string;
-  category?: string;
-  location?: string;
-  notes?: string;
-  isPaidByCurrentUser?: boolean;
-  paidByName?: string;
-  splitType?: string;
-  [key: string]: any; // Allow for additional properties
-}
-
+// Component props types
 interface ExpenseCardProps {
   expense: Expense;
   formatCurrency: (amount: number | string) => string;
@@ -68,28 +57,30 @@ interface MonthlyExpensesProps {
   onNewExpense: () => void;
 }
 
-// Improve the sumExpenses function with better type safety
+/**
+ * Helper function to safely sum expense amounts
+ * @param expenses Array of expenses to sum
+ * @returns Total amount as number
+ */
 const sumExpenses = (expenses: Expense[]): number => {
-  // Handle null/undefined array
   if (!Array.isArray(expenses)) {
     return 0;
   }
   
   return expenses.reduce((total, expense) => {
     // Skip invalid expenses
-    if (!expense || typeof expense !== 'object' || !('amount' in expense)) {
-      return total;
-    }
+    if (!expense?.amount) return total;
     
-    const amount = typeof expense.amount === 'string' 
-      ? parseFloat(expense.amount) 
-      : (typeof expense.amount === 'number' ? expense.amount : 0);
-    
-    return total + (isNaN(amount) ? 0 : amount);
+    const amount = sanitizeAmount(expense.amount) ?? 0;
+    return total + amount;
   }, 0);
 };
 
-// Add more robust type guard function for expense objects
+/**
+ * Type guard function for expense objects
+ * @param expense The expense to validate
+ * @returns Type guard boolean
+ */
 function isValidExpense(expense: any): expense is Expense {
   return (
     expense !== null &&
@@ -101,62 +92,64 @@ function isValidExpense(expense: any): expense is Expense {
   );
 }
 
-// Function to check if an expense matches a search query
+/**
+ * Search function to check if an expense matches a query
+ * @param expense The expense to search
+ * @param query The search query
+ * @returns Whether the expense matches the query
+ */
 function matchesSearchQuery(expense: Expense, query: string): boolean {
   if (!query) return true;
   
   const searchLower = query.toLowerCase();
   
-  // Check various fields for matches
   return (
-    (expense.category?.toLowerCase().includes(searchLower) ?? false) ||
-    (expense.notes?.toLowerCase().includes(searchLower) ?? false) ||
-    (expense.location?.toLowerCase().includes(searchLower) ?? false) ||
-    (expense.paidByName?.toLowerCase().includes(searchLower) ?? false)
+    (expense._category?.toLowerCase().includes(searchLower) ?? false) ||
+    ((!isEmpty(expense.notes) && expense.notes?.toLowerCase().includes(searchLower)) ?? false) ||
+    (expense._location?.toLowerCase().includes(searchLower) ?? false) ||
+    (expense.paid_by_name?.toLowerCase().includes(searchLower) ?? false)
   );
 }
 
-// Create memoized sub-components to prevent unnecessary re-renders
-
-// Memoized expense card component with updated clean design
+// Memoized expense card component
 const ExpenseCard = memo(({ expense, formatCurrency, onDelete, onEdit, onClick }: ExpenseCardProps) => {
-  const handleEdit = (e: React.MouseEvent) => {
+  const handleEdit = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     onEdit(e, expense);
-  };
+  }, [onEdit, expense]);
   
-  const handleDelete = (e: React.MouseEvent) => {
+  const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    onDelete(expense.id, !!expense.isPaidByCurrentUser);
-  };
+    onDelete(expense.id, !!expense.isOwner);
+  }, [onDelete, expense.id, expense.isOwner]);
   
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     onClick(expense);
-  };
+  }, [onClick, expense]);
   
   return (
     <div 
-      className="py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+      className="py-2 md:py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
       onClick={handleClick}
     >
       <div className="flex justify-between items-center">
         <div>
-          <div className="font-medium text-gray-800">
-            {expense.category || 'Uncategorized'}
+          <div className="font-medium text-gray-800 text-sm md:text-base">
+            {expense._category || 'Uncategorized'}
           </div>
-          <div className="text-sm text-gray-500">
-            {expense.paidByName || 'Unknown'}
+          <div className="text-xs md:text-sm text-gray-500">
+            {expense.paid_by_name || 'Unknown'}
           </div>
         </div>
         
         <div className="flex items-center space-x-2">
           <div className="flex flex-col items-end">
-            <div className={`font-semibold ${expense.isPaidByCurrentUser ? 'text-red-600' : 'text-green-600'}`}>
+            <div className={`font-semibold text-sm md:text-base ${expense.isOwner ? 'text-red-600' : 'text-green-600'}`}>
               {formatCurrency(expense.amount)}
             </div>
-            {expense.splitType && (
+            {expense.split_type && (
               <div className="text-xs text-gray-500">
-                Split {expense.splitType === 'equal' ? '50/50' : expense.splitType}
+                {expense.split_type === 'equal' ? 'Split 50/50' : '100%'}
               </div>
             )}
           </div>
@@ -166,37 +159,41 @@ const ExpenseCard = memo(({ expense, formatCurrency, onDelete, onEdit, onClick }
               className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
               onClick={handleEdit}
               aria-label="Edit expense"
+              type="button"
             >
-              <Edit size={18} />
+              <Edit size={16} className="md:w-[18px] md:h-[18px]" />
             </button>
             
-            {expense.isPaidByCurrentUser && (
+            {expense.isOwner && (
               <button 
                 className="p-1 text-gray-400 hover:text-red-500 transition-colors"
                 onClick={handleDelete}
                 aria-label="Delete expense"
+                type="button"
               >
-                <Trash2 size={18} />
+                <Trash2 size={16} className="md:w-[18px] md:h-[18px]" />
               </button>
             )}
           </div>
         </div>
       </div>
       
-      {expense.notes && (
-        <div className="mt-1 text-sm text-gray-500 truncate max-w-full">
+      {!isEmpty(expense.notes) && (
+        <div className="mt-1 text-xs md:text-sm text-gray-500 truncate max-w-full">
           {expense.notes}
         </div>
       )}
       
-      {expense.location && (
+      {expense._location && (
         <div className="text-xs text-gray-400">
-          {expense.location}
+          {expense._location}
         </div>
       )}
     </div>
   );
 });
+
+ExpenseCard.displayName = 'ExpenseCard';
 
 // Virtual row renderer for efficient list rendering
 const VirtualRow = memo(({ index, style, data }: VirtualRowProps) => {
@@ -216,20 +213,22 @@ const VirtualRow = memo(({ index, style, data }: VirtualRowProps) => {
   );
 });
 
-// Memoized daily expense group component with updated clean design
+VirtualRow.displayName = 'VirtualRow';
+
+// Daily expense group component
 const DailyExpensesGroup = memo(({ date, expenses, formatCurrency, onDelete, onEdit, onExpenseClick }: DailyExpensesGroupProps) => {
-  const EXPENSE_ROW_HEIGHT = 80; // Adjusted height for the new cleaner design
+  const EXPENSE_ROW_HEIGHT = 70; // Smaller on mobile, larger on desktop
   const EXPENSE_THRESHOLD = 5; // Use virtualization for more than 5 expenses
   
   return (
-    <div className="mb-6">
+    <div className="mb-4 md:mb-6">
       <div className="flex items-center mb-2">
-        <Calendar size={16} className="text-gray-400 mr-2" />
-        <div className="text-gray-600 font-medium">{date}</div>
+        <Calendar size={14} className="text-gray-400 mr-2 md:w-4 md:h-4" />
+        <div className="text-sm md:text-base text-gray-600 font-medium">{date}</div>
       </div>
       
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="px-4">
+        <div className="px-3 md:px-4">
           {expenses.length <= EXPENSE_THRESHOLD ? (
             // Render normally for small lists
             <div>
@@ -246,7 +245,7 @@ const DailyExpensesGroup = memo(({ date, expenses, formatCurrency, onDelete, onE
             </div>
           ) : (
             // Use virtualized list for large lists
-            <div style={{ height: Math.min(expenses.length * EXPENSE_ROW_HEIGHT, 500) }}>
+            <div style={{ height: Math.min(expenses.length * EXPENSE_ROW_HEIGHT, 400) }}>
               <AutoSizer>
                 {({ height, width }: { height: number, width: number }) => (
                   <List
@@ -274,43 +273,38 @@ const DailyExpensesGroup = memo(({ date, expenses, formatCurrency, onDelete, onE
   );
 });
 
-// Memoized empty state component with updated clean design
+DailyExpensesGroup.displayName = 'DailyExpensesGroup';
+
+// Empty state component
 const EmptyState = memo(({ month, year, onNewExpense }: EmptyStateProps) => (
-  <div className="py-12 bg-white rounded-lg shadow text-center">
-    <div className="text-gray-300 mb-4">
-      <Receipt size={48} className="mx-auto" />
+  <div className="py-8 md:py-12 bg-white rounded-lg shadow text-center">
+    <div className="text-gray-300 mb-3 md:mb-4">
+      <Receipt size={40} className="mx-auto md:w-12 md:h-12" />
     </div>
-    <h3 className="text-lg font-medium text-gray-800 mb-2">No expenses for {MONTHS[month]} {year}</h3>
-    <p className="text-gray-500 mb-6">Start tracking your expenses for this month</p>
+    <h3 className="text-base md:text-lg font-medium text-gray-800 mb-2">No expenses for {MONTHS[month]} {year}</h3>
+    <p className="text-sm md:text-base text-gray-500 mb-4 md:mb-6">Start tracking your expenses for this month</p>
     <button
       onClick={onNewExpense}
-      className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+      className="px-3 py-1.5 md:px-4 md:py-2 bg-blue-500 text-white text-sm rounded-md hover:bg-blue-600 transition-colors"
+      type="button"
     >
       Add Your First Expense
     </button>
   </div>
 ));
 
-// Update the interface to match the actual context
-interface CurrencyContextValue {
-  currency: string;
-  setCurrency: (currency: string) => void;
-  supportedCurrencies: Record<string, { symbol: string; name: string }>;
-  formatAmount: (amount: number) => string;
-}
+EmptyState.displayName = 'EmptyState';
 
-// Main component with optimizations
-const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: MonthlyExpensesProps) => {
-  console.log("MonthlyExpenses component rendering");
+/**
+ * Main MonthlyExpenses component
+ */
+function MonthlyExpenses({ onViewMore, refreshTrigger = 0, onNewExpense }: MonthlyExpensesProps) {
   const navigate = useNavigate();
-  
-  // Use the CurrencyContext with its actual type and methods
-  const currencyContext = useCurrency();
-  
-  // Add an error timeout ref for clearing errors automatically
+  // currencyContext is replaced with direct imports
+const currency = "GBP";
   const errorTimeoutRef = useRef<number | null>(null);
   
-  // Create our own formatCurrency function using the context's formatAmount
+  // Format currency helper
   const formatCurrency = useCallback((value: number | string): string => {
     if (typeof value === 'string') {
       value = parseFloat(value) || 0;
@@ -321,11 +315,11 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
   const { user, refreshSession } = useAuth();
   const { handleError } = useErrorHandler();
 
-  // Track component mount state with a ref
+  // Track component mount state
   const mountedRef = useRef(false);
   const subscriptionRef = useRef<any>(null);
   
-  // Simple date state
+  // Date state
   const [selectedDate, setSelectedDate] = useState(() => {
     const now = new Date();
     return { month: now.getMonth(), year: now.getFullYear() };
@@ -338,53 +332,55 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
   const [sortOrder, setSortOrder] = useState('desc');
   const [showFilters, setShowFilters] = useState(false);
   
-  // Data state - simplified
+  // Data state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [allMonthlyData, setAllMonthlyData] = useState<any[]>([]);
+  const [allMonthlyData, setAllMonthlyData] = useState<MonthlyExpenseData[]>([]);
   const [allCategories, setAllCategories] = useState<string[]>([]);
   
-  // Get the current selected month's data - memoized
+  // Get current month data
   const currentMonthData = useMemo(() => {
-    console.log('Finding month data for:', MONTHS[selectedDate.month], selectedDate.year);
-    
-    return allMonthlyData.find(month => {
-      // The month format is "March 2023"
-      const monthStr = `${MONTHS[selectedDate.month]} ${selectedDate.year}`;
-      return month?.month === monthStr;
-    }) || { expenses: [] };
+    const monthStr = `${MONTHS[selectedDate.month]} ${selectedDate.year}`;
+    return allMonthlyData.find(month => month.month === monthStr) || { 
+      month: monthStr,
+      expenses: [],
+      total: 0
+    };
   }, [allMonthlyData, selectedDate.month, selectedDate.year]);
   
-  // Sort expenses by date (newest first) or amount
+  // Sort expenses
   const sortedExpenses = useMemo(() => {
-    if (!currentMonthData.expenses?.length) return [];
-    
+    if (!Array.isArray(currentMonthData.expenses) || !currentMonthData.expenses.length) {
+      return [];
+    }
+
     return [...currentMonthData.expenses].sort((a: Expense, b: Expense) => {
       if (sortBy === 'amount') {
-        return sortOrder === 'asc' 
-          ? Number(a.amount) - Number(b.amount) 
-          : Number(b.amount) - Number(a.amount);
+        const aAmount = typeof a.amount === 'string' ? parseFloat(a.amount) : a.amount;
+        const bAmount = typeof b.amount === 'string' ? parseFloat(b.amount) : b.amount;
+        return sortOrder === 'asc' ? aAmount - bAmount : bAmount - aAmount;
       }
       
-      // Default sort by date (newest first)
+      // Default sort by date
       return sortOrder === 'asc'
         ? new Date(a.date).getTime() - new Date(b.date).getTime()
         : new Date(b.date).getTime() - new Date(a.date).getTime();
     });
   }, [currentMonthData.expenses, sortBy, sortOrder]);
   
-  // Filter and search expenses
+  // Filter expenses
   const filteredExpenses = useMemo(() => {
-    if (!sortedExpenses?.length) return [];
+    if (!sortedExpenses.length) return [];
     
     return sortedExpenses.filter((expense: Expense) => {
-      if (!matchesSearchQuery(expense, searchQuery)) {
+      // Search filter
+      if (searchQuery && !matchesSearchQuery(expense, searchQuery)) {
         return false;
       }
       
-      // Apply category filter
-      if (selectedCategories.length > 0 && expense.category) {
-        if (!selectedCategories.includes(expense.category)) {
+      // Category filter
+      if (selectedCategories.length > 0 && expense._category) {
+        if (!selectedCategories.includes(expense._category)) {
           return false;
         }
       }
@@ -393,34 +389,29 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     });
   }, [sortedExpenses, searchQuery, selectedCategories]);
   
-  // Group expenses by date for display - memoized with Web Worker
+  // Group expenses by date
   const groupedExpenses = useMemo(() => {
-    console.log('Grouping expenses by date, count:', filteredExpenses?.length || 0);
-    
-    if (!Array.isArray(filteredExpenses)) {
-      return {};
+    if (!filteredExpenses.length) {
+      return {} as GroupedExpenses;
     }
 
-    // Fallback processing function that runs on main thread
-    const processDataOnMainThread = () => {
-      return filteredExpenses.reduce((acc, expense) => {
-        if (!expense?.date) return acc;
-        
-        const dateKey = formatDateToUK(expense.date);
-        if (!acc[dateKey]) {
-          acc[dateKey] = [];
-        }
-        acc[dateKey].push(expense);
-        return acc;
-      }, {} as Record<string, Expense[]>);
-    };
-
-    return processDataOnMainThread();
+    return filteredExpenses.reduce((acc, expense) => {
+      if (!expense?.date) return acc;
+      
+      const dateKey = formatDateToUK(expense.date);
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(expense);
+      return acc;
+    }, {} as GroupedExpenses);
   }, [filteredExpenses]);
   
-  // Helper functions (without useCallback)
-  function showError(errorKey: string, message: string) {
-    // Since error is a string, not an object, just set it directly
+  /**
+   * Error handling function
+   * @param message Error message to display
+   */
+  const showError = useCallback((message: string) => {
     setError(message);
     
     // Auto-clear error after 5 seconds
@@ -432,61 +423,55 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       setError(null);
       errorTimeoutRef.current = null;
     }, 5000);
-  }
+  }, []);
   
-  // Load data function (without useCallback)
-  async function loadData() {
+  /**
+   * Load expenses data from API
+   */
+  const loadData = useCallback(async () => {
     if (!mountedRef.current) return;
     
-    console.log('Loading expenses data...');
     setLoading(true);
     setError(null);
     
     try {
-      // Add date range filter to only load last 3 months by default
+      // Get data for the last 3 months
       const now = new Date();
       const threeMonthsAgo = new Date();
       threeMonthsAgo.setMonth(now.getMonth() - 3);
       
       const startDate = threeMonthsAgo.toISOString().split('T')[0];
       
-      // Add timeout protection for the API call
+      // Add timeout protection
       const timeoutPromise = new Promise<null>((_, reject) => {
         setTimeout(() => reject(new Error('Request timed out')), 15000);
       });
       
-      // calculateUserBalances already has fetchWithRetry built in
+      // Get user balances with expenses
       const calculationPromise = calculateUserBalances({
         startDate,
-        limit: 200 // Reasonable limit to prevent loading too much data
+        limit: 200
       });
       
-      // Race between the actual request and the timeout
       const result = await Promise.race([
         calculationPromise,
         timeoutPromise
-      ]) as any; // Type assertion needed due to race with timeout promise
+      ]) as any;
       
-      // Validate the result
       if (!result || typeof result !== 'object') {
         throw new Error('Invalid response from server');
       }
       
-      console.log('Data loaded:', {
-        monthCount: result.monthlyExpenses?.length || 0,
-        months: result.monthlyExpenses?.map((m: any) => m.month) || []
-      });
-      
       if (mountedRef.current) {
         setAllMonthlyData(result.monthlyExpenses || []);
         
-        // Extract all unique categories
+        // Extract unique categories
         const categories = new Set<string>();
         result.monthlyExpenses?.forEach((month: any) => {
           if (month && Array.isArray(month.expenses)) {
             month.expenses.forEach((expense: any) => {
-              if (isValidExpense(expense) && expense.category) {
-                categories.add(expense.category);
+              if (isValidExpense(expense) && expense._category) {
+                categories.add(expense._category);
               }
             });
           }
@@ -499,10 +484,10 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       console.error('Failed to load expenses data:', error);
       
       if (mountedRef.current) {
-        showError('load', 'Failed to load expenses data. Please try refreshing.');
+        showError('Failed to load expenses data. Please try refreshing.');
         setLoading(false);
         
-        // Try to refresh the session on error
+        // Try to refresh session on error
         try {
           await refreshSession();
         } catch (refreshError) {
@@ -510,32 +495,30 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         }
       }
     }
-  }
+  }, [refreshSession, showError]);
   
-  // Set up subscription (without useCallback)
-  async function setupSubscription() {
+  /**
+   * Set up Supabase subscription for real-time updates
+   */
+  const setupSubscription = useCallback(async () => {
     if (!mountedRef.current || subscriptionRef.current) return;
     
-    // Get the current user as _user state
+    // Get current user
     const { data: { user: currentUser } } = await supabase.auth.getUser();
     
-    // Don't proceed if there's no user
     if (!currentUser) {
-      console.log('Cannot set up subscription: _user not authenticated');
+      console.log('Cannot set up subscription: user not authenticated');
       return;
     }
     
     try {
-      // Unsubscribe from any existing subscription first
+      // Clean up existing subscription
       if (subscriptionRef.current) {
-        console.log('Cleaning up existing subscription before creating a new one');
         subscriptionRef.current.unsubscribe();
         subscriptionRef.current = null;
       }
       
-      console.log(`Setting up realtime subscription for _user ${currentUser.id}`);
-      
-      // Create a more specific channel with a unique channel name
+      // Create a unique channel
       const channelName = `expenses-changes-${currentUser.id}-${Date.now()}`;
       const channel = supabase
         .channel(channelName)
@@ -547,81 +530,66 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
             filter: `paid_by=eq.${currentUser.id}`
           }, 
           (payload) => {
-            console.log('Expense change detected via subscription:', payload);
             if (!mountedRef.current) return;
             
-            // Handle different event types
-            if (payload.eventType === 'INSERT') {
-              console.log('New expense created, refreshing data');
-              loadData();
-            } else if (payload.eventType === 'DELETE') {
-              console.log('Expense deleted, refreshing data');
-              loadData();
-            } else if (payload.eventType === 'UPDATE') {
-              console.log('Expense updated, refreshing data');
+            // Refresh data on any change
+            if (['INSERT', 'DELETE', 'UPDATE'].includes(payload.eventType)) {
               loadData();
             }
           }
         )
-        .subscribe((status) => {
-          console.log(`Subscription status: ${status}`);
-        });
+        .subscribe();
         
-      console.log(`Subscription setup complete for channel ${channelName}`);
-      
-      // Keep reference to unsubscribe later
+      // Store reference for cleanup
       subscriptionRef.current = channel;
     } catch (error) {
       console.error('Failed to set up subscription:', error);
-      // Try again after a short delay if we failed to set up the subscription
+      
+      // Retry after a delay on failure
       if (mountedRef.current) {
         setTimeout(() => {
           if (mountedRef.current && !subscriptionRef.current) {
-            console.log('Retrying subscription setup...');
             setupSubscription();
           }
         }, 5000);
       }
     }
-  }
+  }, [loadData]);
   
-  // Wrap handleDelete in useCallback
+  /**
+   * Handle expense deletion
+   */
   const handleDelete = useCallback(async (expenseId: string, _isPaidByCurrentUser: boolean) => {
     if (!expenseId || !mountedRef.current) return;
     
     try {
-      // Add confirmation
+      // Confirm deletion
       if (!window.confirm('Are you sure you want to delete this expense?')) {
         return;
       }
       
-      // Show loading state
-      showError('delete', 'Deleting expense...');
+      // Show temporary message
+      showError('Deleting expense...');
       
-      const result = await deleteExpense(expenseId);
+      const result = await deleteExpense(expenseId) as ApiResponse<null>;
       
       if (result.success && mountedRef.current) {
-        console.log('Expense deleted successfully');
-        showError('delete', 'Expense deleted successfully');
-        
-        // Explicitly reload data to ensure UI is updated
-        await loadData().catch(err => {
-          console.error('Error reloading data after delete:', err);
-        });
+        showError('Expense deleted successfully');
+        await loadData();
       } else if (mountedRef.current) {
-        console.error('Delete operation failed:', result);
-        showError('delete', result.message || 'Failed to delete expense');
+        showError(result.message || 'Failed to delete expense');
       }
     } catch (err: any) {
-      console.error('Error deleting expense:', err);
       if (mountedRef.current) {
-        showError('delete', `Error deleting expense: ${err.message || 'Unknown error'}`);
+        showError(`Error deleting expense: ${err.message || 'Unknown error'}`);
       }
     }
-  }, [currentMonthData.month, currentMonthData.year, loadData, showError]);
+  }, [loadData, showError]);
   
-  // Navigation helpers (without useCallback)
-  function handlePrevMonth() {
+  /**
+   * Navigate to previous month
+   */
+  const handlePrevMonth = useCallback(() => {
     setSelectedDate(prev => {
       let newMonth = prev.month - 1;
       let newYear = prev.year;
@@ -633,9 +601,12 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       
       return { month: newMonth, year: newYear };
     });
-  }
+  }, []);
   
-  function handleNextMonth() {
+  /**
+   * Navigate to next month
+   */
+  const handleNextMonth = useCallback(() => {
     setSelectedDate(prev => {
       let newMonth = prev.month + 1;
       let newYear = prev.year;
@@ -647,20 +618,15 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       
       return { month: newMonth, year: newYear };
     });
-  }
+  }, []);
   
-  // Toggle filter visibility (without useCallback)
-  function toggleFilters() {
-    setShowFilters(prev => !prev);
-  }
+  // UI state handlers
+  const toggleFilters = useCallback(() => setShowFilters(prev => !prev), []);
   
-  // Handle search input change (without useCallback)
-  function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setSearchQuery(e.target.value);
-  }
+  const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => 
+    setSearchQuery(e.target.value), []);
   
-  // Handle category selection change (without useCallback)
-  function handleCategoryChange(category: string) {
+  const handleCategoryChange = useCallback((category: string) => {
     setSelectedCategories(prev => {
       if (prev.includes(category)) {
         return prev.filter(c => c !== category);
@@ -668,10 +634,9 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         return [...prev, category];
       }
     });
-  }
+  }, []);
   
-  // Handle sorting change (without useCallback)
-  function handleSortChange(field: string) {
+  const handleSortChange = useCallback((field: string) => {
     setSortBy(prevSortBy => {
       if (prevSortBy === field) {
         // Toggle order if same field
@@ -682,95 +647,67 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       setSortOrder('desc');
       return field;
     });
-  }
+  }, []);
   
-  // Wrap handleEditClick in useCallback
+  // Navigation handlers
   const handleEditClick = useCallback((e: React.MouseEvent, expense: Expense) => {
     e.stopPropagation();
     navigate(`/expenses/edit/${expense.id}`);
   }, [navigate]);
   
-  // Wrap handleExpenseClick in useCallback
   const handleExpenseClick = useCallback((expense: Expense) => {
     navigate(`/expenses/${expense.id}`);
   }, [navigate]);
   
-  // Effect for initial data loading
+  // Initial data loading
   useEffect(() => {
-    console.log('Component mounted, setting up...');
     mountedRef.current = true;
     
-    // Load initial data with error handling
+    // Load data and set up subscription
     loadData().catch(err => {
       console.error('Initial data load error:', err);
       if (mountedRef.current) {
-        setError(`Failed to load initial data: ${err.message || 'Unknown error'}`);
-        setLoading(false);
+        showError(`Failed to load initial data: ${err.message || 'Unknown error'}`);
       }
     });
     
-    // Set up subscription with error handling
-    let setupAttempted = false;
-    const attemptSetup = async () => {
-      if (setupAttempted) return;
-      setupAttempted = true;
-      
-      try {
-        await setupSubscription();
-      } catch (err) {
-        console.error('Error setting up subscription:', err);
-        // Don't retry if we've already attempted once
-      }
-    };
+    setupSubscription().catch(err => {
+      console.error('Error setting up subscription:', err);
+    });
     
-    attemptSetup();
-    
+    // Cleanup on unmount
     return () => {
-      console.log('Component unmounting, cleaning up...');
       mountedRef.current = false;
       
-      // Clear any pending timeouts
+      // Clear timeouts
       if (errorTimeoutRef.current !== null) {
         window.clearTimeout(errorTimeoutRef.current);
-        errorTimeoutRef.current = null;
       }
       
-      // Clean up subscription with error handling
+      // Clean up subscription
       if (subscriptionRef.current) {
         try {
           subscriptionRef.current.unsubscribe();
-          console.log('Unsubscribed successfully.');
         } catch (err) {
           console.error('Error unsubscribing:', err);
-          // Not much we can do on unmount if this fails
         }
         subscriptionRef.current = null;
       }
     };
-  }, [setupSubscription]);
+  }, [loadData, setupSubscription, showError]);
   
-  // This effect runs whenever the refreshTrigger changes
-  // This ensures that the component re-loads data when an expense is created or deleted elsewhere
+  // Refresh data when trigger changes
   useEffect(() => {
-    console.log('MonthlyExpenses: refreshTrigger changed, reloading data...', refreshTrigger);
-    
-    if (refreshTrigger > 0) {
-      // Use a small delay to ensure other operations have completed
+    if (refreshTrigger > 0 && mountedRef.current) {
+      // Use a small delay
       const timeoutId = setTimeout(() => {
         if (mountedRef.current) {
-          // Invalidate cache before loading to ensure fresh data
-          try {
-            // Directly use the imported function
-            invalidateExpensesCache();
-            console.log('Cache invalidated before reload');
-          } catch (err) {
-            console.warn('Failed to invalidate cache:', err);
-          }
-          
+          // Invalidate cache first
+          invalidateExpensesCache();
           loadData().catch(err => {
             console.error('Error reloading data after trigger:', err);
             if (mountedRef.current) {
-              showError('refresh', 'Failed to refresh expenses data');
+              showError('Failed to refresh expenses data');
             }
           });
         }
@@ -778,39 +715,41 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       
       return () => clearTimeout(timeoutId);
     }
-  }, [refreshTrigger]);
+  }, [refreshTrigger, loadData, showError]);
   
-  // Helper for rendering the month title with navigation
+  // Month title and navigation
   const renderMonthTitle = useMemo(() => (
-    <div className="flex items-center justify-between mb-6">
+    <div className="flex items-center justify-between mb-4 md:mb-6">
       <button 
         onClick={handlePrevMonth}
-        className="text-gray-400 hover:text-gray-600 p-2"
+        className="text-gray-400 hover:text-gray-600 p-1.5 md:p-2"
         aria-label="Previous month"
+        type="button"
       >
-        <ChevronLeft size={24} />
+        <ChevronLeft size={20} className="md:w-6 md:h-6" />
       </button>
       
-      <h2 className="text-xl font-semibold">
+      <h2 className="text-lg md:text-xl font-semibold">
         {MONTHS[selectedDate.month]} {selectedDate.year}
       </h2>
       
       <button 
         onClick={handleNextMonth}
-        className="text-gray-400 hover:text-gray-600 p-2"
+        className="text-gray-400 hover:text-gray-600 p-1.5 md:p-2"
         aria-label="Next month"
+        type="button"
       >
-        <ChevronRight size={24} />
+        <ChevronRight size={20} className="md:w-6 md:h-6" />
       </button>
     </div>
-  ), [selectedDate.month, selectedDate.year]);
+  ), [selectedDate.month, selectedDate.year, handlePrevMonth, handleNextMonth]);
   
-  // Helper for rendering filters
+  // Filters UI
   const renderFilters = useMemo(() => (
-    <div className={`mb-6 ${showFilters ? 'block' : 'hidden'}`}>
-      <div className="bg-white p-4 rounded-lg shadow">
-        <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-600 mb-1">
+    <div className={`mb-4 md:mb-6 ${showFilters ? 'block' : 'hidden'}`}>
+      <div className="bg-white p-3 md:p-4 rounded-lg shadow">
+        <div className="mb-3 md:mb-4">
+          <label className="block text-xs md:text-sm font-medium text-gray-600 mb-1">
             Search
           </label>
           <div className="flex items-center border border-gray-200 rounded-md overflow-hidden">
@@ -819,29 +758,30 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
               value={searchQuery}
               onChange={handleSearchChange}
               placeholder="Search expenses..."
-              className="flex-grow p-2 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              className="flex-grow p-2 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             />
             <div className="p-2 bg-gray-50">
-              <Search size={16} className="text-gray-400" />
+              <Search size={14} className="text-gray-400 md:w-4 md:h-4" />
             </div>
           </div>
         </div>
         
         {allCategories.length > 0 && (
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-600 mb-1">
+          <div className="mb-3 md:mb-4">
+            <label className="block text-xs md:text-sm font-medium text-gray-600 mb-1">
               Categories
             </label>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-1.5 md:gap-2">
               {allCategories.map(category => (
                 <button
                   key={category}
                   onClick={() => handleCategoryChange(category)}
-                  className={`text-xs px-3 py-1 rounded-full ${
+                  className={`text-xs px-2 py-1 rounded-full ${
                     selectedCategories.includes(category)
                       ? 'bg-blue-500 text-white'
                       : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                   }`}
+                  type="button"
                 >
                   {category}
                 </button>
@@ -851,47 +791,36 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         )}
         
         <div>
-          <label className="block text-sm font-medium text-gray-600 mb-1">
+          <label className="block text-xs md:text-sm font-medium text-gray-600 mb-1">
             Sort By
           </label>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 md:gap-2">
             <button
               onClick={() => handleSortChange('date')}
-              className={`text-xs px-3 py-1 rounded-md flex items-center ${
+              className={`text-xs px-2 py-1 rounded-md flex items-center ${
                 sortBy === 'date'
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
+              type="button"
             >
               Date
               {sortBy === 'date' && (
-                <ArrowUpDown size={12} className="ml-1" />
+                <ArrowUpDown size={10} className="ml-1 md:w-3 md:h-3" />
               )}
             </button>
             <button
               onClick={() => handleSortChange('amount')}
-              className={`text-xs px-3 py-1 rounded-md flex items-center ${
+              className={`text-xs px-2 py-1 rounded-md flex items-center ${
                 sortBy === 'amount'
                   ? 'bg-blue-500 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
+              type="button"
             >
               Amount
               {sortBy === 'amount' && (
-                <ArrowUpDown size={12} className="ml-1" />
-              )}
-            </button>
-            <button
-              onClick={() => handleSortChange('category')}
-              className={`text-xs px-3 py-1 rounded-md flex items-center ${
-                sortBy === 'category'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Category
-              {sortBy === 'category' && (
-                <ArrowUpDown size={12} className="ml-1" />
+                <ArrowUpDown size={10} className="ml-1 md:w-3 md:h-3" />
               )}
             </button>
           </div>
@@ -903,20 +832,23 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
     searchQuery, 
     allCategories, 
     selectedCategories, 
-    sortBy
+    sortBy,
+    handleSearchChange,
+    handleCategoryChange,
+    handleSortChange
   ]);
   
-  // Helper for rendering expenses or empty state
+  // Expenses content
   const renderExpenses = useMemo(() => {
     if (loading) {
       return (
-        <div className="flex justify-center items-center py-12">
+        <div className="flex justify-center items-center py-8 md:py-12">
           <LoadingSpinner message="Loading expenses..." />
         </div>
       );
     }
     
-    if (!filteredExpenses || filteredExpenses.length === 0) {
+    if (!filteredExpenses.length) {
       return (
         <EmptyState
           month={selectedDate.month}
@@ -963,13 +895,13 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
   
   return (
     <ErrorBoundary fallback={<div>Something went wrong with expenses</div>}>
-      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 md:p-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-3 md:p-6">
         {renderMonthTitle}
         
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
-          <h3 className="text-sm font-medium text-gray-600">
-            {filteredExpenses?.length || 0} expense(s) this month
-            {filteredExpenses?.length > 0 && (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 md:gap-3 mb-4 md:mb-6">
+          <h3 className="text-xs md:text-sm font-medium text-gray-600">
+            {filteredExpenses.length || 0} expense(s) this month
+            {filteredExpenses.length > 0 && (
               <span className="ml-2">
                 • Total: <span className="font-semibold">{formatCurrency(sumExpenses(filteredExpenses))}</span>
               </span>
@@ -978,9 +910,10 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
           
           <button
             onClick={toggleFilters}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 text-sm"
+            className="flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 text-xs md:text-sm"
+            type="button"
           >
-            <Filter size={14} />
+            <Filter size={12} className="md:w-4 md:h-4" />
             <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
           </button>
         </div>
@@ -988,12 +921,13 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         {renderFilters}
         
         {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg">
+          <div className="mb-4 md:mb-6 p-3 md:p-4 bg-red-50 text-red-700 rounded-lg text-sm">
             <div className="flex items-center">
               <div className="font-medium">{error}</div>
               <button
                 onClick={() => setError(null)}
-                className="ml-auto text-red-500 hover:text-red-700"
+                className="ml-auto text-red-500 hover:text-red-700 text-xs md:text-sm"
+                type="button"
               >
                 Dismiss
               </button>
@@ -1004,10 +938,11 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
         {renderExpenses}
         
         {onViewMore && filteredExpenses.length > 0 && (
-          <div className="text-center mt-6">
+          <div className="text-center mt-4 md:mt-6">
             <button
               onClick={onViewMore}
-              className="text-blue-500 hover:text-blue-700 font-medium text-sm"
+              className="text-blue-500 hover:text-blue-700 font-medium text-xs md:text-sm"
+              type="button"
             >
               View all expenses
             </button>
@@ -1016,6 +951,6 @@ const MonthlyExpenses = ({ onViewMore, refreshTrigger = 0, onNewExpense }: Month
       </div>
     </ErrorBoundary>
   );
-};
+}
 
 export default MonthlyExpenses;

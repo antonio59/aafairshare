@@ -16,7 +16,8 @@ export default function AuthPage({ mode = 'login' }: AuthPageProps) {
   const [success, setSuccess] = useState<boolean | string>(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(mode === 'signup');
-  const { signIn, signUp, user, profile } = useAuth();
+  const [loadingMessage, setLoadingMessage] = useState('');
+  const { signIn, signUp, user, profile, resetAuthState } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -27,41 +28,205 @@ export default function AuthPage({ mode = 'login' }: AuthPageProps) {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (user && profile) {
+    console.log('Auth state check for redirect:', { 
+      hasUser: !!user, 
+      hasProfile: !!profile,
+      pathname: location.pathname
+    });
+    
+    if (user) {
+      // Only redirect if we're not already on an auth page
+      const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
       const redirectTo = location.state?.from?.pathname || '/';
-      if (location.pathname !== redirectTo) {
-        navigate(redirectTo, { replace: true });
+      
+      console.log('Authentication status check:', {
+        isLoggedIn: true,
+        currentPath: location.pathname,
+        isAuthPage,
+        wouldRedirectTo: redirectTo
+      });
+      
+      // Don't redirect if we're intentionally on an auth page (for testing, etc.)
+      // This prevents redirection loops
+      if (!isAuthPage) {
+        // Use a small timeout to allow other state updates to complete
+        const redirectTimer = setTimeout(() => {
+          console.log('Executing redirect now to:', redirectTo);
+          navigate(redirectTo, { replace: true });
+        }, 300);
+        
+        return () => clearTimeout(redirectTimer);
+      } else {
+        console.log('On auth page while logged in - not redirecting');
       }
+    } else {
+      console.log('User not authenticated, staying on auth page');
     }
   }, [user, profile, navigate, location]);
 
+  // Show helpful messages if loading takes a while
+  useEffect(() => {
+    let timeoutId: ReturnType<typeof setTimeout>;
+    
+    if (loading) {
+      // After 3 seconds of loading, show a message
+      timeoutId = setTimeout(() => {
+        setLoadingMessage('This is taking longer than expected...');
+      }, 3000);
+      
+      // After 10 seconds, show a more detailed message
+      const longTimeoutId = setTimeout(() => {
+        setLoadingMessage('Still working... You can try refreshing the page if this continues.');
+      }, 10000);
+      
+      // After 15 seconds, offer a reset button option
+      const resetTimeoutId = setTimeout(() => {
+        setLoadingMessage('Having trouble? Click the Reset button below to try again.');
+      }, 15000);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        clearTimeout(longTimeoutId);
+        clearTimeout(resetTimeoutId);
+      };
+    } else {
+      setLoadingMessage('');
+    }
+  }, [loading]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('Form submission started');
     try {
       setLoading(true);
       setError('');
       setSuccess(false);
 
+      // Check for empty fields first
+      if (!email) {
+        throw new Error('Email is required');
+      }
+      
+      if (!password) {
+        throw new Error('Password is required');
+      }
+      
+      if (isSignUp && !name) {
+        throw new Error('Full name is required');
+      }
+
+      console.log('Attempting authentication', { isSignUp, email });
       let result;
+      
+      // First check if Supabase connection is available
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log('Session check before auth attempt:', {
+          hasExistingSession: !!sessionData?.session
+        });
+      } catch (sessionError) {
+        console.error('Session check failed:', sessionError);
+        // Continue anyway as this is just diagnostic
+      }
+      
       if (isSignUp) {
+        console.log('Beginning sign up process');
         result = await signUp(email, password, name);
+        console.log('Sign up result:', result);
         if (result.success) {
           setSuccess('Account created successfully! Welcome to AAFairShare.');
         } else {
-          throw new Error(result.message);
+          throw new Error(result.message || 'Sign up failed. Please try again.');
         }
       } else {
+        console.log('Beginning sign in process');
         result = await signIn(email, password);
+        console.log('Sign in result:', result);
         if (result.success) {
           setSuccess('Welcome back!');
+          
+          // Force a navigation after successful sign-in, don't wait for redirect effect
+          const redirectTo = location.state?.from?.pathname || '/';
+          console.log('Authentication successful, forcing navigation to:', redirectTo);
+          
+          // Use a small timeout to allow state updates first
+          setTimeout(() => {
+            navigate(redirectTo, { replace: true });
+          }, 500);
         } else {
-          throw new Error(result.message);
+          throw new Error(result.message || 'Sign in failed. Please check your credentials and try again.');
         }
       }
+      console.log('Authentication succeeded');
     } catch (err) {
       console.error('Auth error:', err);
-      setError('An error occurred during authentication');
+      const errorMessage = err instanceof Error ? err.message : 'An error occurred during authentication';
+      setError(errorMessage);
+      
+      // Log additional debugging information
+      console.error('Detailed auth error:', {
+        errorType: err instanceof Error ? err.constructor.name : typeof err,
+        message: errorMessage,
+        stack: err instanceof Error ? err.stack : 'No stack trace'
+      });
+      
       setSuccess(false);
+    } finally {
+      console.log('Setting loading state to false');
+      setLoading(false);
+    }
+  };
+
+  // Force clear loading state if component unmounts while loading
+  useEffect(() => {
+    return () => {
+      if (loading) {
+        console.log('Component unmounting while loading, forcing cleanup');
+        setLoading(false);
+      }
+    };
+  }, [loading]);
+
+  // Add an effect to monitor the loading state
+  useEffect(() => {
+    console.log('Loading state changed:', { loading, success, error });
+  }, [loading, success, error]);
+
+  // Add a reset handler function
+  const handleReset = () => {
+    console.log('Manually resetting form state');
+    setLoading(false);
+    setSuccess(false);
+    setError('');
+    setLoadingMessage('');
+  };
+
+  // Handle reset auth state
+  const handleResetAuth = async () => {
+    console.log('Manually resetting auth state');
+    setLoading(true);
+    setLoadingMessage('Resetting authentication state...');
+    
+    try {
+      const result = await resetAuthState();
+      console.log('Auth state reset result:', result);
+      
+      if (result) {
+        // If user is actually authenticated, let the redirect handle navigation
+        if (user) {
+          setSuccess('Authentication state reset successful!');
+        } else {
+          // Otherwise show message and reset form
+          setSuccess('Authentication state reset. Please sign in again.');
+          setEmail('');
+          setPassword('');
+        }
+      } else {
+        setError('Failed to reset authentication state. Please try again.');
+      }
+    } catch (err) {
+      console.error('Error resetting auth state:', err);
+      setError('Error resetting authentication. Please refresh the page and try again.');
     } finally {
       setLoading(false);
     }
@@ -95,6 +260,20 @@ export default function AuthPage({ mode = 'login' }: AuthPageProps) {
           <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm flex items-center">
             <CheckCircle className="h-4 w-4 mr-2" />
             {success}
+          </div>
+        )}
+
+        {loading && loadingMessage && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-md text-sm">
+            {loadingMessage}
+            {loadingMessage.includes('Reset') && (
+              <button 
+                onClick={handleReset}
+                className="mt-2 w-full py-1.5 px-3 border border-blue-300 rounded-md shadow-sm text-xs font-medium text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors"
+              >
+                Reset
+              </button>
+            )}
           </div>
         )}
 
@@ -171,6 +350,19 @@ export default function AuthPage({ mode = 'login' }: AuthPageProps) {
             {isSignUp ? 'Create Account' : 'Sign In'}
           </button>
         </form>
+
+        {/* Add troubleshooting section */}
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <p className="text-sm text-gray-500 mb-2 text-center">Having trouble signing in?</p>
+          <button
+            type="button"
+            onClick={handleResetAuth}
+            disabled={loading}
+            className="w-full flex justify-center items-center py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors"
+          >
+            Reset Authentication State
+          </button>
+        </div>
 
         <div className="mt-6 text-center">
           <Link

@@ -5,20 +5,21 @@ import Footer from './features/shared/components/Footer';
 import MonthlyExpenses from './features/expenses/components/MonthlyExpenses';
 import NewExpenseModal from './features/expenses/components/NewExpenseModal';
 import ExpenseDetailPage from './features/expenses/components/ExpenseDetailPage';
-import SettlementsPage from './features/settlements/components/SettlementsPage';
+import { SettlementsPage } from './features/settlements';
 import AnalyticsPage from './features/analytics/components/AnalyticsPage';
+import Dashboard from './features/analytics/components/Dashboard';
 import SettingsPage from './features/settings/components/SettingsPage';
 import CategoryManagementPage from './features/settings/components/CategoryManagementPage';
 import AuthPage from './features/auth/components/AuthPage';
 import ProtectedRoute from './features/auth/components/ProtectedRoute';
 import { AuthProvider, useAuth } from './core/contexts/AuthContext';
-import { CurrencyProvider } from './core/contexts/CurrencyContext';
 import { ErrorBoundary } from './core/components/ErrorBoundary';
+import TestAuth from './features/auth/components/TestAuth';
 
 // Layout component to handle conditional rendering of Header and Footer
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const location = useLocation();
-  const isAuthPage = location.pathname === '/auth';
+  const isAuthRoute = ['/login', '/signup', '/auth'].includes(location.pathname);
   const [showNewExpenseModal, setShowNewExpenseModal] = useState<boolean>(false);
   const [networkError, setNetworkError] = useState<boolean>(false);
   const { refreshSession } = useAuth();
@@ -57,8 +58,8 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }, [refreshSession]);
 
   return (
-    <div className={`min-h-screen ${!isAuthPage ? 'bg-gray-50' : ''}`}>
-      {!isAuthPage && <Header onNewExpense={handleNewExpense} />}
+    <div className={`min-h-screen ${!isAuthRoute ? 'bg-gray-50' : ''}`}>
+      {!isAuthRoute && <Header onNewExpense={handleNewExpense} />}
       
       {/* Network error message */}
       {networkError && (
@@ -77,10 +78,10 @@ const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         </div>
       )}
       
-      <main className={!isAuthPage ? 'max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24' : ''}>
+      <main className={!isAuthRoute ? 'max-w-6xl mx-auto px-4 sm:px-6 py-6 pb-24' : ''}>
         {children}
       </main>
-      {!isAuthPage && <Footer />}
+      {!isAuthRoute && <Footer />}
       {showNewExpenseModal && (
         <NewExpenseModal
           isOpen={showNewExpenseModal}
@@ -133,35 +134,43 @@ export const App: React.FC<AppProps> = () => {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <CurrencyProvider>
-          <Router future={{ 
-            v7_relativeSplatPath: true,
-            v7_startTransition: true 
-          }}>
-            <AppLayout>
-              <Routes>
-                <Route path="/" element={
-                  <ProtectedRoute>
-                    <MonthlyExpenses 
-                      refreshTrigger={0} 
-                      onNewExpense={() => {}} 
-                      onViewMore={handleViewAllExpenses} 
-                    />
-                  </ProtectedRoute>
-                } />
-                <Route path="/expenses/:id" element={<ProtectedRoute><ExpenseDetailPage /></ProtectedRoute>} />
-                <Route path="/settlements" element={<ProtectedRoute><SettlementsPage /></ProtectedRoute>} />
-                <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
-                <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-                <Route path="/categories" element={<ProtectedRoute><CategoryManagementPage /></ProtectedRoute>} />
-                <Route path="/auth" element={<Navigate to="/login" replace />} />
-                <Route path="/login" element={<AuthPage mode="login" />} />
-                <Route path="/signup" element={<AuthPage mode="signup" />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </AppLayout>
-          </Router>
-        </CurrencyProvider>
+        <Router future={{ 
+          v7_relativeSplatPath: true,
+          v7_startTransition: true 
+        }}>
+          <AppLayout>
+            <Routes>
+              <Route path="/" element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses" element={
+                <ProtectedRoute>
+                  <MonthlyExpenses 
+                    refreshTrigger={0} 
+                    onNewExpense={() => {}} 
+                    onViewMore={handleViewAllExpenses} 
+                  />
+                </ProtectedRoute>
+              } />
+              <Route path="/expenses/:id" element={<ProtectedRoute><ExpenseDetailPage /></ProtectedRoute>} />
+              <Route path="/settlements" element={
+                <ProtectedRoute>
+                  <SettlementsPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
+              <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/categories" element={<ProtectedRoute><CategoryManagementPage /></ProtectedRoute>} />
+              <Route path="/auth" element={<Navigate to="/login" replace />} />
+              <Route path="/login" element={<AuthPage mode="login" />} />
+              <Route path="/signup" element={<AuthPage mode="signup" />} />
+              <Route path="/testauth" element={<TestAuth />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </AppLayout>
+        </Router>
       </AuthProvider>
     </ErrorBoundary>
   );

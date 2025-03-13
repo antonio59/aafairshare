@@ -2,31 +2,67 @@
 
 import React from 'react';
 import { MapPin, ArrowRight } from 'lucide-react';
-
-interface LocationData {
-  location: string;
-  amount: number;
-}
+import { LocationData, AnalyticsChartProps } from '../types';
 
 interface LocationWithPercentage extends LocationData {
   percentage: number;
   isOther?: boolean;
 }
 
-interface LocationSpendingChartProps {
+interface LocationSpendingChartProps extends Omit<AnalyticsChartProps, 'data'> {
   locations: LocationData[];
   formatAmount: (amount: number) => string;
-  title?: string;
 }
 
 export function LocationSpendingChart({
   locations,
   formatAmount,
-  title = 'Spending by Location'
+  title = 'Spending by Location',
+  loading = false,
+  error = null,
+  className = ''
 }: LocationSpendingChartProps) {
+  if (loading) {
+    return (
+      <div className={`bg-white p-6 rounded-lg shadow-sm ${className}`}>
+        <div className="animate-pulse space-y-4">
+          <div className="flex justify-between">
+            <div className="h-5 bg-gray-200 rounded w-1/3"></div>
+            <div className="h-5 bg-gray-200 rounded w-16"></div>
+          </div>
+          <div className="space-y-2 mt-6">
+            {[1, 2, 3, 4, 5].map((_, i) => (
+              <div key={i}>
+                <div className="flex justify-between mb-1">
+                  <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+                  <div className="h-4 bg-gray-200 rounded w-16"></div>
+                </div>
+                <div className="h-3 bg-gray-200 rounded-full w-full"></div>
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-8">
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-gray-200 rounded"></div>
+            <div className="h-16 bg-gray-200 rounded"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`bg-white p-6 rounded-lg shadow-sm text-center ${className}`}>
+        <MapPin className="mx-auto h-8 w-8 text-red-400 mb-2" />
+        <p className="text-sm text-red-500">{error}</p>
+      </div>
+    );
+  }
+
   if (!locations || locations.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-lg shadow-sm text-center">
+      <div className={`bg-white p-6 rounded-lg shadow-sm text-center ${className}`}>
         <MapPin className="mx-auto h-8 w-8 text-gray-400 mb-2" />
         <p className="text-sm text-gray-500">No location data available</p>
       </div>
@@ -66,7 +102,7 @@ export function LocationSpendingChart({
   ];
 
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
+    <div className={`bg-white p-6 rounded-lg shadow-sm ${className}`}>
       <div className="flex justify-between items-center mb-4">
         <h3 className="font-medium text-gray-800 flex items-center">
           <MapPin className="mr-2 h-5 w-5 text-rose-500" />

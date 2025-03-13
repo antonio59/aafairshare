@@ -1,5 +1,5 @@
-import { supabase } from './lib/supabase';
-import { _Session } from '@supabase/supabase-js';
+import { supabase } from './core/api/supabase';
+import { Session } from '@supabase/supabase-js';
 
 interface TestResult {
   hasData: boolean;

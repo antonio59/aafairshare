@@ -1,36 +1,39 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { deleteExpense, getExpenseDetails, Expense } from '../api/expenseApi';
+import { deleteExpense, getExpenseDetails } from '../api/expenseApi';
 import NewExpenseModal from './NewExpenseModal';
 import { Edit, ArrowLeft, Trash, AlertTriangle, Info } from 'lucide-react';
-import { useCurrency } from '../../../core/contexts/CurrencyContext';
+import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 import { useSettlementGuard } from '../../settlements/hooks/useSettlementGuard';
 import { ErrorBoundary } from '../../shared/components';
+import { Expense, ApiResponse, ExpenseErrorType } from '../../../core/types/expenses';
+import { formatAmount } from '../../../utils/currencyUtils';
+
+// Match the expected type of NewExpenseModal
+type ModalExpense = {
+  id?: string;
+  amount: number;
+  category: string;
+  description: string;
+  date: string;
+  location?: string;
+  currency: string;
+  user_id: string;
+  notes?: string;
+  split_type?: string;
+  categories?: string[];
+  locations?: string[];
+}
 
 interface ExpenseDetailPageProps {
   isEditMode?: boolean;
 }
 
-// Type definitions to make code more robust
-interface ApiResponse<T> {
-  data?: T;
-  error?: {
-    message: string;
-    code?: string;
-    status?: number;
-  };
-  success?: boolean;
-  message?: string;
-}
-
-// Define error type options
-type ErrorType = 'not_found' | 'not_authorized' | 'general' | null;
-
 const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { formatAmount } = useCurrency();
+  // formatAmount is now imported directly
   
   // Check if editMode is set in the location state
   const editModeFromState = location.state?.editMode === true;
@@ -39,11 +42,10 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   const [expense, setExpense] = useState<Expense | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showEditModal, setShowEditModal] = useState(shouldShowEditModal);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(shouldShowEditModal);
   const [editModalError, setEditModalError] = useState<string | null>(null);
-  const [errorType, setErrorType] = useState<ErrorType>(null);
+  const [errorType, setErrorType] = useState<ExpenseErrorType>(null);
   
   // Helper to get expense ID from URL
   const getExpenseId = useCallback((): string => {
@@ -75,8 +77,6 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   
   // Use the settlement hook
   const { isLoading: settlementLoading, isSettled, message: settlementMessage } = useSettlementGuard(getExpenseId());
-  
-  console.log("ExpenseDetailPage: Rendering with URL param ID:", id);
   
   const loadExpense = useCallback(async () => {
     setLoading(true);
@@ -132,7 +132,6 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   }, [getExpenseId]);
 
   useEffect(() => {
-    console.log("ExpenseDetailPage: useEffect triggered");
     loadExpense().catch(err => {
       console.error('Failed to load expense details:', err);
       setError('Failed to load expense details');
@@ -159,8 +158,6 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   // Effect to set edit modal state when edit mode changes or expense loads
   useEffect(() => {
     if (shouldShowEditModal && expense && !loading) {
-      console.log('Opening edit modal in edit mode');
-      setShowEditModal(true);
       setIsEditModalOpen(true);
       
       // Clear the editMode from state to prevent reopening the modal on navigation
@@ -171,19 +168,17 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   }, [shouldShowEditModal, expense, loading, editModeFromState, navigate, location.pathname]);
 
   const handleBack = () => {
-    console.log("ExpenseDetailPage: Navigating back");
     navigate('/expenses');
   };
 
   const handleEdit = () => {
     try {
-      console.log('Attempting to open edit modal for expense:', expense);
       if (!expense) {
         throw new Error('No expense data available for editing');
       }
       setIsEditModalOpen(true);
     } catch (err) {
-      const error = err as Error; // Type assertion for error
+      const error = err as Error;
       console.error('Error opening edit modal:', error);
     }
   };
@@ -192,7 +187,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
     try {
       setShowDeleteConfirm(true);
     } catch (err) {
-      const error = err as Error; // Type assertion for error
+      const error = err as Error;
       console.error('Error preparing delete:', error);
     }
   };
@@ -200,12 +195,10 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   const confirmDelete = async () => {
     try {
       setLoading(true);
-      console.log('Attempting to delete expense:', getExpenseId());
       
       const result = await deleteExpense(getExpenseId()) as ApiResponse<{success: boolean}>;
       
       if (result.success) {
-        console.log('Expense deleted successfully, navigating to expenses list');
         // Add a small delay to ensure all cleanup and state updates are completed
         setTimeout(() => {
           navigate('/expenses', { 
@@ -217,7 +210,6 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
           });
         }, 300);
       } else {
-        console.error('Delete operation failed:', result);
         setError(result.message || 'Failed to delete expense');
         setErrorType('general');
         // Close the modal even when there's an error
@@ -240,31 +232,31 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
     if (!errorType) return null;
     
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <div className="bg-amber-50 w-full max-w-md p-4 rounded-lg mb-6">
+      <div className="flex flex-col items-center justify-center p-4 md:p-8 text-center">
+        <div className="bg-amber-50 w-full max-w-md p-4 rounded-lg mb-4 md:mb-6">
           <div className="flex items-center justify-center text-amber-700 mb-2">
             <AlertTriangle size={24} className="text-amber-500 mr-2" />
-            <span className="text-lg font-medium">
+            <span className="text-base md:text-lg font-medium">
               {errorType === 'not_found' ? 'Expense not found' : 
                errorType === 'not_authorized' ? 'Not authorized' : 
                'An error occurred'}
             </span>
           </div>
-          <p className="text-amber-700">
+          <p className="text-amber-700 text-sm md:text-base">
             {error || 'The expense you are looking for could not be found or accessed.'}
           </p>
         </div>
         
-        <div className="flex gap-4">
+        <div className="flex gap-3 md:gap-4">
           <button
             onClick={handleBack}
-            className="px-4 py-3 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+            className="px-3 py-2 md:px-4 md:py-3 text-sm bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
           >
             Go Back
           </button>
           <button
             onClick={clearError}
-            className="px-4 py-3 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+            className="px-3 py-2 md:px-4 md:py-3 text-sm bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
           >
             Dismiss Error
           </button>
@@ -313,11 +305,26 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
     return null;
   };
 
+  const mapToModalExpense = (expense: Expense): ModalExpense => {
+    return {
+      id: expense.id,
+      amount: expense.amount,
+      category: expense._category || '',
+      description: expense._description || '',
+      date: expense.date,
+      location: expense._location || '',
+      currency: expense._currency || 'USD',
+      user_id: expense.paid_by || '',
+      notes: expense.notes || '',
+      split_type: expense.split_type || 'equal'
+    };
+  };
+
   if (loading || settlementLoading) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-lg md:max-w-2xl mx-auto p-4 md:p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-3/4 mb-4"></div>
+          <div className="h-6 md:h-8 bg-gray-200 rounded w-3/4 mb-3 md:mb-4"></div>
           <div className="h-4 bg-gray-200 rounded w-1/2 mb-2"></div>
           <div className="h-4 bg-gray-200 rounded w-1/3"></div>
         </div>
@@ -328,7 +335,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   if (error) {
     return (
       <ErrorBoundary fallback={<div>Something went wrong</div>}>
-        <div className="container mx-auto max-w-3xl py-6 px-4">
+        <div className="container mx-auto max-w-xl md:max-w-3xl py-4 md:py-6 px-4">
           {renderErrorState()}
         </div>
       </ErrorBoundary>
@@ -337,7 +344,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
 
   if (!expense) {
     return (
-      <div className="max-w-2xl mx-auto p-6">
+      <div className="max-w-lg md:max-w-2xl mx-auto p-4 md:p-6">
         <div className="bg-amber-50 p-4 rounded-lg text-amber-700">
           <p className="font-medium">Expense not found</p>
           <button
@@ -352,35 +359,35 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   }
 
   return (
-    <div className="max-w-2xl mx-auto p-6">
+    <div className="max-w-lg md:max-w-2xl mx-auto p-4 md:p-6">
       <button
         onClick={handleBack}
-        className="mb-6 flex items-center text-gray-600 hover:text-gray-900"
+        className="mb-4 md:mb-6 flex items-center text-gray-600 hover:text-gray-900"
       >
         <ArrowLeft size={16} className="mr-1" />
         <span>Back</span>
       </button>
 
       {isSettled && (
-        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start text-amber-800">
+        <div className="mb-4 md:mb-6 bg-amber-50 border border-amber-200 rounded-lg p-3 md:p-4 flex items-start text-amber-800">
           <AlertTriangle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-          <p className="text-sm">{settlementMessage}</p>
+          <p className="text-xs md:text-sm">{settlementMessage}</p>
         </div>
       )}
 
       {!expense.isOwner && (
-        <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start text-blue-800">
+        <div className="mb-4 md:mb-6 bg-blue-50 border border-blue-200 rounded-lg p-3 md:p-4 flex items-start text-blue-800">
           <Info className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-          <p className="text-sm">This expense was created by {expense.paid_by_name}. You can view it but cannot edit or delete it.</p>
+          <p className="text-xs md:text-sm">This expense was created by {expense.paid_by_name}. You can view it but cannot edit or delete it.</p>
         </div>
       )}
 
-      <div className="flex justify-between items-start mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Expense Details</h1>
+      <div className="flex justify-between items-start mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-semibold text-gray-900">Expense Details</h1>
         <div className="flex space-x-2">
           <button
             onClick={handleEdit}
-            className={`flex items-center px-3 py-2 rounded-lg text-white text-sm ${
+            className={`flex items-center px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-white text-xs md:text-sm ${
               isSettled || !expense.isOwner 
                 ? 'bg-gray-400 cursor-not-allowed' 
                 : 'bg-blue-600 hover:bg-blue-700'
@@ -394,7 +401,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
           </button>
           <button
             onClick={handleDelete}
-            className={`flex items-center px-3 py-2 rounded-lg text-white text-sm ${
+            className={`flex items-center px-2 py-1.5 md:px-3 md:py-2 rounded-lg text-white text-xs md:text-sm ${
               isSettled || !expense.isOwner 
                 ? 'bg-gray-400 cursor-not-allowed' 
                 : 'bg-red-600 hover:bg-red-700'
@@ -411,19 +418,19 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
 
       {/* Expense Details */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="p-6">
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-gray-900 mb-2">
+        <div className="p-4 md:p-6">
+          <div className="mb-4 md:mb-6">
+            <h1 className="text-xl md:text-2xl font-semibold text-gray-900 mb-1 md:mb-2">
               {expense._category || 'Uncategorized'}
             </h1>
-            <p className="text-3xl font-bold text-rose-500">
+            <p className="text-2xl md:text-3xl font-bold text-rose-500">
               {formatAmount(expense.amount)}
             </p>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3 md:space-y-4 text-sm md:text-base">
             <div>
-              <h2 className="text-sm font-medium text-gray-500">Date</h2>
+              <h2 className="text-xs md:text-sm font-medium text-gray-500">Date</h2>
               <p className="text-gray-900">
                 {new Date(expense.date).toLocaleDateString()}
               </p>
@@ -433,20 +440,20 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
 
             {expense.notes && (
               <div>
-                <h2 className="text-sm font-medium text-gray-500">Notes</h2>
+                <h2 className="text-xs md:text-sm font-medium text-gray-500">Notes</h2>
                 <p className="text-gray-900">{expense.notes}</p>
               </div>
             )}
 
             <div>
-              <h2 className="text-sm font-medium text-gray-500">Split Type</h2>
+              <h2 className="text-xs md:text-sm font-medium text-gray-500">Split Type</h2>
               <p className="text-gray-900">
                 {expense.split_type === 'equal' ? 'Equal Split (50/50)' : 'No Split (100%)'}
               </p>
             </div>
 
             <div>
-              <h2 className="text-sm font-medium text-gray-500">Paid By</h2>
+              <h2 className="text-xs md:text-sm font-medium text-gray-500">Paid By</h2>
               <p className="text-gray-900">
                 {expense.paid_by_name || expense.paid_by_email || 'Unknown'}
               </p>
@@ -457,7 +464,7 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
 
       {/* Edit Modal */}
       {editModalError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4 mt-4 text-sm">
           Error opening edit form: {editModalError}
         </div>
       )}
@@ -471,39 +478,28 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
               setIsEditModalOpen(false);
               loadExpense();
             }}
-            expenseToEdit={{
-              id: expense?.id,
-              amount: expense?.amount || 0,
-              category: expense?._category || '',
-              description: expense?._description || '',
-              date: expense?.date || '',
-              location: expense?._location || '',
-              currency: expense?._currency || 'USD',
-              user_id: expense?.paid_by || '',
-              notes: expense?.notes || '',
-              split_type: expense?.split_type || 'equal'
-            }}
+            expenseToEdit={mapToModalExpense(expense)}
           />
         </ErrorBoundary>
       )}
       
       {/* Delete Confirmation Modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
-            <p className="text-gray-600 mb-6">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-lg p-4 md:p-6 max-w-sm w-full">
+            <h3 className="text-base md:text-lg font-medium text-gray-900 mb-3 md:mb-4">Confirm Delete</h3>
+            <p className="text-sm md:text-base text-gray-600 mb-4 md:mb-6">
               Are you sure you want to delete this expense? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
+                className="px-3 py-1.5 md:px-4 md:py-2 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300"
                 onClick={() => setShowDeleteConfirm(false)}
               >
                 Cancel
               </button>
               <button
-                className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+                className="px-3 py-1.5 md:px-4 md:py-2 text-sm bg-red-600 text-white rounded hover:bg-red-700"
                 onClick={confirmDelete}
               >
                 Delete

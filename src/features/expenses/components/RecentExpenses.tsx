@@ -1,7 +1,7 @@
 import React, { _useState, useEffect } from 'react';
 import { Edit, Receipt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useCurrency } from '../../../core/contexts/CurrencyContext';
+import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 import { getExpenses } from '../api/expenseApi';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { ErrorBoundary, LoadingSpinner, StatusMessage } from '../../shared/components';
@@ -18,7 +18,7 @@ import { useErrorHandler } from '../../shared/hooks/useErrorHandler';
  */
 export default function RecentExpenses({ onViewMore, refreshTrigger, onNewExpense }) {
   const { user } = useAuth();
-  const { formatAmount } = useCurrency();
+  // formatAmount is now imported directly
   const navigate = useNavigate();
   
   // Use our custom hooks for error handling and data caching

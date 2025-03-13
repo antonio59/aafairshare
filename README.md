@@ -292,3 +292,29 @@ The core utilities for these features are in:
 - `src/utils/api-fetcher.ts` - Retry utility with session refresh
 - `src/core/contexts/AuthContext.tsx` - Extended auth context with refresh capability
 - `src/features/auth/components/ProtectedRoute.tsx` - Enhanced error handling for route protection
+
+## Recent Simplifications
+
+The application has been recently simplified by removing several features:
+
+1. **Currency Selection**: The app now exclusively uses GBP (£) as the currency.
+2. **Language Settings**: All language selection options have been removed; the app now uses English only.
+3. **Export Option**: Export functionality has been streamlined and is now only available in the analytics section.
+4. **User Preferences**: The preferences column has been removed from the database to simplify the data model.
+5. **Settings Table**: The entire settings table has been dropped as it's no longer needed.
+
+These changes have resulted in a more maintainable codebase, better type safety, and improved performance. For full details on these changes and the migration path, please see the [currency-fix documentation](docs/currency-fix.md).
+
+## Running the Update Script
+
+If you've pulled the latest code, you'll need to run the update script to apply all the changes:
+
+```bash
+./scripts/apply-currency-fix.sh
+```
+
+This script will:
+1. Create backups of all modified files
+2. Convert the CurrencyContext to utility functions
+3. Update all imports across the codebase
+4. Run the database migrations if Supabase CLI is available
