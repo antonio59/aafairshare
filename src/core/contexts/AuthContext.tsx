@@ -258,12 +258,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return true;
       }
 
-      logger.info('No valid session found, attempting one refresh...');
+      logger.info('No valid session found, attempting refresh...');
       const { data: { session }, error } = await supabase.auth.refreshSession();
       
-      if (error || !session) {
-        // If refresh fails, clear state immediately
-        logger.error('Session refresh failed:', error || 'No session data');
+      if (error) {
+        // Handle AuthSessionMissingError gracefully
+        if (error.name === 'AuthSessionMissingError') {
+          logger.info('No session to refresh');
+          setUser(null);
+          setProfile(null);
+          return false;
+        }
+        
+        // Handle other errors
+        logger.error('Session refresh failed:', error);
+        setUser(null);
+        setProfile(null);
+        setAuthError('Session expired. Please sign in again.');
+        return false;
+      }
+      
+      if (!session) {
+        logger.error('Session refresh failed: No session data');
         setUser(null);
         setProfile(null);
         setAuthError('Session expired. Please sign in again.');
@@ -279,33 +295,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setAuthError(null);
         return true;
       }
-          }
-          
-          // Handle other auth errors
-          logger.error('Session refresh failed:', error);
-          throw error;
-        }
-
-        if (session?.user) {
-          logger.info('Session refresh successful');
-          setUser(session.user);
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile) {
-            setProfile(profile);
-            return true;
-          }
-        }
-        
-        return false;
-      } catch (error) {
-        const errorMessage = handleAuthError(error);
-        logger.error('Session refresh error:', { error: errorMessage, retryCount });
-        setAuthError(errorMessage);
-        return false;
-      }
-    };
-  
-    return attemptRefresh();
+      
+      return false;
+    } catch (error) {
+      const errorMessage = handleAuthError(error);
+      logger.error('Session refresh error:', { error: errorMessage });
+      setAuthError(errorMessage);
+      return false;
+    }
   }, [fetchUserProfile, handleAuthError]);
 
   const updateProfile = useCallback(async (data: Partial<UserProfile>): Promise<UserProfile | null> => {

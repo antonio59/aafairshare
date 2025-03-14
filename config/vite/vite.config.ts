@@ -43,17 +43,25 @@ export default defineConfig(({ mode }) => {
     },
     build: {
       outDir: 'dist',
-      sourcemap: true,
+      sourcemap: false,
       cssCodeSplit: false,
+      minify: 'terser',
+      terserOptions: {
+        compress: {
+          drop_console: true,
+          drop_debugger: true
+        }
+      },
       rollupOptions: {
         input: {
           main: path.resolve(rootDir, 'index.html')
         },
         output: {
-          assetFileNames: (assetInfo) => {
-            if (assetInfo.name === 'index.css') return 'assets/index.css';
-            return 'assets/[name]-[hash][extname]';
+          manualChunks: {
+            vendor: ['react', 'react-dom', 'react-router-dom'],
+            ui: ['@radix-ui/react-dialog', '@radix-ui/react-tabs', '@radix-ui/react-checkbox']
           },
+          assetFileNames: 'assets/[name]-[hash][extname]',
           chunkFileNames: 'assets/[name]-[hash].js',
           entryFileNames: 'assets/[name]-[hash].js'
         }

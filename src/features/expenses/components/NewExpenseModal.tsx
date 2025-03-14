@@ -255,19 +255,28 @@ export default function NewExpenseModal({
   };
 
   const handleCategorySelect = (categoryObj: CategoryEntity) => {
+    // Update expense data with selected category
     setExpenseData(prev => ({
       ...prev,
       category: categoryObj.category,
       category_id: categoryObj.id
     }));
+
+    // Reset UI state
     setShowCategoryDropdown(false);
     setCategorySearchTerm('');
     
+    // Clear any validation errors
     if (validationErrors.category_id) {
       setValidationErrors(prev => {
         const { category_id: _, ...rest } = prev;
         return rest;
       });
+    }
+
+    // Ensure the dropdown is closed and input is blurred
+    if (categoryInputRef.current) {
+      categoryInputRef.current.blur();
     }
   };
 
