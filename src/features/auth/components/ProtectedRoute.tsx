@@ -27,25 +27,23 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
           await refreshSession();
           logger.info('Session successfully restored');
         } catch (error) {
-          if (error?.name === 'AuthSessionMissingError') {
-            logger.warn('No active session found, redirecting to login');
-          } else {
-            logger.error('Session restoration failed:', error);
-          }
-          
-          if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
-            navigate('/login', { state: { from: location }, replace: true });
-          }
+          logger.error('Session restoration failed:', error);
+          // Immediately redirect to login on first failure
+          navigate('/login', { state: { from: location }, replace: true });
         } finally {
           setIsRefreshing(false);
         }
+      } else if (!user && refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
+        // Redirect to login if max attempts reached
+        navigate('/login', { state: { from: location }, replace: true });
       }
     };
 
     handleSessionRefresh();
   }, [user, isRefreshing, refreshAttempts, location, navigate, refreshSession]);
 
-  if (loading || isRefreshing) {
+  // Only show loading state if we have a user or are in the first refresh attempt
+  if ((loading || isRefreshing) && (user || refreshAttempts === 0)) {
     return (
       <div className="flex justify-center items-center h-screen">
         <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900"></div>

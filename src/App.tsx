@@ -6,7 +6,6 @@ import MonthlyExpenses from './features/expenses/components/MonthlyExpenses';
 import NewExpenseModal from './features/expenses/components/NewExpenseModal';
 import ExpenseDetailPage from './features/expenses/components/ExpenseDetailPage';
 import { SettlementsPage } from './features/settlements';
-import AnalyticsPage from './features/analytics/components/AnalyticsPage';
 import Dashboard from './features/analytics/components/Dashboard';
 import SettingsPage from './features/settings/components/SettingsPage';
 import CategoryManagementPage from './features/settings/components/CategoryManagementPage';
@@ -159,7 +158,6 @@ export const App: React.FC<AppProps> = () => {
                   <SettlementsPage />
                 </ProtectedRoute>
               } />
-              <Route path="/analytics" element={<ProtectedRoute><AnalyticsPage /></ProtectedRoute>} />
               <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/categories" element={<ProtectedRoute><CategoryManagementPage /></ProtectedRoute>} />
               <Route path="/auth" element={<Navigate to="/login" replace />} />

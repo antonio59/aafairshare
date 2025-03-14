@@ -4,12 +4,13 @@ import { useAuth } from '../../../core/contexts/AuthContext';
 import { CategoryManager } from './CategoryManager';
 import { LocationManager } from './LocationTagManager';
 import { createLogger } from '../../../utils/logger';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 
 // Create a logger for this module
 const logger = createLogger('SettingsPage');
 
 export default function SettingsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
@@ -73,18 +74,33 @@ export default function SettingsPage() {
                 </h3>
                 
                 <div className="space-y-4">
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      id="email"
-                      value={user.email}
-                      disabled
-                      className="w-full sm:max-w-md px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
-                    />
-                    <p className="mt-1 text-xs text-gray-500">Your email address cannot be changed.</p>
+                  <div className="space-y-4">
+                    <div>
+                      <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                        Name
+                      </label>
+                      <input
+                        type="name"
+                        id="name"
+                        name="name"
+                        value={profile?.name || ''}
+                        disabled
+                        className="w-full sm:max-w-md px-4 py-2 border border-gray-200 rounded-lg"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        id="email"
+                        value={user.email}
+                        disabled
+                        className="w-full sm:max-w-md px-4 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-500"
+                      />
+                      <p className="mt-1 text-xs text-gray-500">Your email address cannot be changed.</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -96,13 +112,18 @@ export default function SettingsPage() {
                   Manage your expense categories and locations to better organize your spending.
                 </p>
                 
-                <div className="space-y-8">
-                  {/* Category Management Section */}
-                  <CategoryManager />
-
-                  {/* Location Management Section */}
-                  <LocationManager />
-                </div>
+                <Tabs defaultValue="categories" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="categories">Categories</TabsTrigger>
+                    <TabsTrigger value="locations">Locations</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="categories" className="mt-4">
+                    <CategoryManager />
+                  </TabsContent>
+                  <TabsContent value="locations" className="mt-4">
+                    <LocationManager />
+                  </TabsContent>
+                </Tabs>
               </div>
               
               <div className="pt-6">

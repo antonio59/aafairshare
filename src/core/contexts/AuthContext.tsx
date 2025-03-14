@@ -97,71 +97,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getSession = useCallback(async () => {
-    let retryCount = 0;
-    const maxRetries = 3;
-    const baseDelay = 1000; // 1 second
-
-    const attemptSessionRefresh = async (): Promise<void> => {
-      try {
-        const { data: { session }, error } = await supabase.auth.getSession();
-        if (error) {
-          if (error.name === 'AuthSessionMissingError') {
-            logger.warn('Session missing, attempting recovery...');
-            const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-            
-            if (refreshError) {
-              logger.error('Session refresh failed:', refreshError);
-              if (retryCount >= maxRetries) {
-                setUser(null);
-                setProfile(null);
-                logger.error('Session recovery failed after max retries');
-                setAuthError('Session expired. Please sign in again.');
-                return;
-              }
-              retryCount++;
-              const delay = baseDelay * Math.pow(2, retryCount - 1);
-              logger.info(`Retrying session recovery in ${delay}ms (attempt ${retryCount}/${maxRetries})`);
-              await new Promise(resolve => setTimeout(resolve, delay));
-              return attemptSessionRefresh();
-            }
-        
-            if (refreshData.session) {
-              logger.info('Session successfully recovered');
-              setUser(refreshData.session.user);
-              const profile = await fetchUserProfile(refreshData.session.user.id);
-              if (profile) {
-                setProfile(profile);
-                setAuthError(null);
-                return;
-              }
-            }
-          }
-          throw error;
-        }
-    
-        if (session?.user) {
-          setUser(session.user);
-          const profile = await fetchUserProfile(session.user.id);
-          if (profile) {
-            setProfile(profile);
-            setAuthError(null);
-          }
-        }
-      } catch (error) {
-        logger.error('Session refresh error:', error);
-        if (retryCount < maxRetries) {
-          retryCount++;
-          const delay = baseDelay * Math.pow(2, retryCount - 1);
-          logger.info(`Attempting session recovery in ${delay}ms (attempt ${retryCount}/${maxRetries})`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-          return attemptSessionRefresh();
-        }
-        setAuthError(handleAuthError(error));
-      }
-    };
-
     try {
-      await attemptSessionRefresh();
+      // First, try to get the current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      if (!session?.user || sessionError) {
+        // Clear state immediately if no valid session
+        setUser(null);
+        setProfile(null);
+        setAuthError('Session expired. Please sign in again.');
+        logger.error('No valid session found:', sessionError || 'No session data');
+        setLoading(false);
+        return;
+      }
+      
+      // If we have a valid session, set user and fetch profile
+      logger.info('Valid session found');
+      setUser(session.user);
+      const profile = await fetchUserProfile(session.user.id);
+      if (profile) {
+        setProfile(profile);
+        setAuthError(null);
+      }
+    } catch (error) {
+      logger.error('Session initialization error:', error);
+      setUser(null);
+      setProfile(null);
+      setAuthError(handleAuthError(error));
     } finally {
       setLoading(false);
     }
@@ -288,41 +250,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [getSession, fetchUserProfile]);
 
   const refreshSession = useCallback(async (): Promise<boolean> => {
-    let retryCount = 0;
-    const maxRetries = 3;
-    const baseDelay = 1000; // 1 second
-  
-    const attemptRefresh = async (): Promise<boolean> => {
-      try {
-        // Check if we already have a valid session before attempting refresh
-        const { data: currentSession } = await supabase.auth.getSession();
-        if (currentSession?.session?.user) {
-          logger.info('Found valid current session, skipping refresh');
-          return true;
-        }
+    try {
+      // Check if we already have a valid session before attempting refresh
+      const { data: currentSession } = await supabase.auth.getSession();
+      if (currentSession?.session?.user) {
+        logger.info('Found valid current session');
+        return true;
+      }
 
-        logger.info('Attempting session refresh...');
-        const { data: { session }, error } = await supabase.auth.refreshSession();
-        
-        if (error) {
-          if (error.name === 'AuthSessionMissingError') {
-            logger.warn('Session missing, checking for recovery options...');
-            
-            // Only clear session state if we're sure it's invalid
-            if (retryCount >= maxRetries) {
-              logger.error('Session recovery failed after max retries');
-              setUser(null);
-              setProfile(null);
-              setAuthError('Session expired. Please sign in again.');
-              return false;
-            }
-            
-            // Increment retry count and apply exponential backoff
-            retryCount++;
-            const delay = baseDelay * Math.pow(2, retryCount - 1);
-            logger.info(`Scheduling retry ${retryCount}/${maxRetries} in ${delay}ms`);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return attemptRefresh();
+      logger.info('No valid session found, attempting one refresh...');
+      const { data: { session }, error } = await supabase.auth.refreshSession();
+      
+      if (error || !session) {
+        // If refresh fails, clear state immediately
+        logger.error('Session refresh failed:', error || 'No session data');
+        setUser(null);
+        setProfile(null);
+        setAuthError('Session expired. Please sign in again.');
+        return false;
+      }
+      
+      // If refresh succeeds, update state
+      logger.info('Session refresh successful');
+      setUser(session.user);
+      const profile = await fetchUserProfile(session.user.id);
+      if (profile) {
+        setProfile(profile);
+        setAuthError(null);
+        return true;
+      }
           }
           
           // Handle other auth errors

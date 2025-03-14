@@ -73,7 +73,7 @@ export default function Header({ onNewExpense }: HeaderProps) {
     { path: '/', label: 'Dashboard', icon: <Home size={16} className="mr-2" /> },
     { path: '/expenses', label: 'Expenses', icon: <Receipt size={16} className="mr-2" /> },
     { path: '/settlements', label: 'Settlements', icon: <Calculator size={16} className="mr-2" /> },
-    { path: '/analytics', label: 'Analytics', icon: <BarChart size={16} className="mr-2" /> },
+    
   ];
   
   // Check if a path is active

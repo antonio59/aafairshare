@@ -7,9 +7,9 @@ export default function MobileEnhancedNavigation({ onNewExpense }) {
   const navigate = useNavigate();
   
   const tabs = [
-    { id: 'home', label: 'Home', icon: Home, path: '/' },
+    { id: 'analytics', label: 'Analytics', icon: BarChart2, path: '/' },
     { id: 'settlements', label: 'Settlements', icon: FileText, path: '/settlements' },
-    { id: 'analytics', label: 'Analytics', icon: BarChart2, path: '/analytics' },
+    { id: 'expenses', label: 'Expenses', icon: Home, path: '/expenses' },
     { id: 'settings', label: 'Settings', icon: Settings, path: '/settings' }
   ];
 

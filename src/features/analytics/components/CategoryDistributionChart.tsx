@@ -186,7 +186,7 @@ export function CategoryDistributionChart({
         {/* Category breakdown */}
         <div className="flex-grow">
           <div className="space-y-3 max-h-72 overflow-y-auto pr-2">
-            {segments.map((segment, _index) => (
+            {segments.map((segment, index) => (
               <div key={index} className="flex items-center">
                 <div 
                   className="w-3 h-3 rounded-sm mr-3 flex-shrink-0" 
@@ -250,4 +250,4 @@ export function CategoryDistributionChart({
       </div>
     </div>
   );
-} 
+}

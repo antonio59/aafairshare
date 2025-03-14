@@ -19,13 +19,12 @@ interface ExpenseFormData {
   date?: string;
   amount: number;
   category?: string;
-  category_id?: string | null;
-  notes?: string;
+  category_id: string | null;
+  notes?: string | null;
   location?: string;
-  location_id?: string | null;
-  paid_by: string;
-  split_type: 'equal' | 'custom';
-  currency?: string;
+  location_id: string | null;
+  paid_by: string | null;
+  split_type: 'equal' | 'none' | string;
 }
 
 interface CategoryEntity {
@@ -52,7 +51,7 @@ export default function NewExpenseModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [selectedSplitType, setSelectedSplitType] = useState<'equal' | 'custom'>(expenseToEdit?.split_type || 'equal');
+  const [selectedSplitType, setSelectedSplitType] = useState<'equal' | 'none' | string>(expenseToEdit?.split_type === 'none' ? 'none' : 'equal');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   // Data state
@@ -90,12 +89,12 @@ export default function NewExpenseModal({
       date: initialDate,
       amount: expenseToEdit?.amount || 0,
       category: '',
-      category_id: undefined,
+      category_id: null,
       notes: expenseToEdit?.notes || '',
       location: '',
-      location_id: undefined,
-      paid_by: user?.id || null,
-      split_type: expenseToEdit?.split_type || 'equal'
+      location_id: null,
+      paid_by: user?.id || '',
+      split_type: expenseToEdit?.split_type === 'none' ? 'none' : 'equal'
     };
     
     if (expenseToEdit) {
@@ -113,7 +112,7 @@ export default function NewExpenseModal({
         defaultExpense.location = expenseToEdit._location;
       }
       
-      defaultExpense.paid_by = expenseToEdit.paid_by || user?.id || null;
+      defaultExpense.paid_by = expenseToEdit.paid_by || user?.id || '';
       
       return { ...defaultExpense, ...expenseToEdit };
     }
@@ -279,7 +278,7 @@ export default function NewExpenseModal({
     );
   }, [categories, categorySearchTerm]);
 
-  const handleToggleSplitType = (splitType: string) => {
+  const handleToggleSplitType = (splitType: 'equal' | 'none') => {
     setSelectedSplitType(splitType);
     setExpenseData(prev => ({ ...prev, split_type: splitType }));
   };
@@ -535,6 +534,8 @@ export default function NewExpenseModal({
                 )}
               </div>
 
+
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Location
@@ -558,6 +559,8 @@ export default function NewExpenseModal({
                 </div>
               </div>
 
+
+
               <div>
                 <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
                   Notes
@@ -574,6 +577,8 @@ export default function NewExpenseModal({
                 />
               </div>
 
+
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Split Type
@@ -588,20 +593,20 @@ export default function NewExpenseModal({
                         : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
-                    <Users size={16} className="mr-2" />
-                    Equal Split
+                    <SplitSquareVertical size={16} className="mr-2" />
+                    Equal Split (50/50)
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleToggleSplitType('custom')}
+                    onClick={() => handleToggleSplitType('none')}
                     className={`flex items-center px-4 py-2 rounded-lg ${
-                      selectedSplitType === 'custom'
+                      selectedSplitType === 'no_split'
                         ? 'bg-blue-50 text-blue-700 border border-blue-200'
                         : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
                     }`}
                   >
-                    <SplitSquareVertical size={16} className="mr-2" />
-                    Custom Split
+                    <UserMinus size={16} className="mr-2" />
+                    No Split (100%)
                   </button>
                 </div>
               </div>

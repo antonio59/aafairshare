@@ -1,5 +1,5 @@
 import React, { useState, useEffect, memo, useMemo, useRef, useCallback } from 'react';
-import { Edit, Receipt, Calendar, ChevronLeft, ChevronRight, Filter, ArrowUpDown, Search, Trash2 } from 'lucide-react';
+import { Edit, Receipt, Calendar, ChevronLeft, ChevronRight, Filter, ArrowUpDown, Search, Trash2, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { FixedSizeList as List } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
@@ -55,6 +55,46 @@ interface MonthlyExpensesProps {
   onViewMore?: () => void;
   refreshTrigger?: number;
   onNewExpense: () => void;
+}
+
+interface ExportOptions {
+  title?: string;
+  dateRange: string;
+  includeHeader?: boolean;
+  includeFooter?: boolean;
+  fileName?: string;
+}
+
+function createCSVContent(expenses: Expense[], dateRange: string): string {
+  const csvRows: string[][] = [];
+  
+  // Add header
+  csvRows.push(['AAFairShare Expense Report']);
+  csvRows.push(['Generated on:', new Date().toLocaleDateString()]);
+  csvRows.push(['Date Range:', dateRange]);
+  csvRows.push(['']);
+  
+  // Add expense data
+  csvRows.push(['Date', 'Category', 'Amount', 'Paid By', 'Location', 'Notes']);
+  
+  expenses.forEach(expense => {
+    csvRows.push([
+      new Date(expense.date).toLocaleDateString(),
+      expense._category || 'Uncategorized',
+      expense.amount.toString(),
+      expense.paid_by_name || 'Unknown',
+      expense._location || '',
+      expense.notes || ''
+    ]);
+  });
+  
+  return csvRows.map(row => 
+    row.map(cell => {
+      if (cell.includes(',') || cell.includes('"') || cell.includes('\n')) {
+        return `"${cell.replace(/"/g, '""')}"`;      }
+      return cell;
+    }).join(',')
+  ).join('\n');
 }
 
 /**
@@ -908,14 +948,36 @@ const currency = "GBP";
             )}
           </h3>
           
-          <button
-            onClick={toggleFilters}
-            className="flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 text-xs md:text-sm"
-            type="button"
-          >
-            <Filter size={12} className="md:w-4 md:h-4" />
-            <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                const dateRange = `${MONTHS[selectedDate.month]} ${selectedDate.year}`;
+                const csvContent = createCSVContent(filteredExpenses, dateRange);
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.setAttribute('download', `expenses_${dateRange.toLowerCase().replace(' ', '_')}.csv`);
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+              }}
+              className="flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 text-xs md:text-sm"
+              type="button"
+            >
+              <Download size={12} className="md:w-4 md:h-4" />
+              <span>Export</span>
+            </button>
+            
+            <button
+              onClick={toggleFilters}
+              className="flex items-center gap-1.5 md:gap-2 px-2 py-1 md:px-3 md:py-1.5 bg-white border border-gray-200 rounded-md text-gray-600 hover:bg-gray-50 text-xs md:text-sm"
+              type="button"
+            >
+              <Filter size={12} className="md:w-4 md:h-4" />
+              <span>{showFilters ? 'Hide Filters' : 'Show Filters'}</span>
+            </button>
+          </div>
         </div>
         
         {renderFilters}
