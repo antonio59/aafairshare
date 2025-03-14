@@ -22,6 +22,16 @@ dist-ssr
 .env.local
 .env.*.local
 !.env.example
+.env.development
+.env.staging
+.env.production
+.env.test
+.env.*.development
+.env.*.staging
+.env.*.production
+.env.*.test
+.env.backup
+.env.*.backup
 
 # Editor
 .vscode/*

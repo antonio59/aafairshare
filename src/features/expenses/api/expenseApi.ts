@@ -144,9 +144,8 @@ export async function createExpense(
       }
     }
     
-    // Handle location logic - primary location & multiple locations
+    // Handle location logic - primary location only
     let locationId = expenseData.location_id;
-    let locationIds: string[] = [];
     
     // Handle a single location (location field)
     if (expenseData.location && !locationId) {
@@ -154,12 +153,11 @@ export async function createExpense(
         .from('locations')
         .select('id, location')
         .eq('location', expenseData.location)
-        .limit(1);
-        
-      if (locations && locations.length > 0) {
+        .single();
+    
+      if (locations) {
         // Use existing location
-        locationId = locations[0].id;
-        locationIds.push(locationId);
+        locationId = locations.id;
       } else {
         // Create new location
         const { data: newLocation, error: locationError } = await supabase
@@ -167,7 +165,7 @@ export async function createExpense(
           .insert({ location: expenseData.location })
           .select()
           .single();
-          
+    
         if (locationError) {
           logger.error('Error creating location:', locationError);
           return {
@@ -175,54 +173,16 @@ export async function createExpense(
             message: `Error creating location: ${locationError.message}`,
           };
         }
-        
-        locationId = newLocation.id;
-        locationIds.push(locationId);
-      }
-    } else if (locationId) {
-      locationIds.push(locationId);
-    }
     
-    // Handle multiple locations (locations array field)
-    if (expenseData.locations && Array.isArray(expenseData.locations)) {
-      // For each location in the array
-      for (const loc of expenseData.locations) {
-        // Skip if it's the same as the primary location
-        if (expenseData.location && loc === expenseData.location) {
-          continue;
-        }
-        
-        // Find or create location
-        const { data: locations } = await supabase
-          .from('locations')
-          .select('id, location')
-          .eq('location', loc)
-          .limit(1);
-          
-        if (locations && locations.length > 0) {
-          if (!locationIds.includes(locations[0].id)) {
-            locationIds.push(locations[0].id);
-          }
-        } else {
-          // Create new location
-          const { data: newLocation, error: locationError } = await supabase
-            .from('locations')
-            .insert({ location: loc })
-            .select()
-            .single();
-            
-          if (locationError) {
-            logger.warn(`Error creating additional location "${loc}":`, locationError);
-            // Don't fail the entire operation, just log and continue
-            continue;
-          }
-          
-          if (!locationIds.includes(newLocation.id)) {
-            locationIds.push(newLocation.id);
-          }
-        }
+        locationId = newLocation.id;
       }
     }
+
+    // Prepare expense data for insertion/update
+    const expenseToSave = {
+      ...validExpenseData,
+      location_id: locationId || null,
+    };
 
     // Create the expense record with required fields
     const expenseToCreate: DbExpenseInsert = {
@@ -901,7 +861,7 @@ export async function getExpenseAnalytics(
         locations(id, location),
         users!paid_by(id, name, email)
       `)
-      .eq('user_id', user.id)
+      .eq('paid_by', user.id)
       .gte('date', finalStartDate)
       .lte('date', finalEndDate)
       .order('date', { ascending: false });

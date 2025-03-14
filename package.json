@@ -50,6 +50,7 @@
     "postinstall": "node -e \"try { require('node-gyp-build/bin/node-gyp-build.js') } catch(e) { console.error('Optional dependency failed', e) }\""
   },
   "dependencies": {
+    "@headlessui/react": "2.2.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@radix-ui/react-checkbox": "1.1.4",
     "@radix-ui/react-dialog": "1.1.6",

@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Mail, Lock, User, ArrowRight, Loader2, CheckCircle } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { supabase } from '../../../core/api/supabase';
 
 interface AuthPageProps {
   mode?: 'login' | 'signup';
@@ -13,370 +12,180 @@ export default function AuthPage({ mode = 'login' }: AuthPageProps) {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState<boolean | string>(false);
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(mode === 'signup');
-  const [loadingMessage, setLoadingMessage] = useState('');
-  const { signIn, signUp, user, profile, resetAuthState } = useAuth();
+  const { signIn, signUp, user } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Update isSignUp when mode prop changes
+  useEffect(() => {
+    if (user) {
+      const redirectTo = location.state?.from?.pathname || '/';
+      navigate(redirectTo, { replace: true });
+    }
+  }, [user, navigate, location]);
+
   useEffect(() => {
     setIsSignUp(mode === 'signup');
   }, [mode]);
 
-  // Redirect if already authenticated
-  useEffect(() => {
-    console.log('Auth state check for redirect:', { 
-      hasUser: !!user, 
-      hasProfile: !!profile,
-      pathname: location.pathname
-    });
-    
-    if (user) {
-      // Only redirect if we're not already on an auth page
-      const isAuthPage = location.pathname === '/login' || location.pathname === '/signup';
-      const redirectTo = location.state?.from?.pathname || '/';
-      
-      console.log('Authentication status check:', {
-        isLoggedIn: true,
-        currentPath: location.pathname,
-        isAuthPage,
-        wouldRedirectTo: redirectTo
-      });
-      
-      // Don't redirect if we're intentionally on an auth page (for testing, etc.)
-      // This prevents redirection loops
-      if (!isAuthPage) {
-        // Use a small timeout to allow other state updates to complete
-        const redirectTimer = setTimeout(() => {
-          console.log('Executing redirect now to:', redirectTo);
-          navigate(redirectTo, { replace: true });
-        }, 300);
-        
-        return () => clearTimeout(redirectTimer);
-      } else {
-        console.log('On auth page while logged in - not redirecting');
-      }
-    } else {
-      console.log('User not authenticated, staying on auth page');
-    }
-  }, [user, profile, navigate, location]);
-
-  // Show helpful messages if loading takes a while
-  useEffect(() => {
-    let timeoutId: ReturnType<typeof setTimeout>;
-    
-    if (loading) {
-      // After 3 seconds of loading, show a message
-      timeoutId = setTimeout(() => {
-        setLoadingMessage('This is taking longer than expected...');
-      }, 3000);
-      
-      // After 10 seconds, show a more detailed message
-      const longTimeoutId = setTimeout(() => {
-        setLoadingMessage('Still working... You can try refreshing the page if this continues.');
-      }, 10000);
-      
-      // After 15 seconds, offer a reset button option
-      const resetTimeoutId = setTimeout(() => {
-        setLoadingMessage('Having trouble? Click the Reset button below to try again.');
-      }, 15000);
-      
-      return () => {
-        clearTimeout(timeoutId);
-        clearTimeout(longTimeoutId);
-        clearTimeout(resetTimeoutId);
-      };
-    } else {
-      setLoadingMessage('');
-    }
-  }, [loading]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('Form submission started');
-    try {
-      setLoading(true);
-      setError('');
-      setSuccess(false);
-
-      // Check for empty fields first
-      if (!email) {
-        throw new Error('Email is required');
-      }
-      
-      if (!password) {
-        throw new Error('Password is required');
-      }
-      
-      if (isSignUp && !name) {
-        throw new Error('Full name is required');
-      }
-
-      console.log('Attempting authentication', { isSignUp, email });
-      let result;
-      
-      // First check if Supabase connection is available
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        console.log('Session check before auth attempt:', {
-          hasExistingSession: !!sessionData?.session
-        });
-      } catch (sessionError) {
-        console.error('Session check failed:', sessionError);
-        // Continue anyway as this is just diagnostic
-      }
-      
-      if (isSignUp) {
-        console.log('Beginning sign up process');
-        result = await signUp(email, password, name);
-        console.log('Sign up result:', result);
-        if (result.success) {
-          setSuccess('Account created successfully! Welcome to AAFairShare.');
-        } else {
-          throw new Error(result.message || 'Sign up failed. Please try again.');
-        }
-      } else {
-        console.log('Beginning sign in process');
-        result = await signIn(email, password);
-        console.log('Sign in result:', result);
-        if (result.success) {
-          setSuccess('Welcome back!');
-          
-          // Force a navigation after successful sign-in, don't wait for redirect effect
-          const redirectTo = location.state?.from?.pathname || '/';
-          console.log('Authentication successful, forcing navigation to:', redirectTo);
-          
-          // Use a small timeout to allow state updates first
-          setTimeout(() => {
-            navigate(redirectTo, { replace: true });
-          }, 500);
-        } else {
-          throw new Error(result.message || 'Sign in failed. Please check your credentials and try again.');
-        }
-      }
-      console.log('Authentication succeeded');
-    } catch (err) {
-      console.error('Auth error:', err);
-      const errorMessage = err instanceof Error ? err.message : 'An error occurred during authentication';
-      setError(errorMessage);
-      
-      // Log additional debugging information
-      console.error('Detailed auth error:', {
-        errorType: err instanceof Error ? err.constructor.name : typeof err,
-        message: errorMessage,
-        stack: err instanceof Error ? err.stack : 'No stack trace'
-      });
-      
-      setSuccess(false);
-    } finally {
-      console.log('Setting loading state to false');
-      setLoading(false);
-    }
-  };
-
-  // Force clear loading state if component unmounts while loading
-  useEffect(() => {
-    return () => {
-      if (loading) {
-        console.log('Component unmounting while loading, forcing cleanup');
-        setLoading(false);
-      }
-    };
-  }, [loading]);
-
-  // Add an effect to monitor the loading state
-  useEffect(() => {
-    console.log('Loading state changed:', { loading, success, error });
-  }, [loading, success, error]);
-
-  // Add a reset handler function
-  const handleReset = () => {
-    console.log('Manually resetting form state');
-    setLoading(false);
-    setSuccess(false);
-    setError('');
-    setLoadingMessage('');
-  };
-
-  // Handle reset auth state
-  const handleResetAuth = async () => {
-    console.log('Manually resetting auth state');
+  const handleSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
     setLoading(true);
-    setLoadingMessage('Resetting authentication state...');
-    
+    setError('');
+  
     try {
-      const result = await resetAuthState();
-      console.log('Auth state reset result:', result);
-      
-      if (result) {
-        // If user is actually authenticated, let the redirect handle navigation
-        if (user) {
-          setSuccess('Authentication state reset successful!');
-        } else {
-          // Otherwise show message and reset form
-          setSuccess('Authentication state reset. Please sign in again.');
-          setEmail('');
-          setPassword('');
-        }
+      const response = isSignUp
+        ? await signUp(email, password, name)
+        : await signIn(email, password);
+  
+      if (response.success) {
+        const redirectTo = location.state?.from?.pathname || '/';
+        navigate(redirectTo, { replace: true });
       } else {
-        setError('Failed to reset authentication state. Please try again.');
+        setError(response.message || 'Authentication failed. Please try again.');
+        if (response.message?.includes('network') || response.message?.includes('connect')) {
+          setError('Unable to connect to authentication service. Please check your internet connection.');
+        }
       }
     } catch (err) {
-      console.error('Error resetting auth state:', err);
-      setError('Error resetting authentication. Please refresh the page and try again.');
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      setError(errorMessage);
+      console.error('Authentication error:', err);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center px-4">
-      {/* App Logo or Name */}
-      <div className="mb-8 text-center">
-        <h1 className="text-3xl font-bold text-rose-600">AAFairShare</h1>
-        <p className="text-sm text-gray-500">Split expenses fairly with friends and family</p>
-      </div>
-      
-      <div className="w-full max-w-md bg-white p-8 rounded-xl shadow-md">
-        <div className="text-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">
-            {isSignUp ? 'Create Account' : 'Welcome Back'}
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            {isSignUp ? 'Create your account' : 'Sign in to your account'}
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {isSignUp ? 'Start tracking your expenses' : 'Sign in to your account'}
-          </p>
         </div>
-
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
-            {error}
-          </div>
-        )}
-
-        {typeof success === 'string' && (
-          <div className="mb-4 p-3 bg-green-50 border border-green-200 text-green-700 rounded-md text-sm flex items-center">
-            <CheckCircle className="h-4 w-4 mr-2" />
-            {success}
-          </div>
-        )}
-
-        {loading && loadingMessage && (
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 text-blue-700 rounded-md text-sm">
-            {loadingMessage}
-            {loadingMessage.includes('Reset') && (
-              <button 
-                onClick={handleReset}
-                className="mt-2 w-full py-1.5 px-3 border border-blue-300 rounded-md shadow-sm text-xs font-medium text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-blue-500 transition-colors"
-              >
-                Reset
-              </button>
-            )}
-          </div>
-        )}
-
-        <form className="space-y-5" onSubmit={handleSubmit}>
-          {isSignUp && (
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Full Name
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <User className="h-5 w-5 text-gray-400" />
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="rounded-md shadow-sm -space-y-px">
+            {isSignUp && (
+              <div>
+                <label htmlFor="name" className="sr-only">Name</label>
+                <div className="flex items-center relative">
+                  <User className="absolute left-3 h-5 w-5 text-gray-400" />
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    required={isSignUp}
+                    className="appearance-none rounded-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                    placeholder="Full name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
+              </div>
+            )}
+            <div>
+              <label htmlFor="email" className="sr-only">Email address</label>
+              <div className="flex items-center relative">
+                <Mail className="absolute left-3 h-5 w-5 text-gray-400" />
                 <input
-                  type="text"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                  placeholder="John Doe"
-                  required={isSignUp}
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className={`appearance-none rounded-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isSignUp ? '' : 'rounded-t-md'} focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
+                  placeholder="Email address"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">Password</label>
+              <div className="flex items-center relative">
+                <Lock className="absolute left-3 h-5 w-5 text-gray-400" />
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                  required
+                  className="appearance-none rounded-none relative block w-full px-10 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+
+          {error && (
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                  </svg>
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">{error}</h3>
+                  {error.includes('Unable to connect') && (
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>We're having trouble connecting to our services. Please:</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Check your internet connection</li>
+                        <li>Try refreshing the page</li>
+                        <li>If the problem persists, try again in a few minutes</li>
+                      </ul>
+                    </div>
+                  )}
+                  {error.includes('Invalid email or password') && (
+                    <div className="mt-2 text-sm text-red-700">
+                      <p>Please check the following:</p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Verify that your email address is typed correctly</li>
+                        <li>Make sure your password is correct</li>
+                        <li>Check if Caps Lock is enabled</li>
+                        <li>Try using the "Emergency Login" if problems persist</li>
+                      </ul>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Email
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Mail className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="email@example.com"
-                required
-              />
-            </div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin h-5 w-5" />
+              ) : (
+                isSignUp ? 'Sign up' : 'Sign in'
+              )}
+            </button>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Password
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="pl-10 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="••••••••"
-                required
-              />
-            </div>
+          <div className="text-sm text-center">
+            <button
+              type="button"
+              onClick={() => {
+                setIsSignUp(!isSignUp);
+                setError('');
+                navigate(isSignUp ? '/login' : '/signup', { replace: true });
+              }}
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
+              {isSignUp ? 'Already have an account? Sign in' : "Don't have an account? Sign up"}
+            </button>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center items-center py-2.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors"
-          >
-            {loading ? (
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-            ) : (
-              <ArrowRight className="h-5 w-5 mr-2" />
-            )}
-            {isSignUp ? 'Create Account' : 'Sign In'}
-          </button>
         </form>
-
-        {/* Add troubleshooting section */}
-        <div className="mt-6 pt-4 border-t border-gray-200">
-          <p className="text-sm text-gray-500 mb-2 text-center">Having trouble signing in?</p>
-          <button
-            type="button"
-            onClick={handleResetAuth}
-            disabled={loading}
-            className="w-full flex justify-center items-center py-2 px-3 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-colors"
-          >
-            Reset Authentication State
-          </button>
-        </div>
-
-        <div className="mt-6 text-center">
-          <Link
-            to={isSignUp ? '/login' : '/signup'}
-            className="text-sm text-rose-600 hover:text-rose-500 focus:outline-none focus:underline transition-colors"
-          >
-            {isSignUp ? 'Already have an account? Sign in' : 'Need an account? Sign up'}
-          </Link>
-        </div>
-      </div>
-      
-      <div className="mt-8 text-center text-xs text-gray-500">
-        &copy; {new Date().getFullYear()} AAFairShare. All rights reserved.
       </div>
     </div>
   );
-} 
+}

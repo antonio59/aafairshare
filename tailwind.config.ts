@@ -1,11 +1,23 @@
 import type { Config } from 'tailwindcss';
+import typography from '@tailwindcss/typography';
 
 const config: Config = {
   content: [
-    './src/**/*.{js,jsx,ts,tsx}',
+    './src/**/*.{js,jsx,ts,tsx,html,css}',
     './index.html',
+    './src/styles/**/*.{css,scss}',
+    './src/features/**/*.{js,jsx,ts,tsx}',
+    './src/core/**/*.{js,jsx,ts,tsx}'
   ],
+  darkMode: 'class',
   theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
     extend: {
       colors: {
         border: 'hsl(var(--border))',
@@ -49,7 +61,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('@tailwindcss/typography')],
+  plugins: [typography],
 };
 
-export default config; 
+export default config;

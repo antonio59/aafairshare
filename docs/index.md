@@ -18,7 +18,7 @@ This directory contains detailed technical documentation for the Expense Sharing
 ### Development
 - [typescript.md](./typescript.md) - TypeScript configuration, best practices, and code organization.
 - [development-tools.md](./development-tools.md) - Development utilities, scripts, and workflow documentation.
-- [testing-strategy.md](./testing-strategy.md) - Testing strategy and approach.
+- [testing-strategy.md](./testing-strategy.md) - Comprehensive testing documentation including strategy, setup, and best practices.
 - [testing-setup-guide.md](./testing-setup-guide.md) - Detailed setup for testing environment.
 - [testing-readme.md](./testing-readme.md) - Overview of testing structure and practices.
 

@@ -26,7 +26,7 @@
   "parserOptions": {
     "ecmaVersion": "latest",
     "sourceType": "module",
-    "project": ["./tsconfig.json", "./tsconfig.node.json"]
+    "project": ["./config/typescript/tsconfig.json", "./config/typescript/tsconfig.node.json"]
   },
   "plugins": ["react-refresh", "@typescript-eslint", "import", "react"],
   "settings": {
@@ -88,4 +88,4 @@
       }
     }
   ]
-} 
+}

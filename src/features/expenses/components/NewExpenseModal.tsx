@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { X, Calendar, Tag, Users, ChevronUp, ChevronDown, SplitSquareVertical, UserMinus } from 'lucide-react';
-import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 import { createExpense, updateExpense } from '../api/expenseApi';
 import { useAuth } from '../../../core/contexts/AuthContext';
 import { supabase } from '../../../core/api/supabase';
 import { getCurrentISODate } from '../../shared/utils/date-utils';
 import { validateExpenseCreate, sanitizeAmount } from '../../../core/utils/validation';
 import { useCSRF } from '../../shared/utils/csrf';
-import LocationCombobox from './LocationCombobox';
 import { Expense, ExpenseCreate } from '../../../core/types/expenses';
 
 interface NewExpenseModalProps {
@@ -17,16 +15,19 @@ interface NewExpenseModalProps {
   expenseToEdit?: Expense;
 }
 
-// Type definitions for form data
-interface ExpenseFormData extends Partial<ExpenseCreate> {
+interface ExpenseFormData {
+  date?: string;
+  amount: number;
   category?: string;
   category_id?: string | null;
+  notes?: string;
   location?: string;
   location_id?: string | null;
-  paid_by?: string;
+  paid_by: string;
+  split_type: 'equal' | 'custom';
+  currency?: string;
 }
 
-// Type definitions for database entities
 interface CategoryEntity {
   id: string;
   category: string;
@@ -37,22 +38,21 @@ interface LocationEntity {
   location: string;
 }
 
-export default function NewExpenseModal({ 
-  isOpen, 
-  onClose, 
-  onExpenseCreated, 
-  expenseToEdit 
+export default function NewExpenseModal({
+  isOpen,
+  onClose,
+  onExpenseCreated,
+  expenseToEdit
 }: NewExpenseModalProps) {
-  const { user, profile } = useAuth();
-  // currency is always GBP now
-const currency = "GBP";
-const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
+  const { user } = useAuth();
+  const currency = "GBP";
+  const csrf = useCSRF();
   
   // UI state
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
-  const [selectedSplitType, setSelectedSplitType] = useState(expenseToEdit?.split_type || 'equal');
+  const [selectedSplitType, setSelectedSplitType] = useState<'equal' | 'custom'>(expenseToEdit?.split_type || 'equal');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   // Data state
@@ -72,18 +72,12 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
   // Constants
   const MAX_NOTES_LENGTH = 500;
   
-  // Initialize with current date if no date is provided
   const initialDate = useMemo(() => {
     try {
-      // If editing and has date, use it
       if (expenseToEdit?.date) {
         const dateStr = expenseToEdit.date;
-        // Handle both ISO and non-ISO date formats
-        return dateStr.includes('T') 
-          ? dateStr.split('T')[0] 
-          : dateStr;
+        return dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
       }
-      // Default to current date
       return getCurrentISODate();
     } catch (error) {
       console.error('Date initialization error:', error);
@@ -91,49 +85,36 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
     }
   }, [expenseToEdit]);
 
-  // Create a safe expense object with proper defaults
   const safeExpense = useMemo(() => {
-    // Initialize with safe defaults
     const defaultExpense: ExpenseFormData = {
       date: initialDate,
       amount: expenseToEdit?.amount || 0,
       category: '',
-      category_id: null,
+      category_id: undefined,
       notes: expenseToEdit?.notes || '',
       location: '',
-      location_id: null,
-      paid_by: user?.id || '',
+      location_id: undefined,
+      paid_by: user?.id || null,
       split_type: expenseToEdit?.split_type || 'equal'
     };
     
-    // If we're editing an expense, handle the category and location mapping
     if (expenseToEdit) {
-      // Handle category - might be in different formats
       if (expenseToEdit._category) {
         defaultExpense.category = expenseToEdit._category;
         defaultExpense.category_id = expenseToEdit.category_id;
-      } else if (expenseToEdit.categories && expenseToEdit.categories.category) {
-        defaultExpense.category = expenseToEdit.categories.category;
-        defaultExpense.category_id = expenseToEdit.categories.id;
-      } else if (expenseToEdit.category) {
-        defaultExpense.category = expenseToEdit.category;
+      } else if (expenseToEdit._category) {
+        defaultExpense.category = expenseToEdit._category;
       }
       
-      // Handle location - might be in different formats
       if (expenseToEdit._location) {
         defaultExpense.location = expenseToEdit._location;
         defaultExpense.location_id = expenseToEdit.location_id;
-      } else if (expenseToEdit.locations && expenseToEdit.locations.location) {
-        defaultExpense.location = expenseToEdit.locations.location;
-        defaultExpense.location_id = expenseToEdit.locations.id;
-      } else if (expenseToEdit.location) {
-        defaultExpense.location = expenseToEdit.location;
+      } else if (expenseToEdit._location) {
+        defaultExpense.location = expenseToEdit._location;
       }
       
-      // Handle paid_by
-      defaultExpense.paid_by = expenseToEdit.paid_by || user?.id || '';
+      defaultExpense.paid_by = expenseToEdit.paid_by || user?.id || null;
       
-      // Copy over all other properties
       return { ...defaultExpense, ...expenseToEdit };
     }
     
@@ -142,40 +123,27 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
 
   const [expenseData, setExpenseData] = useState<ExpenseFormData>(safeExpense);
 
-  const csrf = useCSRF();
-
-  // Load reference data (categories and locations)
   const loadReferenceData = useCallback(async () => {
     try {
-      // Load locations
-      const { data: locationData, error: locationError } = await supabase
-        .from('locations')
-        .select('id, location')
-        .order('location');
-      
-      if (locationError) throw locationError;
-      
-      if (locationData) {
-        setLocations(locationData as LocationEntity[]);
+      const [locationResult, categoryResult] = await Promise.all([
+        supabase.from('locations').select('id, location').order('location'),
+        supabase.from('categories').select('id, category').order('category')
+      ]);
+
+      if (locationResult.error) throw locationResult.error;
+      if (categoryResult.error) throw categoryResult.error;
+
+      if (locationResult.data) {
+        setLocations(locationResult.data as LocationEntity[]);
       }
-      
-      // Load categories
-      const { data: categoryData, error: categoryError } = await supabase
-        .from('categories')
-        .select('id, category')
-        .order('category');
-      
-      if (categoryError) throw categoryError;
-      
-      if (categoryData && categoryData.length > 0) {
-        setCategories(categoryData as CategoryEntity[]);
-        
-        // Set default category if not editing
-        if (!expenseToEdit && categoryData.length > 0) {
-          setExpenseData(prev => ({ 
-            ...prev, 
-            category: categoryData[0].category, 
-            category_id: categoryData[0].id 
+
+      if (categoryResult.data?.length) {
+        setCategories(categoryResult.data as CategoryEntity[]);
+        if (!expenseToEdit && categoryResult.data.length > 0) {
+          setExpenseData(prev => ({
+            ...prev,
+            category: categoryResult.data[0].category,
+            category_id: categoryResult.data[0].id
           }));
         }
       }
@@ -185,188 +153,137 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
     }
   }, [expenseToEdit]);
 
-  // Initialize data on component mount
   useEffect(() => {
     loadReferenceData();
   }, [loadReferenceData]);
 
-  // Update currency when it changes in context
   useEffect(() => {
     setExpenseData(prev => ({ ...prev, currency }));
   }, [currency]);
 
-  // Initialize selected locations if editing an expense
   useEffect(() => {
-    if (expenseToEdit?.all_locations && Array.isArray(expenseToEdit.all_locations)) {
-      setSelectedLocations(expenseToEdit.all_locations);
-    } else if (expenseToEdit?.location) {
-      setSelectedLocations([expenseToEdit.location]);
+    if (expenseToEdit?._all_locations && Array.isArray(expenseToEdit._all_locations)) {
+      setSelectedLocations(expenseToEdit._all_locations);
     } else if (expenseToEdit?._location) {
       setSelectedLocations([expenseToEdit._location]);
     }
   }, [expenseToEdit]);
 
-  // Handle input changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setExpenseData(prev => ({ 
-      ...prev, 
-      [name]: value ?? '' 
-    }));
+    setExpenseData(prev => ({ ...prev, [name]: value }));
     
-    // Clear validation error for this field when it changes
     if (validationErrors[name]) {
       setValidationErrors(prev => {
-        const updated = { ...prev };
-        delete updated[name];
-        return updated;
+        const { [name]: _, ...rest } = prev;
+        return rest;
       });
     }
   };
 
-  // Handle form cancellation
   const handleCancel = (e: React.MouseEvent) => {
     e.preventDefault();
     onClose();
   };
 
-  // Handle amount changes with sanitization
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitizedAmount = sanitizeAmount(e.target.value);
-    setExpenseData(prev => ({ 
-      ...prev, 
-      amount: sanitizedAmount ?? 0
-    }));
+    setExpenseData(prev => ({ ...prev, amount: sanitizedAmount ?? 0 }));
     
-    // Clear validation error for this field when it changes
     if (validationErrors.amount) {
       setValidationErrors(prev => {
+        const { amount: _, ...rest } = prev;
+        return rest;
+      });
+    }
+  };
+
+  const handleAmountBlur = () => {
+    if (expenseData.amount) {
+      const formattedAmount = Number(expenseData.amount).toFixed(2);
+      setExpenseData(prev => ({
+        ...prev,
+        amount: formattedAmount === '0.00' ? 0 : parseFloat(formattedAmount)
+      }));
+    }
+  };
+
+  const handleLocationSelect = (locationObj: LocationEntity | { id: string | null; location: string }) => {
+    setExpenseData(prev => ({
+      ...prev,
+      location: locationObj.location,
+      location_id: locationObj.id
+    }));
+    
+    if (validationErrors.location_id) {
+      setValidationErrors(prev => {
         const updated = { ...prev };
-        delete updated.amount;
+        delete updated.location_id;
         return updated;
       });
     }
   };
 
-  // Auto-format amount on blur for better user experience
-  const handleAmountBlur = () => {
-    if (expenseData.amount) {
-      // Format to 2 decimal places if needed
-      const formattedAmount = Number(expenseData.amount).toFixed(2);
-      setExpenseData(prev => ({ 
-        ...prev, 
-        amount: formattedAmount === '0.00' ? 0 : parseFloat(formattedAmount) 
-      }));
-    }
-  };
+  const filteredLocations = useMemo(() => {
+    return locations;
+  }, [locations]);
 
-  // Handle location change
-  const handleLocationChange = (location: string | null) => {
-    if (location === null) {
-      // Clear all locations
-      setSelectedLocations([]);
-      setExpenseData(prev => ({ 
-        ...prev, 
-        location: undefined,
-        location_id: null
-      }));
-    } else if (!selectedLocations.includes(location)) {
-      // Add new location
-      const newLocations = [...selectedLocations, location];
-      setSelectedLocations(newLocations);
-      
-      // Update primary location in expense data
-      const locationObj = locations.find(l => l.location === location);
-      if (locationObj) {
-        setExpenseData(prev => ({ 
-          ...prev, 
-          location: location,
-          location_id: locationObj.id
-        }));
-      } else {
-        setExpenseData(prev => ({ 
-          ...prev, 
-          location: location,
-          location_id: null
-        }));
-      }
-    }
-  };
-
-  // Handle removing a location
   const handleRemoveLocation = (location: string) => {
     const updatedLocations = selectedLocations.filter(loc => loc !== location);
     setSelectedLocations(updatedLocations);
     
-    // If we removed the primary location, update it to the first remaining one or null
     if (expenseData.location === location) {
       if (updatedLocations.length > 0) {
         const newPrimaryLocation = updatedLocations[0];
         const locationObj = locations.find(l => l.location === newPrimaryLocation);
         
-        setExpenseData(prev => ({ 
-          ...prev, 
+        setExpenseData(prev => ({
+          ...prev,
           location: newPrimaryLocation,
           location_id: locationObj?.id || null
         }));
       } else {
-        setExpenseData(prev => ({ 
-          ...prev, 
-          location: undefined,
-          location_id: null
-        }));
+        setExpenseData(prev => ({ ...prev, location: undefined, location_id: null }));
       }
     }
   };
 
-  // Toggle category dropdown
   const handleToggleCategoryDropdown = () => {
     setShowCategoryDropdown(prev => !prev);
     if (!showCategoryDropdown && categoryInputRef.current) {
-      // Focus the input when opening dropdown
       setTimeout(() => categoryInputRef.current?.focus(), 0);
     }
   };
 
-  // Handle category selection
   const handleCategorySelect = (categoryObj: CategoryEntity) => {
-    setExpenseData(prev => ({ 
-      ...prev, 
+    setExpenseData(prev => ({
+      ...prev,
       category: categoryObj.category,
       category_id: categoryObj.id
     }));
     setShowCategoryDropdown(false);
     setCategorySearchTerm('');
     
-    // Clear validation error for this field
     if (validationErrors.category_id) {
       setValidationErrors(prev => {
-        const updated = { ...prev };
-        delete updated.category_id;
-        return updated;
+        const { category_id: _, ...rest } = prev;
+        return rest;
       });
     }
   };
 
-  // Filter categories based on search term
   const filteredCategories = useMemo(() => {
     if (!categorySearchTerm.trim()) return categories;
-    
-    return categories.filter(cat => 
+    return categories.filter(cat =>
       cat.category.toLowerCase().includes(categorySearchTerm.toLowerCase())
     );
   }, [categories, categorySearchTerm]);
 
-  // Toggle split type
   const handleToggleSplitType = (splitType: string) => {
     setSelectedSplitType(splitType);
-    setExpenseData(prev => ({ 
-      ...prev, 
-      split_type: splitType 
-    }));
+    setExpenseData(prev => ({ ...prev, split_type: splitType }));
   };
 
-  // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -375,24 +292,21 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
     setSuccess(false);
 
     try {
-      // Find the category ID for the selected category name
       let categoryId = expenseData.category_id;
       if (expenseData.category && !categoryId) {
         const categoryObj = categories.find(c => c.category === expenseData.category);
         categoryId = categoryObj?.id || null;
       }
 
-      // Find the location ID for the selected location name
       let locationId = expenseData.location_id;
       if (expenseData.location && !locationId) {
         const locationObj = locations.find(l => l.location === expenseData.location);
         locationId = locationObj?.id || null;
       }
 
-      // Create formatted expense data with required fields
       const formattedExpenseData: ExpenseCreate = {
-        amount: typeof expenseData.amount === 'string' 
-          ? parseFloat(expenseData.amount) 
+        amount: typeof expenseData.amount === 'string'
+          ? parseFloat(expenseData.amount)
           : (expenseData.amount || 0),
         date: expenseData.date || getCurrentISODate(),
         category_id: categoryId,
@@ -403,43 +317,26 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
         split_type: selectedSplitType
       };
 
-      // Validate the expense data
       const validation = validateExpenseCreate(formattedExpenseData);
-      
       if (!validation.valid) {
-        const errors = validation.errors || {};
-        setValidationErrors(errors);
+        setValidationErrors(validation.errors || {});
         throw new Error('Validation failed');
       }
 
-      let result;
       const csrfToken = await csrf.getToken();
-
-      if (expenseToEdit?.id) {
-        // Update existing expense
-        result = await updateExpense(
-          expenseToEdit.id, 
-          formattedExpenseData,
-          csrfToken
-        );
-      } else {
-        // Create new expense
-        result = await createExpense(
-          formattedExpenseData,
-          csrfToken
-        );
-      }
+      const result = expenseToEdit?.id
+        ? await updateExpense(expenseToEdit.id, formattedExpenseData, csrfToken)
+        : await createExpense(formattedExpenseData, csrfToken);
 
       if (result.success) {
         setSuccess(true);
         
-        // Reset form if creating new (not updating)
         if (!expenseToEdit) {
           setExpenseData({
             date: getCurrentISODate(),
             amount: 0,
-            category: categories.length > 0 ? categories[0].category : '',
-            category_id: categories.length > 0 ? categories[0].id : null,
+            category: categories[0]?.category || '',
+            category_id: categories[0]?.id || null,
             notes: '',
             location: '',
             location_id: null,
@@ -447,42 +344,32 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
             split_type: 'equal'
           });
           setSelectedLocations([]);
-          
-          // Reset the form to clear any browser validation states
           formRef.current?.reset();
         }
         
-        // Notify parent component
         onExpenseCreated();
-        
-        // Close modal after a short delay to show success message
-        setTimeout(() => {
-          onClose();
-        }, 1000);
+        setTimeout(() => onClose(), 1000);
       } else {
         throw new Error(result.message || 'Failed to save expense');
       }
     } catch (err: any) {
       console.error('Error saving expense:', err);
-      
-      // Set appropriate error message
-      if (err.message === 'Validation failed' && Object.keys(validationErrors).length > 0) {
-        setError('Please fix the highlighted errors');
-      } else {
-        setError(err.message || 'Failed to save expense. Please try again.');
-      }
+      setError(
+        err.message === 'Validation failed'
+          ? 'Please fix the validation errors'
+          : err.message || 'Failed to save expense. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle clicking outside of category dropdown
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (
-        categoryDropdownRef.current && 
+        categoryDropdownRef.current &&
         !categoryDropdownRef.current.contains(event.target as Node) &&
-        categoryInputRef.current && 
+        categoryInputRef.current &&
         !categoryInputRef.current.contains(event.target as Node)
       ) {
         setShowCategoryDropdown(false);
@@ -490,12 +377,9 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
     }
     
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-  
-  // Escape key to close modal
+
   useEffect(() => {
     function handleEscapeKey(event: KeyboardEvent) {
       if (event.key === 'Escape') {
@@ -504,20 +388,16 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
     }
     
     window.addEventListener('keydown', handleEscapeKey);
-    return () => {
-      window.removeEventListener('keydown', handleEscapeKey);
-    };
+    return () => window.removeEventListener('keydown', handleEscapeKey);
   }, [onClose]);
 
   return (
     <div className={`fixed inset-0 z-50 overflow-y-auto ${isOpen ? '' : 'hidden'}`}>
       <div className="flex items-center justify-center min-h-screen p-4 text-center sm:block sm:p-0">
-        {/* Background overlay */}
         <div className="fixed inset-0 transition-opacity" aria-hidden="true">
           <div className="absolute inset-0 bg-gray-500 bg-opacity-75"></div>
         </div>
 
-        {/* Modal panel */}
         <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-start mb-4">
@@ -547,9 +427,7 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
             )}
 
             <form onSubmit={handleSubmit} ref={formRef} className="space-y-4 md:space-y-5">
-              {/* Two-column layout for small fields on larger screens */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                {/* Amount field */}
                 <div>
                   <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
                     How much did you pay?
@@ -578,7 +456,6 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
                   </div>
                 </div>
 
-                {/* Date field */}
                 <div>
                   <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-1">
                     When was this expense?
@@ -605,123 +482,85 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
                 </div>
               </div>
 
-              {/* Category field */}
               <div>
-                <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
-                  What category was this expense?
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Category
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                    <Tag size={16} className="text-gray-400" />
-                  </div>
-                  
-                  {showCategoryDropdown ? (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        ref={categoryInputRef}
-                        value={categorySearchTerm}
-                        onChange={(e) => setCategorySearchTerm(e.target.value)}
-                        placeholder="Search categories..."
-                        className="w-full pl-10 pr-3 py-2 text-sm md:text-base border border-blue-500 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
-                        autoFocus
-                      />
-                      <button
-                        type="button"
-                        onClick={handleToggleCategoryDropdown}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3"
-                      >
-                        <ChevronUp size={16} className="text-gray-400" />
-                      </button>
-                      
-                      <div 
-                        ref={categoryDropdownRef}
-                        className="absolute left-0 right-0 z-10 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
-                      >
-                        {filteredCategories.length === 0 ? (
-                          <div className="py-2 px-3 text-sm text-gray-500">
-                            No categories found
-                          </div>
-                        ) : (
-                          filteredCategories.map(category => (
-                            <button
-                              key={category.id}
-                              type="button"
-                              onClick={() => handleCategorySelect(category)}
-                              className="block w-full px-3 py-2 text-left text-sm hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
-                            >
-                              {category.category}
-                            </button>
-                          ))
-                        )}
-                      </div>
+                  <div
+                    className="relative flex items-center cursor-pointer"
+                    onClick={handleToggleCategoryDropdown}
+                  >
+                    <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+                      <Tag size={16} className="text-gray-400" />
                     </div>
-                  ) : (
-                    <div className="relative">
-                      <input
-                        type="text"
-                        readOnly
-                        value={expenseData.category || ''}
-                        placeholder="Select a category"
-                        className={`w-full pl-10 pr-10 py-2 text-sm md:text-base border rounded-lg cursor-pointer ${
-                          validationErrors.category_id ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        onClick={handleToggleCategoryDropdown}
-                      />
-                      <button
-                        type="button"
-                        onClick={handleToggleCategoryDropdown}
-                        className="absolute inset-y-0 right-0 flex items-center pr-3"
-                      >
+                    <input
+                      type="text"
+                      ref={categoryInputRef}
+                      value={categorySearchTerm}
+                      onChange={(e) => setCategorySearchTerm(e.target.value)}
+                      className={`w-full pl-10 pr-10 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
+                        validationErrors.category_id ? 'border-red-500' : 'border-gray-300'
+                      }`}
+                      placeholder="Search categories..."
+                    />
+                    <div className="absolute inset-y-0 right-0 flex items-center pr-3">
+                      {showCategoryDropdown ? (
+                        <ChevronUp size={16} className="text-gray-400" />
+                      ) : (
                         <ChevronDown size={16} className="text-gray-400" />
-                      </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {showCategoryDropdown && (
+                    <div
+                      ref={categoryDropdownRef}
+                      className="absolute z-10 mt-1 w-full bg-white shadow-lg rounded-md py-1 text-base ring-1 ring-black ring-opacity-5 focus:outline-none sm:text-sm"
+                    >
+                      {filteredCategories.map((category) => (
+                        <div
+                          key={category.id}
+                          className="cursor-pointer px-4 py-2 hover:bg-gray-100"
+                          onClick={() => handleCategorySelect(category)}
+                        >
+                          {category.category}
+                        </div>
+                      ))}
                     </div>
                   )}
-                  
-                  {validationErrors.category_id && (
-                    <p className="mt-1 text-xs text-red-500">{validationErrors.category_id}</p>
+                </div>
+                {validationErrors.category_id && (
+                  <p className="mt-1 text-xs text-red-500">{validationErrors.category_id}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Location
+                </label>
+                <div className="relative">
+                  <select
+                    className={`w-full pl-3 pr-10 py-2 text-sm md:text-base border rounded-lg ${validationErrors.location_id ? 'border-red-500' : 'border-gray-300'}`}
+                    value={expenseData.location || ''}
+                    onChange={(e) => handleLocationSelect(locations.find(l => l.location === e.target.value) || { id: null, location: e.target.value })}
+                  >
+                    <option value="">Select a location</option>
+                    {filteredLocations.map((location) => (
+                      <option key={location.id} value={location.location}>
+                        {location.location}
+                      </option>
+                    ))}
+                  </select>
+                  {validationErrors.location_id && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.location_id}</p>
                   )}
                 </div>
               </div>
 
-              {/* Location field */}
-              <div>
-                <label htmlFor="location" className="block text-sm font-medium text-gray-700 mb-1">
-                  Where was this expense? (Optional)
-                </label>
-                <LocationCombobox
-                  locations={locations.map(loc => loc.location)}
-                  selectedLocation={expenseData.location || null}
-                  onChange={handleLocationChange}
-                  validationError={validationErrors.location_id}
-                />
-                
-                {/* Selected locations pills */}
-                {selectedLocations.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {selectedLocations.map(location => (
-                      <div 
-                        key={location}
-                        className="flex items-center bg-gray-100 rounded-full px-3 py-1 text-xs"
-                      >
-                        <span>{location}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveLocation(location)}
-                          className="ml-1 text-gray-500 hover:text-red-500 focus:outline-none"
-                        >
-                          <X size={12} />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Notes field */}
               <div>
                 <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-1">
-                  Any notes? (Optional)
+                  Notes
                 </label>
                 <textarea
                   id="notes"
@@ -729,112 +568,60 @@ const supportedCurrencies = { GBP: { symbol: "£", name: "British Pound" } };
                   value={expenseData.notes || ''}
                   onChange={handleChange}
                   maxLength={MAX_NOTES_LENGTH}
-                  className={`w-full p-3 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-                    validationErrors.notes ? 'border-red-500' : 'border-gray-300'
-                  }`}
+                  className="w-full px-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   rows={3}
-                  placeholder="Add any details about this expense"
+                  placeholder="Add any additional details..."
                 />
-                {expenseData.notes && (
-                  <div className="mt-1 text-xs text-gray-500 text-right">
-                    {expenseData.notes.length}/{MAX_NOTES_LENGTH}
-                  </div>
-                )}
-                {validationErrors.notes && (
-                  <p className="mt-1 text-xs text-red-500">{validationErrors.notes}</p>
-                )}
               </div>
 
-              {/* Split Type and Paid By */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                {/* Split type field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    How should this be split?
-                  </label>
-                  <div className="flex space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleSplitType('equal')}
-                      className={`flex-1 py-2 px-3 text-sm rounded-lg flex items-center justify-center focus:outline-none border transition-colors ${
-                        selectedSplitType === 'equal'
-                          ? 'bg-blue-50 border-blue-300 text-blue-700'
-                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <SplitSquareVertical size={16} className="mr-2" />
-                      <span>Split 50/50</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleToggleSplitType('none')}
-                      className={`flex-1 py-2 px-3 text-sm rounded-lg flex items-center justify-center focus:outline-none border transition-colors ${
-                        selectedSplitType === 'none'
-                          ? 'bg-blue-50 border-blue-300 text-blue-700'
-                          : 'bg-white border-gray-300 text-gray-700 hover:bg-gray-50'
-                      }`}
-                    >
-                      <UserMinus size={16} className="mr-2" />
-                      <span>No Split</span>
-                    </button>
-                  </div>
-                  {validationErrors.split_type && (
-                    <p className="mt-1 text-xs text-red-500">{validationErrors.split_type}</p>
-                  )}
-                </div>
-
-                {/* Who paid field */}
-                <div>
-                  <label htmlFor="paid_by" className="block text-sm font-medium text-gray-700 mb-1">
-                    Who paid?
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-                      <Users size={16} className="text-gray-400" />
-                    </div>
-                    <select
-                      id="paid_by"
-                      name="paid_by"
-                      value={expenseData.paid_by ?? ''}
-                      onChange={handleChange}
-                      className="w-full pl-10 pr-3 py-2 text-sm md:text-base border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {/* Display the payer from expense data if available */}
-                      {expenseToEdit && expenseToEdit.user_info ? (
-                        <option value={expenseData.paid_by}>
-                          {expenseToEdit.user_info.name || expenseToEdit.user_info.email || 'Unknown'}
-                        </option>
-                      ) : (
-                        <option value={user?.id}>{profile?.name || user?.email}</option>
-                      )}
-                    </select>
-                    {validationErrors.paid_by && (
-                      <p className="mt-1 text-xs text-red-500">{validationErrors.paid_by}</p>
-                    )}
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Split Type
+                </label>
+                <div className="flex space-x-4">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSplitType('equal')}
+                    className={`flex items-center px-4 py-2 rounded-lg ${
+                      selectedSplitType === 'equal'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Users size={16} className="mr-2" />
+                    Equal Split
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleSplitType('custom')}
+                    className={`flex items-center px-4 py-2 rounded-lg ${
+                      selectedSplitType === 'custom'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                        : 'bg-gray-50 text-gray-700 border border-gray-200 hover:bg-gray-100'
+                    }`}
+                  >
+                    <SplitSquareVertical size={16} className="mr-2" />
+                    Custom Split
+                  </button>
                 </div>
               </div>
 
-              {/* Action buttons */}
-              <div className="flex justify-end space-x-3 pt-2">
+              <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
                   onClick={handleCancel}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500"
-                  disabled={loading}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className={`px-4 py-2 rounded-lg text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 ${
-                    loading
-                      ? 'bg-blue-400 cursor-not-allowed'
-                      : 'bg-blue-600 hover:bg-blue-700 focus:ring-blue-500'
-                  }`}
                   disabled={loading}
+                  className={`px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                    loading ? 'opacity-75 cursor-not-allowed' : ''
+                  }`}
                 >
-                  {loading ? 'Saving...' : expenseToEdit ? 'Save Changes' : 'Add Expense'}
+                  {loading ? 'Saving...' : expenseToEdit ? 'Update Expense' : 'Add Expense'}
                 </button>
               </div>
             </form>

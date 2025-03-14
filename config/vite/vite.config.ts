@@ -11,7 +11,7 @@ const rootDir = path.resolve(__dirname, '../..');
 const configDir = path.resolve(__dirname, '..');
 
 // Config file paths
-const POSTCSS_CONFIG_PATH = path.resolve(configDir, 'postcss.config.ts');
+const POSTCSS_CONFIG_PATH = path.resolve(rootDir, 'postcss.config.cjs');
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
       tsconfigPaths()
     ],
     css: {
-      postcss: path.resolve(rootDir, 'postcss.config.cjs'),
+      postcss: POSTCSS_CONFIG_PATH,
       devSourcemap: true
     },
     resolve: {

@@ -22,6 +22,17 @@ These features were causing unnecessary complexity and bugs:
 
 ## Implementation Details
 
+1. **Utility Functions**: Replaced `CurrencyContext` with simple utility functions in `src/utils/currency.ts`.
+2. **Settings Page**: Updated to remove currency selection options.
+3. **Database Schema**: 
+   - Removed the `settings` table completely
+   - Removed the `language` column from the `users` table
+   - Removed the `preferences` column from the `users` table
+4. **Service Layer**:
+   - Removed the unused `settingsService.ts` file
+   - Updated all database queries to use the `users` table instead of the `settings` table
+5. **Auth Context**: Updated to remove preferences and language field references.
+
 ### 1. Replaced CurrencyContext with Utility Functions
 
 - Removed the CurrencyContext.tsx file completely

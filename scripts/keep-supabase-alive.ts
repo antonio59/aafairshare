@@ -60,7 +60,7 @@ async function pingSupabase(): Promise<void> {
     // Perform a simple database query to keep the instance active
     // Using a simpler query that doesn't use aggregate functions
     const { data, error } = await supabase
-      .from('settings')
+      .from('users')
       .select('*')
       .limit(1);
     

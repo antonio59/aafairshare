@@ -54,7 +54,7 @@ const reactConfig = {
 
 const tsConfig = {
   parserOptions: {
-    project: ['./tsconfig.json', './tsconfig.node.json'],
+    project: ['./config/typescript/tsconfig.json', './config/typescript/tsconfig.node.json'],
     tsconfigRootDir: process.cwd(),
   },
 };
@@ -79,12 +79,12 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        project: ['./tsconfig.json', './tsconfig.node.json'],
+        project: ['./config/typescript/tsconfig.json', './config/typescript/tsconfig.node.json'],
         tsconfigRootDir: process.cwd(),
         ecmaFeatures: {
           jsx: true,
         },
-        project: ['./tsconfig.json'],
+        project: ['./config/typescript/tsconfig.json'],
       },
       globals: customGlobals,
     },

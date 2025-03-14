@@ -309,8 +309,8 @@ const currency = "GBP";
     if (typeof value === 'string') {
       value = parseFloat(value) || 0;
     }
-    return currencyContext.formatAmount(value);
-  }, [currencyContext.formatAmount]);
+    return formatAmount(value);
+  }, []);
   
   const { user, refreshSession } = useAuth();
   const { handleError } = useErrorHandler();

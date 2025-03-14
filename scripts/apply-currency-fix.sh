@@ -28,9 +28,17 @@ echo "Converting CurrencyContext to utility functions..."
 echo "Updating imports in all files..."
 ./scripts/update-currency-imports.sh
 
-# Remove the CurrencyContext.tsx file
-echo "Removing CurrencyContext.tsx file..."
-rm -f src/core/contexts/CurrencyContext.tsx
+# Remove the CurrencyContext.tsx file if it exists
+if [ -f "src/core/contexts/CurrencyContext.tsx" ]; then
+  echo "Removing CurrencyContext.tsx..."
+  rm -f src/core/contexts/CurrencyContext.tsx
+fi
+
+# Remove the settingsService.ts file if it exists
+if [ -f "src/core/services/settingsService.ts" ]; then
+  echo "Removing settingsService.ts..."
+  rm -f src/core/services/settingsService.ts
+fi
 
 # Run the database migration if Supabase CLI is available
 if command -v supabase &> /dev/null; then
@@ -58,15 +66,12 @@ fi
 
 echo "✅ Settings simplification has been applied with the following improvements:"
 echo "  1. Removed CurrencyContext and replaced with utility functions"
-echo "  2. Removed currency selection from settings"
+echo "  2. Updated imports across the codebase"
 echo "  3. Removed language settings"
-echo "  4. Removed export option from settings (still available in analytics)"
-echo "  5. Kept only category and location management in settings"
+echo "  4. Removed export options"
+echo "  5. Removed notifications references"
 echo "  6. Updated database schema to remove unused fields (preferences, language)"
-echo "  7. Simplified services and types for better maintenance"
-echo "  8. Removed unused notifications references"
-echo "  9. Dropped settings table entirely"
-
+echo "  7. Removed unused settingsService.ts file"
 echo ""
 echo "To test the changes, run:"
 echo "npm run dev"

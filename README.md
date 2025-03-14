@@ -220,7 +220,7 @@ docs/                 # Detailed documentation
 └── supabase-migration.md # Migration guides
 
 config/              # Configuration files
-├── postcss.config.ts # PostCSS configuration
+├── postcss.config.cjs # PostCSS configuration
 └── tailwind.config.ts # Tailwind CSS configuration
 ```
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { HashRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Header from './features/shared/components/Header';
 import Footer from './features/shared/components/Footer';
 import MonthlyExpenses from './features/expenses/components/MonthlyExpenses';
@@ -14,7 +14,6 @@ import AuthPage from './features/auth/components/AuthPage';
 import ProtectedRoute from './features/auth/components/ProtectedRoute';
 import { AuthProvider, useAuth } from './core/contexts/AuthContext';
 import { ErrorBoundary } from './core/components/ErrorBoundary';
-import TestAuth from './features/auth/components/TestAuth';
 
 // Layout component to handle conditional rendering of Header and Footer
 const AppLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -166,7 +165,6 @@ export const App: React.FC<AppProps> = () => {
               <Route path="/auth" element={<Navigate to="/login" replace />} />
               <Route path="/login" element={<AuthPage mode="login" />} />
               <Route path="/signup" element={<AuthPage mode="signup" />} />
-              <Route path="/testauth" element={<TestAuth />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AppLayout>

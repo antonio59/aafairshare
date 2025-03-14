@@ -44,7 +44,6 @@ export default function NewExpenseModal({
   expenseToEdit 
 }: NewExpenseModalProps) {
   const { user, profile } = useAuth();
-  const { currency, supportedCurrencies } = useCurrency();
   
   // UI state
   const [loading, setLoading] = useState(false);

@@ -2,8 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Plus, X, Edit, Save, AlertCircle, Check } from 'lucide-react';
 import { supabase } from '../../../core/api/supabase';
 
+interface Location {
+  id: string;
+  location: string;
+  created_at: string;
+}
+
 export const LocationManager = () => {
-  const [locations, setLocations] = useState([]);
+  const [locations, setLocations] = useState<Location[]>([]);
   const [newLocation, setNewLocation] = useState('');
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -25,14 +31,14 @@ export const LocationManager = () => {
 
       const { data, error } = await supabase
         .from('locations')
-        .select('id, location')
+        .select('id, location, created_at')
         .order('location');
       
-      if (_error) throw error;
+      if (error) throw error;
       
       setLocations(data || []);
-    } catch (_error) {
-      console.error('Error loading locations:', _error);
+    } catch (error) {
+      console.error('Error loading locations:', error);
       setError('Failed to load locations');
     } finally {
       setLoading(false);
@@ -57,20 +63,37 @@ export const LocationManager = () => {
         .select()
         .single();
       
-      if (_error) throw error;
+      if (error) throw error;
       
       setLocations([...locations, data]);
       setNewLocation('');
       setSuccess('Location added successfully');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (_error) {
+    } catch (error) {
       setError('Failed to add location');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleUpdateLocation = async (id, newLocationName) => {
+  const handleDeleteLocation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('locations')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      setLocations(locations.filter(loc => loc.id !== id));
+      setSuccess('Location deleted successfully');
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (error) {
+      setError('Failed to delete location');
+    }
+  };
+
+  const handleUpdateLocation = async (id: string, newLocationName: string) => {
     if (!newLocationName.trim()) return;
     
     try {
@@ -81,31 +104,14 @@ export const LocationManager = () => {
         .select()
         .single();
 
-      if (_error) throw error;
+      if (error) throw error;
       
       setLocations(locations.map(loc => loc.id === id ? data : loc));
       setEditingLocation({ index: -1, value: '' });
       setSuccess('Location updated successfully');
       setTimeout(() => setSuccess(''), 3000);
-    } catch (_error) {
+    } catch (error) {
       setError('Failed to update location');
-    }
-  };
-
-  const handleDeleteLocation = async (id) => {
-    try {
-      const { error } = await supabase
-        .from('locations')
-        .delete()
-        .eq('id', id);
-
-      if (_error) throw error;
-      
-      setLocations(locations.filter(loc => loc.id !== id));
-      setSuccess('Location deleted successfully');
-      setTimeout(() => setSuccess(''), 3000);
-    } catch (_error) {
-      setError('Failed to delete location');
     }
   };
 

@@ -2,11 +2,26 @@
 
 ## Overview
 
-This document outlines the testing strategy for our application, including the different types of tests, tools used, and priorities for implementation.
+This document provides a comprehensive guide to our testing strategy, implementation, and best practices. We use a multi-layered testing approach to ensure the quality and reliability of our application.
+
+## Testing Structure
+
+```
+├── src/
+│   ├── test/
+│   │   ├── setup.ts               # Global test setup
+│   │   ├── mocks/                 # Mock implementations
+│   │   └── examples/              # Example tests
+├── e2e/
+│   ├── fixtures/                  # Test fixtures
+│   ├── examples/                  # E2E test examples
+│   └── utils/                     # Helper utilities
+└── playwright.config.ts          # Playwright configuration
+```
 
 ## Testing Layers
 
-Our testing approach follows the Testing Trophy methodology with the following layers:
+Our testing approach follows the Testing Trophy methodology:
 
 1. **Static Analysis**: TypeScript, ESLint, and other static typing tools
 2. **Unit Tests**: Testing individual functions and components in isolation
@@ -23,106 +38,157 @@ Our testing approach follows the Testing Trophy methodology with the following l
 | Performance | Lighthouse, Web Vitals | GitHub Actions for CI |
 | Accessibility | Axe, Storybook a11y addon | Playwright accessibility testing |
 
+## Running Tests
+
+### Unit and Integration Tests
+
+```bash
+# Run all tests in watch mode
+npm test
+
+# Run tests with UI
+npm run test:ui
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+### Component Tests
+
+```bash
+# Start Storybook
+npm run storybook
+
+# Run Storybook tests
+npm run test-storybook
+```
+
+### End-to-End Tests
+
+```bash
+# Run all E2E tests
+npx playwright test
+
+# Run tests in UI mode
+npx playwright test --ui
+```
+
 ## Priority Areas
 
 ### High Priority
 
-1. **Unit Testing**
-   - Critical business logic in services
-   - Custom hooks that manage state or side effects
-   - Utility functions
+1. **Core Business Logic**
+   - Critical services and utilities
+   - State management
+   - Data transformations
 
 2. **Integration Testing**
    - Component interactions
-   - API calls to Supabase
+   - API integrations
    - Form submissions
 
 3. **Critical Path Testing**
-   - Settlement creation and management flow
-   - Expense creation and assignment flow
-   - Authentication and authorization
+   - User authentication
+   - Transaction flows
+   - Data persistence
 
 ### Medium Priority
 
-1. **Snapshot Testing**
-   - UI components to catch unintended visual regressions
-   - Complex UI layouts and interactions
+1. **UI Components**
+   - Reusable components
+   - Layout systems
+   - Interactive elements
 
-2. **End-to-End Testing**
-   - Complete user journeys
-   - Critical business flows
+2. **End-to-End Flows**
+   - User journeys
    - Cross-browser compatibility
+   - Error scenarios
 
 ### Low Priority
 
 1. **Performance Testing**
-   - Load time benchmarks
-   - Animation smoothness
-   - API response times
+   - Load time optimization
+   - Resource utilization
+   - Animation performance
 
 2. **Accessibility Testing**
-   - WCAG compliance checks
+   - WCAG compliance
    - Keyboard navigation
-   - Screen reader compatibility
+   - Screen reader support
 
 ## Test Coverage Goals
 
 | Component Type | Coverage Target |
-|----------------|-----------------|
+|----------------|------------------|
 | Core Business Logic | 90%+ |
 | UI Components | 70%+ |
 | Utility Functions | 80%+ |
 | API Services | 85%+ |
 
+## Best Practices
+
+### Unit Tests
+
+- Test one piece of functionality at a time
+- Mock external dependencies
+- Follow AAA pattern (Arrange, Act, Assert)
+- Use descriptive test names
+
+### Integration Tests
+
+- Focus on component interactions
+- Test realistic workflows
+- Use representative test data
+- Mock external services
+
+### Component Tests
+
+- Test in isolation
+- Verify appearance and behavior
+- Use snapshots judiciously
+- Test accessibility
+
+### End-to-End Tests
+
+- Focus on critical paths
+- Use realistic test data
+- Test error scenarios
+- Verify complete workflows
+
 ## Continuous Integration
 
-Tests will be integrated into the CI/CD pipeline to ensure:
-- Tests run on each commit/PR
-- PRs with failing tests cannot be merged
-- Test coverage reports are generated and tracked
+- Tests run on each PR
+- Coverage reports generated
+- Performance benchmarks tracked
+- Accessibility compliance checked
 
-## Implementation Roadmap
+## Setup Instructions
 
-1. **Phase 1: Setup & Critical Paths**
-   - Set up testing infrastructure
-   - Implement unit tests for core business logic
-   - Create integration tests for settlement and expense flows
+### Initial Setup
 
-2. **Phase 2: Expanding Coverage**
-   - Add component tests with snapshots
-   - Implement E2E tests for critical user journeys
-   - Integrate with CI/CD pipeline
+```bash
+# Install dependencies
+npm install --save-dev vitest @testing-library/react @testing-library/user-event @testing-library/jest-dom
 
-3. **Phase 3: Quality Enhancements**
-   - Add performance testing
-   - Implement accessibility testing
-   - Set up monitoring and reporting
+# Install E2E testing
+npm init playwright@latest
+
+# Install Storybook
+npx storybook@latest init
+```
+
+### Configuration
+
+Refer to the project repository for detailed configuration files:
+- `vitest.config.ts` for unit tests
+- `playwright.config.ts` for E2E tests
+- `.storybook/` for component testing
 
 ## Maintenance
 
-- Regular test audits to identify gaps
-- Update tests as features change
-- Periodic review of testing strategy and tools
+- Regular test audits
+- Coverage monitoring
+- Performance tracking
+- Accessibility compliance
 
-## Performance Testing Strategy
-
-Our comprehensive performance testing approach includes:
-
-1. **Custom Lighthouse Script** (`scripts/run-lighthouse.js`)
-   - Local performance testing during development
-   - CI performance testing for production builds
-   - HTML reports generated for detailed analysis
-
-2. **Web Vitals Integration** (`src/utils/web-vitals.ts`)
-   - Real User Monitoring (RUM) of Core Web Vitals
-   - Console reporting during development
-   - Analytics integration for production monitoring
-
-3. **GitHub Actions Workflow** (`.github/workflows/lighthouse-ci.yml`)
-   - Automated performance testing on pull requests
-   - Set thresholds for critical metrics
-   - PR comments with performance impact
-
-For more details on our performance testing implementation, see:
-- [Performance Testing Documentation](./performance-testing.md)
-- [Performance Optimizations Documentation](./performance-optimizations.md) 
+Last updated: March 2024

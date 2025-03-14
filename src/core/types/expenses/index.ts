@@ -38,7 +38,7 @@ export interface ExpenseCreate {
   notes?: string | null;
   split_type: "equal" | "none" | string;
   paid_by: string;
-  category_id?: string | null;
+  category_id: string | null;
   location_id?: string | null;
   
   // Convenience fields that get converted to IDs
@@ -110,4 +110,4 @@ export interface MonthlyExpenseData {
 /**
  * Valid error types for expense-related errors
  */
-export type ExpenseErrorType = 'not_found' | 'not_authorized' | 'general' | null; 
+export type ExpenseErrorType = 'not_found' | 'not_authorized' | 'general' | null;
