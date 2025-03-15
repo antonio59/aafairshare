@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { X, Calendar, Tag, Users, ChevronUp, ChevronDown, SplitSquareVertical, UserMinus } from 'lucide-react';
 import { createExpense, updateExpense } from '../api/expenseApi';
-import { useAuth } from '../../../core/contexts/AuthContext';
-import { supabase } from '../../../core/api/supabase';
-import { getCurrentISODate } from '../../shared/utils/date-utils';
-import { validateExpenseCreate, sanitizeAmount } from '../../../core/utils/validation';
-import { useCSRF } from '../../shared/utils/csrf';
-import { Expense, ExpenseCreate } from '../../../core/types/expenses';
+import { useAuth } from '@core/contexts/AuthContext';
+import { supabase } from '@core/api/supabase';
+import { getCurrentISODate } from '@utils/date-utils';
+import { validateData, expenseSchema as validateExpenseCreate } from '@core/utils/validation-schemas';
+import { useCSRF } from '@features/shared/utils/csrf';
+import { Expense, ExpenseCreate } from '@core/types/expenses';
+import { formatDecimal as sanitizeAmount } from '@utils/number-utils';
 
 interface NewExpenseModalProps {
   isOpen: boolean;
@@ -24,6 +25,7 @@ interface ExpenseFormData {
   location?: string;
   location_id: string | null;
   paid_by: string | null;
+  paid_by_name?: string | null;
   split_type: 'equal' | 'none' | string;
 }
 
@@ -43,8 +45,9 @@ export default function NewExpenseModal({
   onExpenseCreated,
   expenseToEdit
 }: NewExpenseModalProps) {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const currency = "GBP";
+  const [users, setUsers] = useState<Array<{ id: string; name: string; email: string }>>([]);
   const csrf = useCSRF();
   
   // UI state
@@ -124,13 +127,15 @@ export default function NewExpenseModal({
 
   const loadReferenceData = useCallback(async () => {
     try {
-      const [locationResult, categoryResult] = await Promise.all([
+      const [locationResult, categoryResult, usersResult] = await Promise.all([
         supabase.from('locations').select('id, location').order('location'),
-        supabase.from('categories').select('id, category').order('category')
+        supabase.from('categories').select('id, category').order('category'),
+        supabase.from('profiles').select('id, name, email').order('name')
       ]);
 
       if (locationResult.error) throw locationResult.error;
       if (categoryResult.error) throw categoryResult.error;
+      if (usersResult.error) throw usersResult.error;
 
       if (locationResult.data) {
         setLocations(locationResult.data as LocationEntity[]);
@@ -145,6 +150,10 @@ export default function NewExpenseModal({
             category_id: categoryResult.data[0].id
           }));
         }
+      }
+
+      if (usersResult.data) {
+        setUsers(usersResult.data);
       }
     } catch (error) {
       console.error('Error loading reference data:', error);
@@ -360,12 +369,13 @@ export default function NewExpenseModal({
       } else {
         throw new Error(result.message || 'Failed to save expense');
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error saving expense:', err);
+      const error = err as Error;
       setError(
-        err.message === 'Validation failed'
+        error.message === 'Validation failed'
           ? 'Please fix the validation errors'
-          : err.message || 'Failed to save expense. Please try again.'
+          : error.message || 'Failed to save expense. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -587,6 +597,34 @@ export default function NewExpenseModal({
               </div>
 
 
+
+              <div>
+                <label htmlFor="paid_by" className="block text-sm font-medium text-gray-700 mb-1">
+                  Paid By
+                </label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+                    <Users size={16} className="text-gray-400" />
+                  </div>
+                  <select
+                    id="paid_by"
+                    name="paid_by"
+                    value={expenseData.paid_by ?? ''}
+                    onChange={handleChange}
+                    className={`w-full pl-10 pr-3 py-2 text-sm md:text-base border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validationErrors.paid_by ? 'border-red-500' : 'border-gray-300'}`}
+                  >
+                    <option value="">Select who paid</option>
+                    {users.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name || u.email}
+                      </option>
+                    ))}
+                  </select>
+                  {validationErrors.paid_by && (
+                    <p className="mt-1 text-xs text-red-500">{validationErrors.paid_by}</p>
+                  )}
+                </div>
+              </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">

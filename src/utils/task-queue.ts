@@ -27,10 +27,10 @@ export enum TaskPriority {
 }
 
 // Task interface
-export interface Task<T = any> {
+export interface Task<T = unknown, P = unknown> {
   id: string;
   type: string;
-  payload: any;
+  payload: P;
   status: TaskStatus;
   priority: TaskPriority;
   progress: number;
@@ -43,7 +43,7 @@ export interface Task<T = any> {
 }
 
 // Task handler function type
-export type TaskHandler<T = any> = (task: Task<T>) => Promise<T>;
+export type TaskHandler<T = unknown> = (task: Task<T>) => Promise<T>;
 
 // Task queue configuration
 interface TaskQueueConfig {
@@ -332,4 +332,4 @@ export class TaskQueue {
 export const taskQueue = new TaskQueue();
 
 // Export the singleton
-export default taskQueue; 
+export default taskQueue;

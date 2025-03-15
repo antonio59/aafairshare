@@ -11,7 +11,7 @@ import {
 import { getUserBudget, saveBudgetSettings } from '../api/budgetApi';
 import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
 import { useAuth } from '../../../core/contexts/AuthContext';
-import { formatDateToUK } from '../../shared/utils/date-utils';
+import { formatDateToUK } from '../../../utils/date-utils';
 import { CategoryDistributionChart } from './CategoryDistributionChart';
 import { ExpenseTrendChart } from './ExpenseTrendChart';
 import { LocationSpendingChart } from './LocationSpendingChart';

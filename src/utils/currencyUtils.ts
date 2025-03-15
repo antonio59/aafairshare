@@ -7,12 +7,12 @@
  * @param amount - The amount to format
  * @returns Formatted amount with £ symbol
  */
-export function formatAmount(amount: number): string {
-  // Always use the GBP symbol
-  return `£${parseFloat(amount.toString()).toFixed(2)}`;
+export function formatAmount(amount: number | string): string {
+  const numericAmount = typeof amount === 'string' ? parseFloat(amount) : amount;
+  return `£${numericAmount.toFixed(2)}`;
 }
 
 /**
  * Alias for formatAmount for backward compatibility
  */
-export const formatCurrency = formatAmount; 
+export const formatCurrency = formatAmount;

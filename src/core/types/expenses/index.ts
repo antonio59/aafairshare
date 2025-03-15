@@ -1,13 +1,6 @@
-import { Json } from "../supabase.types";
-
-/**
- * Core expense interface for application-wide use
- * All expense-related components should use this interface or extend it
- */
+export * from '../expenses';
+export type { Expense, ExpenseCreate, ExpenseUpdate, ExpenseFilters } from '../expenses';
 export interface Expense {
-  id: string;
-  amount: number;
-  date: string;
   notes?: string | null;
   split_type: "equal" | "none" | string;
   paid_by: string | null;

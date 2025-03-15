@@ -5,14 +5,50 @@
  */
 
 // Type definitions for messages between the worker and main thread
-type WorkerRequest = {
-  action: 'CALCULATE_MONTHLY_TOTALS' | 'CALCULATE_STATISTICS' | 'GROUP_BY_DATE' | 'PROCESS_ANALYTICS';
-  payload: any;
+export type WorkerRequest = {
+  action: 'CALCULATE_MONTHLY_TOTALS';
+  payload: Expense[];
+} | {
+  action: 'CALCULATE_STATISTICS';
+  payload: Expense[];
+} | {
+  action: 'GROUP_BY_DATE';
+  payload: Expense[];
+} | {
+  action: 'PROCESS_ANALYTICS';
+  payload: Expense[];
 };
 
-type WorkerResponse = {
-  action: string;
-  result: any;
+export type WorkerResponse = {
+  action: 'CALCULATE_MONTHLY_TOTALS';
+  result: Record<string, number>;
+  error?: string;
+} | {
+  action: 'CALCULATE_STATISTICS';
+  result: {
+    total: number;
+    average: number;
+    min: number;
+    max: number;
+    count: number;
+    byCategory: Record<string, number>;
+    byMonth: Record<string, number>;
+  };
+  error?: string;
+} | {
+  action: 'GROUP_BY_DATE';
+  result: Record<string, Expense[]>;
+  error?: string;
+} | {
+  action: 'PROCESS_ANALYTICS';
+  result: {
+    categoryData: Array<{ category: string; amount: number }>;
+    locationData: Array<{ location: string; amount: number }>;
+    timeData: Array<{ period: string; amount: number }>;
+    trendData: { daily: Array<{ date: string; amount: number }> };
+    totalSpending: number;
+    expenseCount: number;
+  };
   error?: string;
 };
 
@@ -62,7 +98,9 @@ function handleMessage(event: MessageEvent<WorkerRequest>): void {
 }
 
 // Calculate monthly totals for expenses
-function calculateMonthlyTotals(expenses: any[]): Record<string, number> {
+import { Expense } from '@/core/types/expenses';
+
+function calculateMonthlyTotals(expenses: Expense[]): Record<string, number> {
   const monthlyTotals: Record<string, number> = {};
 
   expenses.forEach(expense => {
@@ -83,7 +121,7 @@ function calculateMonthlyTotals(expenses: any[]): Record<string, number> {
 }
 
 // Calculate various statistics for expenses
-function calculateStatistics(expenses: any[]): {
+function calculateStatistics(expenses: Expense[]): {
   total: number;
   average: number;
   min: number;
@@ -148,7 +186,7 @@ function calculateStatistics(expenses: any[]): {
 }
 
 // Group expenses by date for display
-function groupExpensesByDate(expenses: any[]): Record<string, any[]> {
+function groupExpensesByDate(expenses: Expense[]): Record<string, Expense[]> {
   const groups: Record<string, any[]> = {};
 
   expenses.forEach(expense => {
@@ -174,7 +212,7 @@ function groupExpensesByDate(expenses: any[]): Record<string, any[]> {
 }
 
 // Process analytics data for expenses
-function processAnalyticsData(expenses: any[]): {
+function processAnalyticsData(expenses: Expense[]): {
   categoryData: Array<{ category: string; amount: number }>;
   locationData: Array<{ location: string; amount: number }>;
   timeData: Array<{ period: string; amount: number }>;
@@ -311,4 +349,4 @@ function processAnalyticsData(expenses: any[]): {
 }
 
 // Explicitly tell TypeScript this is a module to avoid the "cannot redeclare block-scoped variable" error
-export {}; 
+export {};

@@ -21,11 +21,29 @@ function getWorker(): Worker {
  * @param expenses - Array of expense objects
  * @returns Promise resolving to a record of monthly totals
  */
-export function calculateMonthlyTotals(expenses: any[]): Promise<Record<string, number>> {
+import { Expense } from '@/core/types/expenses';
+import type { WorkerRequest, WorkerResponse } from './expense-calculations.worker';
+
+function isValidWorkerResponse(data: unknown): data is WorkerResponse {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'action' in data &&
+    typeof (data as WorkerResponse).action === 'string' &&
+    ['CALCULATE_MONTHLY_TOTALS', 'CALCULATE_STATISTICS', 'GROUP_BY_DATE', 'PROCESS_ANALYTICS'].includes((data as WorkerResponse).action) &&
+    'result' in data
+  );
+}
+
+export function calculateMonthlyTotals(expenses: Expense[]): Promise<Record<string, number>> {
   return new Promise((resolve, reject) => {
     const w = getWorker();
     
-    const messageHandler = (event: MessageEvent) => {
+    const messageHandler = (event: MessageEvent<WorkerResponse>) => {
+      if (!isValidWorkerResponse(event.data)) {
+        reject(new Error('Invalid worker response'));
+        return;
+      }
       if (event.data.action === 'CALCULATE_MONTHLY_TOTALS') {
         w.removeEventListener('message', messageHandler);
         
@@ -42,7 +60,7 @@ export function calculateMonthlyTotals(expenses: any[]): Promise<Record<string, 
     w.postMessage({
       action: 'CALCULATE_MONTHLY_TOTALS',
       payload: expenses
-    });
+    } as WorkerRequest);
   });
 }
 
@@ -51,7 +69,7 @@ export function calculateMonthlyTotals(expenses: any[]): Promise<Record<string, 
  * @param expenses - Array of expense objects
  * @returns Promise resolving to statistics object
  */
-export function calculateStatistics(expenses: any[]): Promise<{
+export function calculateStatistics(expenses: Expense[]): Promise<{
   total: number;
   average: number;
   min: number;
@@ -63,7 +81,11 @@ export function calculateStatistics(expenses: any[]): Promise<{
   return new Promise((resolve, reject) => {
     const w = getWorker();
     
-    const messageHandler = (event: MessageEvent) => {
+    const messageHandler = (event: MessageEvent<WorkerResponse>) => {
+      if (!isValidWorkerResponse(event.data)) {
+        reject(new Error('Invalid worker response'));
+        return;
+      }
       if (event.data.action === 'CALCULATE_STATISTICS') {
         w.removeEventListener('message', messageHandler);
         
@@ -89,11 +111,15 @@ export function calculateStatistics(expenses: any[]): Promise<{
  * @param expenses - Array of expense objects
  * @returns Promise resolving to expenses grouped by date
  */
-export function groupExpensesByDate(expenses: any[]): Promise<Record<string, any[]>> {
+export function groupExpensesByDate(expenses: Expense[]): Promise<Record<string, Expense[]>> {
   return new Promise((resolve, reject) => {
     const w = getWorker();
     
-    const messageHandler = (event: MessageEvent) => {
+    const messageHandler = (event: MessageEvent<WorkerResponse>) => {
+      if (!isValidWorkerResponse(event.data)) {
+        reject(new Error('Invalid worker response'));
+        return;
+      }
       if (event.data.action === 'GROUP_BY_DATE') {
         w.removeEventListener('message', messageHandler);
         
@@ -119,7 +145,7 @@ export function groupExpensesByDate(expenses: any[]): Promise<Record<string, any
  * @param expenses - Array of expense objects
  * @returns Promise resolving to processed analytics data
  */
-export function processAnalyticsData(expenses: any[]): Promise<{
+export function processAnalyticsData(expenses: Expense[]): Promise<{
   categoryData: Array<{ category: string; amount: number }>;
   locationData: Array<{ location: string; amount: number }>;
   timeData: Array<{ period: string; amount: number }>;
@@ -130,7 +156,11 @@ export function processAnalyticsData(expenses: any[]): Promise<{
   return new Promise((resolve, reject) => {
     const w = getWorker();
     
-    const messageHandler = (event: MessageEvent) => {
+    const messageHandler = (event: MessageEvent<WorkerResponse>) => {
+      if (!isValidWorkerResponse(event.data)) {
+        reject(new Error('Invalid worker response'));
+        return;
+      }
       if (event.data.action === 'PROCESS_ANALYTICS') {
         w.removeEventListener('message', messageHandler);
         
@@ -160,4 +190,4 @@ export function terminateWorker(): void {
     worker.terminate();
     worker = null;
   }
-} 
+}

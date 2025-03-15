@@ -13,4 +13,4 @@ export * from './hooks/useSession';
 export * from './api/authApi';
 
 // Utils
-export * from './utils/validation'; 
+// Validation schemas are now centralized in core/utils/validation-schemas

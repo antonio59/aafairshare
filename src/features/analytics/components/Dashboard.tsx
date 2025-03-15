@@ -16,20 +16,18 @@ import {
 } from '../types';
 import { formatAmount } from '../../../utils/currencyUtils';
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-// Import these directly from settlement-operations to ensure type consistency
+import { Expense } from '../../../core/types/expenses';
+
 interface MonthlyExpense {
   month: string;
-  expenses: Array<{
-    id: string;
-    date: string;
-    amount: number | string;
-    [key: string]: any;
-  }>;
+  expenses: Array<Expense>;
   total: number;
-  [key: string]: any;
+  totalPaidByCurrentUser?: number;
+  totalPaidByOtherUser?: number;
+  netBalance?: number;
+  equalSplitTotal?: number;
+  noSplitTotal?: number;
 }
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 interface DashboardProps {
   className?: string;
@@ -152,14 +150,7 @@ function Dashboard({ className = '' }: DashboardProps) {
     return sum;
   }, 0);
   
-  // Format function that works with string or number values
-  const formatCurrencyValue = (value: string | number) => {
-    if (typeof value === 'string') {
-      return formatAmount(parseFloat(value) || 0);
-    }
-    return formatAmount(value);
-  };
-  
+  // Using formatAmount directly from currencyUtils
   return (
     <ErrorBoundary fallback={<div>Something went wrong loading the dashboard</div>}>
       <div className={`space-y-6 ${className}`}>
@@ -212,7 +203,7 @@ function Dashboard({ className = '' }: DashboardProps) {
               </div>
             </div>
             <div className="text-xl font-bold text-gray-700">
-              {formatCurrencyValue(totalUnsettled)}
+              {formatAmount(totalUnsettled)}
             </div>
             <div className="text-xs text-gray-500 mt-1">
               Pending settlements
@@ -335,7 +326,7 @@ function Dashboard({ className = '' }: DashboardProps) {
         {/* Statistics Section */}
         <ExpenseStatistics 
           monthlyData={monthlyData} 
-          formatCurrency={formatCurrencyValue} 
+          formatCurrency={formatAmount} 
           className="mt-6"
         />
       </div>
@@ -343,4 +334,4 @@ function Dashboard({ className = '' }: DashboardProps) {
   );
 }
 
-export default Dashboard; 
+export default Dashboard;

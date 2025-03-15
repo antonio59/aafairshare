@@ -92,7 +92,7 @@ export type DateRangeOption = 'month' | 'quarter' | 'year' | 'custom';
  */
 export interface AnalyticsChartProps {
   /** Data to be displayed in the chart */
-  data: any;
+  data: CategoryData[] | LocationData[] | TimeData[] | DailyTrendData[];
   /** Optional title for the chart */
   title?: string;
   /** Whether the chart is in a loading state */
@@ -113,4 +113,4 @@ export interface BudgetSettings {
   showWarnings: boolean;
   /** Warning threshold as a percentage of budget (e.g., 80 means warn at 80% of budget) */
   warningThreshold: number;
-} 
+}

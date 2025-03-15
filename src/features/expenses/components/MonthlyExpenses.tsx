@@ -9,11 +9,11 @@ import { useAuth } from '../../../core/contexts/AuthContext';
 import { deleteExpense, invalidateExpensesCache } from '../api/expenseApi';
 import { useErrorHandler } from '../../shared/hooks/useErrorHandler';
 import { ErrorBoundary, LoadingSpinner, StatusMessage } from '../../shared/components';
-import { formatDateToUK, formatTime, MONTHS, getYear } from '../../shared/utils/date-utils';
+import { formatDateToUK, formatTime, MONTHS, getYear } from '../../../utils/date-utils';
 import { formatDecimal, safeSum } from '../../../utils/number-utils';
 import { supabase } from '../../../core/api/supabase';
 import { Expense, GroupedExpenses, MonthlyExpenseData, ApiResponse } from '../../../core/types/expenses';
-import { sanitizeAmount, isEmpty } from '../../../core/utils/validation';
+import { validateData } from '../../../core/utils/validation-schemas';
 
 // Component props types
 interface ExpenseCardProps {

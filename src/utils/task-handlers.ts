@@ -5,7 +5,7 @@
  * Each handler is responsible for executing a specific type of long-running operation.
  */
 
-import { Task, _TaskStatus, taskQueue } from './task-queue';
+import { Task, TaskStatus, taskQueue } from './task-queue';
 import { createLogger } from '@/core/utils/logger';
 import { getExpenseAnalytics } from '@/features/expenses/api/expenseApi';
 import { createSettlement } from '@/features/settlements/api/settlement-operations';
@@ -46,8 +46,8 @@ export const TASK_TYPES = {
  */
 export function initializeTaskHandlers(): void {
   // Register handlers
-  taskQueue.registerHandler(TASK_TYPES.GENERATE_REPORT, handleReportGeneration);
-  taskQueue.registerHandler(TASK_TYPES.CALCULATE_SETTLEMENTS, handleSettlementCalculation);
+  taskQueue.registerHandler<ReportResult, ReportPayload>(TASK_TYPES.GENERATE_REPORT, handleReportGeneration);
+  taskQueue.registerHandler<SettlementResult, SettlementPayload>(TASK_TYPES.CALCULATE_SETTLEMENTS, handleSettlementCalculation);
   taskQueue.registerHandler(TASK_TYPES.EXPORT_DATA, handleDataExport);
   taskQueue.registerHandler(TASK_TYPES.IMPORT_DATA, handleDataImport);
   
@@ -62,7 +62,33 @@ export function initializeTaskHandlers(): void {
 /**
  * Handler for report generation tasks
  */
-async function handleReportGeneration(task: Task): Promise<any> {
+interface ReportPayload {
+  startDate: string;
+  endDate: string;
+  reportType: 'summary' | 'detailed';
+}
+
+interface ReportResult {
+  reportId: string;
+  title: string;
+  generatedAt: string;
+  totalExpenses: number;
+  averageExpense: number;
+  categories: Array<{category: string; amount: number}>;
+  locations: Array<{location: string; amount: number}>;
+  timeData: Array<{period: string; amount: number}>;
+  reportData: {
+    title: string;
+    generatedAt: string;
+    totalExpenses: number;
+    averageExpense: number;
+    categories: Array<{category: string; amount: number}>;
+    locations: Array<{location: string; amount: number}>;
+    timeData: Array<{period: string; amount: number}>;
+  };
+}
+
+async function handleReportGeneration(task: Task<ReportResult, ReportPayload>): Promise<ReportResult> {
   const { startDate, endDate, reportType } = task.payload;
   
   logger.info(`Generating ${reportType} report for period ${startDate} to ${endDate}`);
@@ -96,7 +122,7 @@ async function handleReportGeneration(task: Task): Promise<any> {
         
       case 'detailed':
         // Fetch detailed expense data
-        const { data: expensesData } = await supabase
+        const { data: expensesData } = await supabase<Expense[]>
           .from('expenses')
           .select(`
             *,
@@ -151,6 +177,13 @@ async function handleReportGeneration(task: Task): Promise<any> {
     
     return {
       reportId: reportRecord.id,
+      title: reportData.title,
+      generatedAt: reportData.generatedAt,
+      totalExpenses: reportData.totalExpenses,
+      averageExpense: reportData.averageExpense,
+      categories: reportData.categories,
+      locations: reportData.locations,
+      timeData: reportData.timeData,
       reportData
     };
   } catch (error) {
@@ -162,8 +195,20 @@ async function handleReportGeneration(task: Task): Promise<any> {
 /**
  * Handler for settlement calculation tasks
  */
-async function handleSettlementCalculation(task: Task): Promise<any> {
-  const { expenseIds, groupId, _splitMethod } = task.payload;
+interface SettlementResult {
+  settlements: DbSettlements[];
+  count: number;
+}
+
+interface SettlementPayload {
+  expenseIds?: string[];
+  groupId?: string;
+  splitMethod: string;
+}
+
+async function handleSettlementCalculation(task: Task<SettlementResult, SettlementPayload>): Promise<SettlementResult> {
+  const { expenseIds, groupId, splitMethod } = task.payload;
+    const expenses = expenseIds;
   
   logger.info(`Calculating settlements for ${expenseIds ? expenseIds.length : 0} expenses`);
   
@@ -172,10 +217,10 @@ async function handleSettlementCalculation(task: Task): Promise<any> {
   
   try {
     // Fetch expense data if IDs are provided
-    let expenses = [];
+    let expenses: Expense[] = [];
     
     if (expenseIds && expenseIds.length > 0) {
-      const { data } = await supabase
+      const { data } = await supabase<Expense[]>
         .from('expenses')
         .select(`
           *,
@@ -188,7 +233,7 @@ async function handleSettlementCalculation(task: Task): Promise<any> {
       expenses = data || [];
     } else if (groupId) {
       // Fetch expenses by group
-      const { data } = await supabase
+      const { data } = await supabase<Expense[]>
         .from('expenses')
         .select(`
           *,
@@ -207,7 +252,7 @@ async function handleSettlementCalculation(task: Task): Promise<any> {
     taskQueue.updateTaskProgress(task.id, 30);
     
     // Calculate settlements
-    const settlements = [];
+    const settlements: DbSettlements[] = [];
     
     // Simplified example of creating a settlement
     if (expenses.length > 0) {
@@ -270,8 +315,26 @@ async function handleSettlementCalculation(task: Task): Promise<any> {
 /**
  * Handler for data export tasks
  */
-async function handleDataExport(task: Task): Promise<any> {
-  const { format, dataType, filters } = task.payload;
+interface ExportResult {
+  success: boolean;
+  filePath?: string;
+  error?: string;
+  recordsProcessed?: number;
+}
+
+interface ImportResult {
+  success: boolean;
+  importedCount: number;
+  errors: string[];
+  warningCount?: number;
+}
+
+async function handleDataExport(task: Task): Promise<ExportResult> {
+  const { format, dataType, filters } = task.payload as {
+    format: string;
+    dataType: 'expenses' | 'settlements';
+    filters: Record<string, unknown>;
+  };
   
   logger.info(`Exporting ${dataType} data in ${format} format`);
   
@@ -399,8 +462,13 @@ async function handleDataExport(task: Task): Promise<any> {
 /**
  * Handler for data import tasks
  */
-async function handleDataImport(task: Task): Promise<any> {
-  const { format, dataType, data, _options } = task.payload;
+async function handleDataImport(task: Task): Promise<ImportResult> {
+  const { format, dataType, data, _options } = task.payload as {
+    format: string;
+    dataType: string;
+    data: unknown;
+    _options?: Record<string, unknown>;
+  };
   
   logger.info(`Importing ${dataType} data from ${format} format`);
   
@@ -409,7 +477,7 @@ async function handleDataImport(task: Task): Promise<any> {
   
   try {
     // Parse data based on format
-    let parsedData: Array<Record<string, any>> = [];
+    let parsedData: Array<Record<string, string>> = [];
     
     switch (format) {
       case 'json':
@@ -423,7 +491,7 @@ async function handleDataImport(task: Task): Promise<any> {
         
         parsedData = lines.slice(1).map((line: string) => {
           const values = line.split(',');
-          return headers.reduce((obj: Record<string, any>, header: string, index: number) => {
+          return headers.reduce((obj: Record<string, string>, header: string, index: number) => {
             obj[header] = values[index];
             return obj;
           }, {});
@@ -441,7 +509,7 @@ async function handleDataImport(task: Task): Promise<any> {
     const results = {
       successful: 0,
       failed: 0,
-      errors: [] as Array<{ item: Record<string, any>; error: string }>
+      errors: [] as Array<{ item: Record<string, string>; error: string }>
     };
     
     switch (dataType) {

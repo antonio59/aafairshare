@@ -14,4 +14,4 @@ export * from './api/expenseApi';
 
 // Utils
 export * from './utils/calculations';
-export * from './utils/validation'; 
+// Validation schemas are now centralized in core/utils/validation-schemas

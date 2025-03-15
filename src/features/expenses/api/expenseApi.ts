@@ -6,8 +6,7 @@ import { Database } from '../../../core/types/supabase.types';
 import {
   Expense,
   ExpenseCreate,
-  ExpenseUpdate,
-  ApiResponse
+  ExpenseUpdate
 } from '../../../core/types/expenses';
 import { invalidateQueries } from '../../../core/utils/query-cache';
 
@@ -25,7 +24,8 @@ type DbLocation = Database['public']['Tables']['locations']['Row'];
 // Type for API response
 interface ApiErrorResponse {
   error: string;
-  details?: any;
+  details?: unknown;
+  status?: number;
 }
 
 // Function to check if string is valid ISO date
@@ -66,7 +66,12 @@ function parseUKDate(dateStr: string): string {
 }
 
 // In-memory cache for expenses
-let expensesCache: Record<string, any> = {};
+interface CachedExpense {
+  data: Expense[];
+  timestamp: number;
+}
+
+let expensesCache: Record<string, CachedExpense> = {};
 
 /**
  * Clear the expenses cache
@@ -277,7 +282,7 @@ export async function createExpense(
       data: formattedExpense,
       message: 'Expense created successfully',
     };
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Error in createExpense:', error);
     return {
       success: false,
@@ -558,7 +563,7 @@ export async function updateExpense(
       data: formattedExpense,
       message: 'Expense updated successfully',
     };
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Error in updateExpense:', error);
     return {
       success: false,
@@ -676,7 +681,7 @@ export async function getExpenseDetails(expenseId: string): Promise<ApiResponse<
       data: formattedExpense,
       message: 'Expense details retrieved successfully',
     };
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Error in getExpenseDetails:', error);
     return {
       success: false,
@@ -781,7 +786,7 @@ export async function deleteExpense(expenseId: string): Promise<ApiResponse<null
       message: 'Expense deleted successfully',
       data: null,
     };
-  } catch (error: any) {
+  } catch (error) {
     logger.error('Error in deleteExpense:', error);
     return {
       success: false,
@@ -908,7 +913,7 @@ export async function getExpenseAnalytics(
       categoryMap.set(category, (categoryMap.get(category) || 0) + amount);
 
       // Location distribution
-      const location = expense.locations?.location || 'Unknown';
+      const location = expense.locations?.location || expense._location || 'Unknown';
       locationMap.set(location, (locationMap.get(location) || 0) + amount);
 
       // Daily trend
@@ -1070,9 +1075,9 @@ export async function getExpenses(
       amount: parseFloat(expense.amount),
       date: expense.date,
       notes: expense.notes || '',
-      category: expense.categories?.category || 'Uncategorized',
+      _category: expense.categories?.category || 'Uncategorized',
       category_id: expense.categories?.id,
-      location: expense.locations?.location || 'Unknown',
+      _location: expense.locations?.location || 'Unknown',
       location_id: expense.locations?.id,
       split_type: expense.split_type || 'none',
       paid_by: expense.users?.id || finalUserId,

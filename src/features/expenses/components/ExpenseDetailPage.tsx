@@ -1,28 +1,22 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { deleteExpense, getExpenseDetails } from '../api/expenseApi';
+import { deleteExpense, getExpenseDetails } from '@/features/expenses/api/expenseApi';
 import NewExpenseModal from './NewExpenseModal';
-import { Edit, ArrowLeft, Trash, AlertTriangle, Info } from 'lucide-react';
-import { formatAmount, formatCurrency } from '../../../utils/currencyUtils';
-import { useSettlementGuard } from '../../settlements/hooks/useSettlementGuard';
-import { ErrorBoundary } from '../../shared/components';
-import { Expense, ApiResponse, ExpenseErrorType } from '../../../core/types/expenses';
-import { formatAmount } from '../../../utils/currencyUtils';
+import { Edit, ArrowLeft, Trash, AlertTriangle, Info } from '@/features/shared/components/icons';
+import { formatAmount } from '@/utils/currencyUtils';
+import { useSettlementGuard } from '@/features/settlements/hooks/useSettlementGuard';
+import { ErrorBoundary } from '@/features/shared/components';
+import { Expense, ApiResponse, ExpenseCreate, ExpenseUpdate } from '@/core/types/expenses';
+
+type ExpenseErrorType = 'not_found' | 'not_authorized' | 'general' | null;
 
 // Match the expected type of NewExpenseModal
-type ModalExpense = {
+type ModalExpense = ExpenseCreate & {
   id?: string;
-  amount: number;
   category: string;
-  description: string;
-  date: string;
-  location?: string;
+  description?: string;
   currency: string;
   user_id: string;
-  notes?: string;
-  split_type?: string;
-  categories?: string[];
-  locations?: string[];
 }
 
 interface ExpenseDetailPageProps {
@@ -172,31 +166,22 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   };
 
   const handleEdit = () => {
-    try {
-      if (!expense) {
-        throw new Error('No expense data available for editing');
-      }
-      setIsEditModalOpen(true);
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error opening edit modal:', error);
+    if (!expense) {
+      console.error('No expense data available for editing');
+      return;
     }
+    setIsEditModalOpen(true);
   };
 
-  const handleDelete = async () => {
-    try {
-      setShowDeleteConfirm(true);
-    } catch (err) {
-      const error = err as Error;
-      console.error('Error preparing delete:', error);
-    }
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
   };
 
   const confirmDelete = async () => {
     try {
       setLoading(true);
       
-      const result = await deleteExpense(getExpenseId()) as ApiResponse<{success: boolean}>;
+      const result = await deleteExpense(getExpenseId());
       
       if (result.success) {
         // Add a small delay to ensure all cleanup and state updates are completed
@@ -512,4 +497,4 @@ const ExpenseDetailPage = ({ isEditMode = false }: ExpenseDetailPageProps) => {
   );
 };
 
-export default ExpenseDetailPage; 
+export default ExpenseDetailPage;

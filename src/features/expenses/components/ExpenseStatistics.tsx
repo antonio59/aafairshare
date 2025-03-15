@@ -7,7 +7,7 @@ import {
   DollarSign,
   Calendar
 } from 'lucide-react';
-import { MONTHS } from '../../shared/utils/date-utils';
+import { MONTHS } from '../../../utils/date-utils';
 
 // Make the component more flexible with generic types
 interface GenericMonthlyData {
@@ -261,4 +261,4 @@ function ExpenseStatistics({ monthlyData, formatCurrency, period = 'month', clas
   );
 }
 
-export default ExpenseStatistics; 
+export default ExpenseStatistics;
