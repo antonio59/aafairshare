@@ -58,7 +58,7 @@ export default defineConfig({
     // Use base URL from environment if available
     baseURL: process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000',
     // Don't auto-install browsers
-    skipInstallBrowsers: process.env.SKIP_BROWSER_INSTALL === 'true',
+
   },
   
   // File pattern for tests
@@ -75,4 +75,4 @@ export default defineConfig({
     stdout: 'ignore',
     stderr: 'pipe',
   },
-}); 
+});

@@ -7,8 +7,10 @@
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, dirname } from 'path';
-import lighthouse, { RunnerResult, CategoryResult } from 'lighthouse';
-import { launch, ChromeLauncher } from 'chrome-launcher';
+import lighthouse, { RunnerResult } from 'lighthouse';
+type CategoryResult = { score: number | null };
+import { launch } from 'chrome-launcher';
+type ChromeLauncher = Awaited<ReturnType<typeof launch>>;
 import { fileURLToPath } from 'url';
 
 interface LighthouseOptions {
@@ -87,10 +89,20 @@ async function runLighthouse(url: string, outputDir: string): Promise<TestResult
     };
 
     console.log(`\nRunning Lighthouse for ${url}...`);
-    const runnerResult: RunnerResult = await lighthouse(url, options);
+    const result = await lighthouse(url, options);
+    
+    if (!result) {
+      throw new Error('Lighthouse audit failed to return results');
+    }
+    
+    const runnerResult: RunnerResult = result;
     
     // Generate report
     const reportHtml = runnerResult.report;
+    if (typeof reportHtml !== 'string') {
+      throw new Error('Lighthouse report output is not in the expected string format');
+    }
+    
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     const reportPath = join(outputDir, `lighthouse-${timestamp}.html`);
     

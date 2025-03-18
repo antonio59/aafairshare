@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "buildCommand": "npm run build:vercel",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "rm -rf node_modules package-lock.json && npm install",
-  "framework": "vite",
-  "outputDirectory": "dist",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
   "github": {
     "silent": true,
     "autoAlias": true
@@ -36,11 +36,6 @@
       ]
     }
   ],
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
+
   "regions": ["iad1"]
-} 
+}

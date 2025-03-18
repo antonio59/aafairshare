@@ -1,18 +1,33 @@
-// Find Image imports and add priority flag
-// Example:
-// <Image 
-//   src="/path/to/hero.jpg" 
-//   alt="Hero" 
-//   priority 
-//   width={1200} 
-//   height={600} 
-// />
+import { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import ClientLayout from "../components/ClientLayout";
 
-// For non-critical images below the fold:
-// <Image 
-//   src="/path/to/image.jpg" 
-//   alt="Description" 
-//   loading="lazy" 
-//   width={400} 
-//   height={300} 
-// /> 
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: 'AA FairShare',
+  description: 'Expense splitting application',
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="min-h-screen bg-background font-sans antialiased">
+        <ClientLayout>{children}</ClientLayout>
+      </body>
+    </html>
+  );
+}

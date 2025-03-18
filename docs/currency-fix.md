@@ -6,7 +6,7 @@ The application has been completely simplified by removing several unnecessary f
 
 1. **Currency Selection Removed**: The app now exclusively uses GBP (£) as the currency.
 2. **Language Settings Removed**: The app now uses English only.
-3. **Export Option Removed**: The export functionality has been removed from settings as it's handled in analytics.
+3. **Export Option Removed**: The export functionality has been removed from settings.
 4. **Notifications References Removed**: References to notifications were removed as they're not being used.
 5. **User Preferences Removed**: The preferences column was completely removed from the database.
 6. **Settings Table Dropped**: The entire settings table was dropped as it's no longer needed.
@@ -17,7 +17,7 @@ These features were causing unnecessary complexity and bugs:
 
 1. The CurrencyContext was encountering errors when trying to access database tables and fields.
 2. Maintaining multiple currencies and languages added complexity without providing essential functionality.
-3. Having duplicate export functionality in both settings and analytics was confusing for users.
+3. The export functionality was simplified by removing it from settings.
 4. The preferences column contained fields that weren't actually used in the application.
 
 ## Implementation Details
@@ -91,4 +91,4 @@ If any of these features become necessary in the future:
 
 1. **Multi-currency Support**: Should be implemented with proper type definitions and a dedicated currency service.
 2. **User Preferences**: Should have a dedicated schema with clear documentation on what fields are actually used.
-3. **Settings**: Should be consolidated into a single approach rather than scattered across different tables. 
+3. **Settings**: Should be consolidated into a single approach rather than scattered across different tables.

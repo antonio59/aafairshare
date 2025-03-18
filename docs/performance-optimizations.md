@@ -143,7 +143,7 @@ const filteredExpenses = useMemo(() => {
 ```typescript
 // Worker Request/Response Types
 type WorkerRequest = {
-  action: 'CALCULATE_MONTHLY_TOTALS' | 'CALCULATE_STATISTICS' | 'GROUP_BY_DATE' | 'PROCESS_ANALYTICS';
+  action: 'CALCULATE_MONTHLY_TOTALS' | 'CALCULATE_STATISTICS' | 'GROUP_BY_DATE';
   payload: any;
 };
 
@@ -156,23 +156,21 @@ type WorkerResponse = {
 
 ### Worker Integration Points
 
-1. **Analytics Calculations**: Moved heavy analytics processing to workers
+1. **Monthly Calculations**: Moved heavy monthly calculations to workers
    - Category distribution calculations
    - Time-series data processing
-   - Trend analysis computations
-   - Implementation in `getExpenseAnalytics` function
+   - Monthly summary computations
 
 ```typescript
-export const getExpenseAnalytics = async (startDate: string, endDate: string) => {
+export const getMonthlyCalculations = async (startDate: string, endDate: string) => {
   // ...
   try {
     // Import the worker manager only when needed
-    const { processAnalyticsData } = await import('../../../utils/worker-manager');
+    const { processMonthlyData } = await import('../../../utils/worker-manager');
     
     // Process the data using the Web Worker
-    const result = await processAnalyticsData(typedExpensesData);
+    const result = await processMonthlyData(typedExpensesData);
     
-    console.log('Analytics processed by Web Worker:', result);
     return result;
   } catch (workerError) {
     // Fallback to main thread processing if worker fails
@@ -254,7 +252,6 @@ const processDataWithWorker = async () => {
    - `calculateMonthlyTotals`: Process expenses and group by month
    - `calculateStatistics`: Generate statistical data from expenses
    - `groupExpensesByDate`: Group expenses by date for display
-   - `processAnalyticsData`: Generate analytics data for charts and reports
 
 3. **Error Handling**: Implemented robust error handling
    - Graceful fallback to main thread
@@ -706,4 +703,4 @@ const processDataWithWorker = async () => {
 };
 ```
 
-These robustness improvements complement the performance optimizations and ensure that the application provides a stable and predictable user experience, even in the face of unexpected conditions or edge cases. 
+These robustness improvements complement the performance optimizations and ensure that the application provides a stable and predictable user experience, even in the face of unexpected conditions or edge cases.
