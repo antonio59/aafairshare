@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 type AuthContextType = {
   user: null | { id: string; email: string };
   login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   loading: boolean;
 };
@@ -47,6 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     router.refresh();
   };
 
+  const register = async (email: string, password: string) => {
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    router.refresh();
+  };
+
   const logout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
@@ -57,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
