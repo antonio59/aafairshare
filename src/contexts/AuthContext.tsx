@@ -18,7 +18,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<null | { id: string; email: string }>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  const supabase = createClientComponentClient();
+  const supabase = createClientComponentClient({
+    cookieOptions: {
+      name: 'sb-session',
+      path: '/',
+      domain: '',
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production'
+    }
+  });
 
   useEffect(() => {
     const {
@@ -66,8 +74,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) {
       throw error;
     }
-    router.refresh();
-    router.push('/signin');
+    // Clear any cached data
+    localStorage.clear();
+    sessionStorage.clear();
+    // Force a complete page reload to clear all state
+    window.location.href = '/signin';
   };
 
   return (

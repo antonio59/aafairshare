@@ -43,11 +43,14 @@
     "release": "standard-version",
     "deploy:staging": "vercel",
     "deploy:production": "vercel --prod",
-    "postinstall": "echo 'Skipping optional dependencies'"
+    "preinstall": "npm config set --location=project audit-level=high && npm config set --location=project omit=optional"
+  },
+  "config": {
+    "module": "commonjs"
   },
   "dependencies": {
     "@headlessui/react": "2.2.0",
-    "@supabase/auth-helpers-nextjs": "^0.9.0",
+    "@supabase/ssr": "^0.6.1",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@radix-ui/react-checkbox": "1.1.4",
     "@radix-ui/react-dialog": "1.1.6",
@@ -62,7 +65,7 @@
     "clsx": "2.1.1",
     "dayjs": "^1.11.13",
     "esbuild": "0.25.1",
-    "glob": "11.0.1",
+    "glob": "^9.3.5",
     "jspdf": "3.0.0",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "0.479.0",
@@ -76,25 +79,30 @@
     "react-virtualized-auto-sizer": "1.0.25",
     "react-window": "1.8.11",
     "tailwind-merge": "3.0.2",
-    "uuid": "11.1.0",
+    "uuid": "^9.0.1",
     "zod": "3.24.2"
   },
   "overrides": {
     "jspdf": {
       "canvg": "4.0.3"
     },
-    "canvg": "4.0.3"
+    "canvg": "4.0.3",
+    "glob": "^9.3.5",
+    "rimraf": "^5.0.0",
+    "inflight": "^2.0.0",
+    "q": "npm:@endo/eventual-send@^1.0.0",
+    "stringify-package": "npm:@npmcli/package-json@^5.0.0"
   },
   "devDependencies": {
     "@babel/plugin-transform-react-jsx": "7.25.9",
     "@eslint/js": "9.22.0",
     "@playwright/test": "^1.41.2",
-    "@storybook/addon-essentials": "8.6.4",
-    "@storybook/addon-interactions": "^8.6.4",
-    "@storybook/addon-links": "^8.6.4",
-    "@storybook/blocks": "8.6.4",
-    "@storybook/react": "8.6.4",
-    "@storybook/react-vite": "8.6.4",
+    "@storybook/addon-essentials": "8.6.7",
+    "@storybook/addon-interactions": "8.6.7",
+    "@storybook/addon-links": "8.6.7",
+    "@storybook/blocks": "8.6.7",
+    "@storybook/react": "8.6.7",
+    "@storybook/react-vite": "8.6.7",
     "@storybook/test-runner": "0.22.0",
     "@tailwindcss/nesting": "0.0.0-insiders.565cd3e",
     "@tailwindcss/typography": "0.5.16",
@@ -102,7 +110,7 @@
     "@testing-library/react": "16.2.0",
     "@testing-library/user-event": "^14.5.2",
     "@types/node": "^22.13.10",
-    "@types/postcss-load-config": "3.0.1",
+
     "@types/react": "19.0.10",
     "@types/react-dom": "19.0.4",
     "@types/react-virtualized-auto-sizer": "1.0.4",
@@ -129,14 +137,14 @@
     "jiti": "2.4.2",
     "jsdom": "^26.0.0",
     "lighthouse": "12.4.0",
-    "npm-force-resolutions": "0.0.10",
+
     "postcss": "8.5.3",
     "postcss-import": "16.1.0",
     "postcss-nesting": "13.0.1",
     "rollup": "4.35.0",
     "serve": "14.2.4",
     "standard-version": "^9.5.0",
-    "storybook": "8.6.4",
+    "storybook": "8.6.7",
     "tailwindcss": "3.4.1",
     "terser": "5.39.0",
     "ts-node": "^10.9.2",
