@@ -1,43 +1,48 @@
-import { jsPDF } from 'jspdf';
+import PDFDocument from 'pdfkit';
 import { Expense, getSupabaseData, recordExport } from './types';
 
-// Configure jsPDF with default settings
-const PDF_OPTIONS: {
-  orientation: 'p' | 'l' | 'portrait' | 'landscape';
-  unit: 'mm';
-  format: string;
-} = {
-  orientation: 'p',
-  unit: 'mm',
-  format: 'a4'
-};
-
-export const exportToPDF = async (expenses: Expense[], month: string, totalExpenses: number) => {
-  const doc = new jsPDF(PDF_OPTIONS);
-  const pageWidth = doc.internal.pageSize.width;
-  const pageHeight = doc.internal.pageSize.height;
+export const exportToPDF = async (expenses: Expense[], month: string, totalExpenses: number, settlement?: { from: string; to: string; amount: number }) => {
+  const doc = new PDFDocument({ size: 'A4' });
+  const pageWidth = doc.page.width;
+  const pageHeight = doc.page.height;
   const margin = 15;
   
   // Add simple text header
-  doc.setFontSize(24);
-  doc.setFont('helvetica', 'bold');
+  doc.fontSize(24);
+  doc.font('Helvetica-Bold');
   const title = 'AAFairShare';
-  const titleWidth = doc.getTextWidth(title);
-  doc.text(title, (pageWidth - titleWidth) / 2, 30); // Center the title
+  const titleWidth = doc.widthOfString(title);
+  doc.text(title, (pageWidth - titleWidth) / 2, margin, { align: 'center', continued: false }); // Center the title
   
   // Add report title and month
-  doc.setTextColor(33, 33, 33);
-  doc.setFontSize(16);
-  doc.text('Monthly Expense Summary', margin, 45);
+  doc.fillColor('#212121');
+  doc.fontSize(16);
+  doc.text('Monthly Expense Summary', margin, margin + 30, { align: 'left', continued: false });
   
   // Add month and total in a cleaner format
-  doc.setFontSize(12);
+  doc.fontSize(12);
   const monthDate = new Date(month + '-01');
   const monthText = `Month: ${monthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
   const totalText = `Total: £${totalExpenses.toFixed(2)}`;
   
-  doc.text(monthText, margin, 60);
-  doc.text(totalText, pageWidth - margin - doc.getTextWidth(totalText), 60);
+  doc.text(monthText, margin, margin + 50, { align: 'left', continued: false });
+  doc.text(totalText, pageWidth - margin - doc.widthOfString(totalText), margin + 50, { align: 'right', continued: false });
+
+  // Initialize y coordinate for table position
+  let y = 75;
+  
+  // Add settlement information if available
+  if (settlement) {
+    doc.fontSize(12);
+    doc.font('Helvetica-Bold');
+    doc.text('Settlement Summary', margin, margin + 70, { align: 'left', continued: false });
+    
+    doc.font('Helvetica');
+    const settlementText = `${settlement.from} owes ${settlement.to} £${settlement.amount.toFixed(2)}`;
+    doc.text(settlementText, margin, margin + 80, { align: 'left', continued: false });
+    
+    y = 95; // Adjust starting position for expense table
+  }
   
   // Fetch categories and locations data
   const { categoryMap, locationMap } = await getSupabaseData();
@@ -52,111 +57,130 @@ export const exportToPDF = async (expenses: Expense[], month: string, totalExpen
     { header: 'Split', width: 20 },
     { header: 'Amount', width: 20 }
   ];
-  
-  let y = 75; // Start table lower to accommodate header
   const rowHeight = 12; // Increased row height for better readability
   
   // Draw table header
-  doc.setFillColor(51, 51, 51); // Darker header to match UI
-  doc.rect(margin, y, pageWidth - 2 * margin, rowHeight, 'F');
+  doc.fillColor('#333333'); // Darker header to match UI
+  doc.rect(margin, y, pageWidth - 2 * margin, rowHeight).fill();
   
-  doc.setFont('helvetica', 'bold');
-  doc.setFontSize(9);
-  doc.setTextColor(255, 255, 255);
+  doc.font('Helvetica-Bold');
+  doc.fontSize(9);
+  doc.fillColor('#FFFFFF');
   let x = margin + 2; // Add padding from left
   
   columns.forEach(col => {
-    doc.text(col.header, x, y + 7);
+    doc.text(col.header, x, y + 2, { align: 'left', continued: false });
     x += col.width;
   });
   
   y += rowHeight;
   
   // Draw expense rows
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(33, 33, 33);
-  doc.setFontSize(8);
+  doc.font('Helvetica');
+  doc.fillColor('#212121');
+  doc.fontSize(8);
   
-  expenses.forEach((expense, index) => {
+  expenses.forEach((expense: Expense, index) => {
     if (y > pageHeight - 30) {
       doc.addPage();
       y = margin;
       
       // Redraw header on new page
-      doc.setFillColor(51, 51, 51);
-      doc.rect(margin, y, pageWidth - 2 * margin, rowHeight, 'F');
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(9);
-      doc.setTextColor(255, 255, 255);
-      let headerX = margin + 2;
+      doc.fillColor('#333333');
+      doc.rect(margin, y, pageWidth - 2 * margin, rowHeight).fill();
+      doc.font('Helvetica-Bold');
+      doc.fontSize(9);
+      doc.fillColor('#FFFFFF');
+      
+      x = margin + 2;
       columns.forEach(col => {
-        doc.text(col.header, headerX, y + 7);
-        headerX += col.width;
+        doc.text(col.header, x, y + 2, { align: 'left', continued: false });
+        x += col.width;
       });
+      
       y += rowHeight;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      doc.setTextColor(33, 33, 33);
+      doc.font('Helvetica');
+      doc.fontSize(8);
+      doc.fillColor('#212121');
     }
     
     // Alternate row colors for better readability
-    if (index % 2 === 0) {
-      doc.setFillColor(240, 240, 240);
-    } else {
-      doc.setFillColor(255, 255, 255);
-    }
-    doc.rect(margin, y, pageWidth - 2 * margin, rowHeight, 'F');
+    doc.fillColor(index % 2 === 0 ? '#F0F0F0' : '#FFFFFF');
+    doc.rect(margin, y, pageWidth - 2 * margin, rowHeight).fill();
     
+    doc.fillColor('#212121');
     x = margin + 2; // Add padding from left
     
     // Date
-    doc.text(new Date(expense.date).toLocaleDateString('en-GB'), x, y + 7);
+    doc.text(new Date(expense.date).toLocaleDateString('en-GB'), x, y + 2, { align: 'left', continued: false });
     x += columns[0].width;
     
     // Category
-    doc.text(categoryMap.get(expense.category_id) || 'Unknown', x, y + 7);
+    doc.text((categoryMap.get(expense.category_id) || 'Unknown').toString(), x, y + 2, { align: 'left', continued: false });
     x += columns[1].width;
     
     // Location
-    doc.text(locationMap.get(expense.location_id) || 'Unknown', x, y + 7);
+    doc.text((locationMap.get(expense.location_id) || 'Unknown').toString(), x, y + 2, { align: 'left', continued: false });
     x += columns[2].width;
     
     // Description/Notes
     const notes = expense.notes || '-';
-    doc.text(notes.length > 25 ? notes.substring(0, 22) + '...' : notes, x, y + 7);
+    doc.text(notes.length > 25 ? notes.substring(0, 22) + '...' : notes, x, y + 2, { align: 'left', continued: false });
     x += columns[3].width;
     
     // Paid By
-    doc.text(expense.users.name, x, y + 7);
+    doc.text(expense.users.name, x, y + 2, { align: 'left', continued: false });
     x += columns[4].width;
     
     // Split Type
-    doc.text(expense.split_type, x, y + 7);
+    doc.text(expense.split_type, x, y + 2, { align: 'left', continued: false });
     x += columns[5].width;
     
-    // Amount - Right aligned
+    // Amount - Right aligned using absolute positioning
     const amountText = `£${expense.amount.toFixed(2)}`;
-    doc.text(amountText, x + columns[6].width - 4 - doc.getTextWidth(amountText), y + 7);
+    const amountWidth = doc.widthOfString(amountText);
+    doc.text(amountText, x + columns[6].width - amountWidth, y + 2, { align: 'right', continued: false });
     
     y += rowHeight;
   });
   
-  // Save the PDF and record the export
-  const pdfContent = doc.output();
-  const fileName = `expenses-${month}.pdf`;
+  // Create a buffer to store the PDF content
+  const chunks: Buffer[] = [];
+  doc.on('data', (chunk: Buffer) => chunks.push(chunk));
   
-  try {
-    await recordExport({
-      format: 'pdf',
-      month,
-      fileName,
-      fileData: pdfContent
+  return new Promise<string>((resolve, reject) => {
+    doc.on('end', async () => {
+      const pdfBuffer = Buffer.concat(chunks);
+      const fileName = `expenses-${month}.pdf`;
+      
+      try {
+        await recordExport({
+          format: 'pdf',
+          month,
+          fileName,
+          fileData: pdfBuffer.toString('base64')
+        });
+        
+        // Create a Blob and download the file
+        const blob = new Blob([pdfBuffer], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        
+        resolve(fileName);
+      } catch (error) {
+        console.error('Failed to record export:', error);
+        // Continue with saving even if recording fails
+        resolve(fileName);
+      }
     });
-  } catch (error) {
-    console.error('Failed to record export:', error);
-    // Continue with saving even if recording fails
-  }
-
-  doc.save(fileName);
-  return fileName; // Return filename for confirmation
+    
+    doc.on('error', reject);
+    doc.end();
+  });
 };
