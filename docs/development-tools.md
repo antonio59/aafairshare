@@ -27,11 +27,6 @@ The `scripts/` directory contains utility scripts used for development, maintena
 
 #### Database Scripts
 
-- **`db-backup.js`** - Backs up the database to a local file
-  ```bash
-  npm run db:backup
-  ```
-
 - **`run-migration.sh`** - Executes database migrations
   ```bash
   ./scripts/run-migration.sh
@@ -125,7 +120,7 @@ npm run security:audit # Run security audit
 npm run security:fix   # Fix security issues
 
 # Database
-npm run db:backup      # Back up the database
+
 ```
 
 For a complete list of available npm scripts, refer to the `scripts` section in `package.json`.
@@ -133,29 +128,3 @@ For a complete list of available npm scripts, refer to the `scripts` section in 
 ## GitHub Actions Workflows
 
 The project uses GitHub Actions for automation of various tasks. These workflows are defined in the `.github/workflows/` directory.
-
-### Database Backup Workflow
-
-The `db-backup.yml` workflow handles automated database backups:
-
-- **Schedule**:
-  - Daily schema-only backup at 1:00 UTC
-  - Weekly full backup on Sundays at 2:00 UTC
-  
-- **Manual Trigger**:
-  - Can be run manually with choice of backup type (schema or full)
-  
-- **Features**:
-  - Runs the database backup script from `scripts/db-backup.js`
-  - Stores backups in GitHub Artifacts for short-term retention
-  - Uploads backups to S3 for long-term storage
-  - Sends Slack notifications on failure
-
-- **Configuration**:
-  This workflow requires several secrets to be configured in the GitHub repository:
-  - Supabase credentials
-  - Database connection details
-  - AWS credentials for S3 access
-  - Slack webhook for notifications
-
-To view or modify this workflow, see `.github/workflows/db-backup.yml`. 

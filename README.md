@@ -169,16 +169,17 @@ For detailed security documentation, see [docs/security.md](./docs/security.md)
 
 ## Automated Security Monitoring
 
-This project uses automated security monitoring and dependency updates:
+This project uses automated security monitoring and dependency updates with a unified testing configuration:
 
-- **Daily Security Scans**: Automated checks run daily via GitHub Actions
+- **Daily Security Scans**: Automated checks run daily via GitHub Actions, with results in consolidated HTML reports
+- **Unified Test Configuration**: Shared configuration in `config/test/base.config.ts` for consistent testing across environments
 - **Dependency Updates**: Weekly Dependabot PRs for outdated packages
-- **Vulnerability Scanning**: Using Snyk and npm audit
+- **Vulnerability Scanning**: Using Snyk and npm audit with comprehensive test coverage
 
 ### Quick Commands
 
 ```bash
-# Run security audit
+# Run security audit with HTML report
 npm run security:audit
 
 # Fix vulnerabilities

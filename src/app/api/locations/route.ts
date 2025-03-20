@@ -1,6 +1,5 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { createClient } from '@/lib/supabase/server';
 
 // UUID validation function
 function isValidUUID(uuid: string) {
@@ -10,7 +9,7 @@ function isValidUUID(uuid: string) {
 
 export async function GET() {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createClient();
     const { data: locations, error } = await supabase
       .from('locations')
       .select('id, location')
@@ -29,23 +28,31 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
     const { location } = await request.json();
-
     if (!location) {
       return NextResponse.json(
-        { error: 'Location is required' },
+        { error: 'Location name is required' },
         { status: 400 }
       );
     }
 
+    const supabase = createClient();
     const { data, error } = await supabase
       .from('locations')
       .insert([{ location }])
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      if (error.code === '23505') { // Unique violation
+        return NextResponse.json(
+          { error: 'Location already exists' },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error creating location:', error);
@@ -58,7 +65,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
+    const supabase = createClient();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     const { location } = await request.json();
@@ -97,7 +104,6 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
 
@@ -115,6 +121,7 @@ export async function DELETE(request: Request) {
       );
     }
 
+    const supabase = createClient();
     const { error } = await supabase
       .from('locations')
       .delete()

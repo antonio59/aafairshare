@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createClient } from '@/lib/supabase/client';
 import CategoryDropdown from './CategoryDropdown';
 import LocationDropdown from './LocationDropdown';
+import { Database } from '@/types/supabase';
 
 interface Category {
   id: string;
@@ -43,7 +44,8 @@ export default function ExpenseDetails({ expense, onUpdate }: ExpenseDetailsProp
   const [category, setCategory] = useState<Category | null>(null);
   const [location, setLocation] = useState<Location | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const supabase = createClientComponentClient();
+  
+  const supabase = createClient();
 
   useEffect(() => {
     const fetchCategories = async () => {

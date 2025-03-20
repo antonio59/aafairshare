@@ -9,7 +9,7 @@ This directory contains detailed technical documentation for the Expense Sharing
 
 ### Security
 - [security.md](./security.md) - Security features, best practices, and implementation details.
-- [security-scanning.md](./security-scanning.md) - Security scanning setup with Snyk and other tools.
+- [security-scanning.md](./security-scanning.md) - Security scanning setup with Snyk, automated SARIF reporting, and consolidated security tools.
 
 ### Performance
 - [performance-optimizations.md](./performance-optimizations.md) - Performance optimization techniques and implementation details.
@@ -19,8 +19,6 @@ This directory contains detailed technical documentation for the Expense Sharing
 - [typescript.md](./typescript.md) - TypeScript configuration, best practices, and code organization.
 - [development-tools.md](./development-tools.md) - Development utilities, scripts, and workflow documentation.
 - [testing-strategy.md](./testing-strategy.md) - Comprehensive testing documentation including strategy, setup, and best practices.
-- [testing-setup-guide.md](./testing-setup-guide.md) - Detailed setup for testing environment.
-- [testing-readme.md](./testing-readme.md) - Overview of testing structure and practices.
 
 ### Monitoring and Error Tracking
 - Error tracking is handled through custom error boundaries and logging.
@@ -30,7 +28,6 @@ This directory contains detailed technical documentation for the Expense Sharing
 
 ### DevOps
 - [devops-guide.md](./devops-guide.md) - DevOps setup and management guide.
-- [database-backup-strategy.md](./database-backup-strategy.md) - Database backup procedures and strategy.
 - [environment-config.md](./environment-config.md) - Environment configuration guidelines.
 
 ## Additional Resources

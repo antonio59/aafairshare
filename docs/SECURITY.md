@@ -74,6 +74,15 @@ X-XSS-Protection: 1; mode=block
 - **Schedule**: Runs daily at midnight (UTC)
 - **Trigger**: Automatic on push to main and pull requests
 - **Location**: `.github/workflows/security.yml`
+- **Reports**: Consolidated HTML report in `security-report.html`
+
+### Security Testing Configuration
+- **Location**: `config/test/base.config.ts`
+- **Features**:
+  - Unified test configuration for security scans
+  - Shared timeouts and retry settings
+  - Environment-specific configurations
+  - Comprehensive security test coverage
 
 ### Dependency Updates (Dependabot)
 - **Schedule**: Weekly checks
@@ -88,7 +97,7 @@ X-XSS-Protection: 1; mode=block
   - Auto-approval of safe dev dependency updates
   - Auto-merge for non-breaking changes
   - Dependency vulnerability scanning
-  - Test suite execution
+  - Test suite execution with unified configuration
 
 ## Data Validation Rules
 
@@ -262,4 +271,4 @@ npm run security:update
 ### NPM Audit
 - Regular automated checks
 - Part of CI/CD pipeline
-- Blocks builds on high severity issues 
+- Blocks builds on high severity issues

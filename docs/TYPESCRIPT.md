@@ -2,68 +2,50 @@
 
 ## Configuration Structure
 
+The project uses a unified TypeScript configuration approach with a single root configuration file:
+
 ```
-config/typescript/
-├── tsconfig.json        # Base configuration
-├── tsconfig.node.json   # Node.js specific configuration
-└── tsconfig.app.json    # Application-specific configuration
+tsconfig.json         # Root configuration for Next.js application
 ```
 
-## Configurations
+## Base Configuration (tsconfig.json)
 
-### Base Configuration (tsconfig.json)
-The root configuration that other configs extend from.
-
-### Node Configuration (tsconfig.node.json)
-Configuration for Node.js environments and build scripts:
-- Build tools
-- Development scripts
-- Test configurations
-
-### Application Configuration (tsconfig.app.json)
-Configuration specific to the React application:
-- React/JSX settings
+The root configuration includes:
+- Next.js specific settings
+- React/JSX configuration
 - Module resolution
 - Path aliases
-
-## Deployment
-
-- Vercel for deployment
-- Automatic TypeScript compilation
-- Type checking in CI/CD pipeline
+- Strict type checking
 
 ## Path Aliases
+
 The project uses TypeScript path aliases for better code organization:
 
 ```typescript
 {
-  "@/*": ["src/*"],
-  "@components/*": ["src/components/*"],
-  "@lib/*": ["src/lib/*"],
-  "@utils/*": ["src/utils/*"],
-  "@hooks/*": ["src/hooks/*"],
-  "@config/*": ["config/*"]
+  "@/*": ["./src/*"],
+  "@components/*": ["./src/components/*"],
+  "@lib/*": ["./src/lib/*"],
+  "@utils/*": ["./src/utils/*"],
+  "@hooks/*": ["./src/hooks/*"],
+  "@config/*": ["./config/*"],
+  "@core/*": ["./src/core/*"],
+  "@/features/*": ["./src/features/*"]
 }
 ```
 
-## TypeScript Utility Scripts
+## Development Tools
 
-### Fix TypeScript Issues
-```bash
-# Fix all TypeScript issues
-npm run fix:ts
-
-# Fix specific issues
-npm run fix:ts:unused     # Fix unused variables
-npm run fix:ts:comments   # Fix TypeScript comments
-npm run fix:ts:entities   # Fix React JSX entities
-```
-
-### Development Tools
+### Code Quality Tools
 - ESLint with TypeScript support
 - Prettier for consistent formatting
 - TypeScript-specific linting rules
 - Import sorting and organization
+
+### Testing Tools
+- Playwright for E2E testing
+- Vitest for unit testing
+- Lighthouse for performance testing
 
 ## Best Practices
 
@@ -111,14 +93,30 @@ function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
 - Implement proper event types
 
 ## Build Process
-The TypeScript build process is integrated with:
-- Vite for development and production builds
-- Vitest for testing
-- ESLint for linting
+
+### Development
+- Next.js for development and production builds
+- Hot module replacement
+- TypeScript type checking
+
+### Testing
+- Automated E2E tests with Playwright
+- Unit tests with Vitest
+- Performance testing with Lighthouse
+- Security scanning with Snyk
 
 ## Continuous Integration
-TypeScript checks are part of the CI/CD pipeline:
-- Type checking in GitHub Actions
-- Linting in pull requests
-- Build validation
-- Test type coverage
+
+### GitHub Actions Pipeline
+- Type checking
+- Linting
+- Unit tests
+- E2E tests
+- Security scans
+- Performance benchmarks
+
+### Deployment
+- Vercel for production deployment
+- Automatic TypeScript compilation
+- Environment-specific configurations
+- Security and performance monitoring

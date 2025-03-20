@@ -16,26 +16,26 @@ We use the following environments:
 
 | Variable Name | Description | Required In |
 |---------------|-------------|------------|
-| `VITE_SUPABASE_URL` | Supabase instance URL | All |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anonymous key | All |
-| `VITE_API_URL` | Backend API URL | All |
-| `VITE_ENVIRONMENT` | Current environment name | All |
-| `VITE_FEATURE_FLAGS` | Feature flags (JSON string) | All |
+| `NEXT_PUBLIC_SUPABASE_URL` | Supabase instance URL | All |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anonymous key | All |
+| `NEXT_PUBLIC_API_URL` | Backend API URL | All |
+| `NEXT_PUBLIC_ENVIRONMENT` | Current environment name | All |
+| `NEXT_PUBLIC_FEATURE_FLAGS` | Feature flags (JSON string) | All |
 
 ### Environment-Specific Default Values
 
 ```
 # Development (.env.development)
-VITE_ENVIRONMENT=development
-VITE_FEATURE_FLAGS={"enableExperimentalFeatures":true}
+NEXT_PUBLIC_ENVIRONMENT=development
+NEXT_PUBLIC_FEATURE_FLAGS={"enableExperimentalFeatures":true}
 
 # Staging (.env.staging)
-VITE_ENVIRONMENT=staging
-VITE_FEATURE_FLAGS={"enableExperimentalFeatures":true}
+NEXT_PUBLIC_ENVIRONMENT=staging
+NEXT_PUBLIC_FEATURE_FLAGS={"enableExperimentalFeatures":true}
 
 # Production (.env.production)
-VITE_ENVIRONMENT=production
-VITE_FEATURE_FLAGS={"enableExperimentalFeatures":false}
+NEXT_PUBLIC_ENVIRONMENT=production
+NEXT_PUBLIC_FEATURE_FLAGS={"enableExperimentalFeatures":false}
 ```
 
 ## Management Approach
@@ -53,6 +53,8 @@ Environment variables are managed in the CI/CD pipeline through:
 1. **GitHub Secrets** - For sensitive values
 2. **Environment Files** - Generated during deployment
 3. **Environment-specific configurations** - Stored in GitHub Environments
+4. **Test Configuration** - Unified test settings in `config/test/base.config.ts`
+5. **Security Reports** - Consolidated reports in SARIF format and HTML summary
 
 ## Setting Up Environment Variables
 
@@ -63,27 +65,6 @@ Environment variables are managed in the CI/CD pipeline through:
 3. Add repository secrets for sensitive values
 4. Navigate to Environments and create environments for staging and production
 5. Add environment-specific secrets as needed
-
-#### Required Secrets for Database Backup Workflow
-
-The database backup workflow (`.github/workflows/db-backup.yml`) requires the following secrets to be configured in GitHub:
-
-| Secret Name | Description | Used In |
-|-------------|-------------|---------|
-| `SB_URL` | Supabase project URL | Database backup script |
-| `SB_SERVICE_KEY` | Supabase service key with admin access | Database backup script |
-| `DB_HOST` | Database host address | Database backup script |
-| `DB_PORT` | Database port | Database backup script |
-| `DB_NAME` | Database name | Database backup script |
-| `DB_USER` | Database username | Database backup script |
-| `DB_PASSWORD` | Database password | Database backup script |
-| `AWS_ACCESS_KEY_ID` | AWS access key for S3 access | S3 upload step |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key for S3 access | S3 upload step |
-| `AWS_REGION` | AWS region for S3 bucket | S3 upload step |
-| `BACKUP_BUCKET` | S3 bucket name for backup storage | S3 upload step |
-| `SLACK_WEBHOOK` | Webhook URL for Slack notifications | Notification step |
-
-All these secrets must be added to the `production` environment in GitHub to ensure the workflow has access to them.
 
 ### Using Secrets in GitHub Actions
 
@@ -98,8 +79,8 @@ When creating GitHub Actions workflows:
 1. Go to your Vercel project settings
 2. Navigate to Settings → Environment Variables
 3. Add the required environment variables:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 4. Choose the environments (Production, Preview, Development)
 5. Click "Save" to apply the changes
 
@@ -116,4 +97,4 @@ The application uses a configuration service that:
 1. Never commit sensitive environment variables to the repository
 2. Use GitHub's environment protection rules for production secrets
 3. Restrict access to environment variables to necessary team members only
-4. Rotate secrets periodically, especially after team member departures 
+4. Rotate secrets periodically, especially after team member departures

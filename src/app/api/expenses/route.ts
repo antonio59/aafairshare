@@ -1,41 +1,123 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
+
+export async function GET() {
+  try {
+    const supabase = createClient();
+    const { data: expenses, error } = await supabase
+      .from('expenses')
+      .select(`
+        *,
+        users (
+          name
+        ),
+        categories (
+          category
+        ),
+        locations (
+          location
+        )
+      `)
+      .order('date', { ascending: false });
+
+    if (error) throw error;
+    return NextResponse.json(expenses);
+  } catch (error) {
+    console.error('Error fetching expenses:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch expenses' },
+      { status: 500 }
+    );
+  }
+}
 
 export async function POST(request: Request) {
   try {
-    const supabase = createRouteHandlerClient({ cookies });
-    const { data: { user } } = await supabase.auth.getUser();
-    
+    const data = await request.json();
+    const supabase = createClient();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'User not authenticated' },
+        { status: 401 }
+      );
     }
 
-    const body = await request.json();
-    const { data, error } = await supabase
+    const { data: expense, error } = await supabase
       .from('expenses')
-      .insert({
-        amount: body.amount,
-        category_id: body.category,
-        location_id: body.location || null,
-        notes: body.description,
-        date: body.date,
-        paid_by: user.id,
-        split_type: body.splitType === 'equal' ? 'Equal' : 'No Split'
-      })
+      .insert([{ ...data, paid_by: user.id }])
       .select()
       .single();
 
-    if (error) {
-      console.error('Error creating expense:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) throw error;
+    return NextResponse.json(expense);
+  } catch (error) {
+    console.error('Error creating expense:', error);
+    return NextResponse.json(
+      { error: 'Failed to create expense' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+    const data = await request.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Expense ID is required' },
+        { status: 400 }
+      );
     }
 
-    return NextResponse.json(data, { status: 201 });
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('expenses')
+      .update(data)
+      .eq('id', id);
+
+    if (error) throw error;
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error in POST /api/expenses:', error);
+    console.error('Error updating expense:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Failed to update expense' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Expense ID is required' },
+        { status: 400 }
+      );
+    }
+
+    const supabase = createClient();
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', id);
+
+    if (error) throw error;
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting expense:', error);
+    return NextResponse.json(
+      { error: 'Failed to delete expense' },
       { status: 500 }
     );
   }

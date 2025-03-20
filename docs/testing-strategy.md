@@ -179,9 +179,30 @@ npx storybook@latest init
 
 ### Configuration
 
+Our test configuration follows a unified approach with shared base configurations:
+
+```
+├── config/
+│   ├── test/
+│   │   └── base.config.ts       # Shared base configuration
+│   └── playwright/
+│       ├── playwright.config.ts  # Local development config
+│       └── playwright.ci.config.ts # CI-specific config
+```
+
+The base configuration (`base.config.ts`) provides shared settings for both Vitest and Playwright:
+- Common timeouts and retry settings
+- Environment-specific configurations
+- Reporter settings
+- Browser configurations
+
+Playwright configurations:
+- `playwright.config.ts`: Local development settings with multiple browser support
+- `playwright.ci.config.ts`: CI-optimized configuration with focused test runs
+
 Refer to the project repository for detailed configuration files:
-- `vitest.config.ts` for unit tests
-- `playwright.config.ts` for E2E tests
+- `config/test/base.config.ts` for shared configurations
+- `config/playwright/*.config.ts` for E2E test configurations
 - `.storybook/` for component testing
 
 ## Maintenance

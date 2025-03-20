@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { createBrowserClient } from '@supabase/ssr';
 
 interface Settlement {
   id: string;
@@ -48,7 +48,7 @@ export default function SettlementsSummary() {
   const [monthlySettlements, setMonthlySettlements] = useState<MonthlySettlement[]>([]);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
 
-  const supabase = createClientComponentClient();
+  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {});
 
   const fetchSettlements = async () => {
     // First fetch existing settlements to know which months are already settled

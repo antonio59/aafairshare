@@ -33,7 +33,6 @@ Our application uses the following infrastructure:
 
 - **CI/CD**: GitHub Actions
 - **Version Control**: Git/GitHub
-- **Backup Storage**: AWS S3
 - **Secret Management**: GitHub Secrets
 
 ## CI/CD Pipeline
@@ -44,11 +43,12 @@ We use GitHub Actions for continuous integration and deployment.
 
 1. **CI/CD Pipeline** (`.github/workflows/ci-cd.yml`)
    - Triggered on push to main/develop or manual dispatch
-   - Runs tests, builds the application, and deploys to the appropriate environment
+   - Uses unified test configuration from `config/test/base.config.ts`
+   - Runs unit tests, integration tests, and e2e tests
+   - Generates consolidated security reports
+   - Deploys to the appropriate environment
 
-2. **Database Backup** (`.github/workflows/db-backup.yml`)
-   - Scheduled daily schema backups and weekly full backups
-   - Stores backups in GitHub Artifacts and AWS S3
+
 
 ### Deployment Process
 
@@ -122,16 +122,6 @@ Implementation details:
 
 ## Database Management
 
-### Backup Strategy
-
-We maintain a comprehensive backup strategy for our Supabase database:
-
-- **Daily Schema Backups**: Automated daily backups of database schema
-- **Weekly Full Backups**: Complete database backups every Sunday
-- **Pre-Deployment Backups**: Automatic backup before production deployments
-
-See [Database Backup Strategy](./database-backup-strategy.md) for details.
-
 ### Schema Migrations
 
 Database schema changes are managed through Supabase migrations:
@@ -156,8 +146,10 @@ Database schema changes are managed through Supabase migrations:
 
 ### Security Scanning
 
-- Dependency scanning with `npm audit`
+- Automated dependency scanning with `npm audit`
 - Scheduled security scans with Snyk
+- Consolidated security reporting in `security-report.html`
+- Automated SARIF report generation for GitHub Security tab
 - Manual security reviews before major releases
 
 ## Incident Response
