@@ -53,72 +53,82 @@ const mockComponents = {
   CardDescription: createMockElement('card-description'),
   CardContent: createMockElement('card-content'),
   CardFooter: createMockElement('card-footer'),
+  Button: createMockElement('button'),
+  Badge: createMockElement('badge'),
+  Tabs: createMockElement('tabs'),
+  TabsList: createMockElement('tabs-list'),
+  TabsTrigger: createMockElement('tabs-trigger'),
+  TabsContent: createMockElement('tabs-content'),
+  Input: createMockElement('input'),
+  Label: createMockElement('label'),
+  Select: createMockElement('select'),
+  SelectTrigger: createMockElement('select-trigger'),
+  SelectValue: createMockElement('select-value'),
+  SelectContent: createMockElement('select-content'),
+  SelectItem: createMockElement('select-item'),
+  Dialog: createMockElement('dialog'),
+  DialogTrigger: createMockElement('dialog-trigger'),
+  DialogContent: createMockElement('dialog-content'),
+  DialogHeader: createMockElement('dialog-header'),
+  DialogTitle: createMockElement('dialog-title'),
+  DialogDescription: createMockElement('dialog-description'),
+  DialogFooter: createMockElement('dialog-footer'),
+  Toast: createMockElement('toast'),
+  Tooltip: createMockElement('tooltip'),
+  TooltipTrigger: createMockElement('tooltip-trigger'),
+  TooltipContent: createMockElement('tooltip-content'),
+  Calendar: createMockElement('calendar'),
+  Checkbox: createMockElement('checkbox'),
+  ScrollArea: createMockElement('scroll-area'),
+  Skeleton: createMockElement('skeleton'),
+  Form: createMockElement('form'),
+  FormField: createMockElement('form-field'),
+  FormItem: createMockElement('form-item'),
+  FormLabel: createMockElement('form-label'),
+  FormControl: createMockElement('form-control'),
+  FormDescription: createMockElement('form-description'),
+  FormMessage: createMockElement('form-message'),
+  Toaster: createMockElement('toaster'),
 };
 
-const mockScrollArea = createMockElement('scroll-area');
-
-// Mock React hooks for React 19 compatibility
-jest.mock('react', () => {
-  const originalReact = jest.requireActual('react');
-  return {
-    ...originalReact,
-    useEffect: jest.fn((callback, deps) => originalReact.useEffect(callback, deps)),
-    useState: jest.fn(originalReact.useState),
-    useCallback: jest.fn(originalReact.useCallback),
-    useMemo: jest.fn(originalReact.useMemo),
-  };
-});
-
-// Mock Radix UI components
-const mockTooltipProvider = createMockElement('tooltip-provider');
-const mockTooltip = createMockElement('tooltip');
-const mockTooltipTrigger = createMockElement('tooltip-trigger');
-const mockTooltipContent = createMockElement('tooltip-content');
-const mockBadge = createMockElement('badge');
-
-// Setup component mocks
+// Mock UI components
+jest.mock('@/components/ui/button', () => mockComponents.Button);
 jest.mock('@/components/ui/card', () => mockComponents);
+jest.mock('@/components/ui/badge', () => mockComponents.Badge);
+jest.mock('@/components/ui/tabs', () => mockComponents);
+jest.mock('@/components/ui/input', () => mockComponents.Input);
+jest.mock('@/components/ui/label', () => mockComponents.Label);
+jest.mock('@/components/ui/select', () => mockComponents);
+jest.mock('@/components/ui/dialog', () => mockComponents);
+jest.mock('@/components/ui/toast', () => mockComponents);
+jest.mock('@/components/ui/tooltip', () => mockComponents);
+jest.mock('@/components/ui/calendar', () => mockComponents.Calendar);
+jest.mock('@/components/ui/checkbox', () => mockComponents.Checkbox);
+jest.mock('@/components/ui/scroll-area', () => mockComponents.ScrollArea);
+jest.mock('@/components/ui/skeleton', () => mockComponents.Skeleton);
+jest.mock('@/components/ui/form', () => mockComponents);
 
-jest.mock('@/components/ui/scroll-area', () => ({
-  ScrollArea: mockScrollArea,
-}));
-
-jest.mock('@/components/ui/tooltip', () => ({
-  TooltipProvider: mockTooltipProvider,
-  Tooltip: mockTooltip,
-  TooltipTrigger: mockTooltipTrigger,
-  TooltipContent: mockTooltipContent,
-}));
-
-jest.mock('@/components/ui/badge', () => ({
-  Badge: mockBadge,
-}));
-
-// Mock lucide-react icons
+// Mock Lucide Icons
 jest.mock('lucide-react', () => ({
   ArrowRight: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'arrow-right-icon',
-    })
+    <svg {...props} data-testid="arrow-right-icon">
+      <path d="M0 0h24v24H0z" />
+    </svg>
   ),
   Check: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'check-icon',
-    })
+    <svg {...props} data-testid="check-icon">
+      <path d="M0 0h24v24H0z" />
+    </svg>
   ),
   Clock: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'clock-icon',
-    })
+    <svg {...props} data-testid="clock-icon">
+      <path d="M0 0h24v24H0z" />
+    </svg>
   ),
   AlertTriangle: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'alert-triangle-icon',
-    })
+    <svg {...props} data-testid="alert-triangle-icon">
+      <path d="M0 0h24v24H0z" />
+    </svg>
   ),
 }));
 
@@ -137,8 +147,9 @@ Object.defineProperty(window, 'matchMedia', {
   })),
 });
 
-// Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
+// Mock Intersection Observer
+global.IntersectionObserver = class IntersectionObserver {
+  constructor() {}
   observe() {}
   unobserve() {}
   disconnect() {}
@@ -158,20 +169,18 @@ Object.defineProperty(window, 'matchMedia', {
     dispatchEvent: jest.fn(),
   })),
 });
->>>>>>> feat/react19-tailwind4-upgrade
 
 // Mock Next.js router
 jest.mock('next/navigation', () => ({
   useRouter: () => ({
     push: jest.fn(),
     replace: jest.fn(),
-    prefetch: jest.fn(),
+    refresh: jest.fn(),
     back: jest.fn(),
+    forward: jest.fn(),
   }),
-  useSearchParams: () => ({
-    get: jest.fn(),
-    set: jest.fn(),
-  }),
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => '/',
 }));
 
 // Mock Supabase client
@@ -191,8 +200,6 @@ jest.mock('@/types/supabase', () => ({
     })),
   })),
 }));
-<<<<<<< HEAD
-=======
 
 // Mock native browser APIs
 global.atob = jest.fn(str => Buffer.from(str, 'base64').toString('binary'));
@@ -225,42 +232,14 @@ if (!global.DOMException) {
     QUOTA_EXCEEDED_ERR: 22,
     TIMEOUT_ERR: 23,
     INVALID_NODE_TYPE_ERR: 24,
-    DATA_CLONE_ERR: 25
-  } as const;
+    DATA_CLONE_ERR: 25,
+  };
 
-  class DOMExceptionImpl extends Error implements DOMException {
-    readonly INDEX_SIZE_ERR = DOMExceptionCodes.INDEX_SIZE_ERR;
-    readonly DOMSTRING_SIZE_ERR = DOMExceptionCodes.DOMSTRING_SIZE_ERR;
-    readonly HIERARCHY_REQUEST_ERR = DOMExceptionCodes.HIERARCHY_REQUEST_ERR;
-    readonly WRONG_DOCUMENT_ERR = DOMExceptionCodes.WRONG_DOCUMENT_ERR;
-    readonly INVALID_CHARACTER_ERR = DOMExceptionCodes.INVALID_CHARACTER_ERR;
-    readonly NO_DATA_ALLOWED_ERR = DOMExceptionCodes.NO_DATA_ALLOWED_ERR;
-    readonly NO_MODIFICATION_ALLOWED_ERR = DOMExceptionCodes.NO_MODIFICATION_ALLOWED_ERR;
-    readonly NOT_FOUND_ERR = DOMExceptionCodes.NOT_FOUND_ERR;
-    readonly NOT_SUPPORTED_ERR = DOMExceptionCodes.NOT_SUPPORTED_ERR;
-    readonly INUSE_ATTRIBUTE_ERR = DOMExceptionCodes.INUSE_ATTRIBUTE_ERR;
-    readonly INVALID_STATE_ERR = DOMExceptionCodes.INVALID_STATE_ERR;
-    readonly SYNTAX_ERR = DOMExceptionCodes.SYNTAX_ERR;
-    readonly INVALID_MODIFICATION_ERR = DOMExceptionCodes.INVALID_MODIFICATION_ERR;
-    readonly NAMESPACE_ERR = DOMExceptionCodes.NAMESPACE_ERR;
-    readonly INVALID_ACCESS_ERR = DOMExceptionCodes.INVALID_ACCESS_ERR;
-    readonly VALIDATION_ERR = DOMExceptionCodes.VALIDATION_ERR;
-    readonly TYPE_MISMATCH_ERR = DOMExceptionCodes.TYPE_MISMATCH_ERR;
-    readonly SECURITY_ERR = DOMExceptionCodes.SECURITY_ERR;
-    readonly NETWORK_ERR = DOMExceptionCodes.NETWORK_ERR;
-    readonly ABORT_ERR = DOMExceptionCodes.ABORT_ERR;
-    readonly URL_MISMATCH_ERR = DOMExceptionCodes.URL_MISMATCH_ERR;
-    readonly QUOTA_EXCEEDED_ERR = DOMExceptionCodes.QUOTA_EXCEEDED_ERR;
-    readonly TIMEOUT_ERR = DOMExceptionCodes.TIMEOUT_ERR;
-    readonly INVALID_NODE_TYPE_ERR = DOMExceptionCodes.INVALID_NODE_TYPE_ERR;
-    readonly DATA_CLONE_ERR = DOMExceptionCodes.DATA_CLONE_ERR;
-
-    code: number;
-
+  class DOMExceptionImpl extends Error {
     constructor(message?: string, name?: string) {
       super(message);
-      this.name = name || 'DOMException';
-      this.code = DOMExceptionCodes[name as keyof typeof DOMExceptionCodes] || 0;
+      this.name = name || 'Error';
+      this.message = message || '';
     }
   }
 
@@ -271,26 +250,3 @@ if (!global.DOMException) {
 
   global.DOMException = DOMExceptionImpl as any;
 }
-
-// Mock WebCrypto API
-Object.defineProperty(window, 'crypto', {
-  value: {
-    subtle: {
-      digest: jest.fn(),
-      encrypt: jest.fn(),
-      decrypt: jest.fn(),
-      sign: jest.fn(),
-      verify: jest.fn(),
-      generateKey: jest.fn(),
-      deriveKey: jest.fn(),
-      importKey: jest.fn(),
-      exportKey: jest.fn(),
-      wrapKey: jest.fn(),
-      unwrapKey: jest.fn(),
-    },
-    getRandomValues: jest.fn(array => {
-      return array.map(() => Math.floor(Math.random() * 256));
-    }),
-  },
-});
->>>>>>> feat/react19-tailwind4-upgrade
