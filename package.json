@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0 && npm run lint:spell",
     "lint:spell": "cspell '**/*.{ts,tsx,js,jsx,json,md}'",
-    "clean": "rm -rf node_modules/.next && rm -rf node_modules && npm install",
+    "clean": "rm -rf node_modules/.next && rm -rf node_modules && npm install --legacy-peer-deps",
     "security:check": "tsx scripts/security-check.ts",
     "migrate:supabase": "chmod +x ./scripts/migrations/migrate-imports.sh && ./scripts/migrations/migrate-imports.sh",
     "gen:types": "npx supabase gen types typescript --project-id ccwcbnfnvkmwubkuvzns --schema public > src/core/types/supabase.types.ts",
@@ -37,7 +37,7 @@
     "release": "standard-version",
     "deploy:staging": "vercel",
     "deploy:production": "vercel --prod",
-    "preinstall": "npm config set --location=project audit-level=high && npm config set --location=project omit=optional"
+    "preinstall": "npm config set --location=project audit-level=high && npm config set --location=project omit=optional && npm config set --location=project legacy-peer-deps=true"
   },
   "config": {
     "module": "commonjs"
@@ -89,6 +89,8 @@
     "rimraf": "^5.0.0",
     "inflight": "^2.0.0",
     "q": "npm:@endo/eventual-send@^1.0.0",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
     "stringify-package": "npm:@npmcli/package-json@^5.0.0"
   },
   "devDependencies": {

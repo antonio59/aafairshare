@@ -2,7 +2,7 @@
   "version": 2,
   "buildCommand": "npm run build",
   "devCommand": "npm run dev",
-  "installCommand": "rm -rf node_modules package-lock.json && npm install",
+  "installCommand": "rm -rf node_modules package-lock.json && npm install --legacy-peer-deps",
   "framework": "nextjs",
   "outputDirectory": ".next",
   "github": {
