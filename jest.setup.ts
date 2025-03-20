@@ -111,24 +111,44 @@ jest.mock('@/components/ui/form', () => mockComponents);
 // Mock Lucide Icons
 jest.mock('lucide-react', () => ({
   ArrowRight: (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} data-testid="arrow-right-icon">
-      <path d="M0 0h24v24H0z" />
-    </svg>
+    React.createElement('svg', {
+      ...props,
+      'data-testid': 'arrow-right-icon'
+    }, 
+    React.createElement('path', {
+      d: 'M0 0h24v24H0z'
+    })
+    )
   ),
   Check: (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} data-testid="check-icon">
-      <path d="M0 0h24v24H0z" />
-    </svg>
+    React.createElement('svg', {
+      ...props,
+      'data-testid': 'check-icon'
+    }, 
+    React.createElement('path', {
+      d: 'M0 0h24v24H0z'
+    })
+    )
   ),
   Clock: (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} data-testid="clock-icon">
-      <path d="M0 0h24v24H0z" />
-    </svg>
+    React.createElement('svg', {
+      ...props,
+      'data-testid': 'clock-icon'
+    }, 
+    React.createElement('path', {
+      d: 'M0 0h24v24H0z'
+    })
+    )
   ),
   AlertTriangle: (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} data-testid="alert-triangle-icon">
-      <path d="M0 0h24v24H0z" />
-    </svg>
+    React.createElement('svg', {
+      ...props,
+      'data-testid': 'alert-triangle-icon'
+    }, 
+    React.createElement('path', {
+      d: 'M0 0h24v24H0z'
+    })
+    )
   ),
 }));
 
@@ -148,11 +168,19 @@ Object.defineProperty(window, 'matchMedia', {
 });
 
 // Mock Intersection Observer
-global.IntersectionObserver = class IntersectionObserver {
-  constructor() {}
+global.IntersectionObserver = class MockIntersectionObserver {
+  root: Element | null = null;
+  rootMargin: string = '0px';
+  thresholds: ReadonlyArray<number> = [0];
+  
+  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
+    // Mock constructor implementation
+  }
+  
   observe() {}
   unobserve() {}
   disconnect() {}
+  takeRecords(): IntersectionObserverEntry[] { return []; }
 };
 
 // Configure browser environment
