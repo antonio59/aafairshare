@@ -1,21 +1,9 @@
 import { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-// Dynamic import with no SSR for client components
-import dynamic from 'next/dynamic';
-
-// Use dynamic import with ssr: false for client-only components
-const ClientLayout = dynamic(() => import("../components/ClientLayout"), { ssr: false });
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+// Import font CSS manually to avoid Next.js font conflicts with Babel
+import "@/styles/fonts.css";
+// Import the client wrapper component
+import { ClientLayoutWrapper } from "@/components/ClientLayoutWrapper";
 
 export const metadata: Metadata = {
   title: 'AA FairShare',
@@ -28,9 +16,9 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="min-h-screen bg-background font-sans antialiased">
-        <ClientLayout>{children}</ClientLayout>
+    <html lang="en">
+      <body className="min-h-screen bg-background font-geist antialiased">
+        <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
       </body>
     </html>
   );

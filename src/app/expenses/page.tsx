@@ -1,14 +1,8 @@
 import { Suspense } from 'react';
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from 'next/navigation';
-import dynamic from 'next/dynamic';
 import { Skeleton } from '@/components/ui/skeleton';
-
-// Dynamically import the client component with no SSR
-const ExpensesDashboard = dynamic(
-  () => import('@/components/client/ExpensesDashboard').then(mod => mod.ExpensesDashboard),
-  { ssr: false, loading: () => <Skeleton className="h-[400px] w-full" /> }
-);
+import { ExpensesDashboardWrapper } from '@/components/client/ExpensesDashboardWrapper';
 
 interface PageProps {
   searchParams: { month?: string };
@@ -45,7 +39,7 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Expenses</h1>
       <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-        <ExpensesDashboard initialMonth={searchParams.month} />
+        <ExpensesDashboardWrapper initialMonth={searchParams.month} />
       </Suspense>
     </div>
   );
