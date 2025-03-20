@@ -4,13 +4,11 @@ import { redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExpensesDashboardWrapper } from '@/components/client/ExpensesDashboardWrapper';
 
-// Use Next.js 15 compatible type definition
-interface PageProps {
-  params: Record<string, string>;
-  searchParams: { [key: string]: string | string[] | undefined };
-}
-
-export default async function ExpensesPage({ searchParams }: PageProps) {
+export default async function ExpensesPage({ 
+  searchParams,
+}: { 
+  searchParams: { [key: string]: string | string[] | undefined } 
+}) {
   // Create Supabase client - cookie handling is managed by middleware
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
