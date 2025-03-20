@@ -4,8 +4,10 @@ import { redirect } from 'next/navigation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ExpensesDashboardWrapper } from '@/components/client/ExpensesDashboardWrapper';
 
+// Use Next.js 15 compatible type definition
 interface PageProps {
-  searchParams: { month?: string };
+  params: Record<string, string>;
+  searchParams: { [key: string]: string | string[] | undefined };
 }
 
 export default async function ExpensesPage({ searchParams }: PageProps) {
@@ -15,14 +17,14 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(name: string) {
+        get(_name: string) {
           // Let middleware handle cookie management
           return null;
         },
-        set(name: string, value: string) {
+        set(_name: string, _value: string) {
           // No-op: cookie setting handled by middleware
         },
-        remove(name: string) {
+        remove(_name: string) {
           // No-op: cookie removal handled by middleware
         },
       },
@@ -35,11 +37,16 @@ export default async function ExpensesPage({ searchParams }: PageProps) {
     return redirect('/signin');
   }
 
+  // Extract month param, ensuring we get a string or undefined
+  const month = searchParams.month ? 
+    (Array.isArray(searchParams.month) ? searchParams.month[0] : searchParams.month) : 
+    undefined;
+
   return (
     <div className="max-w-4xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Expenses</h1>
       <Suspense fallback={<Skeleton className="h-[400px] w-full" />}>
-        <ExpensesDashboardWrapper initialMonth={searchParams.month} />
+        <ExpensesDashboardWrapper initialMonth={month} />
       </Suspense>
     </div>
   );
