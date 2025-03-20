@@ -23,13 +23,32 @@ export default function Settings() {
   const [editValue, setEditValue] = useState('');
 
   useEffect(() => {
-    fetchCategories();
-    fetchLocations();
+    // Create an AbortController for fetch cleanup
+    const controller = new AbortController();
+    const signal = controller.signal;
+    
+    // Use async IIFE pattern with cleanup
+    (async () => {
+      try {
+        await Promise.all([
+          fetchCategories(signal),
+          fetchLocations(signal)
+        ]);
+      } catch (error) {
+        // Only log if not from an aborted request
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          console.error('Error fetching data:', error);
+        }
+      }
+    })();
+    
+    // React 19 compatible cleanup function
+    return () => controller.abort();
   }, []);
 
-  const fetchCategories = async () => {
+  const fetchCategories = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/categories');
+      const response = await fetch('/api/categories', { signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setCategories(data);
@@ -81,9 +100,9 @@ export default function Settings() {
     }
   };
 
-  const fetchLocations = async () => {
+  const fetchLocations = async (signal?: AbortSignal) => {
     try {
-      const response = await fetch('/api/locations');
+      const response = await fetch('/api/locations', { signal });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error);
       setLocations(data);

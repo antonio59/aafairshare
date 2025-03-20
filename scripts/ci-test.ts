@@ -103,7 +103,7 @@ function main(): void {
     
     // Run unit tests first, as they're generally faster
     logSection('Running Unit Tests');
-    const unitTestsSucceeded = runCommand('vitest run', { ignoreError: true });
+    const unitTestsSucceeded = runCommand('npm test', { ignoreError: true });
     
     if (!unitTestsSucceeded) {
       console.log('Unit tests failed, but continuing with other tests');

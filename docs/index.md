@@ -14,6 +14,7 @@ This directory contains detailed technical documentation for the Expense Sharing
 ### Performance
 - [performance-optimizations.md](./performance-optimizations.md) - Performance optimization techniques and implementation details.
 - [performance-testing.md](./performance-testing.md) - Performance testing approaches, tools, and workflow integration.
+- [performance-benchmarks.md](./performance-benchmarks.md) - Detailed performance benchmarks for React 19 and Tailwind CSS 4 upgrade.
 
 ### Development
 - [typescript.md](./typescript.md) - TypeScript configuration, best practices, and code organization.
@@ -25,6 +26,8 @@ This directory contains detailed technical documentation for the Expense Sharing
 
 ### Migrations
 - [supabase-migration.md](./supabase-migration.md) - Guide for migrating to the standardized Supabase client approach.
+- [react19-upgrade.md](./react19-upgrade.md) - Detailed documentation of the React 19 and Tailwind CSS 4 upgrade.
+- [migration-guide.md](./migration-guide.md) - Step-by-step guide for migrating components to React 19 and Tailwind CSS 4.
 
 ### DevOps
 - [devops-guide.md](./devops-guide.md) - DevOps setup and management guide.

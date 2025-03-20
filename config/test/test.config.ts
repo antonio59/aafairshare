@@ -1,5 +1,7 @@
-import { createVitestConfig, createPlaywrightConfig } from './base.config';
+import { createPlaywrightConfig } from './base.config';
 
-// Export configurations using the base config helpers
-export const vitestConfig = createVitestConfig();
+// Export Playwright E2E test configuration
 export const playwrightConfig = createPlaywrightConfig();
+
+// Jest configuration is handled by jest.config.ts in the root directory
+// This follows our TypeScript path alias configuration and testing standards

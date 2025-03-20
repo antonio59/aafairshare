@@ -1,11 +1,10 @@
 import type { PlaywrightTestConfig, ReporterDescription } from '@playwright/test';
-import type { UserConfig } from 'vitest/config';
 
 // Ensure TypeScript uses correct module and target settings
 /// <reference lib="es2015" />
 /// <reference lib="dom" />
 
-// Base configuration shared between Vitest and Playwright
+// Base configuration for testing
 export const baseConfig = {
   // Environment variables
   CI: process.env.CI === 'true',
@@ -50,11 +49,7 @@ export function createPlaywrightConfig(config: Partial<PlaywrightTestConfig> = {
     forbidOnly: baseConfig.CI,
     retries: baseConfig.retries,
     workers: baseConfig.workers,
-    reporter: [
-      ['html', { open: 'never' }],
-      ['list'],
-      ['json', { outputFile: 'test-results/results.json' }]
-    ] as ReporterDescription[],
+    reporter: baseConfig.reporters,
     outputDir: baseConfig.outputDir,
     use: {
       baseURL: baseConfig.BASE_URL,
@@ -70,27 +65,11 @@ export function createPlaywrightConfig(config: Partial<PlaywrightTestConfig> = {
       },
     ],
     webServer: process.env.SKIP_WEB_SERVER === 'true' ? undefined : {
-      command: 'npx vite preview --port 3000',
+      command: 'npm run start',
       port: 3000,
       reuseExistingServer: !baseConfig.CI,
       stdout: 'ignore',
       stderr: 'pipe',
-    },
-    ...config,
-  };
-}
-
-// Helper function to create Vitest config
-export function createVitestConfig(config: Partial<UserConfig> = {}): UserConfig {
-  return {
-    test: {
-      environment: 'jsdom',
-      globals: true,
-      setupFiles: ['./test/setup.ts'],
-      coverage: {
-        provider: 'v8',
-        reporter: ['text', 'json', 'html'],
-      },
     },
     ...config,
   };

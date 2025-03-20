@@ -1,0 +1,121 @@
+name: TypeScript Checks
+
+on:
+  push:
+    branches: [ main, feat/react19-tailwind4-upgrade ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '**.ts'
+      - '**.tsx'
+      - 'package.json'
+      - 'tsconfig.json'
+      - '.github/workflows/typescript-checks.yml'
+
+jobs:
+  typescript-validation:
+    name: TypeScript Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: TypeScript Compilation Check
+        run: npm run typecheck
+        
+      - name: Check for Strict Mode Violations
+        run: |
+          echo "Checking for // @ts-expect-error and // @ts-ignore usage..."
+          found_suppressions=$(find src -type f -name "*.ts" -o -name "*.tsx" | xargs grep -l "@ts-\(expect-error\|ignore\)")
+          if [ ! -z "$found_suppressions" ]; then
+            echo "⚠️ Type suppressions found in:"
+            echo "$found_suppressions"
+            echo "Please review these files and fix type issues instead of suppressing them."
+          fi
+        
+      - name: Validate Path Aliases
+        run: |
+          echo "Validating TypeScript path aliases..."
+          npx tsc-alias --project tsconfig.json --watch false
+          
+      - name: Check Server/Client Boundaries
+        run: |
+          echo "Checking Server/Client component boundaries..."
+          invalid_usage=$(find src/app -type f -name "*.tsx" | xargs grep -l "useState\|useEffect" | grep -v "use client")
+          if [ ! -z "$invalid_usage" ]; then
+            echo "⚠️ Client hooks found in server components:"
+            echo "$invalid_usage"
+            echo "Please add 'use client' directive or move hooks to client components."
+            exit 1
+          fi
+
+  type-coverage:
+    name: Type Coverage Analysis
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Install type-coverage
+        run: npm install -g type-coverage
+        
+      - name: Check Type Coverage
+        run: |
+          type_coverage=$(npx type-coverage --detail)
+          coverage_percent=$(echo "$type_coverage" | grep -oP '\d+\.\d+(?=% types are covered)')
+          echo "Type coverage: $coverage_percent%"
+          if (( $(echo "$coverage_percent < 95" | bc -l) )); then
+            echo "❌ Type coverage below 95%"
+            echo "$type_coverage"
+            exit 1
+          fi
+        
+  next-typescript:
+    name: Next.js TypeScript Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Build Next.js App
+        run: npm run build
+        env:
+          CI: true
+          
+      - name: Validate App Router Types
+        run: |
+          echo "Checking App Router type consistency..."
+          invalid_routes=$(find src/app -type f -name "*.tsx" ! -name "layout.tsx" ! -name "page.tsx" ! -name "loading.tsx" ! -name "error.tsx" ! -name "not-found.tsx")
+          if [ ! -z "$invalid_routes" ]; then
+            echo "⚠️ Invalid route file names found:"
+            echo "$invalid_routes"
+            echo "Please use Next.js App Router conventions: page.tsx, layout.tsx, loading.tsx, error.tsx, not-found.tsx"
+            exit 1
+          fi

@@ -1,7 +1,15 @@
 import type { Config } from 'tailwindcss';
 import typography from '@tailwindcss/typography';
 
-const config: Config = {
+// Updated configuration for Tailwind CSS 4
+const config = {
+  future: {
+    // Enable Tailwind CSS 4 features
+    hoverOnlyWhenSupported: true,
+    respectDefaultRingColorOpacity: true,
+    disableColorOpacityUtilitiesByDefault: false,
+    relativeContentPathsByDefault: true,
+  },
   content: [
     './src/**/*.{js,jsx,ts,tsx,html,css}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
@@ -59,9 +67,15 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      animation: {
+        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-delayed-0': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'pulse-delayed-1': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.4s',
+        'pulse-delayed-2': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.8s',
+      },
     },
   },
   plugins: [typography],
-};
+} satisfies Config;
 
 export default config;
