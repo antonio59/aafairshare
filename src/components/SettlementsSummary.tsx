@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
 
 interface Settlement {
@@ -50,41 +50,56 @@ export default function SettlementsSummary() {
 
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {});
 
-  const fetchSettlements = async () => {
-    // First fetch existing settlements to know which months are already settled
-    const { data: settlementsData } = await supabase
-      .from('settlements')
-      .select('*')
-      .eq('is_settled', activeTab === 'settled');
+  const fetchSettlements = useCallback(async () => {
+    try {
+      // First fetch existing settlements to know which months are already settled
+      const { data: settlementsData } = await supabase
+        .from('settlements')
+        .select('*')
+        .eq('is_settled', activeTab === 'settled');
 
-    const settledMonths = new Set(settlementsData?.map(s => s.month_year) || []);
+      const settledMonths = new Set(settlementsData?.map(s => s.month_year) || []);
 
-    // Fetch all users first to ensure we include both in calculations
-    const { data: usersData } = await supabase
-      .from('users')
-      .select('id, email, name');
+      // Fetch all users first to ensure we include both in calculations
+      const { data: usersData } = await supabase
+        .from('users')
+        .select('id, email, name');
 
-    if (!usersData || usersData.length !== 2) {
-      console.error('Expected exactly two users');
-      return;
-    }
+      if (!usersData || usersData.length !== 2) {
+        console.error('Expected exactly two users');
+        return;
+      }
 
-    // Then fetch expenses for settlement calculations
-    const { data: expensesData, error: expensesError } = await supabase
-      .from('expenses')
-      .select(`
-        *,
-        paid_by_user:paid_by(id, email, name)
-      `)
-      .order('date', { ascending: false });
+      // Then fetch expenses for settlement calculations
+      const { data: expensesData, error: expensesError } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          paid_by_user:paid_by(id, email, name)
+        `)
+        .order('date', { ascending: false });
 
-    if (expensesError) {
-      console.error('Error fetching expenses:', expensesError);
-      return;
-    }
+      if (expensesError) {
+        console.error('Error fetching expenses:', expensesError);
+        return;
+      }
 
     // Group expenses by month
-    const groupedExpenses = expensesData?.reduce((acc: { [key: string]: any[] }, expense) => {
+    interface GroupedExpense {
+      id: string;
+      amount: number;
+      date: string;
+      paid_by: string;
+      created_at: string;
+      split_type: string;
+      paid_by_user: {
+        id: string;
+        email: string;
+        name: string;
+      };
+    }
+
+    const groupedExpenses = expensesData?.reduce((acc: { [key: string]: GroupedExpense[] }, expense) => {
       const monthYear = new Date(expense.date).toISOString().slice(0, 7);
       if (!acc[monthYear]) {
         acc[monthYear] = [];
@@ -128,7 +143,7 @@ export default function SettlementsSummary() {
           amount: 0
         };
 
-        const [[user1Id, user1Data], [user2Id, user2Data]] = Object.entries(userTotals);
+        const [[, user1Data], [, user2Data]] = Object.entries(userTotals);
         
         // Calculate the total amount that should be split
         const totalSplitAmount = expenses.reduce((sum, expense) => {
@@ -171,11 +186,14 @@ export default function SettlementsSummary() {
       });
 
       setMonthlySettlements(monthlySettlements);
-  };
+    } catch (error) {
+      console.error('Error fetching settlements:', error);
+    }
+  }, [activeTab, supabase]);
 
   useEffect(() => {
-    fetchSettlements();
-  }, [activeTab]);
+    void fetchSettlements();
+  }, [fetchSettlements]);
 
   const handleSettleMonth = async (monthYear: string) => {
     const monthGroup = monthlySettlements.find(m => m.month_year === monthYear);
@@ -253,7 +271,7 @@ export default function SettlementsSummary() {
             <div className="space-y-4">
               {Object.values(monthGroup.userTotals).map(userData => (
                 <div key={userData.email} className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">{userData.name || userData.email}'s Summary</h4>
+                  <h4 className="font-medium mb-2">{userData.name || userData.email}&apos;s Summary</h4>
                   <div className="space-y-2">
                     <div className="flex justify-between text-lg">
                       <span>Total paid</span>

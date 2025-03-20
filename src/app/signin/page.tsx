@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 
 export default function SignInPage() {
@@ -20,8 +21,9 @@ export default function SignInPage() {
     try {
       await login(email, password);
       router.push('/expenses');
-    } catch (error) {
-      setError('Invalid email or password');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Invalid email or password';
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -31,7 +33,7 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="flex flex-col items-center">
-          <img src="/logo.svg" alt="AA FairShare" className="h-12 w-auto mb-8" />
+          <Image src="/logo.svg" alt="AA FairShare" width={48} height={48} className="w-auto mb-8" />
           <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Welcome back
           </h2>

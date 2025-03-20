@@ -8,9 +8,9 @@ The `scripts/` directory contains utility scripts used for development, maintena
 
 ### Available Scripts
 
-#### TypeScript Fixes and Linting
+#### Code Quality and Linting
 
-- **`fix-typescript-issues.js`** - A comprehensive script to fix various TypeScript and linting issues
+- **TypeScript Fixes**
   ```bash
   # Fix all issues (unused variables, TS comments, unescaped entities)
   npm run fix:ts
@@ -24,6 +24,27 @@ The `scripts/` directory contains utility scripts used for development, maintena
   # Fix unescaped entities in JSX (like quotes and angle brackets)
   npm run fix:ts:entities
   ```
+
+- **Spell Checking**
+  ```bash
+  # Run spell checker on all relevant files
+  npm run lint:spell
+  
+  # Run complete linting (TypeScript + spell checking)
+  npm run lint
+  ```
+
+  The spell checker is configured in `cspell.json` and includes:
+  - Technical terms dictionary for our stack
+  - Framework-specific terms (Next.js, React, TypeScript)
+  - UI component terms (Shadcn, Radix, Headless UI)
+  - Database and API terms (Supabase)
+  - Custom regex patterns for technical naming
+
+  To add new technical terms:
+  1. Open `cspell.json`
+  2. Add the term to the `words` array
+  3. Run `npm run lint:spell` to verify
 
 #### Database Scripts
 

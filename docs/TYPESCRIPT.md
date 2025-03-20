@@ -99,6 +99,53 @@ function toErrorWithMessage(maybeError: unknown): ErrorWithMessage {
 - Hot module replacement
 - TypeScript type checking
 
+## Spell Checking
+
+### Configuration Structure
+The project uses CSpell for spell checking, integrated with the TypeScript development workflow:
+
+```json
+// cspell.json
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "supabase",
+    "headlessui",
+    "chartjs"
+    // ... other technical terms
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    "dist/**"
+  ],
+  "allowCompoundWords": true,
+  "ignoreRegExpList": [
+    "[A-Z]{3,}",
+    "[0-9]+[A-Za-z]+",
+    "[A-Za-z]+[0-9]+"
+  ]
+}
+```
+
+### Integration with Build Process
+- Part of the lint workflow via `npm run lint:spell`
+- Checks TypeScript, JavaScript, JSON, and Markdown files
+- Integrated with ESLint for comprehensive code quality
+
+### Technical Terms Dictionary
+Maintains a curated list of technical terms specific to our stack:
+- Framework terms (Next.js, React, TypeScript)
+- UI components (Shadcn, Radix, Headless UI)
+- Database and API (Supabase)
+- Development tools and libraries
+
+### Best Practices
+- Add new technical terms to `cspell.json` instead of disabling checks
+- Use `allowCompoundWords` for component names
+- Maintain consistent casing in documentation
+- Follow TypeScript naming conventions
+
 ### Testing
 - Automated E2E tests with Playwright
 - Unit tests with Vitest

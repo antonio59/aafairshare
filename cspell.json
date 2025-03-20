@@ -1,0 +1,44 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "supabase",
+    "Supabase",
+    "SUPABASE",
+    "aafairshare",
+    "autotable",
+    "bootup",
+    "canvg",
+    "ccwcbnfnvkmwubkuvzns",
+    "chartjs",
+    "contentful",
+    "endo",
+    "geolocation",
+    "headlessui",
+    "jspdf",
+    "Kbps",
+    "KHTML",
+    "killall",
+    "LHCI",
+    "mainthread",
+    "nosniff",
+    "sarif",
+    "SARIF",
+    "subcomponents",
+    "turbopack",
+    "WCAG"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    "build/**",
+    "coverage/**"
+  ],
+  "allowCompoundWords": true,
+  "ignoreRegExpList": [
+    "[A-Z]{3,}",
+    "[0-9]+[A-Za-z]+",
+    "[A-Za-z]+[0-9]+"
+  ]
+}
