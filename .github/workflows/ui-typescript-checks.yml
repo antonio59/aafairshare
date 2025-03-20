@@ -1,0 +1,148 @@
+name: UI TypeScript Validation
+
+on:
+  push:
+    branches: [ main, feat/react19-tailwind4-upgrade ]
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/components/**'
+      - 'src/lib/**'
+      - 'tailwind.config.ts'
+      - 'src/app/**/*.tsx'
+
+jobs:
+  shadcn-radix-validation:
+    name: Shadcn & Radix Type Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Validate Component Types
+        run: |
+          echo "Checking component type exports..."
+          # Verify component exports follow TypeScript standards
+          find src/components -type f -name "*.tsx" -exec sh -c '
+            for file do
+              if ! grep -q "^export type.*Props = {" "$file"; then
+                echo "⚠️ Missing Props type export in $file"
+                exit 1
+              fi
+            done
+          ' sh {} +
+          
+      - name: Check Variant Types
+        run: |
+          echo "Validating component variant types..."
+          # Ensure variant types are properly defined
+          find src/components -type f -name "*.tsx" -exec sh -c '
+            for file do
+              if grep -q "cva(" "$file" && ! grep -q "^export type.*Variant = " "$file"; then
+                echo "⚠️ Missing variant type definition in $file using cva"
+                exit 1
+              fi
+            done
+          ' sh {} +
+
+  tailwind-type-check:
+    name: Tailwind Configuration Type Check
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Install dependencies
+        run: npm ci
+        
+      - name: Validate Tailwind Config Types
+        run: |
+          echo "Checking Tailwind configuration types..."
+          if ! grep -q "^import type { Config } from 'tailwindcss'" "tailwind.config.ts"; then
+            echo "❌ Missing type import in tailwind.config.ts"
+            exit 1
+          fi
+          
+      - name: Check Custom Theme Types
+        run: |
+          echo "Validating custom theme type definitions..."
+          if [ -f "src/types/tailwind.d.ts" ]; then
+            if ! grep -q "^declare module 'tailwindcss/types'" "src/types/tailwind.d.ts"; then
+              echo "❌ Missing proper type declarations in tailwind.d.ts"
+              exit 1
+            fi
+          fi
+
+  component-structure:
+    name: Component Structure Validation
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+          
+      - name: Check Component Structure
+        run: |
+          echo "Validating component structure..."
+          find src/components -type f -name "*.tsx" -exec sh -c '
+            for file do
+              # Check for proper imports
+              if ! grep -q "^import.*from.*@/lib/utils" "$file"; then
+                echo "⚠️ Missing utils import in $file"
+              fi
+              
+              # Verify proper component naming
+              filename=$(basename "$file")
+              componentname="${filename%.*}"
+              if ! grep -q "^export function ${componentname}(" "$file"; then
+                echo "⚠️ Component name does not match file name in $file"
+                exit 1
+              fi
+              
+              # Check for proper type usage
+              if grep -q "React.FC" "$file"; then
+                echo "❌ Using React.FC instead of function declaration in $file"
+                exit 1
+              fi
+            done
+          ' sh {} +
+          
+      - name: Validate Hook Usage
+        run: |
+          echo "Checking custom hook implementations..."
+          find src/hooks -type f -name "*.ts" -exec sh -c '
+            for file do
+              # Ensure hooks start with "use"
+              filename=$(basename "$file")
+              hookname="${filename%.*}"
+              if ! [[ "$hookname" =~ ^use ]]; then
+                echo "❌ Hook file does not start with 'use': $file"
+                exit 1
+              fi
+              
+              # Check for proper type exports
+              if ! grep -q "^export type.*=" "$file"; then
+                echo "⚠️ Missing type exports in hook file: $file"
+              fi
+            done
+          ' sh {} +

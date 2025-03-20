@@ -1,0 +1,71 @@
+'use client';
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+// Improved for React 19 hydration - only import what we need
+import { Download, Loader2 } from 'lucide-react';
+
+export interface ExportButtonProps {
+  onExport: (format: 'csv' | 'pdf') => Promise<void>;
+  disabled?: boolean;
+}
+
+export function ExportButton({ onExport, disabled = false }: ExportButtonProps) {
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'csv' | 'pdf' | null>(null);
+
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    setIsExporting(true);
+    setExportFormat(format);
+    
+    try {
+      await onExport(format);
+    } finally {
+      setIsExporting(false);
+      setExportFormat(null);
+    }
+  };
+
+  // Using simpler button UI for React 19 compatibility instead of dropdown
+  return (
+    <div className="flex flex-row space-x-2">
+      <Button 
+        variant="outline" 
+        className="min-w-[120px]" 
+        disabled={disabled || isExporting || exportFormat === 'csv'}
+        onClick={() => handleExport('csv')}
+      >
+        {isExporting && exportFormat === 'csv' ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Exporting CSV...
+          </>
+        ) : (
+          <>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </>
+        )}
+      </Button>
+      
+      <Button 
+        variant="outline" 
+        className="min-w-[120px]" 
+        disabled={disabled || isExporting || exportFormat === 'pdf'}
+        onClick={() => handleExport('pdf')}
+      >
+        {isExporting && exportFormat === 'pdf' ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Exporting PDF...
+          </>
+        ) : (
+          <>
+            <Download className="mr-2 h-4 w-4" />
+            Export PDF
+          </>
+        )}
+      </Button>
+    </div>
+  );
+}

@@ -2,52 +2,75 @@
 
 ## Overview
 
-This document provides a comprehensive guide to our testing strategy, implementation, and best practices. We use a multi-layered testing approach to ensure the quality and reliability of our application.
+This document outlines our comprehensive testing strategy, implementation, and best practices. We follow a multi-layered testing approach to ensure code quality and reliability while adhering to TypeScript standards.
 
 ## Testing Structure
 
 ```
 ├── src/
-│   ├── test/
-│   │   ├── setup.ts               # Global test setup
-│   │   ├── mocks/                 # Mock implementations
-│   │   └── examples/              # Example tests
+│   ├── __tests__/               # Unit tests alongside source files
+│   │   └── *.test.ts(x)         # Test files following TypeScript standards
+│   └── components/
+│       └── __tests__/           # Component-specific tests
 ├── e2e/
-│   ├── fixtures/                  # Test fixtures
-│   ├── examples/                  # E2E test examples
-│   └── utils/                     # Helper utilities
-└── playwright.config.ts          # Playwright configuration
+│   ├── fixtures/                # Test fixtures
+│   ├── examples/                # E2E test examples
+│   └── utils/                   # Helper utilities
+├── jest.config.ts              # Jest configuration
+├── jest.setup.ts              # Jest setup and global mocks
+└── playwright.config.ts        # Playwright configuration
 ```
 
 ## Testing Layers
 
-Our testing approach follows the Testing Trophy methodology:
+Our testing approach follows the Testing Trophy methodology with TypeScript integration:
 
-1. **Static Analysis**: TypeScript, ESLint, and other static typing tools
-2. **Unit Tests**: Testing individual functions and components in isolation
-3. **Integration Tests**: Testing component interactions and API calls
-4. **End-to-End Tests**: Testing complete user flows in a production-like environment
+1. **Static Analysis**:
+   - TypeScript strict mode
+   - ESLint with TypeScript rules
+   - Path aliases validation
+   - Spell checking integration
+
+2. **Unit Tests**:
+   - Jest with TypeScript support
+   - Proper type definitions
+   - Mocked dependencies
+   - Type-safe assertions
+
+3. **Integration Tests**:
+   - Type-safe API mocking
+   - Component interaction testing
+   - State management validation
+
+4. **End-to-End Tests**:
+   - Playwright with TypeScript
+   - Full user flow coverage
+   - Cross-browser testing
 
 ## Testing Tools
 
-| Testing Type | Primary Tools | Additional Tools |
-|--------------|--------------|------------------|
-| Unit & Integration | Vitest, React Testing Library | Jest (as fallback) |
-| Component | Storybook, React Testing Library | Chromatic (visual regression) |
-| End-to-End | Playwright | Cypress (as alternative) |
-| Performance | Lighthouse, Web Vitals | GitHub Actions for CI |
-| Accessibility | Axe, Storybook a11y addon | Playwright accessibility testing |
+| Testing Type | Primary Tools | Configuration |
+|--------------|--------------|---------------|
+| Unit & Integration | Jest, React Testing Library | `jest.config.ts` |
+| Static Analysis | TypeScript, ESLint | `tsconfig.json`, `.eslintrc.js` |
+| Component | React Testing Library | `jest.setup.ts` |
+| End-to-End | Playwright | `playwright.config.ts` |
+| Performance | Lighthouse | `scripts/run-lighthouse.ts` |
+| Type Checking | TypeScript | `tsconfig.json` |
 
 ## Running Tests
 
 ### Unit and Integration Tests
 
 ```bash
-# Run all tests in watch mode
+# Run all tests
 npm test
 
-# Run tests with UI
-npm run test:ui
+# Run tests in watch mode
+npm run test:watch
+
+# Run tests with coverage
+npm run test:coverage
 
 # Run tests with coverage report
 npm run test:coverage
@@ -200,10 +223,41 @@ Playwright configurations:
 - `playwright.config.ts`: Local development settings with multiple browser support
 - `playwright.ci.config.ts`: CI-optimized configuration with focused test runs
 
-Refer to the project repository for detailed configuration files:
-- `config/test/base.config.ts` for shared configurations
-- `config/playwright/*.config.ts` for E2E test configurations
-- `.storybook/` for component testing
+## Configuration Files
+
+Refer to these key configuration files:
+
+- `jest.config.ts`: Jest configuration with TypeScript support
+- `jest.setup.ts`: Test setup and global mocks
+- `playwright.config.ts`: E2E test configuration
+- `tsconfig.json`: TypeScript configuration
+- `.eslintrc.js`: Linting rules including TypeScript
+
+## Best Practices
+
+1. **TypeScript Standards**:
+   - Use proper type definitions for all test data
+   - Avoid `any` type in tests
+   - Utilize path aliases consistently
+   - Follow interface-first approach
+
+2. **Test Organization**:
+   - Co-locate tests with source files
+   - Use descriptive test names
+   - Maintain type safety in mocks
+   - Follow AAA pattern (Arrange, Act, Assert)
+
+3. **Mocking**:
+   - Type-safe mock implementations
+   - Clear mock reset between tests
+   - Proper error handling
+   - Environment variable handling
+
+4. **Code Quality**:
+   - Consistent naming conventions
+   - Proper error messages
+   - Comprehensive test coverage
+   - Regular test maintenance
 
 ## Maintenance
 

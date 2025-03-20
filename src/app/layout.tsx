@@ -1,7 +1,11 @@
 import { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import ClientLayout from "../components/ClientLayout";
+// Dynamic import with no SSR for client components
+import dynamic from 'next/dynamic';
+
+// Use dynamic import with ssr: false for client-only components
+const ClientLayout = dynamic(() => import("../components/ClientLayout"), { ssr: false });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

@@ -2,6 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
+import { calculateSettlement, createSettlementRecord, Expense as CalculatorExpense } from '@/utils/settlementCalculator';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/components/ui/use-toast';
+import { Skeleton } from '@/components/ui/skeleton';
+import { SettlementSkeletonGroup } from '@/components/settlements/SettlementSkeleton';
+import { SettlementCard } from '@/components/settlements/SettlementCard';
+import { format } from 'date-fns';
+import { Check, RefreshCw, Clock, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Settlement {
   id: string;
@@ -47,10 +58,14 @@ export default function SettlementsSummary() {
   const [activeTab, setActiveTab] = useState<'active' | 'settled'>('active');
   const [monthlySettlements, setMonthlySettlements] = useState<MonthlySettlement[]>([]);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isSettling, setIsSettling] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {});
 
   const fetchSettlements = useCallback(async () => {
+    setIsLoading(true);
     try {
       // First fetch existing settlements to know which months are already settled
       const { data: settlementsData } = await supabase
@@ -124,47 +139,25 @@ export default function SettlementsSummary() {
           };
         });
         
-        // Calculate totals for each user
+        // Calculate totals for each user for display purposes
         expenses.forEach((expense) => {
           const paidByUserId = expense.paid_by;
-          const otherUserId = usersData.find(user => user.id !== paidByUserId)?.id;
-          if (!otherUserId) return;
-
-          // Record the full amount paid by the paying user
           userTotals[paidByUserId].paid += expense.amount;
         });
 
         const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
         
-        // Calculate final settlement
-        const settlement = {
-          from: '',
-          to: '',
-          amount: 0
-        };
-
-        const [[, user1Data], [, user2Data]] = Object.entries(userTotals);
+        // Convert expenses to the format expected by our calculator
+        const calculatorExpenses: CalculatorExpense[] = expenses.map(expense => ({
+          id: expense.id,
+          amount: expense.amount,
+          date: expense.date,
+          paid_by: expense.paid_by,
+          split_type: expense.split_type
+        }));
         
-        // Calculate the total amount that should be split
-        const totalSplitAmount = expenses.reduce((sum, expense) => {
-          if (expense.split_type === 'Equal') {
-            return sum + (expense.amount / 2); // Half of equal split expenses
-          } else if (expense.split_type === 'No Split') {
-            return sum + expense.amount; // Full amount for no split expenses
-          }
-          return sum;
-        }, 0);
-
-        // Compare what each user has paid to determine the final settlement
-        if (user1Data.paid > user2Data.paid) {
-          settlement.from = user2Data.name || user2Data.email;
-          settlement.to = user1Data.name || user1Data.email;
-          settlement.amount = totalSplitAmount - user2Data.paid;
-        } else {
-          settlement.from = user1Data.name || user1Data.email;
-          settlement.to = user2Data.name || user2Data.email;
-          settlement.amount = totalSplitAmount - user1Data.paid;
-        }
+        // Use our improved settlement calculator for accurate calculations
+        const settlement = calculateSettlement(calculatorExpenses, usersData);
 
         return {
           month_year: monthYear,
@@ -188,16 +181,25 @@ export default function SettlementsSummary() {
       setMonthlySettlements(monthlySettlements);
     } catch (error) {
       console.error('Error fetching settlements:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to fetch settlements',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
     }
-  }, [activeTab, supabase]);
+  }, [activeTab, supabase, toast]);
 
   useEffect(() => {
     void fetchSettlements();
   }, [fetchSettlements]);
 
   const handleSettleMonth = async (monthYear: string) => {
-    const monthGroup = monthlySettlements.find(m => m.month_year === monthYear);
-    if (!monthGroup) return;
+    setIsSettling(monthYear);
+    try {
+      const monthGroup = monthlySettlements.find(m => m.month_year === monthYear);
+      if (!monthGroup) return;
 
     // Create a settlement record based on the expense calculations
     const { settlement, userTotals } = monthGroup;
@@ -226,8 +228,23 @@ export default function SettlementsSummary() {
         });
     }
 
-    // Move fetchSettlements inside useEffect to avoid scope issues
-    await fetchSettlements();
+      // Move fetchSettlements inside useEffect to avoid scope issues
+      await fetchSettlements();
+      
+      toast({
+        title: 'Success',
+        description: `Settlements for ${new Date(monthYear + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })} marked as settled`,
+      });
+    } catch (error) {
+      console.error('Error settling month:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to settle month',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsSettling(null);
+    }
   };
 
   const toggleExpand = (monthYear: string) => {
@@ -235,97 +252,142 @@ export default function SettlementsSummary() {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex space-x-4 mb-6">
-        <button
-          className={`px-4 py-2 rounded-lg ${activeTab === 'active' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('active')}
-        >
-          Active Settlements
-        </button>
-        <button
-          className={`px-4 py-2 rounded-lg ${activeTab === 'settled' ? 'bg-blue-500 text-white' : 'bg-gray-200'}`}
-          onClick={() => setActiveTab('settled')}
-        >
-          Settled
-        </button>
-      </div>
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>Settlements</CardTitle>
+        <CardDescription>
+          View and manage financial settlements between users
+        </CardDescription>
+      </CardHeader>
+      
+      <CardContent>
+        <Tabs defaultValue={activeTab} onValueChange={(value: string) => setActiveTab(value as 'active' | 'settled')} className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="active">Active Settlements</TabsTrigger>
+            <TabsTrigger value="settled">Settled</TabsTrigger>
+          </TabsList>
 
-      <div className="space-y-6">
-        {monthlySettlements.map((monthGroup) => (
-          <div key={monthGroup.month_year} className="bg-white p-6 rounded-lg shadow">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-semibold">
-                {new Date(monthGroup.month_year + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </h3>
-              {activeTab === 'active' && (
-                <button
-                  onClick={() => handleSettleMonth(monthGroup.month_year)}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
-                >
-                  Mark as Settled
-                </button>
-              )}
-            </div>
-            
-            <div className="space-y-4">
-              {Object.values(monthGroup.userTotals).map(userData => (
-                <div key={userData.email} className="bg-gray-50 p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">{userData.name || userData.email}&apos;s Summary</h4>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-lg">
-                      <span>Total paid</span>
-                      <span className="text-green-600">£{userData.paid.toFixed(2)}</span>
-                    </div>
+      <TabsContent value={activeTab} className="mt-0">
+        {isLoading ? (
+          <SettlementSkeletonGroup />
+        ) : monthlySettlements.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8">
+            <p className="text-muted-foreground text-lg">No {activeTab === 'active' ? 'active' : 'settled'} settlements found.</p>
+            {activeTab === 'active' && (
+              <p className="text-sm text-muted-foreground mt-2">Add expenses to generate settlements.</p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {monthlySettlements.map((monthGroup) => (
+              <Card key={monthGroup.month_year} className="overflow-hidden">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-center">
+                    <CardTitle>
+                      {new Date(monthGroup.month_year + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                    </CardTitle>
+                    {activeTab === 'active' && (
+                      <Button
+                        onClick={() => handleSettleMonth(monthGroup.month_year)}
+                        variant="outline"
+                        size="sm"
+                        className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 dark:border-green-800"
+                        disabled={isSettling === monthGroup.month_year}
+                      >
+                        {isSettling === monthGroup.month_year ? (
+                          <>
+                            <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Check className="h-3.5 w-3.5 mr-2" />
+                            Mark as Settled
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
-                </div>
-              ))}
-              {monthGroup.settlement.amount > 0 && (
-                <div className="bg-blue-50 p-4 rounded-lg mt-4">
-                  <h4 className="font-medium mb-2">Final Settlement</h4>
-                  <div className="flex justify-between text-lg">
-                    <span>{monthGroup.settlement.from} owes {monthGroup.settlement.to}</span>
-                    <span className="font-medium">£{monthGroup.settlement.amount.toFixed(2)}</span>
-                  </div>
-                </div>
-              )}
-              
-              <div className="space-y-2">
-                <button
-                  onClick={() => toggleExpand(monthGroup.month_year)}
-                  className="w-full flex justify-between items-center p-3 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                >
-                  <span className="font-medium">Expenses</span>
-                  <span className="transform transition-transform">
-                    {expandedMonth === monthGroup.month_year ? '▼' : '▶'}
-                  </span>
-                </button>
+                  <CardDescription>
+                    Total expenses: £{monthGroup.totalAmount.toFixed(2)}
+                  </CardDescription>
+                </CardHeader>
                 
-                {expandedMonth === monthGroup.month_year && (
-                  <div className="space-y-2 mt-2">
-                    {monthGroup.settlements.map((settlement) => (
-                      <div key={settlement.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-sm text-gray-600">
-                            {new Date(settlement.created_at).toLocaleDateString()}
-                          </span>
-                          <span className="text-sm">
-                            Paid by: {settlement.paid_by_user?.name || settlement.paid_by_user?.email}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            Split type: {settlement.split_type}
-                          </span>
+                <CardContent className="space-y-4 pb-0">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {Object.values(monthGroup.userTotals).map(userData => (
+                      <div key={userData.email} className="bg-muted/50 p-4 rounded-lg">
+                        <h4 className="font-medium mb-2">{userData.name || userData.email}&apos;s Summary</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-lg">
+                            <span>Total paid</span>
+                            <span className="text-green-600 dark:text-green-400 font-medium">£{userData.paid.toFixed(2)}</span>
+                          </div>
                         </div>
-                        <span className="font-medium">£{settlement.amount.toFixed(2)}</span>
                       </div>
                     ))}
                   </div>
-                )}
-              </div>
-            </div>
+                  <SettlementCard 
+                    settlement={{
+                      id: `${monthGroup.month_year}-settlement`,
+                      from: monthGroup.settlement.from,
+                      to: monthGroup.settlement.to,
+                      amount: monthGroup.settlement.amount,
+                      month: monthGroup.month_year,
+                      status: activeTab === 'settled' ? 'completed' : 'pending',
+                      created_at: monthGroup.settlements[0]?.created_at || new Date().toISOString(),
+                      updated_at: undefined
+                    }}
+                    className="mt-4 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30"
+                    onStatusChange={activeTab === 'active' ? 
+                      (id) => handleSettleMonth(monthGroup.month_year) : undefined
+                    }
+                  />
+                  
+                  <div className="space-y-2 pt-4">
+                    <Button
+                      onClick={() => toggleExpand(monthGroup.month_year)}
+                      variant="outline"
+                      className="w-full flex justify-between items-center p-3 hover:bg-muted"
+                    >
+                      <span className="font-medium">Expenses Details</span>
+                      <span>
+                        {expandedMonth === monthGroup.month_year ? 
+                          <ChevronUp className="h-4 w-4" /> : 
+                          <ChevronDown className="h-4 w-4" />
+                        }
+                      </span>
+                    </Button>
+                    
+                    {expandedMonth === monthGroup.month_year && (
+                      <div className="space-y-2 mt-2">
+                        {monthGroup.settlements.map((settlement) => (
+                          <div key={settlement.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border">
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(settlement.created_at).toLocaleDateString()}
+                              </span>
+                              <span className="text-sm">
+                                Paid by: {settlement.paid_by_user?.name || settlement.paid_by_user?.email}
+                              </span>
+                              <Badge variant="outline" className="w-fit">
+                                {settlement.split_type || 'equal'}
+                              </Badge>
+                            </div>
+                            <span className="font-medium">£{settlement.amount.toFixed(2)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        ))}
-      </div>
-    </div>
+        )}
+      </TabsContent>
+    </Tabs>
+  </CardContent>
+</Card>
   );
 }
