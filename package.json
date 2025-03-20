@@ -67,7 +67,7 @@
     "next": "15.2.2",
     "react": "18.2.0",
     "react-chartjs-2": "^5.2.0",
-    "react-dom": "18.2.0",
+    "react-dom": "19.0.0",
     "react-hot-toast": "2.5.2",
     "react-virtualized-auto-sizer": "1.0.25",
     "react-window": "1.8.11",
