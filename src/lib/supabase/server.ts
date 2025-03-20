@@ -7,13 +7,13 @@ export function createClient() {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
       cookies: {
-        get(_name: string) {
+        get() {
           return null;
         },
-        set(_name: string, _value: string) {
+        set() {
           // Cookie setting is handled by middleware
         },
-        remove(_name: string) {
+        remove() {
           // Cookie removal is handled by middleware
         },
       },

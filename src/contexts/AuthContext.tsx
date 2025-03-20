@@ -2,6 +2,7 @@
 
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
+import { Session } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 
 type AuthContextType = {
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+    } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
       if (session) {
         setUser({ id: session.user.id, email: session.user.email || '' });
       } else {

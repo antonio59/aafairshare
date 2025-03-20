@@ -16,11 +16,7 @@ interface Expense {
   created_at: string;
 }
 
-interface ExportData {
-  expenses: Expense[];
-  month: string;
-  totalExpenses?: number;
-}
+
 
 interface Settlement {
   from: string;
@@ -111,7 +107,7 @@ export const exportToCSV = async (expenses: Expense[], month: string) => {
 export const exportToPDF = async (expenses: Expense[], month: string, totalExpenses: number, settlement?: Settlement) => {
   const doc = new PDFDocument({ size: 'A4' });
   const pageWidth = doc.page.width;
-  const pageHeight = doc.page.height;
+  
   const margin = 15;
   
   // Add simple text header
@@ -135,8 +131,6 @@ export const exportToPDF = async (expenses: Expense[], month: string, totalExpen
   doc.text(monthText, margin, margin + 50, { align: 'left', continued: false });
   doc.text(totalText, pageWidth - margin - doc.widthOfString(totalText), margin + 50, { align: 'right', continued: false });
 
-  let y = 75;
-  
   // Add settlement information if available
   if (settlement) {
     doc.fontSize(12);
@@ -147,10 +141,9 @@ export const exportToPDF = async (expenses: Expense[], month: string, totalExpen
     const settlementText = `${settlement.from} owes ${settlement.to} £${settlement.amount.toFixed(2)}`;
     doc.text(settlementText, margin, margin + 80, { align: 'left', continued: false });
     
-    y = 95;
   }
   
-  const { categoryMap, locationMap } = await getSupabaseData();
+  await getSupabaseData(); // Fetch data to ensure it exists in the database
   
   // Create PDF buffer
   const chunks: Uint8Array[] = [];

@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import CategoryDropdown from './CategoryDropdown';
 import LocationDropdown from './LocationDropdown';
-import { Database } from '@/types/supabase';
 
 interface Category {
   id: string;

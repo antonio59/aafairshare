@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
           // Set cookie for the response with full options
           response.cookies.set(name, value, options);
         },
-        remove(name: string, _options: CookieOptions) {
+        remove(name: string) {
           // Remove cookie from the request
           request.cookies.delete(name);
           

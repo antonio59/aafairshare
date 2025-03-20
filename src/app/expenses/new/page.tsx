@@ -8,21 +8,6 @@ import { useAuth } from '@/contexts/AuthContext';
 export default function NewExpensePage() {
   const router = useRouter();
   const { user, loading } = useAuth();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      router.push('/signin');
-    }
-  }, [loading, user, router]);
-
-  if (loading) {
-    return <div className="p-6">Loading...</div>;
-  }
-
-  if (!user) {
-    return null;
-  }
-
   const [categories, setCategories] = useState<Array<{ id: string; category: string }>>([]);
   const [formData, setFormData] = useState({
     amount: '',
@@ -32,22 +17,37 @@ export default function NewExpensePage() {
     location: '',
     splitType: 'equal'
   });
+  const [error, setError] = useState('');
 
   useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const response = await fetch('/api/categories');
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error);
-        setCategories(data);
-      } catch (error) {
-        console.error('Error fetching categories:', error);
-      }
-    };
-    fetchCategories();
-  }, []);
+    if (!loading && !user) {
+      router.push('/signin');
+    }
+  }, [loading, user, router]);
 
-  const [error, setError] = useState('');
+  useEffect(() => {
+    if (user) {
+      const fetchCategories = async () => {
+        try {
+          const response = await fetch('/api/categories');
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error);
+          setCategories(data);
+        } catch (error) {
+          console.error('Error fetching categories:', error);
+        }
+      };
+      fetchCategories();
+    }
+  }, [user]);
+
+  if (loading) {
+    return <div className="p-6">Loading...</div>;
+  }
+
+  if (!user) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
