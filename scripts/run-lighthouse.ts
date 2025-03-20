@@ -136,7 +136,7 @@ async function runLighthouse(url: string, outputDir: string): Promise<TestResult
  */
 function parseArgs(): TestConfig {
   const args = process.argv.slice(2);
-  let urls = ['http://localhost:5173/']; // Default Vite dev server URL
+  const urls = ['http://localhost:5173/']; // Default Vite dev server URL
   let minimumScore = 80;
   const outputDir = join(__dirname, '../lighthouse-reports');
   

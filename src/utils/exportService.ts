@@ -1,4 +1,5 @@
-import PDFDocument from 'pdfkit';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import { createBrowserClient } from '@supabase/ssr';
 
 interface Expense {
@@ -105,53 +106,71 @@ export const exportToCSV = async (expenses: Expense[], month: string) => {
 };
 
 export const exportToPDF = async (expenses: Expense[], month: string, totalExpenses: number, settlement?: Settlement) => {
-  const doc = new PDFDocument({ size: 'A4' });
-  const pageWidth = doc.page.width;
-  
+  const doc = new jsPDF();
+  const { categoryMap, locationMap } = await getSupabaseData();
   const margin = 15;
   
-  // Add simple text header
-  doc.fontSize(24);
-  doc.font('Helvetica-Bold');
+  // Add header
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
   const title = 'AAFairShare';
-  const titleWidth = doc.widthOfString(title);
-  doc.text(title, (pageWidth - titleWidth) / 2, margin, { align: 'center', continued: false });
+  doc.text(title, doc.internal.pageSize.width / 2, margin, { align: 'center' });
   
   // Add report title and month
-  doc.fillColor('#212121');
-  doc.fontSize(16);
-  doc.text('Monthly Expense Summary', margin, margin + 30, { align: 'left', continued: false });
+  doc.setFontSize(16);
+  doc.text('Monthly Expense Summary', margin, margin + 15);
   
-  // Add month and total in a cleaner format
-  doc.fontSize(12);
+  // Add month and total
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'normal');
   const monthDate = new Date(month + '-01');
-  const monthText = `Month: ${monthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`;
-  const totalText = `Total: £${totalExpenses.toFixed(2)}`;
+  const monthText = `Month: ${monthDate.toLocaleString('default', { month: 'long', year: 'numeric' })}`;  const totalText = `Total: £${totalExpenses.toFixed(2)}`;
   
-  doc.text(monthText, margin, margin + 50, { align: 'left', continued: false });
-  doc.text(totalText, pageWidth - margin - doc.widthOfString(totalText), margin + 50, { align: 'right', continued: false });
+  doc.text(monthText, margin, margin + 25);
+  doc.text(totalText, doc.internal.pageSize.width - margin, margin + 25, { align: 'right' });
+
+  // Add expenses table
+  const tableHeaders = [['Date', 'Category', 'Location', 'Amount', 'Split Type', 'Notes']];
+  const tableData = expenses.map(expense => [
+    new Date(expense.date).toLocaleDateString(),
+    categoryMap.get(expense.category_id) || 'Unknown',
+    locationMap.get(expense.location_id) || 'Unknown',
+    `£${expense.amount.toFixed(2)}`,
+    expense.split_type,
+    expense.notes || ''
+  ]);
+
+  doc.autoTable({
+    head: tableHeaders,
+    body: tableData,
+    startY: margin + 35,
+    styles: { fontSize: 10 },
+    columnStyles: {
+      0: { cellWidth: 25 },  // Date
+      1: { cellWidth: 35 },  // Category
+      2: { cellWidth: 35 },  // Location
+      3: { cellWidth: 25 },  // Amount
+      4: { cellWidth: 25 },  // Split Type
+      5: { cellWidth: 'auto' } // Notes
+    },
+    margin: { left: margin, right: margin }
+  });
 
   // Add settlement information if available
   if (settlement) {
-    doc.fontSize(12);
-    doc.font('Helvetica-Bold');
-    doc.text('Settlement Summary', margin, margin + 70, { align: 'left', continued: false });
+    const finalY = doc.lastAutoTable.finalY || (margin + 35);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Settlement Summary', margin, finalY + 10);
     
-    doc.font('Helvetica');
+    doc.setFont('helvetica', 'normal');
     const settlementText = `${settlement.from} owes ${settlement.to} £${settlement.amount.toFixed(2)}`;
-    doc.text(settlementText, margin, margin + 80, { align: 'left', continued: false });
-    
+    doc.text(settlementText, margin, finalY + 20);
   }
-  
-  await getSupabaseData(); // Fetch data to ensure it exists in the database
-  
-  // Create PDF buffer
-  const chunks: Uint8Array[] = [];
-  doc.on('data', (chunk) => chunks.push(chunk));
-  doc.end();
 
-  const pdfBuffer = Buffer.concat(chunks);
   const fileName = `expenses-${month}.pdf`;
+  const pdfOutput = doc.output('arraybuffer');
+  const pdfBuffer = Buffer.from(pdfOutput);
 
   await recordExport({
     format: 'pdf',
@@ -160,5 +179,6 @@ export const exportToPDF = async (expenses: Expense[], month: string, totalExpen
     fileData: pdfBuffer.toString('base64')
   });
 
+  doc.save(fileName);
   return { buffer: pdfBuffer, fileName };
 };
