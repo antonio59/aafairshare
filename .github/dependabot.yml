@@ -1,62 +1,26 @@
 version: 2
 updates:
-  # Enable version updates for npm
   - package-ecosystem: "npm"
-    # Look for package.json and package-lock.json files in the root directory
     directory: "/"
-    # Check for updates once a week (on Monday)
     schedule:
       interval: "weekly"
-      day: "monday"
-    # Limit the number of open PRs to avoid noise
-    open-pull-requests-limit: 10
-    versioning-strategy: auto
+    ignore:
+      # Ignore non-LTS updates for our stable dependencies
+      - dependency-name: "@supabase/ssr"
+        versions: [">=0.1.0"]
+      - dependency-name: "next"
+        versions: [">=15.0.0"]
+    commit-message:
+      prefix: "deps"
+      include: "scope"
     labels:
       - "dependencies"
       - "security"
-    commit-message:
-      prefix: "chore"
-      include: "scope"
-    # Add assignees and reviewers
-    assignees:
-      - "antonio59"
-    # Group dependencies to reduce PR count
-    groups:
-      # Group all minor and patch updates for development dependencies
-      development-dependencies:
-        dependency-type: "development"
-        update-types:
-          - "minor"
-          - "patch"
-      # Group all React-related packages together
-      react:
-        patterns:
-          - "react*"
-          - "@types/react*"
-      # Group testing libraries
-      testing:
-        patterns:
-          - "@testing-library/*"
-          - "vitest"
-          - "@vitest/*"
-      # Group TypeScript and related tools
-      typescript:
-        patterns:
-          - "typescript"
-          - "@typescript-eslint/*"
-      # Group Storybook packages
-      storybook:
-        patterns:
-          - "@storybook/*"
-          - "storybook"
-
-  # Enable version updates for GitHub Actions
-  - package-ecosystem: "github-actions"
-    directory: "/"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "github-actions" 
+    versioning-strategy: lockfile-only
+    allow:
+      # Allow only security updates and LTS versions
+      - dependency-type: "production"
+        update-type: "security"
+      - dependency-type: "production"
+        update-type: "semver-major"
+        is-lts: true
