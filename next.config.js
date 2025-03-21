@@ -31,9 +31,35 @@ const nextConfig = {
     ignoreBuildErrors: false
   },
   
-  // React 19 and Suspense optimizations
+  // React 19 optimizations
   reactStrictMode: true,
-  swcMinify: true
+  
+  // Performance optimizations
+  compiler: {
+    // Remove console.* in production
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  
+  // Security headers
+  headers: async () => [
+    {
+      source: '/:path*',
+      headers: [
+        {
+          key: 'X-Content-Type-Options',
+          value: 'nosniff',
+        },
+        {
+          key: 'X-Frame-Options',
+          value: 'DENY',
+        },
+        {
+          key: 'X-XSS-Protection',
+          value: '1; mode=block',
+        },
+      ],
+    },
+  ],
 };
 
 module.exports = nextConfig;

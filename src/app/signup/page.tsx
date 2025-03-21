@@ -1,19 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function SignUpPage() {
-  const router = useRouter();
-  // Registration functionality is temporarily disabled
-  // const { register } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
 
   // Disabled registration functionality
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

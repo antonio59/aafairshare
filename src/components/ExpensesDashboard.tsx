@@ -20,10 +20,14 @@ interface Expense {
   created_at: string;
 }
 
-export default function ExpensesDashboard() {
+export interface ExpensesDashboardProps {
+  initialMonth?: string;
+}
+
+export default function ExpensesDashboard({ initialMonth }: ExpensesDashboardProps = {}) {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [selectedMonth, setSelectedMonth] = useState<string>(
-    new Date().toISOString().slice(0, 7)
+    initialMonth || new Date().toISOString().slice(0, 7)
   );
   const [isLoading, setIsLoading] = useState(false);
 

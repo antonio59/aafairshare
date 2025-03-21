@@ -8,16 +8,25 @@ const Button = ({ onClick, children }: { onClick?: () => void, children: React.R
 
 const TooltipProvider = ({ children }: { children: React.ReactNode }) => <div data-testid="tooltip-provider">{children}</div>;
 const Tooltip = ({ children }: { children: React.ReactNode }) => <div data-testid="tooltip">{children}</div>;
-const TooltipTrigger = ({ asChild, children, ...props }: { asChild?: boolean, children: React.ReactNode, [key: string]: any }) => 
+interface TooltipProps extends React.HTMLAttributes<HTMLDivElement> {
+  asChild?: boolean;
+  children: React.ReactNode;
+}
+
+const TooltipTrigger = ({ asChild, children, ...props }: TooltipProps) => 
   <div data-testid="tooltip-trigger" {...props}>{children}</div>;
-const TooltipContent = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => 
+const TooltipContent = ({ children, ...props }: React.HTMLAttributes<HTMLDivElement> & { children: React.ReactNode }) => 
   <div data-testid="tooltip-content" {...props}>{children}</div>;
 
-const DropdownMenu = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => 
+interface DropdownProps extends React.HTMLAttributes<HTMLDivElement> {
+  children: React.ReactNode;
+}
+
+const DropdownMenu = ({ children, ...props }: DropdownProps) => 
   <div data-testid="dropdown-menu" {...props}>{children}</div>;
-const DropdownMenuTrigger = ({ asChild, children, ...props }: { asChild?: boolean, children: React.ReactNode, [key: string]: any }) => 
+const DropdownMenuTrigger = ({ asChild, children, ...props }: TooltipProps) => 
   <div data-testid="dropdown-trigger" {...props}>{children}</div>;
-const DropdownMenuContent = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => 
+const DropdownMenuContent = ({ children, ...props }: DropdownProps) => 
   <div data-testid="dropdown-content" {...props}>{children}</div>;
 const DropdownMenuItem = ({ onSelect, children, ...props }: { onSelect?: () => void, children: React.ReactNode, [key: string]: any }) => 
   <div data-testid="dropdown-item" onClick={onSelect} {...props}>{children}</div>;

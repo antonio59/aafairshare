@@ -2,6 +2,9 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  const pathname = request.nextUrl.pathname;
+
+  // Create a response object that we can modify
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -17,38 +20,48 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
-          // Set cookie for the request
-          request.cookies.set(name, value);
-          
-          // Create new response with updated request
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
-          });
-          
           // Set cookie for the response with full options
-          response.cookies.set(name, value, options);
-        },
-        remove(name: string) {
-          // Remove cookie from the request
-          request.cookies.delete(name);
-          
-          // Create new response with updated request
-          response = NextResponse.next({
-            request: {
-              headers: request.headers,
-            },
+          response.cookies.set({
+            name,
+            value,
+            ...options,
+            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production"
           });
-          
+        },
+        remove(name: string, options: CookieOptions) {
           // Remove cookie from the response
-          response.cookies.delete(name);
+          response.cookies.set({
+            name,
+            value: "",
+            ...options,
+            maxAge: 0
+          });
         },
       },
     }
   );
 
-  await supabase.auth.getUser();
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+
+    // If user is signed in and tries to access auth pages, redirect to /expenses
+    if (user && ["/signin", "/signup"].includes(pathname)) {
+      return NextResponse.redirect(new URL("/expenses", request.url));
+    }
+
+    // If user is not signed in and tries to access protected pages, redirect to /signin
+    if (!user && !["/signin", "/signup"].includes(pathname)) {
+      return NextResponse.redirect(new URL("/signin", request.url));
+    }
+
+    return response;
+  } catch (e) {
+    // On error, clear auth cookies and redirect to signin
+    response.cookies.delete("sb-access-token");
+    response.cookies.delete("sb-refresh-token");
+    return NextResponse.redirect(new URL("/signin", request.url));
+  }
 
   return response;
 }
