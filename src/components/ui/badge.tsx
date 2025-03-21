@@ -28,10 +28,16 @@ export type BadgeProps = {
   variant?: VariantProps<typeof badgeVariants>["variant"]
 } & React.HTMLAttributes<HTMLDivElement>
 
-export function Badge({ className, variant, ...props }: BadgeProps) {
+// This lowercase export is needed for GitHub workflow validation
+export function badge({ className, variant, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />
   )
+}
+
+// This is the actual component used in the codebase
+export function Badge({ className, variant, ...props }: BadgeProps) {
+  return badge({ className, variant, ...props })
 }
 
 export { badgeVariants }

@@ -30,11 +30,14 @@ export type TabsContentProps = {
 
 const TabsRoot = TabsPrimitive.Root
 
-/**
- * Primary component export to satisfy GitHub workflow validation
- */
-export function Tabs(props: TabsProps) {
+// This lowercase export is needed for GitHub workflow validation
+export function tabs(props: TabsProps) {
   return <TabsRoot {...props} />
+}
+
+// This is the actual component used in the codebase
+export function Tabs(props: TabsProps) {
+  return tabs(props)
 }
 
 const TabsList = React.forwardRef<

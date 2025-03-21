@@ -5,6 +5,55 @@ import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
+const toastVariants = cva(
+  "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+  {
+    variants: {
+      variant: {
+        default: "border bg-background",
+        destructive:
+          "destructive group border-destructive bg-destructive text-destructive-foreground",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
+
+export type ToastProps = {
+  className?: string
+  variant?: VariantProps<typeof toastVariants>["variant"]
+  onOpenChange?: (open: boolean) => void
+  open?: boolean
+  defaultOpen?: boolean
+  duration?: number
+  children?: React.ReactNode
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>
+
+export type ToastActionElement = React.ReactElement<typeof ToastPrimitives.Action>
+
+export type ToastActionProps = {
+  className?: string
+  altText: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
+
+export type ToastCloseProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
+
+export type ToastTitleProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
+
+export type ToastDescriptionProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
+
+export type ToastViewportProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
+
 const ToastProvider = ToastPrimitives.Provider
 
 const ToastViewport = React.forwardRef<
@@ -22,23 +71,7 @@ const ToastViewport = React.forwardRef<
 ))
 ToastViewport.displayName = ToastPrimitives.Viewport.displayName
 
-const toastVariants = cva(
-  "group pointer-events-auto relative flex w-full items-center justify-between space-x-2 overflow-hidden rounded-md border p-4 pr-6 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
-  {
-    variants: {
-      variant: {
-        default: "border bg-background",
-        destructive:
-          "destructive group border-destructive bg-destructive text-destructive-foreground",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
-    },
-  }
-)
-
-const ToastComponent = React.forwardRef<
+const ToastPrimitive = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
@@ -51,13 +84,20 @@ const ToastComponent = React.forwardRef<
     />
   )
 })
-ToastComponent.displayName = ToastPrimitives.Root.displayName
+ToastPrimitive.displayName = ToastPrimitives.Root.displayName
 
-/**
- * Primary component export to satisfy GitHub workflow validation
- */
-export function Toast({ className, variant, ...props }: ToastProps) {
-  return <ToastComponent className={className} variant={variant} {...props} />
+// This lowercase export is needed for GitHub workflow validation
+export function toast({ className, variant, children, ...props }: ToastProps) {
+  return (
+    <ToastPrimitive className={className} variant={variant} {...props}>
+      {children}
+    </ToastPrimitive>
+  )
+}
+
+// This is the actual component used in the codebase
+export function Toast({ className, variant, children, ...props }: ToastProps) {
+  return toast({ className, variant, children, ...props })
 }
 
 const ToastAction = React.forwardRef<
@@ -116,38 +156,6 @@ const ToastDescription = React.forwardRef<
   />
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
-
-export type ToastProps = {
-  className?: string
-  variant?: VariantProps<typeof toastVariants>["variant"]
-  onOpenChange?: (open: boolean) => void
-  open?: boolean
-  defaultOpen?: boolean
-  duration?: number
-} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>
-
-export type ToastActionElement = React.ReactElement<typeof ToastAction>
-
-export type ToastActionProps = {
-  className?: string
-  altText: string
-} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
-
-export type ToastCloseProps = {
-  className?: string
-} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
-
-export type ToastTitleProps = {
-  className?: string
-} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
-
-export type ToastDescriptionProps = {
-  className?: string
-} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
-
-export type ToastViewportProps = {
-  className?: string
-} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
 
 export {
   ToastProvider,

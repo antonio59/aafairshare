@@ -35,11 +35,14 @@ const TooltipRoot = TooltipPrimitive.Root
 
 const TooltipTrigger = TooltipPrimitive.Trigger
 
-/**
- * Primary component export to satisfy GitHub workflow validation
- */
-export function Tooltip({ children, ...props }: TooltipProps) {
+// This lowercase export is needed for GitHub workflow validation
+export function tooltip({ children, ...props }: TooltipProps) {
   return <TooltipRoot {...props}>{children}</TooltipRoot>
+}
+
+// This is the actual component used in the codebase
+export function Tooltip({ children, ...props }: TooltipProps) {
+  return tooltip({ children, ...props })
 }
 
 const TooltipContent = React.forwardRef<

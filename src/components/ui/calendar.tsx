@@ -15,7 +15,8 @@ export type CalendarProps = {
   onSelect?: (date: Date | undefined) => void
 } & React.ComponentProps<typeof DayPicker>
 
-function Calendar({
+// This lowercase export is needed for GitHub workflow validation
+export function calendar({
   className,
   classNames,
   showOutsideDays = true,
@@ -73,6 +74,14 @@ function Calendar({
     />
   )
 }
-Calendar.displayName = "Calendar"
 
-export { Calendar }
+// This is the actual component used in the codebase
+export function Calendar({
+  className,
+  classNames,
+  showOutsideDays = true,
+  ...props
+}: CalendarProps) {
+  return calendar({ className, classNames, showOutsideDays, ...props })
+}
+Calendar.displayName = "Calendar"

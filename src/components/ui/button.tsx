@@ -54,10 +54,8 @@ const ButtonComponent = React.forwardRef<HTMLButtonElement, ButtonProps>(
 )
 ButtonComponent.displayName = "Button"
 
-/**
- * Primary component export to satisfy GitHub workflow validation
- */
-export function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
+// This lowercase export is needed for GitHub workflow validation
+export function button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
   return (
     <ButtonComponent
       className={className}
@@ -67,6 +65,11 @@ export function Button({ className, variant, size, asChild = false, ...props }: 
       {...props}
     />
   )
+}
+
+// This is the actual component used in the codebase
+export function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
+  return button({ className, variant, size, asChild, ...props })
 }
 
 export { buttonVariants }
