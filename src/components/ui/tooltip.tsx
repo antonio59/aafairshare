@@ -5,6 +5,29 @@ import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
 import { cn } from "@/lib/utils"
 
+export type TooltipProps = {
+  delayDuration?: number
+  open?: boolean
+  defaultOpen?: boolean
+  onOpenChange?: (open: boolean) => void
+}
+
+export type TooltipProviderProps = {
+  delayDuration?: number
+  skipDelayDuration?: number
+  disableHoverableContent?: boolean
+}
+
+export type TooltipTriggerProps = {
+  className?: string
+  asChild?: boolean
+} & React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Trigger>
+
+export type TooltipContentProps = {
+  className?: string
+  sideOffset?: number
+} & React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
+
 const TooltipProvider = TooltipPrimitive.Provider
 
 const Tooltip = TooltipPrimitive.Root

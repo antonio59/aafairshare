@@ -110,12 +110,40 @@ const ToastDescription = React.forwardRef<
 ))
 ToastDescription.displayName = ToastPrimitives.Description.displayName
 
-type BaseToastProps = React.ComponentPropsWithoutRef<typeof Toast>
-type BaseToastActionElement = React.ReactElement<typeof ToastAction>
+export type ToastProps = {
+  className?: string
+  variant?: VariantProps<typeof toastVariants>["variant"]
+  onOpenChange?: (open: boolean) => void
+  open?: boolean
+  defaultOpen?: boolean
+  duration?: number
+} & React.ComponentPropsWithoutRef<typeof Toast>
+
+export type ToastActionElement = React.ReactElement<typeof ToastAction>
+
+export type ToastActionProps = {
+  className?: string
+  altText: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
+
+export type ToastCloseProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
+
+export type ToastTitleProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
+
+export type ToastDescriptionProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
+
+export type ToastViewportProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
 
 export {
-  type BaseToastProps as ToastProps,
-  type BaseToastActionElement as ToastActionElement,
+
   ToastProvider,
   ToastViewport,
   Toast,

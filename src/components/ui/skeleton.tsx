@@ -1,6 +1,8 @@
 import { cn } from "@/lib/utils";
 
-type SkeletonProps = React.HTMLAttributes<HTMLDivElement>
+export type SkeletonProps = {
+  className?: string
+} & React.HTMLAttributes<HTMLDivElement>
 
 export function Skeleton({ className, ...props }: SkeletonProps) {
   return (

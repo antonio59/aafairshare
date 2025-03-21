@@ -4,6 +4,30 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
+export type CardProps = {
+  className?: string
+} & React.HTMLAttributes<HTMLDivElement>
+
+export type CardHeaderProps = {
+  className?: string
+} & React.HTMLAttributes<HTMLDivElement>
+
+export type CardTitleProps = {
+  className?: string
+} & React.HTMLAttributes<HTMLHeadingElement>
+
+export type CardDescriptionProps = {
+  className?: string
+} & React.HTMLAttributes<HTMLParagraphElement>
+
+export type CardContentProps = {
+  className?: string
+} & React.HTMLAttributes<HTMLDivElement>
+
+export type CardFooterProps = {
+  className?: string
+} & React.HTMLAttributes<HTMLDivElement>
+
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>

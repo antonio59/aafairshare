@@ -5,6 +5,29 @@ import * as TabsPrimitive from "@radix-ui/react-tabs"
 
 import { cn } from "@/lib/utils"
 
+export type TabsProps = {
+  defaultValue?: string
+  value?: string
+  onValueChange?: (value: string) => void
+  orientation?: "horizontal" | "vertical"
+  dir?: "ltr" | "rtl"
+  activationMode?: "automatic" | "manual"
+} & React.HTMLAttributes<HTMLDivElement>
+
+export type TabsListProps = {
+  className?: string
+} & React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+
+export type TabsTriggerProps = {
+  className?: string
+  value: string
+} & React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+
+export type TabsContentProps = {
+  className?: string
+  value: string
+} & React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+
 const Tabs = TabsPrimitive.Root
 
 const TabsList = React.forwardRef<
