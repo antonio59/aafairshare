@@ -1,17 +1,15 @@
-// Updated for Tailwind CSS 4.0
-const config = {
+/** @type {import('postcss').Config} */
+export default {
   plugins: {
-    'tailwindcss/nesting': {},
-    tailwindcss: {},
-    autoprefixer: {},
-    ...(process.env.NODE_ENV === 'production'
-      ? {
-          cssnano: {
-            preset: ['default', { discardComments: { removeAll: true } }],
-          },
-        }
-      : {}),
-  },
+    'postcss-import': {},
+    'postcss-nesting': {},
+    'tailwindcss/nesting': 'postcss-nesting',
+    'tailwindcss': {},
+    'autoprefixer': {},
+    ...(process.env.NODE_ENV === 'production' ? {
+      'cssnano': {
+        preset: ['default', { discardComments: { removeAll: true } }]
+      }
+    } : {})
+  }
 };
-
-export default config;

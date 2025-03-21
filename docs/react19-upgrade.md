@@ -1,6 +1,6 @@
 # React 19 & Tailwind CSS 4 Upgrade Documentation
 
-> Last updated: March 20, 2025
+> Last updated: March 21, 2025
 
 ## Overview
 
@@ -241,11 +241,22 @@ jest.mock('react', () => {
     useState: jest.fn(originalReact.useState),
     useCallback: jest.fn(originalReact.useCallback),
     useMemo: jest.fn(originalReact.useMemo),
+    useTransition: jest.fn(() => [false, jest.fn()]),
   };
 });
 
-// Mock components and UI elements
-// ...
+// Mock Radix UI components for React 19 compatibility
+jest.mock('@radix-ui/react-tooltip', () => ({
+  TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  TooltipContent: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+jest.mock('@radix-ui/react-scroll-area', () => ({
+  ScrollArea: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  ScrollBar: () => null,
+}));
 ```
 
 ### Component Testing
@@ -277,6 +288,80 @@ test('renders settlements with correct formatting', () => {
 });
 ```
 
+### React 19 Concurrent Mode Testing
+
+Implemented specialized testing utilities for React 19's concurrent mode:
+
+```typescript
+// src/tests/utils/test-utils.tsx
+import { render as rtlRender } from '@testing-library/react';
+import { ReactElement } from 'react';
+
+// Custom render function that wraps components in necessary providers
+export function render(ui: ReactElement, options = {}) {
+  return rtlRender(ui, {
+    // Wrap in providers if needed
+    wrapper: ({ children }) => children,
+    ...options,
+  });
+}
+
+// Helper for testing async state updates in concurrent mode
+export async function waitForConcurrentUpdates() {
+  // Wait for all concurrent updates to flush
+  await new Promise(resolve => setTimeout(resolve, 0));
+}
+```
+
+## UI Improvements
+
+### Sign-In Page Enhancements
+
+Optimized the sign-in page for better user experience:
+
+```tsx
+// Before: Logo was too small and not properly sized
+<Image src="/logo.svg" alt="AA FairShare" width={48} height={48} className="w-auto mb-8" />
+
+// After: Improved logo size and proportions
+<Image src="/logo.svg" alt="AA FairShare" width={120} height={48} className="h-12 w-auto mb-8" />
+```
+
+### Disabled Sign-Up Functionality
+
+Temporarily disabled sign-up functionality while preserving the page for future use:
+
+```tsx
+// Before: Active sign-up functionality
+const { register } = useAuth();
+// ... active registration code
+
+// After: Disabled but preserved for future use
+// const { register } = useAuth();
+// ... registration code preserved in comments
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setError('Registration is currently disabled. Please contact the administrator.');
+  // Original functionality preserved in comments
+};
+```
+
+The sign-up button was also visually disabled and a link to the sign-in page was added for better user flow.
+
+### Favicon Update
+
+Updated the favicon to display "AA" on a colored background for better brand recognition:
+
+```svg
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <style>
+    .logo-text { font-family: Arial, sans-serif; font-weight: bold; font-size: 16px; }
+  </style>
+  <rect width="32" height="32" rx="4" fill="#4F46E5"/>
+  <text x="16" y="22" class="logo-text" fill="white" text-anchor="middle">AA</text>
+</svg>
+```
+
 ## References
 
 - [React 19 Official Documentation](https://react.dev/)
@@ -284,3 +369,4 @@ test('renders settlements with correct formatting', () => {
 - [Next.js App Router Documentation](https://nextjs.org/docs/app)
 - [React Testing Library](https://testing-library.com/docs/react-testing-library/intro/)
 - [Supabase SDK Documentation](https://supabase.com/docs)
+- [Radix UI Testing Documentation](https://www.radix-ui.com/primitives/docs/guides/testing)

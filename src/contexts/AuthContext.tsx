@@ -1,10 +1,9 @@
 'use client';
 
 import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
+import { Session, SupabaseClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import type { CookieMethods } from '@supabase/ssr';
 
 type AuthContextType = {
   user: null | { id: string; email: string };
@@ -20,31 +19,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<null | { id: string; email: string }>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
-  // Create a custom Supabase client with specific cookie options for auth context
-  const cookieMethods: CookieMethods = {
-    get(name: string) {
-      return document.cookie
-        .split('; ')
-        .find(row => row.startsWith(`${name}=`))
-        ?.split('=')[1];
-    },
-    set(name: string, value: string, options: { path?: string; maxAge?: number; domain?: string; sameSite?: string; secure?: boolean }) {
-      document.cookie = `${name}=${value}; path=${options.path || '/'}; max-age=${options.maxAge || 3600}`;
-    },
-    remove(name: string, options: { path?: string; domain?: string }) {
-      document.cookie = `${name}=; path=${options.path || '/'}; max-age=0`;
-    }
-  };
-
+  
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
-      cookies: cookieMethods,
+      cookies: {
+        get(name: string) {
+          return document.cookie
+            .split('; ')
+            .find((row) => row.startsWith(`${name}=`))
+            ?.split('=')[1];
+        },
+        set(name: string, value: string, options: { path?: string; maxAge?: number }) {
+          document.cookie = `${name}=${value}; path=${options.path || '/'}; max-age=${options.maxAge || 3600}`;
+        },
+        remove(name: string, options: { path?: string }) {
+          document.cookie = `${name}=; path=${options.path || '/'}; max-age=0`;
+        },
+      },
       cookieOptions: {
         name: 'sb-session',
         path: '/',
-        domain: '',
         sameSite: 'lax',
         secure: process.env.NODE_ENV === 'production'
       }
