@@ -23,7 +23,7 @@ export function SettlementSummary({ settlements, month, onSettlementUpdated }: S
   const totalSettlements = settlements.reduce((sum, s) => sum + s.amount, 0);
   const formattedMonth = format(new Date(month), 'MMMM yyyy');
   const pendingSettlements = settlements.filter(s => s.status === 'pending');
-  const completedSettlements = settlements.filter(s => s.status === 'completed');
+  const _completedSettlements = settlements.filter(s => s.status === 'completed');
   
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

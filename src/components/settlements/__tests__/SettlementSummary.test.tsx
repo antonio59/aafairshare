@@ -33,8 +33,12 @@ describe('SettlementSummary', () => {
     expect(screen.getByText('Settlements for March 2025')).toBeInTheDocument();
 
     // Check settlement items using data-testid attributes
-    const settlementItem0 = screen.getByTestId('settlement-item-0');
-    const settlementItem1 = screen.getByTestId('settlement-item-1');
+    const _settlementItem0 = screen.getByTestId('settlement-item-0');
+    const _settlementItem1 = screen.getByTestId('settlement-item-1');
+    
+    // Verify settlement items exist
+    expect(_settlementItem0).toBeInTheDocument();
+    expect(_settlementItem1).toBeInTheDocument();
     
     // Check user names using data-testid
     const users0 = screen.getByTestId('settlement-users-0');

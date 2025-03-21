@@ -1,7 +1,11 @@
-import type { NextConfig } from "next";
+/**
+ * Next.js configuration
+ * Using module.exports pattern for maximum compatibility
+ */
 
-const nextConfig: NextConfig = {
-  webpack: (config, { isServer }) => {
+// Define the configuration with proper TypeScript types
+const nextConfig = {
+  webpack: (config: any, { isServer }: { isServer: boolean }) => {
     if (!isServer) {
       config.resolve.fallback = {
         fs: false,

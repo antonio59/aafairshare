@@ -89,7 +89,7 @@ export default function ExpensesDashboard() {
             CSV
           </button>
           <button
-            onClick={() => exportToPDF(expenses, selectedMonth, totalExpenses)}
+            onClick={() => exportToPDF(expenses, selectedMonth)}
             className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition-colors"
           >
             PDF

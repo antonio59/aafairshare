@@ -2,17 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { createBrowserClient } from '@supabase/ssr';
-import { calculateSettlement, createSettlementRecord, Expense as CalculatorExpense } from '@/utils/settlementCalculator';
+import { calculateSettlement, Expense as CalculatorExpense } from '@/utils/settlementCalculator';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/components/ui/use-toast';
-import { Skeleton } from '@/components/ui/skeleton';
 import { SettlementSkeletonGroup } from '@/components/settlements/SettlementSkeleton';
 import { SettlementCard } from '@/components/settlements/SettlementCard';
-import { format } from 'date-fns';
-import { Check, RefreshCw, Clock, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface Settlement {
   id: string;
@@ -340,7 +338,7 @@ export default function SettlementsSummary() {
                     }}
                     className="mt-4 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30"
                     onStatusChange={activeTab === 'active' ? 
-                      (id) => handleSettleMonth(monthGroup.month_year) : undefined
+                      (_id) => handleSettleMonth(monthGroup.month_year) : undefined
                     }
                   />
                   

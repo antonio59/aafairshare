@@ -1,6 +1,4 @@
 import { exportToPDF, exportToCSV } from '@/utils/exportService';
-import jsPDF from 'jspdf';
-import type { Settlement } from '@/types/expenses';
 
 interface Expense {
   id: string;
@@ -25,7 +23,7 @@ class MockBlob implements Blob {
   readonly type: string = '';
   readonly bytes: Uint8Array = new Uint8Array();
 
-  constructor(content: BlobPart[] = [], options?: BlobPropertyBag) {
+  constructor(content: BlobPart[] = [], _options?: BlobPropertyBag) {
     const contentString = content.map(part => String(part)).join('');
     mockBlobContent.set(this, contentString);
   }
@@ -38,7 +36,7 @@ class MockBlob implements Blob {
     return Promise.resolve(new ArrayBuffer(0));
   }
 
-  slice(start?: number, end?: number, contentType?: string): Blob {
+  slice(_start?: number, _end?: number, _contentType?: string): Blob {
     return new MockBlob();
   }
 

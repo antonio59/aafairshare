@@ -5,7 +5,7 @@ import { exportToCSV, exportToPDF } from '@/utils/exportService';
 interface UseExportReturn {
   isExporting: boolean;
   exportToCSV: (expenses: Expense[], month: string) => Promise<void>;
-  exportToPDF: (expenses: Expense[], month: string, totalExpenses: number) => Promise<void>;
+  exportToPDF: (expenses: Expense[], month: string) => Promise<void>;
 }
 
 export const useExport = (): UseExportReturn => {
@@ -22,10 +22,10 @@ export const useExport = (): UseExportReturn => {
     }
   };
 
-  const handleExportToPDF = async (expenses: Expense[], month: string, totalExpenses: number) => {
+  const handleExportToPDF = async (expenses: Expense[], month: string) => {
     try {
       setIsExporting(true);
-      await exportToPDF(expenses, month, totalExpenses);
+      await exportToPDF(expenses, month);
     } catch (error) {
       console.error('Failed to export to PDF:', error);
     } finally {

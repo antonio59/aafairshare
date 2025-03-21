@@ -31,7 +31,7 @@ interface UserTotal {
   name: string;
 }
 
-interface UserTotals {
+interface _UserTotals {
   [key: string]: UserTotal;
 }
 

@@ -3,7 +3,7 @@ import { SettlementSkeleton, SettlementSkeletonGroup } from '../SettlementSkelet
 
 // Mock cn utility to avoid issues with Tailwind class merging in tests
 jest.mock('@/lib/utils', () => ({
-  cn: (...inputs: any[]) => inputs.filter(Boolean).join(' '),
+  cn: (...inputs: (string | boolean | undefined)[]) => inputs.filter(Boolean).join(' '),
 }));
 
 describe('SettlementSkeleton', () => {

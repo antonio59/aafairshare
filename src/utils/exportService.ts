@@ -19,6 +19,7 @@ interface ExportResult<T> {
   fileName: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 interface ExportData {
   Date: string;
   Amount: number;
@@ -156,6 +157,7 @@ export async function exportToCSV(expenses: Expense[], month: string): Promise<E
           
           otherUsers.forEach(otherUser => {
             settlements.push({
+              id: `${otherUser}-${user}-${month}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
               from: otherUser,
               to: user,
               amount: amountPerUser,
@@ -323,6 +325,7 @@ export async function exportToPDF(
           
           otherUsers.forEach(otherUser => {
             settlements.push({
+              id: `${otherUser}-${user}-${month}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
               from: otherUser,
               to: user,
               amount: amountPerUser,

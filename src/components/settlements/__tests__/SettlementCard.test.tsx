@@ -14,26 +14,46 @@ jest.mock('@/lib/utils', () => ({
 }));
 
 // Mock the card components
+type CardComponentProps = {
+  children: React.ReactNode;
+  className?: string;
+};
+
 jest.mock('@/components/ui/card', () => ({
-  Card: ({ children, className }: any) => <div className={className} data-testid="card">{children}</div>,
-  CardHeader: ({ children, className }: any) => <div className={className} data-testid="card-header">{children}</div>,
-  CardTitle: ({ children, className }: any) => <div className={className} data-testid="card-title">{children}</div>,
-  CardDescription: ({ children, className }: any) => <div className={className} data-testid="card-description">{children}</div>,
-  CardContent: ({ children, className }: any) => <div className={className} data-testid="card-content">{children}</div>,
-  CardFooter: ({ children, className }: any) => <div className={className} data-testid="card-footer">{children}</div>,
+  Card: ({ children, className }: CardComponentProps) => <div className={className} data-testid="card">{children}</div>,
+  CardHeader: ({ children, className }: CardComponentProps) => <div className={className} data-testid="card-header">{children}</div>,
+  CardTitle: ({ children, className }: CardComponentProps) => <div className={className} data-testid="card-title">{children}</div>,
+  CardDescription: ({ children, className }: CardComponentProps) => <div className={className} data-testid="card-description">{children}</div>,
+  CardContent: ({ children, className }: CardComponentProps) => <div className={className} data-testid="card-content">{children}</div>,
+  CardFooter: ({ children, className }: CardComponentProps) => <div className={className} data-testid="card-footer">{children}</div>,
 }));
 
 // Mock the badge component
+type BadgeProps = {
+  children: React.ReactNode;
+  className?: string;
+  onClick?: () => void;
+};
+
 jest.mock('@/components/ui/badge', () => ({
-  Badge: ({ children, className, onClick }: any) => <span className={className} onClick={onClick} data-testid="badge">{children}</span>,
+  Badge: ({ children, className, onClick }: BadgeProps) => <span className={className} onClick={onClick} data-testid="badge">{children}</span>,
 }));
 
 // Mock the tooltip components
+type TooltipProps = {
+  children: React.ReactNode;
+};
+
+type TooltipTriggerProps = {
+  children: React.ReactNode;
+  asChild?: boolean;
+};
+
 jest.mock('@/components/ui/tooltip', () => ({
-  Tooltip: ({ children }: any) => <div data-testid="tooltip">{children}</div>,
-  TooltipContent: ({ children }: any) => <div data-testid="tooltip-content">{children}</div>,
-  TooltipProvider: ({ children }: any) => <div data-testid="tooltip-provider">{children}</div>,
-  TooltipTrigger: ({ children, asChild }: any) => <div data-testid="tooltip-trigger">{children}</div>,
+  Tooltip: ({ children }: TooltipProps) => <div data-testid="tooltip">{children}</div>,
+  TooltipContent: ({ children }: TooltipProps) => <div data-testid="tooltip-content">{children}</div>,
+  TooltipProvider: ({ children }: TooltipProps) => <div data-testid="tooltip-provider">{children}</div>,
+  TooltipTrigger: ({ children, asChild }: TooltipTriggerProps) => <div data-testid="tooltip-trigger" data-as-child={asChild}>{children}</div>,
 }));
 
 describe('SettlementCard', () => {

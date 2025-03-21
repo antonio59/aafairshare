@@ -17,7 +17,8 @@ export function MonthSelector({ selectedMonth, onMonthChange }: MonthSelectorPro
   const [currentDate, setCurrentDate] = useState<Date>(() => {
     try {
       return parse(selectedMonth, 'yyyy-MM', new Date());
-    } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_e) {
       return new Date();
     }
   });
@@ -27,7 +28,8 @@ export function MonthSelector({ selectedMonth, onMonthChange }: MonthSelectorPro
     try {
       const parsedDate = parse(selectedMonth, 'yyyy-MM', new Date());
       setCurrentDate(parsedDate);
-    } catch (e) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_e) {
       // Handle invalid date format
     }
     

@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
 import { Button } from '@/components/ui/button';
 import { formatMonth } from '@/utils/formatters';
-import type { Expense, ExpenseFilters } from '@/types/expenses';
+import type { ExpenseFilters } from '@/types/expenses';
 
 // Error boundary component for React 19
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
@@ -89,7 +89,8 @@ export function ExpensesDashboard({
         title: 'Export Successful',
         description: `Expenses exported as ${format.toUpperCase()}`,
       });
-    } catch (err) {
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (_err) {
       toast({
         title: 'Export Failed',
         description: 'Failed to export expenses',

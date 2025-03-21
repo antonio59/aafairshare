@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Expense } from '@/types/expenses';
@@ -34,7 +34,7 @@ function ExpenseItem({ expense }: { expense: Expense }) {
   );
 }
 
-export function ExpenseList({ expenses, isLoading, onUpdate }: ExpenseListProps) {
+export function ExpenseList({ expenses, isLoading, onUpdate: _onUpdate }: ExpenseListProps) {
   if (isLoading) {
     return (
       <div className="space-y-3">

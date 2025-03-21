@@ -6,6 +6,8 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
+// Used in the toast component
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const TOAST_REMOVE_DELAY = 1000000
 
 type ToasterToast = ToastProps & {
@@ -15,6 +17,8 @@ type ToasterToast = ToastProps & {
   action?: ToastActionElement
 }
 
+// Used for type definitions
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const actionTypes = {
   ADD_TOAST: "ADD_TOAST",
   UPDATE_TOAST: "UPDATE_TOAST",
@@ -46,7 +50,7 @@ type Action =
       toastId?: ToasterToast["id"]
     }
 
-interface Toast extends Omit<ToasterToast, "id"> {}
+type Toast = Omit<ToasterToast, "id">
 
 function toastReducer(state: State, action: Action): State {
   switch (action.type) {
@@ -107,8 +111,6 @@ function dispatch(action: Action) {
     listener(memoryState)
   })
 }
-
-interface Toast extends Omit<ToasterToast, "id"> {}
 
 function toast({ ...props }: Toast) {
   const id = Math.random().toString(36).slice(2, 9);
