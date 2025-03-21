@@ -21,11 +21,15 @@ const mockBlobContent = new Map<Blob, string>();
 class MockBlob implements Blob {
   readonly size: number = 0;
   readonly type: string = '';
-  readonly bytes: Uint8Array = new Uint8Array();
+  private readonly _content: Uint8Array = new Uint8Array();
 
   constructor(content: BlobPart[] = [], _options?: BlobPropertyBag) {
     const contentString = content.map(part => String(part)).join('');
     mockBlobContent.set(this, contentString);
+  }
+  
+  bytes(): Promise<Uint8Array> {
+    return Promise.resolve(this._content);
   }
 
   text(): Promise<string> {

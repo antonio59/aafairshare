@@ -7,10 +7,10 @@ declare module 'tailwindcss/types' {
     content: string[];
     darkMode?: 'media' | 'class' | false;
     theme?: {
-      extend?: Record<string, any>;
-      [key: string]: any;
+      extend?: Record<string, unknown>;
+      [key: string]: unknown;
     };
-    plugins?: any[];
+    plugins?: unknown[];
     future?: {
       hoverOnlyWhenSupported?: boolean;
       respectDefaultRingColorOpacity?: boolean;
