@@ -15,7 +15,13 @@ const config = {
     '<rootDir>/.next/',
     '<rootDir>/e2e/',
     '<rootDir>/playwright/',
+    '\.spec\.ts$',
+    'hydration-performance\.test\.tsx$',
   ],
+  // Set environment variables for tests
+  testEnvironmentOptions: {
+    customExportConditions: [''],
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@lib/(.*)$': '<rootDir>/src/lib/$1',

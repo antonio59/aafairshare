@@ -2,10 +2,9 @@
 
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import { createBrowserClient } from '@supabase/ssr';
-import type { Database } from '@/types/supabase';
 import type { Expense, ExportableExpense, Settlement } from '@/types/expenses';
 import { format } from 'date-fns';
+import { createStandardBrowserClient } from '@/utils/supabase-client';
 
 class ExportError extends Error {
   constructor(message: string, public readonly code: 'NO_DATA' | 'AUTH_ERROR' | 'EXPORT_FAILED') {
@@ -42,11 +41,7 @@ type LocationMap = Map<string, string>;
 
 async function getSupabaseData() {
   try {
-    const supabase = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {}
-    );
+    const supabase = createStandardBrowserClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new ExportError('User not authenticated', 'AUTH_ERROR');
@@ -79,11 +74,7 @@ async function getSupabaseData() {
 
 async function recordExport(params: ExportMetadata): Promise<void> {
   try {
-    const supabase = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {}
-    );
+    const supabase = createStandardBrowserClient();
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new ExportError('User not authenticated', 'AUTH_ERROR');

@@ -28,30 +28,31 @@ export type CardFooterProps = {
   className?: string
 } & React.HTMLAttributes<HTMLDivElement>
 
-const CardComponent = React.forwardRef<
-  HTMLDivElement,
-  React.HTMLAttributes<HTMLDivElement>
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      className
-    )}
-    {...props}
-  />
-))
-CardComponent.displayName = "Card"
+/**
+ * Card Component
+ * 
+ * This component follows the TypeScript-first approach with React 19 compatibility.
+ * The implementation uses a single forwardRef component with two exports:
+ * 1. A PascalCase export (Card) - Used throughout the application
+ * 2. A lowercase export (card) - Required for GitHub workflow validation
+ */
+export const Card = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ className, ...props }, ref) => (
+    <div
+      ref={ref}
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        className
+      )}
+      {...props}
+    />
+  )
+)
+Card.displayName = "Card"
 
 // This lowercase export is needed for GitHub workflow validation
-export function card({ className, ...props }: CardProps) {
-  return <CardComponent className={className} {...props} />
-}
-
-// This is the actual component used in the codebase
-export function Card({ className, ...props }: CardProps) {
-  return card({ className, ...props })
-}
+// Using the same implementation to avoid duplication
+export const card = Card
 
 const CardHeader = React.forwardRef<
   HTMLDivElement,

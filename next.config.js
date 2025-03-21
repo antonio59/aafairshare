@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Webpack configuration for polyfills and fallbacks
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.fallback = {
@@ -14,7 +15,25 @@ const nextConfig = {
       };
     }
     return config;
-  }
+  },
+  
+  // ESLint configuration optimized for React 19
+  eslint: {
+    // Warning instead of error for production builds
+    ignoreDuringBuilds: false,
+    // Modern ESLint configuration
+    dirs: ['src']
+  },
+  
+  // TypeScript configuration
+  typescript: {
+    // Ensure type checking during builds
+    ignoreBuildErrors: false
+  },
+  
+  // React 19 and Suspense optimizations
+  reactStrictMode: true,
+  swcMinify: true
 };
 
 module.exports = nextConfig;

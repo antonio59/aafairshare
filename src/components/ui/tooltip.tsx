@@ -30,20 +30,24 @@ export type TooltipContentProps = {
 } & React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
 
 const TooltipProvider = TooltipPrimitive.Provider
-
 const TooltipRoot = TooltipPrimitive.Root
-
 const TooltipTrigger = TooltipPrimitive.Trigger
 
-// This lowercase export is needed for GitHub workflow validation
-export function tooltip({ children, ...props }: TooltipProps) {
+/**
+ * Tooltip Component
+ * 
+ * This component follows the TypeScript-first approach with React 19 compatibility.
+ * The implementation uses a single component with two exports:
+ * 1. A PascalCase export (Tooltip) - Used throughout the application
+ * 2. A lowercase export (tooltip) - Required for GitHub workflow validation
+ */
+export const Tooltip = ({ children, ...props }: TooltipProps) => {
   return <TooltipRoot {...props}>{children}</TooltipRoot>
 }
 
-// This is the actual component used in the codebase
-export function Tooltip({ children, ...props }: TooltipProps) {
-  return tooltip({ children, ...props })
-}
+// This lowercase export is needed for GitHub workflow validation
+// Using the same implementation to avoid duplication
+export const tooltip = Tooltip
 
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,

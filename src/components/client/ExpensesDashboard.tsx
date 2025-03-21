@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, Suspense, lazy, useTransition } from 'react';
+import React, { Suspense, lazy, useTransition } from 'react';
+import { useQueryState } from 'nuqs';
 import { useExpenses } from '@/hooks/useExpenses';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
@@ -8,23 +9,27 @@ import { Button } from '@/components/ui/button';
 import { formatMonth } from '@/utils/formatters';
 import type { ExpenseFilters } from '@/types/expenses';
 
-// Error boundary component for React 19
+// Error boundary component for React 19 with improved error handling
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
   return (
     <div className="p-4 rounded-md bg-destructive/10 text-destructive">
-      <p>Error loading expenses: {error.message}</p>
-      <Button 
-        onClick={resetErrorBoundary}
-        variant="outline"
-        className="mt-2"
-      >
-        Retry
-      </Button>
+      <div className="flex flex-col gap-2">
+        <h3 className="font-medium">Something went wrong</h3>
+        <p className="text-sm">Error loading expenses: {error.message}</p>
+        <Button 
+          onClick={resetErrorBoundary}
+          variant="outline"
+          size="sm"
+          className="mt-2 w-fit"
+        >
+          Try again
+        </Button>
+      </div>
     </div>
   );
 }
 
-// Import smaller components using dynamic imports for better code splitting and React 19 hydration
+// Import smaller components using dynamic imports with improved loading patterns for React 19
 const MonthSelector = lazy(() => 
   import('./expenses/MonthSelector').then(mod => ({ default: mod.MonthSelector }))
 );
@@ -34,6 +39,15 @@ const ExpenseList = lazy(() =>
 const ExportButton = lazy(() => 
   import('./expenses/ExportButton').then(mod => ({ default: mod.ExportButton }))
 );
+
+// Preload critical components for better user experience
+// This is a React 19 optimization to start loading components before they're needed
+// Immediately invoke to start loading on module initialization
+(() => {
+  import('./expenses/MonthSelector');
+  import('./expenses/ExpenseList');
+  import('./expenses/ExportButton');
+})();
 
 // This is a fallback for any loading state
 const LoadingSkeleton = () => (
@@ -48,12 +62,34 @@ interface ExpensesDashboardProps {
   initialMonth?: string;
 }
 
+/**
+ * Dashboard state interface for type safety
+ */
+interface DashboardState {
+  isExporting: boolean;
+}
+
 export function ExpensesDashboard({
   initialMonth = new Date().toISOString().slice(0, 7)
 }: ExpensesDashboardProps) {
-  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
-  const [isPending, startTransition] = useTransition(); // React 19 concurrent mode transition
+  // Use URL state management with nuqs for shareable URLs
+  const [selectedMonth, setSelectedMonth] = useQueryState('month', {
+    defaultValue: initialMonth,
+    parse: (value: string) => {
+      // Validate month format (YYYY-MM)
+      return /^\d{4}-\d{2}$/.test(value) ? value : initialMonth;
+    },
+    serialize: (value: string) => value
+  });
+  
+  // React 19 concurrent mode transition
+  const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  
+  // Consolidated component state
+  const [dashboardState, setDashboardState] = React.useState<DashboardState>({
+    isExporting: false
+  });
   
   const {
     expenses,
@@ -84,7 +120,11 @@ export function ExpensesDashboard({
 
   const handleExport = async (format: 'csv' | 'pdf') => {
     try {
+      // Update state to show exporting status
+      setDashboardState(prev => ({ ...prev, isExporting: true }));
+      
       await exportExpenses(format);
+      
       toast({
         title: 'Export Successful',
         description: `Expenses exported as ${format.toUpperCase()}`,
@@ -96,15 +136,25 @@ export function ExpensesDashboard({
         description: 'Failed to export expenses',
         variant: 'destructive',
       });
+    } finally {
+      // Reset exporting state
+      setDashboardState(prev => ({ ...prev, isExporting: false }));
     }
   };
 
-  // Error handling moved to ErrorFallback component
+  // React 19 optimized error handling with proper error object construction
   if (error) {
+    // Create a proper error object with additional context for better debugging
+    const errorObj = new Error(error);
+    errorObj.name = 'ExpensesFetchError';
+    
     return (
       <ErrorFallback 
-        error={new Error(error)} 
-        resetErrorBoundary={() => handleMonthChange(selectedMonth)} 
+        error={errorObj} 
+        resetErrorBoundary={() => {
+          // Clear error state and retry with a fresh request
+          handleMonthChange(selectedMonth);
+        }} 
       />
     );
   }
@@ -119,21 +169,24 @@ export function ExpensesDashboard({
         </h2>
       </div>
       
-      {/* Lazy-loaded month selector with Suspense boundary */}
-      <Suspense fallback={<Skeleton className="h-12 w-full" />}>
+      {/* Optimized Suspense boundaries for React 19 */}
+      {/* Using a single Suspense boundary for related UI elements */}
+      <Suspense fallback={
         <div className="flex items-center justify-between flex-col md:flex-row gap-4">
-          <Suspense fallback={<Skeleton className="h-10 w-48 rounded-md" />}>
-            <MonthSelector
-              selectedMonth={selectedMonth}
-              onMonthChange={handleMonthChange}
-            />
-          </Suspense>
-          <Suspense fallback={<Skeleton className="h-10 w-40" />}>
-            <ExportButton 
-              onExport={handleExport} 
-              disabled={isLoading || expenses.length === 0} 
-            />
-          </Suspense>
+          <Skeleton className="h-10 w-48 rounded-md" />
+          <Skeleton className="h-10 w-40" />
+        </div>
+      }>
+        <div className="flex items-center justify-between flex-col md:flex-row gap-4">
+          <MonthSelector
+            selectedMonth={selectedMonth}
+            onMonthChange={handleMonthChange}
+          />
+          <ExportButton 
+            onExport={handleExport} 
+            disabled={isLoading || expenses.length === 0 || dashboardState.isExporting} 
+            isLoading={dashboardState.isExporting}
+          />
         </div>
       </Suspense>
 

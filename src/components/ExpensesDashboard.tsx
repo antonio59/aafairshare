@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import ExpenseDetails from './ExpenseDetails';
 import { exportToCSV, exportToPDF } from '@/utils/exportService';
+import { createStandardBrowserClient } from '@/utils/supabase-client';
 
 interface Expense {
   id: string;
@@ -27,7 +27,7 @@ export default function ExpensesDashboard() {
   );
   const [isLoading, setIsLoading] = useState(false);
 
-  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {});
+  const supabase = createStandardBrowserClient();
 
   const [error, setError] = useState<string | null>(null);
 

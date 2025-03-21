@@ -11,11 +11,7 @@ const config = {
     relativeContentPathsByDefault: true,
   },
   content: [
-    './src/**/*.{js,jsx,ts,tsx,html,css}',
-    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
-    './src/features/**/*.{js,jsx,ts,tsx}',
-    './src/core/**/*.{js,jsx,ts,tsx}'
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   darkMode: 'class',
   theme: {

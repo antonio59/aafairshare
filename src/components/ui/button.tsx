@@ -40,6 +40,14 @@ export type ButtonProps = {
   asChild?: boolean
 } & React.ButtonHTMLAttributes<HTMLButtonElement>
 
+import { createComponentExports } from "@/lib/component-utils"
+
+/**
+ * Button Component
+ * 
+ * This component follows the TypeScript-first approach with React 19 compatibility.
+ * Using standardized export pattern for consistent naming across the codebase.
+ */
 const ButtonComponent = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant, size, asChild = false, ...props }, ref) => {
     const Comp = asChild ? Slot : "button"
@@ -52,24 +60,14 @@ const ButtonComponent = React.forwardRef<HTMLButtonElement, ButtonProps>(
     )
   }
 )
-ButtonComponent.displayName = "Button"
 
-// This lowercase export is needed for GitHub workflow validation
-export function button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
-  return (
-    <ButtonComponent
-      className={className}
-      variant={variant}
-      size={size}
-      asChild={asChild}
-      {...props}
-    />
-  )
-}
+// Add display name to fix ESLint error
+ButtonComponent.displayName = "ButtonComponent"
 
-// This is the actual component used in the codebase
-export function Button({ className, variant, size, asChild = false, ...props }: ButtonProps) {
-  return button({ className, variant, size, asChild, ...props })
-}
+// Create standardized exports (PascalCase and lowercase)
+const { PascalCase: Button, lowercase: button } = createComponentExports(ButtonComponent, "Button")
+
+// Export both versions
+export { Button, button }
 
 export { buttonVariants }

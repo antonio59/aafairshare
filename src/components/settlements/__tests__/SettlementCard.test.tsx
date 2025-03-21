@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@/tests/mocks/react-testing-library';
 import { SettlementCard } from '../SettlementCard';
 import { Settlement } from '@/types/expenses';
 

@@ -147,11 +147,13 @@ describe('Export Service', () => {
 
       // Verify PDF generation calls
       expect(mockJsPDF.setFontSize).toHaveBeenCalled();
-      expect(mockJsPDF.text).toHaveBeenCalledWith(
-        expect.stringContaining('AAFairShare'),
-        expect.any(Number),
-        expect.any(Number)
+      // Verify that text was called with the title (more flexible assertion)
+      expect(mockJsPDF.text).toHaveBeenCalled();
+      const textCalls = mockJsPDF.text.mock.calls;
+      const titleCallFound = textCalls.some(call => 
+        typeof call[0] === 'string' && call[0].includes('AAFairShare')
       );
+      expect(titleCallFound).toBe(true);
       expect(mockJsPDF.autoTable).toHaveBeenCalled();
     });
 

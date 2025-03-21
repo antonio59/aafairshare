@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import { calculateSettlement, Expense as CalculatorExpense } from '@/utils/settlementCalculator';
+import { createStandardBrowserClient } from '@/utils/supabase-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -60,7 +60,7 @@ export default function SettlementsSummary() {
   const [isSettling, setIsSettling] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const supabase = createBrowserClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {});
+  const supabase = createStandardBrowserClient();
 
   const fetchSettlements = useCallback(async () => {
     setIsLoading(true);

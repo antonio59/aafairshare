@@ -28,16 +28,22 @@ export type BadgeProps = {
   variant?: VariantProps<typeof badgeVariants>["variant"]
 } & React.HTMLAttributes<HTMLDivElement>
 
-// This lowercase export is needed for GitHub workflow validation
-export function badge({ className, variant, ...props }: BadgeProps) {
+/**
+ * Badge Component
+ * 
+ * This component follows the TypeScript-first approach with React 19 compatibility.
+ * The implementation uses a single component with two exports:
+ * 1. A PascalCase export (Badge) - Used throughout the application
+ * 2. A lowercase export (badge) - Required for GitHub workflow validation
+ */
+export const Badge = ({ className, variant, ...props }: BadgeProps) => {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />
   )
 }
 
-// This is the actual component used in the codebase
-export function Badge({ className, variant, ...props }: BadgeProps) {
-  return badge({ className, variant, ...props })
-}
+// This lowercase export is needed for GitHub workflow validation
+// Using the same implementation to avoid duplication
+export const badge = Badge
 
 export { badgeVariants }

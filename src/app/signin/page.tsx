@@ -33,7 +33,7 @@ export default function SignInPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="flex flex-col items-center">
-          <Image src="/logo.svg" alt="AA FairShare" width={48} height={48} className="w-auto mb-8" />
+          <Image src="/logo.svg" alt="AA FairShare" width={120} height={48} className="h-12 w-auto mb-8" />
           <h2 className="text-center text-3xl font-extrabold text-gray-900">
             Welcome back
           </h2>

@@ -1,6 +1,27 @@
 import '@testing-library/jest-dom';
 import * as React from 'react';
 
+// Comprehensive React 19 compatibility setup
+// These settings help suppress warnings and ensure tests run correctly with React 19
+process.env.REACT_DOM_ACT_WARNINGS = 'false';
+
+// NODE_ENV is already set to 'test' by Jest automatically
+
+// Suppress specific console warnings for React 19
+const originalConsoleError = console.error;
+console.error = (...args) => {
+  const errorMsg = typeof args[0] === 'string' ? args[0] : '';
+  
+  // Filter out common React 19 warnings
+  if (errorMsg.includes('ReactDOMTestUtils.act') || 
+      errorMsg.includes('React.act') || 
+      errorMsg.includes('inside a test was not wrapped in act') ||
+      errorMsg.includes('Warning: ReactDOM.render')) {
+    return;
+  }
+  originalConsoleError(...args);
+};
+
 // Setup environment variables for tests using Object.defineProperty
 // This avoids TypeScript errors with read-only properties
 Object.defineProperty(process.env, 'NEXT_PUBLIC_SUPABASE_URL', {
@@ -31,6 +52,31 @@ type MockComponentProps = {
   className?: string;
 };
 
+// Mock Supabase client
+jest.mock('@supabase/ssr', () => ({
+  createBrowserClient: jest.fn(() => ({
+    auth: {
+      getUser: jest.fn().mockResolvedValue({ 
+        data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+        error: null
+      }),
+      signOut: jest.fn().mockResolvedValue({ error: null }),
+      signInWithPassword: jest.fn().mockResolvedValue({ error: null }),
+    },
+    from: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnValue({ error: null }),
+      update: jest.fn().mockReturnThis(),
+      delete: jest.fn().mockReturnThis(),
+      eq: jest.fn().mockReturnThis(),
+      single: jest.fn().mockReturnThis(),
+      order: jest.fn().mockReturnThis(),
+      limit: jest.fn().mockReturnThis(),
+      then: jest.fn().mockImplementation(callback => Promise.resolve(callback({ data: [], error: null })))
+    })
+  }))
+}));
+
 // Mock DOM elements for testing
 type MockElement = (props: MockComponentProps) => React.ReactElement;
 
@@ -59,6 +105,7 @@ const mockComponents = {
   TabsList: createMockElement('tabs-list'),
   TabsTrigger: createMockElement('tabs-trigger'),
   TabsContent: createMockElement('tabs-content'),
+  ScrollArea: createMockElement('scroll-area'),
   Input: createMockElement('input'),
   Label: createMockElement('label'),
   Select: createMockElement('select'),
@@ -72,14 +119,15 @@ const mockComponents = {
   DialogHeader: createMockElement('dialog-header'),
   DialogTitle: createMockElement('dialog-title'),
   DialogDescription: createMockElement('dialog-description'),
+  Tooltip: createMockElement('tooltip'),
+  TooltipProvider: createMockElement('tooltip-provider'),
+  TooltipContent: createMockElement('tooltip-content'),
+  TooltipTrigger: createMockElement('tooltip-trigger'),
   DialogFooter: createMockElement('dialog-footer'),
   Toast: createMockElement('toast'),
-  Tooltip: createMockElement('tooltip'),
-  TooltipTrigger: createMockElement('tooltip-trigger'),
-  TooltipContent: createMockElement('tooltip-content'),
+
   Calendar: createMockElement('calendar'),
   Checkbox: createMockElement('checkbox'),
-  ScrollArea: createMockElement('scroll-area'),
   Skeleton: createMockElement('skeleton'),
   Form: createMockElement('form'),
   FormField: createMockElement('form-field'),
@@ -94,17 +142,24 @@ const mockComponents = {
 // Mock UI components
 jest.mock('@/components/ui/button', () => mockComponents.Button);
 jest.mock('@/components/ui/card', () => mockComponents);
-jest.mock('@/components/ui/badge', () => mockComponents.Badge);
+jest.mock('@/components/ui/badge', () => ({
+  Badge: mockComponents.Badge
+}));
 jest.mock('@/components/ui/tabs', () => mockComponents);
 jest.mock('@/components/ui/input', () => mockComponents.Input);
 jest.mock('@/components/ui/label', () => mockComponents.Label);
 jest.mock('@/components/ui/select', () => mockComponents);
 jest.mock('@/components/ui/dialog', () => mockComponents);
 jest.mock('@/components/ui/toast', () => mockComponents);
-jest.mock('@/components/ui/tooltip', () => mockComponents);
+jest.mock('@/components/ui/tooltip', () => ({
+  Tooltip: mockComponents.Tooltip,
+  TooltipProvider: mockComponents.TooltipProvider,
+  TooltipContent: mockComponents.TooltipContent,
+  TooltipTrigger: mockComponents.TooltipTrigger
+}));
+jest.mock('@/components/ui/scroll-area', () => mockComponents.ScrollArea);
 jest.mock('@/components/ui/calendar', () => mockComponents.Calendar);
 jest.mock('@/components/ui/checkbox', () => mockComponents.Checkbox);
-jest.mock('@/components/ui/scroll-area', () => mockComponents.ScrollArea);
 jest.mock('@/components/ui/skeleton', () => mockComponents.Skeleton);
 jest.mock('@/components/ui/form', () => mockComponents);
 
@@ -144,6 +199,16 @@ jest.mock('lucide-react', () => ({
     React.createElement('svg', {
       ...props,
       'data-testid': 'alert-triangle-icon'
+    }, 
+    React.createElement('path', {
+      d: 'M0 0h24v24H0z'
+    })
+    )
+  ),
+  RefreshCw: (props: React.SVGProps<SVGSVGElement>) => (
+    React.createElement('svg', {
+      ...props,
+      'data-testid': 'refresh-cw-icon'
     }, 
     React.createElement('path', {
       d: 'M0 0h24v24H0z'

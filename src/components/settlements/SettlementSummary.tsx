@@ -57,7 +57,7 @@ export function SettlementSummary({ settlements, month, onSettlementUpdated }: S
   }
 
   return (
-    <Card className="w-full">
+    <Card className="w-full" data-testid="settlement-summary">
       <CardHeader>
         <CardTitle className="text-lg font-semibold">
           Settlements for {formattedMonth}

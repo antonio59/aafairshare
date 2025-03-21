@@ -8,20 +8,35 @@ import { Download, Loader2 } from 'lucide-react';
 export interface ExportButtonProps {
   onExport: (format: 'csv' | 'pdf') => Promise<void>;
   disabled?: boolean;
+  isLoading?: boolean;
 }
 
-export function ExportButton({ onExport, disabled = false }: ExportButtonProps) {
-  const [isExporting, setIsExporting] = useState(false);
+export function ExportButton({ 
+  onExport, 
+  disabled = false,
+  isLoading = false 
+}: ExportButtonProps) {
+  // Local state for tracking which format is being exported
   const [exportFormat, setExportFormat] = useState<'csv' | 'pdf' | null>(null);
+  
+  // Use parent-provided isLoading state if available, otherwise use local state
+  const [localIsExporting, setLocalIsExporting] = useState(false);
+  const isExporting = isLoading || localIsExporting;
 
   const handleExport = async (format: 'csv' | 'pdf') => {
-    setIsExporting(true);
+    // Only manage local state if parent isn't controlling loading state
+    if (!isLoading) {
+      setLocalIsExporting(true);
+    }
     setExportFormat(format);
     
     try {
       await onExport(format);
     } finally {
-      setIsExporting(false);
+      // Only reset local state if parent isn't controlling loading state
+      if (!isLoading) {
+        setLocalIsExporting(false);
+      }
       setExportFormat(null);
     }
   };

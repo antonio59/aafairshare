@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "NodeNext",
+    "target": "ES2022",
+    "sourceMap": true,
+    "outDir": "../../.vercel/output/functions"
+  },
+  "include": [
+    "../../.vercel/functions/**/*.ts"
+  ]
+}

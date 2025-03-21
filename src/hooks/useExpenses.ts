@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
 import type { Expense, ExpenseFilters } from '@/types/expenses';
 import { exportToCSV, exportToPDF } from '@/utils/exportService';
+import { createStandardBrowserClient } from '@/utils/supabase-client';
 
 interface UseExpensesReturn {
   expenses: Expense[];
@@ -16,11 +16,7 @@ export function useExpenses(): UseExpensesReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {}
-  );
+  const supabase = createStandardBrowserClient();
 
   const fetchExpenses = useCallback(async ({ startDate, endDate }: ExpenseFilters) => {
     setIsLoading(true);

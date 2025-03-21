@@ -19,17 +19,17 @@ const config = {
     '/.next/',
     '/e2e/',
     '/playwright/',
+    '\\.spec\\.ts$' // Exclude Playwright test files
   ],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       tsconfig: './tsconfig.json'
     }]
   },
-  globals: {
-    'ts-jest': {
-      tsconfig: './tsconfig.json'
-    }
-  }
+  transformIgnorePatterns: [
+    '/node_modules/(?!(@testing-library|domexception|abab|@radix-ui|class-variance-authority|clsx|tailwind-merge)/)',
+  ],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json']
 } as Config.InitialOptions;
 
 export default config;

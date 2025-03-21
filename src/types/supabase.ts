@@ -90,6 +90,37 @@ export type Database = {
           created_at?: string;
         };
       };
+      exports: {
+        Row: {
+          id: string;
+          user_id: string;
+          data_type: string;
+          format: 'csv' | 'pdf';
+          filters: Record<string, string | number | boolean | null>;
+          file_data: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          data_type: string;
+          format: 'csv' | 'pdf';
+          filters: Record<string, string | number | boolean | null>;
+          file_name: string;
+          file_data: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          data_type?: string;
+          format?: 'csv' | 'pdf';
+          filters?: Record<string, string | number | boolean | null>;
+          file_name?: string;
+          file_data?: string;
+          created_at?: string;
+        };
+      };
     };
     Views: {
       [_ in never]: never;

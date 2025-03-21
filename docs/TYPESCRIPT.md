@@ -2,20 +2,47 @@
 
 ## Configuration Structure
 
-The project uses a unified TypeScript configuration approach with a single root configuration file:
+The project uses a modular TypeScript configuration approach with multiple configuration files organized in a structured manner:
 
 ```
-tsconfig.json         # Root configuration for Next.js application
+config/typescript/
+  ├── tsconfig.base.json    # Base shared configuration
+  ├── tsconfig.json         # Main Next.js application config
+  ├── tsconfig.node.json    # Node.js scripts configuration
+  └── tsconfig.vercel.json  # Vercel serverless functions configuration
+
+tsconfig.json              # Root configuration (extends from modular structure)
 ```
 
-## Base Configuration (tsconfig.json)
+## Base Configuration (tsconfig.base.json)
 
-The root configuration includes:
-- Next.js specific settings
-- React/JSX configuration
+The base configuration includes common settings shared across all configurations:
+- TypeScript language features
 - Module resolution
 - Path aliases
 - Strict type checking
+- Common compiler options
+
+## Application Configuration (tsconfig.json)
+
+Extends the base configuration and adds:
+- Next.js specific settings
+- React/JSX configuration
+- App-specific include patterns
+
+## Node.js Configuration (tsconfig.node.json)
+
+Extends the base configuration and adds:
+- Node.js specific module resolution
+- Script-specific output settings
+- Node-specific target environment
+
+## Vercel Configuration (tsconfig.vercel.json)
+
+Extends the base configuration and adds:
+- Vercel Edge and Serverless function settings
+- Next.js API route optimizations
+- Vercel-specific deployment configurations
 
 ## Path Aliases
 
@@ -28,9 +55,7 @@ The project uses TypeScript path aliases for better code organization:
   "@lib/*": ["./src/lib/*"],
   "@utils/*": ["./src/utils/*"],
   "@hooks/*": ["./src/hooks/*"],
-  "@config/*": ["./config/*"],
-  "@core/*": ["./src/core/*"],
-  "@/features/*": ["./src/features/*"]
+  "@config/*": ["./config/*"]
 }
 ```
 
