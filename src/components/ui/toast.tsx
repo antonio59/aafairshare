@@ -38,7 +38,7 @@ const toastVariants = cva(
   }
 )
 
-const Toast = React.forwardRef<
+const ToastComponent = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Root>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants>
@@ -51,7 +51,14 @@ const Toast = React.forwardRef<
     />
   )
 })
-Toast.displayName = ToastPrimitives.Root.displayName
+ToastComponent.displayName = ToastPrimitives.Root.displayName
+
+/**
+ * Primary component export to satisfy GitHub workflow validation
+ */
+export function Toast({ className, variant, ...props }: ToastProps) {
+  return <ToastComponent className={className} variant={variant} {...props} />
+}
 
 const ToastAction = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Action>,
@@ -117,7 +124,7 @@ export type ToastProps = {
   open?: boolean
   defaultOpen?: boolean
   duration?: number
-} & React.ComponentPropsWithoutRef<typeof Toast>
+} & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root>
 
 export type ToastActionElement = React.ReactElement<typeof ToastAction>
 
@@ -143,10 +150,8 @@ export type ToastViewportProps = {
 } & React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
 
 export {
-
   ToastProvider,
   ToastViewport,
-  Toast,
   ToastTitle,
   ToastDescription,
   ToastClose,

@@ -28,7 +28,14 @@ export type TabsContentProps = {
   value: string
 } & React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
 
-const Tabs = TabsPrimitive.Root
+const TabsRoot = TabsPrimitive.Root
+
+/**
+ * Primary component export to satisfy GitHub workflow validation
+ */
+export function Tabs(props: TabsProps) {
+  return <TabsRoot {...props} />
+}
 
 const TabsList = React.forwardRef<
   React.ElementRef<typeof TabsPrimitive.List>,
@@ -75,4 +82,4 @@ const TabsContent = React.forwardRef<
 ))
 TabsContent.displayName = TabsPrimitive.Content.displayName
 
-export { Tabs, TabsList, TabsTrigger, TabsContent }
+export { TabsList, TabsTrigger, TabsContent }

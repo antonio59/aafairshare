@@ -28,10 +28,10 @@ export type BadgeProps = {
   variant?: VariantProps<typeof badgeVariants>["variant"]
 } & React.HTMLAttributes<HTMLDivElement>
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+export function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />
   )
 }
 
-export { Badge, badgeVariants }
+export { badgeVariants }

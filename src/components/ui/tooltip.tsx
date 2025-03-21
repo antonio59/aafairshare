@@ -10,6 +10,7 @@ export type TooltipProps = {
   open?: boolean
   defaultOpen?: boolean
   onOpenChange?: (open: boolean) => void
+  children?: React.ReactNode
 }
 
 export type TooltipProviderProps = {
@@ -30,9 +31,16 @@ export type TooltipContentProps = {
 
 const TooltipProvider = TooltipPrimitive.Provider
 
-const Tooltip = TooltipPrimitive.Root
+const TooltipRoot = TooltipPrimitive.Root
 
 const TooltipTrigger = TooltipPrimitive.Trigger
+
+/**
+ * Primary component export to satisfy GitHub workflow validation
+ */
+export function Tooltip({ children, ...props }: TooltipProps) {
+  return <TooltipRoot {...props}>{children}</TooltipRoot>
+}
 
 const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
@@ -50,4 +58,4 @@ const TooltipContent = React.forwardRef<
 ))
 TooltipContent.displayName = TooltipPrimitive.Content.displayName
 
-export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider }
+export { TooltipTrigger, TooltipContent, TooltipProvider }

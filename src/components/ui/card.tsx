@@ -28,7 +28,7 @@ export type CardFooterProps = {
   className?: string
 } & React.HTMLAttributes<HTMLDivElement>
 
-const Card = React.forwardRef<
+const CardComponent = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement>
 >(({ className, ...props }, ref) => (
@@ -41,7 +41,11 @@ const Card = React.forwardRef<
     {...props}
   />
 ))
-Card.displayName = "Card"
+CardComponent.displayName = "Card"
+
+function Card({ className, ...props }: CardProps) {
+  return <CardComponent className={className} {...props} />
+}
 
 const CardHeader = React.forwardRef<
   HTMLDivElement,
