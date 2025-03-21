@@ -5,6 +5,10 @@ import { Session, SupabaseClient } from '@supabase/supabase-js';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
 
+const VALID_COOKIE_NAME_REGEX = /^[\w!#$%&'*.^`|~+-]+$/;
+const VALID_COOKIE_PATH_REGEX = /^[\w!#$%&'()*+,-./:=@~_]+$/;
+const VALID_COOKIE_DOMAIN_REGEX = /^[a-z0-9-_.]+$/i;
+
 type AuthContextType = {
   user: null | { id: string; email: string };
   login: (email: string, password: string) => Promise<void>;
@@ -26,16 +30,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     {
       cookies: {
         get(name: string) {
-          return document.cookie
+          if (!VALID_COOKIE_NAME_REGEX.test(name)) {
+            console.error('Invalid cookie name');
+            return undefined;
+          }
+          const value = document.cookie
             .split('; ')
             .find((row) => row.startsWith(`${name}=`))
             ?.split('=')[1];
+          return value ? decodeURIComponent(value) : undefined;
         },
-        set(name: string, value: string, options: { path?: string; maxAge?: number }) {
-          document.cookie = `${name}=${value}; path=${options.path || '/'}; max-age=${options.maxAge || 3600}`;
+        set(name: string, value: string, options: { path?: string; maxAge?: number; domain?: string }) {
+          if (!VALID_COOKIE_NAME_REGEX.test(name)) {
+            throw new Error('Invalid cookie name');
+          }
+          if (options.path && !VALID_COOKIE_PATH_REGEX.test(options.path)) {
+            throw new Error('Invalid cookie path');
+          }
+          if (options.domain && !VALID_COOKIE_DOMAIN_REGEX.test(options.domain)) {
+            throw new Error('Invalid cookie domain');
+          }
+          const encodedValue = encodeURIComponent(value);
+          const path = options.path || '/';
+          const domain = options.domain ? `; domain=${options.domain}` : '';
+          document.cookie = `${name}=${encodedValue}; path=${path}${domain}; max-age=${options.maxAge || 3600}; SameSite=Lax; Secure`;
         },
-        remove(name: string, options: { path?: string }) {
-          document.cookie = `${name}=; path=${options.path || '/'}; max-age=0`;
+        remove(name: string, options: { path?: string; domain?: string }) {
+          if (!VALID_COOKIE_NAME_REGEX.test(name)) {
+            throw new Error('Invalid cookie name');
+          }
+          if (options.path && !VALID_COOKIE_PATH_REGEX.test(options.path)) {
+            throw new Error('Invalid cookie path');
+          }
+          if (options.domain && !VALID_COOKIE_DOMAIN_REGEX.test(options.domain)) {
+            throw new Error('Invalid cookie domain');
+          }
+          const path = options.path || '/';
+          const domain = options.domain ? `; domain=${options.domain}` : '';
+          document.cookie = `${name}=; path=${path}${domain}; max-age=0; SameSite=Lax; Secure`;
         },
       },
       cookieOptions: {

@@ -11,6 +11,11 @@ on:
       - 'tailwind.config.ts'
       - 'src/app/**/*.tsx'
 
+permissions:
+  contents: read
+  pull-requests: write
+  checks: write
+
 jobs:
   shadcn-radix-validation:
     name: Shadcn & Radix Type Validation
