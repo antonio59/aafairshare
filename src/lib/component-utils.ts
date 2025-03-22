@@ -1,26 +1,23 @@
 /**
- * Component Export Utilities
+ * Component Utilities
  * 
- * This file provides utilities for standardizing component exports
+ * This file provides utilities for working with React components
  * following the TypeScript-first approach with React 19 compatibility.
  */
 
 import type { ComponentType } from 'react';
 
 /**
- * Creates standardized exports for UI components
+ * Sets the display name for a component
  * 
- * @param component The React component to export
+ * @param component The React component to name
  * @param displayName The display name for the component
- * @returns An object with PascalCase and lowercase exports
+ * @returns The component with display name set
  */
-export function createComponentExports<T>(
+export function setDisplayName<T>(
   component: ComponentType<T>,
   displayName: string
 ): ComponentType<T> {
-  // Set display name for better debugging
   component.displayName = displayName;
-  
-  // Return only PascalCase export
   return component;
 }

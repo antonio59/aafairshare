@@ -33,14 +33,20 @@ const buttonVariants = cva(
   }
 )
 
-export type ButtonProps = {
+/**
+ * Button component props
+ */
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   className?: string
   variant?: VariantProps<typeof buttonVariants>["variant"]
   size?: VariantProps<typeof buttonVariants>["size"]
   asChild?: boolean
-} & React.ButtonHTMLAttributes<HTMLButtonElement>
+}
 
-import { createComponentExports } from "@/lib/component-utils"
+/**
+ * Button variant props
+ */
+export type ButtonVariant = VariantProps<typeof buttonVariants>
 
 /**
  * Button Component
@@ -62,9 +68,10 @@ const ButtonComponent = React.forwardRef<HTMLButtonElement, ButtonProps>(
 )
 
 // Add display name to fix ESLint error
-ButtonComponent.displayName = "ButtonComponent"
+ButtonComponent.displayName = "Button"
 
-// Create standardized export (PascalCase only)
-export const Button = createComponentExports(ButtonComponent, "Button")
+// Export both PascalCase and lowercase versions
+export const Button = ButtonComponent
+export const button = ButtonComponent
 
 export { buttonVariants }

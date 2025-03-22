@@ -3,7 +3,6 @@ import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { createComponentExports } from "@/lib/component-utils"
 
 /**
  * Dialog component props
@@ -59,44 +58,44 @@ const DialogContentComponent = React.forwardRef<
 ))
 DialogContentComponent.displayName = DialogPrimitive.Content.displayName
 
-// Create standardized exports for DialogContent
-const { PascalCase: DialogContent, lowercase: dialogContent } = createComponentExports(DialogContentComponent, "DialogContent")
+// Create DialogContent component
+const DialogContent = DialogContentComponent
+DialogContent.displayName = DialogPrimitive.Content.displayName
 
-const DialogHeaderComponent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
-  className,
-  ...props
-}) => (
+// Create DialogHeader component
+const DialogHeader = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
   <div
+    ref={ref}
     className={cn(
       "flex flex-col space-y-1.5 text-center sm:text-left",
       className
     )}
     {...props}
   />
-)
-DialogHeaderComponent.displayName = "DialogHeader"
+))
+DialogHeader.displayName = "DialogHeader"
 
-// Create standardized exports for DialogHeader
-const { PascalCase: DialogHeader, lowercase: dialogHeader } = createComponentExports(DialogHeaderComponent, "DialogHeader")
-
-const DialogFooterComponent: React.FC<React.HTMLAttributes<HTMLDivElement>> = ({
-  className,
-  ...props
-}) => (
+// Create DialogFooter component
+const DialogFooter = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
   <div
+    ref={ref}
     className={cn(
       "flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2",
       className
     )}
     {...props}
   />
-)
-DialogFooterComponent.displayName = "DialogFooter"
+))
+DialogFooter.displayName = "DialogFooter"
 
-// Create standardized exports for DialogFooter
-const { PascalCase: DialogFooter, lowercase: dialogFooter } = createComponentExports(DialogFooterComponent, "DialogFooter")
-
-const DialogTitleComponent = React.forwardRef<
+// Create DialogTitle component
+const DialogTitle = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Title>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Title>
 >(({ className, ...props }, ref) => (
@@ -109,12 +108,10 @@ const DialogTitleComponent = React.forwardRef<
     {...props}
   />
 ))
-DialogTitleComponent.displayName = DialogPrimitive.Title.displayName
+DialogTitle.displayName = DialogPrimitive.Title.displayName
 
-// Create standardized exports for DialogTitle
-const { PascalCase: DialogTitle, lowercase: dialogTitle } = createComponentExports(DialogTitleComponent, "DialogTitle")
-
-const DialogDescriptionComponent = React.forwardRef<
+// Create DialogDescription component
+const DialogDescription = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Description>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Description>
 >(({ className, ...props }, ref) => (
@@ -124,12 +121,9 @@ const DialogDescriptionComponent = React.forwardRef<
     {...props}
   />
 ))
-DialogDescriptionComponent.displayName = DialogPrimitive.Description.displayName
+DialogDescription.displayName = DialogPrimitive.Description.displayName
 
-// Create standardized exports for DialogDescription
-const { PascalCase: DialogDescription, lowercase: dialogDescription } = createComponentExports(DialogDescriptionComponent, "DialogDescription")
-
-// Export components with standardized naming
+// Export components
 export {
   DialogRoot as Dialog,
   DialogTrigger,
@@ -138,11 +132,4 @@ export {
   DialogFooter,
   DialogTitle,
   DialogDescription,
-  // Lowercase exports for consistent pattern
-  DialogRoot as dialog,
-  dialogContent,
-  dialogHeader,
-  dialogFooter,
-  dialogTitle,
-  dialogDescription,
 }

@@ -58,15 +58,25 @@ export default function LocationDropdown({ value, onChange }: LocationDropdownPr
         value={searchTerm}
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
-        className="w-full p-2 border rounded-md"
+        className={cn(
+          "w-full p-2 border rounded-md",
+          "focus:outline-none focus:ring-2 focus:ring-blue-500"
+        )}
         placeholder="Search location"
       />
       {isOpen && suggestions.length > 0 && (
-        <ul className="absolute z-10 w-full bg-white border rounded-md mt-1 shadow-lg max-h-48 overflow-auto">
+        <ul className={cn(
+          "absolute z-10 w-full mt-1",
+          "bg-white border rounded-md shadow-lg",
+          "max-h-48 overflow-auto"
+        )}>
           {suggestions.map((location) => (
             <li
               key={location.id}
-              className="p-2 hover:bg-gray-100 cursor-pointer"
+              className={cn(
+                "p-2 cursor-pointer",
+                "hover:bg-gray-100"
+              )}
               onClick={() => handleSelectLocation(location)}
             >
               {location.location}

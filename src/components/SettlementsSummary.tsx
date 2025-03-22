@@ -253,7 +253,7 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
   };
 
   return (
-    <Card className="w-full">
+    <Card className={cn("w-full")}>
       <CardHeader>
         <CardTitle>Settlements</CardTitle>
         <CardDescription>
@@ -262,28 +262,28 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
       </CardHeader>
       
       <CardContent>
-        <Tabs defaultValue={activeTab} onValueChange={(value: string) => setActiveTab(value as 'active' | 'settled')} className="w-full">
-          <TabsList className="mb-6">
+        <Tabs defaultValue={activeTab} onValueChange={(value: string) => setActiveTab(value as 'active' | 'settled')} className={cn("w-full")}>
+          <TabsList className={cn("mb-6")}>
             <TabsTrigger value="active">Active Settlements</TabsTrigger>
             <TabsTrigger value="settled">Settled</TabsTrigger>
           </TabsList>
 
-      <TabsContent value={activeTab} className="mt-0">
+      <TabsContent value={activeTab} className={cn("mt-0")}>
         {isLoading ? (
           <SettlementSkeletonGroup />
         ) : monthlySettlements.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-8">
-            <p className="text-muted-foreground text-lg">No {activeTab === 'active' ? 'active' : 'settled'} settlements found.</p>
+          <div className={cn("flex flex-col items-center justify-center py-8")}>
+            <p className={cn("text-muted-foreground text-lg")}>No {activeTab === 'active' ? 'active' : 'settled'} settlements found.</p>
             {activeTab === 'active' && (
-              <p className="text-sm text-muted-foreground mt-2">Add expenses to generate settlements.</p>
+              <p className={cn("text-sm text-muted-foreground mt-2")}>Add expenses to generate settlements.</p>
             )}
           </div>
         ) : (
           <div className="space-y-6">
             {monthlySettlements.map((monthGroup) => (
-              <Card key={monthGroup.month_year} className="overflow-hidden">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
+              <Card key={monthGroup.month_year} className={cn("overflow-hidden")}>
+                <CardHeader className={cn("pb-2")}>
+                  <div className={cn("flex justify-between items-center")}>
                     <CardTitle>
                       {new Date(monthGroup.month_year + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
                     </CardTitle>
@@ -292,17 +292,20 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
                         onClick={() => handleSettleMonth(monthGroup.month_year)}
                         variant="outline"
                         size="sm"
-                        className="bg-green-50 text-green-700 hover:bg-green-100 border-green-200 dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 dark:border-green-800"
+                        className={cn(
+                          "bg-green-50 text-green-700 hover:bg-green-100 border-green-200",
+                          "dark:bg-green-900 dark:text-green-300 dark:hover:bg-green-800 dark:border-green-800"
+                        )}
                         disabled={isSettling === monthGroup.month_year}
                       >
                         {isSettling === monthGroup.month_year ? (
                           <>
-                            <RefreshCw className="h-3.5 w-3.5 mr-2 animate-spin" />
+                            <RefreshCw className={cn("h-3.5 w-3.5 mr-2 animate-spin")} />
                             Processing...
                           </>
                         ) : (
                           <>
-                            <Check className="h-3.5 w-3.5 mr-2" />
+                            <Check className={cn("h-3.5 w-3.5 mr-2")} />
                             Mark as Settled
                           </>
                         )}
@@ -314,15 +317,15 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
                   </CardDescription>
                 </CardHeader>
                 
-                <CardContent className="space-y-4 pb-0">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <CardContent className={cn("space-y-4 pb-0")}>
+                  <div className={cn("grid grid-cols-1 sm:grid-cols-2 gap-4")}>
                     {Object.values(monthGroup.userTotals).map(userData => (
-                      <div key={userData.email} className="bg-muted/50 p-4 rounded-lg">
-                        <h4 className="font-medium mb-2">{userData.name || userData.email}&apos;s Summary</h4>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-lg">
+                      <div key={userData.email} className={cn("bg-muted/50 p-4 rounded-lg")}>
+                        <h4 className={cn("font-medium mb-2")}>{userData.name || userData.email}&apos;s Summary</h4>
+                        <div className={cn("space-y-2")}>
+                          <div className={cn("flex justify-between text-lg")}>
                             <span>Total paid</span>
-                            <span className="text-green-600 dark:text-green-400 font-medium">£{userData.paid.toFixed(2)}</span>
+                            <span className={cn("text-green-600 dark:text-green-400 font-medium")}>£{userData.paid.toFixed(2)}</span>
                           </div>
                         </div>
                       </div>
@@ -339,43 +342,46 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
                       created_at: monthGroup.settlements[0]?.created_at || new Date().toISOString(),
                       updated_at: undefined
                     }}
-                    className="mt-4 border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30"
+                    className={cn(
+                      "mt-4 border-blue-200 bg-blue-50/50",
+                      "dark:border-blue-800 dark:bg-blue-950/30"
+                    )}
                     onStatusChange={activeTab === 'active' ? 
                       (_id) => handleSettleMonth(monthGroup.month_year) : undefined
                     }
                   />
                   
-                  <div className="space-y-2 pt-4">
+                  <div className={cn("space-y-2 pt-4")}>
                     <Button
                       onClick={() => toggleExpand(monthGroup.month_year)}
                       variant="outline"
-                      className="w-full flex justify-between items-center p-3 hover:bg-muted"
+                      className={cn("w-full flex justify-between items-center p-3 hover:bg-muted")}
                     >
-                      <span className="font-medium">Expenses Details</span>
+                      <span className={cn("font-medium")}>Expenses Details</span>
                       <span>
                         {expandedMonth === monthGroup.month_year ? 
-                          <ChevronUp className="h-4 w-4" /> : 
-                          <ChevronDown className="h-4 w-4" />
+                          <ChevronUp className={cn("h-4 w-4")} /> : 
+                          <ChevronDown className={cn("h-4 w-4")} />
                         }
                       </span>
                     </Button>
                     
                     {expandedMonth === monthGroup.month_year && (
-                      <div className="space-y-2 mt-2">
+                      <div className={cn("space-y-2 mt-2")}>
                         {monthGroup.settlements.map((settlement) => (
-                          <div key={settlement.id} className="flex justify-between items-center p-3 bg-muted/50 rounded-lg border">
-                            <div className="flex flex-col gap-1">
-                              <span className="text-sm text-muted-foreground">
+                          <div key={settlement.id} className={cn("flex justify-between items-center p-3 bg-muted/50 rounded-lg border")}>
+                            <div className={cn("flex flex-col gap-1")}>
+                              <span className={cn("text-sm text-muted-foreground")}>
                                 {new Date(settlement.created_at).toLocaleDateString()}
                               </span>
-                              <span className="text-sm">
+                              <span className={cn("text-sm")}>
                                 Paid by: {settlement.paid_by_user?.name || settlement.paid_by_user?.email}
                               </span>
-                              <Badge variant="outline" className="w-fit">
+                              <Badge variant="outline" className={cn("w-fit")}>
                                 {settlement.split_type || 'equal'}
                               </Badge>
                             </div>
-                            <span className="font-medium">£{settlement.amount.toFixed(2)}</span>
+                            <span className={cn("font-medium")}>£{settlement.amount.toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
