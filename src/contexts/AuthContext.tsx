@@ -94,8 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, [supabase.auth]);
 
-  const login = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
+  const login = async (email: string, password: string): Promise<void> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
@@ -104,7 +104,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw error;
     }
 
-    router.refresh();
+    // Wait for session to be set
+    if (data?.session) {
+      setUser({ id: data.session.user.id, email: data.session.user.email || '' });
+      setLoading(false);
+      // Use router.push instead of refresh to ensure client-side navigation
+      router.push('/expenses');
+    }
   };
 
   const register = async (email: string, password: string) => {

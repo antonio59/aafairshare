@@ -43,7 +43,12 @@ export async function middleware(request: NextRequest) {
   );
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { user }, error } = await supabase.auth.getUser();
+
+    // If there's an auth error but we're already on an auth page, just continue
+    if (error && ["/signin", "/signup"].includes(pathname)) {
+      return response;
+    }
 
     // If user is signed in and tries to access auth pages, redirect to /expenses
     if (user && ["/signin", "/signup"].includes(pathname)) {
@@ -52,15 +57,22 @@ export async function middleware(request: NextRequest) {
 
     // If user is not signed in and tries to access protected pages, redirect to /signin
     if (!user && !["/signin", "/signup"].includes(pathname)) {
+      // Clear any invalid auth cookies
+      response.cookies.delete("sb-access-token");
+      response.cookies.delete("sb-refresh-token");
       return NextResponse.redirect(new URL("/signin", request.url));
     }
 
     return response;
-  } catch {
-    // On error, clear auth cookies and redirect to signin
-    response.cookies.delete("sb-access-token");
-    response.cookies.delete("sb-refresh-token");
-    return NextResponse.redirect(new URL("/signin", request.url));
+  } catch (err) {
+    console.error('Middleware error:', err);
+    // Only clear cookies and redirect if not already on an auth page
+    if (!["/signin", "/signup"].includes(pathname)) {
+      response.cookies.delete("sb-access-token");
+      response.cookies.delete("sb-refresh-token");
+      return NextResponse.redirect(new URL("/signin", request.url));
+    }
+    return response;
   }
 
   return response;
