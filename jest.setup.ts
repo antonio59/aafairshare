@@ -80,15 +80,17 @@ jest.mock('@supabase/ssr', () => ({
 // Mock DOM elements for testing
 type MockElement = (props: MockComponentProps) => React.ReactElement;
 
-// Mock Shadcn UI components
-const createMockElement = (testId: string): MockElement => {
-  return ({ children, className }: MockComponentProps) => (
-    React.createElement('div', {
+// Mock Shadcn UI components with proper React forwardRef
+const createMockElement = (testId: string): any => {
+  return React.forwardRef(({ children, className, ...props }: MockComponentProps, ref) => {
+    return React.createElement('div', {
+      ref,
       'data-testid': testId,
       className,
+      ...props,
       children
-    })
-  );
+    });
+  });
 };
 
 // Create mock components
@@ -140,14 +142,27 @@ const mockComponents = {
 };
 
 // Mock UI components
-jest.mock('@/components/ui/button', () => mockComponents.Button);
-jest.mock('@/components/ui/card', () => mockComponents);
+jest.mock('@/components/ui/button', () => ({
+  Button: mockComponents.Button
+}));
+jest.mock('@/components/ui/card', () => ({
+  Card: mockComponents.Card,
+  CardHeader: mockComponents.CardHeader,
+  CardTitle: mockComponents.CardTitle,
+  CardDescription: mockComponents.CardDescription,
+  CardContent: mockComponents.CardContent,
+  CardFooter: mockComponents.CardFooter
+}));
 jest.mock('@/components/ui/badge', () => ({
   Badge: mockComponents.Badge
 }));
 jest.mock('@/components/ui/tabs', () => mockComponents);
-jest.mock('@/components/ui/input', () => mockComponents.Input);
-jest.mock('@/components/ui/label', () => mockComponents.Label);
+jest.mock('@/components/ui/input', () => ({
+  Input: mockComponents.Input
+}));
+jest.mock('@/components/ui/label', () => ({
+  Label: mockComponents.Label
+}));
 jest.mock('@/components/ui/select', () => mockComponents);
 jest.mock('@/components/ui/dialog', () => mockComponents);
 jest.mock('@/components/ui/toast', () => mockComponents);
@@ -157,64 +172,31 @@ jest.mock('@/components/ui/tooltip', () => ({
   TooltipContent: mockComponents.TooltipContent,
   TooltipTrigger: mockComponents.TooltipTrigger
 }));
-jest.mock('@/components/ui/scroll-area', () => mockComponents.ScrollArea);
+jest.mock('@/components/ui/scroll-area', () => ({
+  ScrollArea: mockComponents.ScrollArea
+}));
 jest.mock('@/components/ui/calendar', () => mockComponents.Calendar);
 jest.mock('@/components/ui/checkbox', () => mockComponents.Checkbox);
 jest.mock('@/components/ui/skeleton', () => mockComponents.Skeleton);
 jest.mock('@/components/ui/form', () => mockComponents);
 
 // Mock Lucide Icons
+// Mock SVG components for Lucide icons
+const mockSvgComponent = (testId: string) => {
+  return function MockSvg(props: React.SVGProps<SVGSVGElement>) {
+    return React.createElement('svg', {
+      ...props,
+      'data-testid': testId
+    });
+  };
+};
+
 jest.mock('lucide-react', () => ({
-  ArrowRight: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'arrow-right-icon'
-    }, 
-    React.createElement('path', {
-      d: 'M0 0h24v24H0z'
-    })
-    )
-  ),
-  Check: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'check-icon'
-    }, 
-    React.createElement('path', {
-      d: 'M0 0h24v24H0z'
-    })
-    )
-  ),
-  Clock: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'clock-icon'
-    }, 
-    React.createElement('path', {
-      d: 'M0 0h24v24H0z'
-    })
-    )
-  ),
-  AlertTriangle: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'alert-triangle-icon'
-    }, 
-    React.createElement('path', {
-      d: 'M0 0h24v24H0z'
-    })
-    )
-  ),
-  RefreshCw: (props: React.SVGProps<SVGSVGElement>) => (
-    React.createElement('svg', {
-      ...props,
-      'data-testid': 'refresh-cw-icon'
-    }, 
-    React.createElement('path', {
-      d: 'M0 0h24v24H0z'
-    })
-    )
-  ),
+  ArrowRight: mockSvgComponent('arrow-right-icon'),
+  CheckCircle2: mockSvgComponent('check-circle-2-icon'),
+  AlarmClock: mockSvgComponent('alarm-clock-icon'),
+  AlertTriangle: mockSvgComponent('alert-triangle-icon'),
+  RefreshCw: mockSvgComponent('refresh-cw-icon')
 }));
 
 // Mock window.matchMedia
