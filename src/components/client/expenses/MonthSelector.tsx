@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { format, addMonths, subMonths, parse } from 'date-fns';
 
-interface MonthSelectorProps {
+export interface MonthSelectorProps {
   selectedMonth: string;
   onMonthChange: (month: string) => void;
 }

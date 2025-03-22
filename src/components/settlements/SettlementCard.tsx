@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-interface SettlementCardProps {
+export interface SettlementCardProps {
   settlement: Settlement;
   onStatusChange?: (id: string, status: 'pending' | 'completed') => void;
   className?: string;

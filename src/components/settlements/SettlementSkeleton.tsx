@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
-interface SettlementSkeletonProps {
+export interface SettlementSkeletonProps {
   className?: string;
 }
 
@@ -50,7 +50,7 @@ export function SettlementSkeleton({ className }: SettlementSkeletonProps) {
   );
 }
 
-interface SettlementSkeletonGroupProps {
+export interface SettlementSkeletonGroupProps {
   count?: number;
   className?: string;
 }

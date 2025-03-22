@@ -8,7 +8,7 @@ const ClientLayout = dynamic(() => import("./ClientLayout"), {
   ssr: false 
 });
 
-interface ClientLayoutWrapperProps {
+export interface ClientLayoutWrapperProps {
   children: ReactNode;
 }
 
