@@ -2,8 +2,17 @@
 
 import React from 'react';
 import { ReactElement, ErrorInfo } from 'react';
+import { cn } from '@/lib/utils';
 
-export class ErrorBoundary extends React.Component<{ children: ReactElement }, { hasError: boolean }> {
+export interface ErrorBoundaryProps {
+  children: ReactElement;
+}
+
+export interface ErrorBoundaryState {
+  hasError: boolean;
+}
+
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: { children: ReactElement }) {
     super(props);
     this.state = { hasError: false };
