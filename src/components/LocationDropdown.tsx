@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
-interface Location {
+export interface Location {
   id: string;
   location: string;
 }
 
-interface LocationDropdownProps {
+export interface LocationDropdownProps {
   value: string;
   onChange: (value: string) => void;
 }

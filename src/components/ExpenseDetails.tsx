@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import LocationDropdown from './LocationDropdown';
 
@@ -30,7 +31,7 @@ interface Expense {
   location?: Location;
 }
 
-interface ExpenseDetailsProps {
+export interface ExpenseDetailsProps {
   expense: Expense;
   onUpdate: () => void;
 }
