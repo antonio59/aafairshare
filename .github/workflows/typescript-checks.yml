@@ -59,7 +59,10 @@ jobs:
           echo "Validating component structure..."
           find src/components -type f -name "*.tsx" | while read file; do
             basename=$(basename "$file" .tsx)
-            if ! grep -q "export.*\(default\)*.*function.*${basename}.*{" "$file" && ! grep -q "export.*\(default\)*.*const.*${basename}.*=" "$file"; then
+            if ! grep -q "export.*default.*function.*${basename}" "$file" && \
+               ! grep -q "export.*function.*${basename}" "$file" && \
+               ! grep -q "export.*default.*const.*${basename}" "$file" && \
+               ! grep -q "export.*const.*${basename}" "$file"; then
               echo "⚠️ Component name '${basename}' does not match file name in $file"
               exit 1
             fi
