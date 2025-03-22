@@ -40,8 +40,8 @@ jobs:
           # Verify component exports follow TypeScript standards
           find src/components -type f -name "*.tsx" -exec sh -c '
             for file do
-              if ! grep -q "^export type.*Props = {" "$file"; then
-                echo "⚠️ Missing Props type export in $file"
+              if ! (grep -q "^export type.*Props = {" "$file" || grep -q "^export interface.*Props {" "$file"); then
+                echo "⚠️ Missing Props type/interface export in $file"
                 exit 1
               fi
             done
@@ -53,8 +53,8 @@ jobs:
           # Ensure variant types are properly defined
           find src/components -type f -name "*.tsx" -exec sh -c '
             for file do
-              if grep -q "cva(" "$file" && ! grep -q "^export type.*Variant = " "$file"; then
-                echo "⚠️ Missing variant type definition in $file using cva"
+              if grep -q "cva(" "$file" && ! (grep -q "^export type.*Variant = " "$file" || grep -q "^export interface.*Variant {" "$file"); then
+                echo "⚠️ Missing variant type/interface definition in $file using cva"
                 exit 1
               fi
             done
