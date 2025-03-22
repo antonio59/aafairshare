@@ -120,7 +120,7 @@ jobs:
               # Verify proper component naming
               filename=$(basename "$file")
               componentname="${filename%.*}"
-              if ! grep -q "^export function ${componentname}(" "$file"; then
+              if ! (grep -q "^export function ${componentname}(" "$file" || grep -q "^export const ${componentname} =" "$file" || grep -q "^export const ${componentname^} =" "$file"); then
                 echo "⚠️ Component name does not match file name in $file"
                 exit 1
               fi
