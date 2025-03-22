@@ -10,7 +10,12 @@ import { formatMonth } from '@/utils/formatters';
 import type { ExpenseFilters } from '@/types/expenses';
 
 // Error boundary component for React 19 with improved error handling
-function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
+export interface ErrorFallbackProps {
+  error: Error;
+  resetErrorBoundary: () => void;
+}
+
+function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
   return (
     <div className="p-4 rounded-md bg-destructive/10 text-destructive">
       <div className="flex flex-col gap-2">
@@ -58,14 +63,14 @@ const LoadingSkeleton = () => (
   </div>
 );
 
-interface ExpensesDashboardProps {
+export interface ExpensesDashboardProps {
   initialMonth?: string;
 }
 
 /**
  * Dashboard state interface for type safety
  */
-interface DashboardState {
+export interface DashboardState {
   isExporting: boolean;
 }
 

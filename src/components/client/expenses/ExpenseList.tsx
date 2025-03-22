@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense } from 'react';
+import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { Expense } from '@/types/expenses';
@@ -13,7 +14,11 @@ export interface ExpenseListProps {
 }
 
 // Smaller component for expense items
-function ExpenseItem({ expense }: { expense: Expense }) {
+export interface ExpenseItemProps {
+  expense: Expense;
+}
+
+function ExpenseItem({ expense }: ExpenseItemProps) {
   return (
     <Card className="mb-3">
       <CardContent className="p-4">
