@@ -38,6 +38,19 @@ jobs:
       - name: TypeScript Compilation Check
         run: npm run type-check
         
+      - name: Check Type Coverage
+        run: |
+          echo "Checking TypeScript type coverage..."
+          coverage=$(npx type-coverage --detail)
+          percent=$(echo "$coverage" | grep -oP '\d+\.\d+(?=% types)')
+          if (( $(echo "$percent < 95" | bc -l) )); then
+            echo "❌ Type coverage ($percent%) is below the required 95%"
+            echo "$coverage"
+            exit 1
+          else
+            echo "✅ Type coverage: $percent%"
+          fi
+        
       - name: Check for Strict Mode Violations
         run: |
           echo "Checking for // @ts-expect-error and // @ts-ignore usage..."

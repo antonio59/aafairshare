@@ -131,6 +131,7 @@
     "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.3",
+    "type-coverage": "2.29.7",
     "typescript": "^5.8.2",
     "web-vitals": "^4.2.4",
     "ws": "^8.18.1"
