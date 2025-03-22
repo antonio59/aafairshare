@@ -45,13 +45,9 @@ jobs:
         run: |
           echo "Checking component type exports..."
           find src/components -type f -name "*.tsx" | while read file; do
-            # Check if component accepts props
-            if grep -q "function.*(.*).*{" "$file" | grep -v "function.*().*{"; then
-              # Component has parameters, must have Props type
-              if ! grep -q "export.*interface.*Props" "$file" && ! grep -q "export.*type.*Props" "$file"; then
-                echo "⚠️ Component accepts props but missing Props type/interface export in $file"
-                exit 1
-              fi
+            if ! grep -q "export.*interface.*Props" "$file" && ! grep -q "export.*type.*Props" "$file"; then
+              echo "⚠️ Missing Props type/interface export in $file"
+              exit 1
             fi
           done
 

@@ -4,7 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 
-export type NavBarProps = object;
+export type NavBarProps = {
+  /** This component currently accepts no props but follows project standards requiring Props type */
+};
 
 export default function NavBar(_props: NavBarProps) {
   const { logout } = useAuth();
