@@ -33,7 +33,7 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
         
       - name: TypeScript Compilation Check
         run: npm run typecheck
@@ -78,7 +78,7 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
         
       - name: Install type-coverage
         run: npm install -g type-coverage
@@ -108,7 +108,7 @@ jobs:
           cache: 'npm'
           
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --legacy-peer-deps
         
       - name: Build Next.js App
         run: npm run build

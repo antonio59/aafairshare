@@ -28,13 +28,13 @@ const DropdownMenuTrigger = ({ asChild, children, ...props }: TooltipProps) =>
   <div data-testid="dropdown-trigger" {...props}>{children}</div>;
 const DropdownMenuContent = ({ children, ...props }: DropdownProps) => 
   <div data-testid="dropdown-content" {...props}>{children}</div>;
-const DropdownMenuItem = ({ onSelect, children, ...props }: { onSelect?: () => void, children: React.ReactNode, [key: string]: any }) => 
+const DropdownMenuItem = ({ onSelect, children, ...props }: { onSelect?: () => void, children: React.ReactNode } & React.HTMLAttributes<HTMLDivElement>) => 
   <div data-testid="dropdown-item" onClick={onSelect} {...props}>{children}</div>;
 
-const Tabs = ({ defaultValue, children }: { defaultValue: string, children: React.ReactNode }) => <div data-testid="tabs">{children}</div>;
+const Tabs = ({ _defaultValue, children }: { _defaultValue: string, children: React.ReactNode }) => <div data-testid="tabs">{children}</div>;
 const TabsList = ({ children }: { children: React.ReactNode }) => <div data-testid="tabs-list">{children}</div>;
-const TabsTrigger = ({ value, children }: { value: string, children: React.ReactNode }) => <div data-testid="tabs-trigger">{children}</div>;
-const TabsContent = ({ value, children }: { value: string, children: React.ReactNode }) => <div data-testid="tabs-content">{children}</div>;
+const TabsTrigger = ({ _value, children }: { _value: string, children: React.ReactNode }) => <div data-testid="tabs-trigger">{children}</div>;
+const TabsContent = ({ _value, children }: { _value: string, children: React.ReactNode }) => <div data-testid="tabs-content">{children}</div>;
 
 describe('Radix UI Components with React 19', () => {
   // Button tests
@@ -115,13 +115,13 @@ describe('Radix UI Components with React 19', () => {
   // Skip for now due to React 19 compatibility issues
   test.skip('Tabs switch content when triggers are clicked', () => {
     render(
-      <Tabs defaultValue="tab1">
+      <Tabs _defaultValue="tab1">
         <TabsList>
-          <TabsTrigger value="tab1">Tab 1</TabsTrigger>
-          <TabsTrigger value="tab2">Tab 2</TabsTrigger>
+          <TabsTrigger _value="tab1">Tab 1</TabsTrigger>
+          <TabsTrigger _value="tab2">Tab 2</TabsTrigger>
         </TabsList>
-        <TabsContent value="tab1">Content 1</TabsContent>
-        <TabsContent value="tab2">Content 2</TabsContent>
+        <TabsContent _value="tab1">Content 1</TabsContent>
+        <TabsContent _value="tab2">Content 2</TabsContent>
       </Tabs>
     );
     

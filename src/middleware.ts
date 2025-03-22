@@ -5,7 +5,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Create a response object that we can modify
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: request.headers,
     },
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
     }
 
     return response;
-  } catch (e) {
+  } catch {
     // On error, clear auth cookies and redirect to signin
     response.cookies.delete("sb-access-token");
     response.cookies.delete("sb-refresh-token");

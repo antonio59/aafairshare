@@ -1,10 +1,10 @@
 {
   "version": "0.2",
   "language": "en",
+  "allowCompoundWords": true,
+  "dictionaries": ["typescript", "node", "npm"],
+  "enableFiletypes": ["typescript", "typescriptreact", "javascript", "markdown"],
   "words": [
-    "supabase",
-    "Supabase",
-    "SUPABASE",
     "aafairshare",
     "autotable",
     "bootup",
@@ -21,11 +21,25 @@
     "killall",
     "LHCI",
     "mainthread",
+    "nextjs",
     "nosniff",
+    "nuqs",
+    "radix",
+    "Radix",
     "sarif",
     "SARIF",
+    "Shadcn",
+    "shadcn",
     "subcomponents",
+    "Supabase",
+    "Supabase's",
+    "supabase",
+    "SUPABASE",
+    "tailwind",
+    "Tailwind",
     "turbopack",
+    "typescript",
+    "TypeScript",
     "WCAG"
   ],
   "ignorePaths": [
@@ -35,7 +49,6 @@
     "build/**",
     "coverage/**"
   ],
-  "allowCompoundWords": true,
   "ignoreRegExpList": [
     "[A-Z]{3,}",
     "[0-9]+[A-Za-z]+",

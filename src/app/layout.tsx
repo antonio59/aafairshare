@@ -6,8 +6,11 @@ import "@/styles/fonts.css";
 import { ClientLayoutWrapper } from "@/components/ClientLayoutWrapper";
 
 export const metadata: Metadata = {
-  title: 'AA FairShare',
+  title: 'AAFairShare',
   description: 'Expense splitting application',
+  icons: {
+    icon: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({

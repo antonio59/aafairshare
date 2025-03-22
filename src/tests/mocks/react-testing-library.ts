@@ -18,7 +18,7 @@ const DEFAULT_TIMEOUT = 3000;
 function render(ui: ReactElement, options?: Omit<RenderOptions, 'queries'>): RenderResult {
   // Disable act warnings during render
   const originalError = console.error;
-  console.error = (...args: any[]) => {
+  console.error = (...args: Parameters<typeof console.error>) => {
     const errorMsg = typeof args[0] === 'string' ? args[0] : '';
     
     // Filter out common React 19 warnings

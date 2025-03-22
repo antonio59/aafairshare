@@ -1,24 +1,33 @@
 'use client';
 
 import * as React from 'react';
+import { useState } from 'react';
+import { format } from 'date-fns';
+import { createBrowserClient } from '@supabase/ssr';
+import { CheckCircle2, ArrowRight, AlarmClock, Loader2 } from 'lucide-react';
+
+// Import UI components
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Check, ArrowRight, Clock, RefreshCw } from 'lucide-react';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import type { Settlement } from '@/types/expenses';
-import { format } from 'date-fns';
-import { useState } from 'react';
-import { createBrowserClient } from '@supabase/ssr';
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from '@/components/ui/tooltip';
 
-interface SettlementSummaryProps {
+// Import types
+import type { Settlement } from '@/types/expenses';
+
+export interface SettlementSummaryProps {
   settlements: Settlement[];
   month: string;
-  onSettlementUpdated?: (settlementId: string, status: 'pending' | 'completed') => void;
+  onSettlementUpdated?: (settlementId: string, status: Settlement['status']) => void;
 }
 
-export function SettlementSummary({ settlements, month, onSettlementUpdated }: SettlementSummaryProps) {
+export function SettlementSummary({ settlements, month, onSettlementUpdated }: SettlementSummaryProps): React.JSX.Element {
   const [updatingSettlementId, setUpdatingSettlementId] = useState<string | null>(null);
   const totalSettlements = settlements.reduce((sum, s) => sum + s.amount, 0);
   const formattedMonth = format(new Date(month), 'MMMM yyyy');
@@ -93,9 +102,9 @@ export function SettlementSummary({ settlements, month, onSettlementUpdated }: S
                         <TooltipTrigger asChild>
                           <Badge variant={settlement.status === 'completed' ? 'outline' : 'default'} className={settlement.status === 'completed' ? 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-300' : 'bg-amber-100 text-amber-800 hover:bg-amber-200 dark:bg-amber-900 dark:text-amber-300'}>
                             {settlement.status === 'completed' ? (
-                              <Check className="h-3 w-3 mr-1" />
+                              <CheckCircle2 className="h-3 w-3 mr-1" />
                             ) : (
-                              <Clock className="h-3 w-3 mr-1" />
+                              <AlarmClock className="h-3 w-3 mr-1" />
                             )}
                             {settlement.status}
                           </Badge>
@@ -128,9 +137,9 @@ export function SettlementSummary({ settlements, month, onSettlementUpdated }: S
                       disabled={updatingSettlementId === settlement.id}
                     >
                       {updatingSettlementId === settlement.id ? (
-                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       ) : (
-                        <Check className="h-3 w-3 mr-1" />
+                        <CheckCircle2 className="h-3 w-3 mr-1" />
                       )}
                       Mark Paid
                     </Button>
@@ -143,9 +152,9 @@ export function SettlementSummary({ settlements, month, onSettlementUpdated }: S
                       disabled={updatingSettlementId === settlement.id}
                     >
                       {updatingSettlementId === settlement.id ? (
-                        <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                       ) : (
-                        <Clock className="h-3 w-3 mr-1" />
+                        <AlarmClock className="h-3 w-3 mr-1" />
                       )}
                       Undo
                     </Button>

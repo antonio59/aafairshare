@@ -2,7 +2,7 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabase';
-import type { CookieOptions } from '@supabase/ssr';
+
 
 /**
  * Creates a standardized Supabase browser client with proper cookie handling

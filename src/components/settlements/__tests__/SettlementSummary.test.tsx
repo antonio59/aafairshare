@@ -1,8 +1,14 @@
 import * as React from 'react';
-import { render, screen, waitFor } from '@/tests/mocks/react-testing-library';
+import { render, waitFor } from '@/tests/mocks/react-testing-library';
 import { SettlementSummary } from '../SettlementSummary';
 import type { Settlement } from '@/types/expenses';
 import userEvent from '@testing-library/user-event';
+import type { RenderResult } from '@testing-library/react';
+
+// Type for test settlements
+interface TestSettlement extends Settlement {
+  created_at: string;
+}
 
 // Mock Supabase client for this specific test
 jest.mock('@supabase/ssr', () => ({
@@ -21,8 +27,13 @@ jest.mock('@supabase/ssr', () => ({
   }))
 }));
 
+type SetupResult = {
+  user: ReturnType<typeof userEvent.setup>;
+  onSettlementUpdated: jest.Mock;
+} & RenderResult
+
 // Setup test utilities
-const setup = (settlements: Settlement[] = [], month: string = '2025-03') => {
+const setup = (settlements: TestSettlement[] = [], month: string = '2025-03'): SetupResult => {
   const user = userEvent.setup();
   const onSettlementUpdated = jest.fn();
   
@@ -43,7 +54,9 @@ const setup = (settlements: Settlement[] = [], month: string = '2025-03') => {
 
 // Using our enhanced React Testing Library mock to handle React 19 compatibility
 describe('SettlementSummary', () => {
-  const mockSettlements: Settlement[] = [
+  
+
+const mockSettlements: TestSettlement[] = [
     {
       id: 'settlement-1',
       from: 'User1',

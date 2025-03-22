@@ -14,10 +14,9 @@ jest.mock('@/lib/utils', () => ({
 }));
 
 // Mock the card components
-type CardComponentProps = {
+interface CardComponentProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-  className?: string;
-};
+}
 
 jest.mock('@/components/ui/card', () => ({
   Card: ({ children, className }: CardComponentProps) => <div className={className} data-testid="card">{children}</div>,
@@ -39,15 +38,16 @@ jest.mock('@/components/ui/badge', () => ({
   Badge: ({ children, className, onClick }: BadgeProps) => <span className={className} onClick={onClick} data-testid="badge">{children}</span>,
 }));
 
-// Mock the tooltip components
-type TooltipProps = {
+interface TooltipProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
-};
+  delayDuration?: number;
+  skipDelayDuration?: number;
+}
 
-type TooltipTriggerProps = {
+interface TooltipTriggerProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   children: React.ReactNode;
   asChild?: boolean;
-};
+}
 
 jest.mock('@/components/ui/tooltip', () => ({
   Tooltip: ({ children }: TooltipProps) => <div data-testid="tooltip">{children}</div>,

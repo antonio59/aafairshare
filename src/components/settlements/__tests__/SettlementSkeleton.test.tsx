@@ -3,11 +3,10 @@ import { render, screen } from '@/tests/mocks/react-testing-library';
 // Import React for JSX
 import React from 'react';
 
-type ComponentProps = {
+interface ComponentProps extends React.HTMLAttributes<HTMLDivElement> {
   children?: React.ReactNode;
   className?: string;
-  [key: string]: any;
-};
+}
 
 // Mock the components instead of importing them
 const mockCard = jest.fn((props: ComponentProps) => (

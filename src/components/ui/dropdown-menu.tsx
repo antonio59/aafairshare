@@ -2,83 +2,59 @@
 
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
-import { Check, ChevronRight, Circle } from "lucide-react"
+import { Check, ChevronRight } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-// Props type exports for GitHub workflow validation
-export type DropdownMenuProps = {
-  children?: React.ReactNode
-  open?: boolean
-  defaultOpen?: boolean
-  onOpenChange?: (open: boolean) => void
-  modal?: boolean
+export interface DropdownMenuProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root> {
+  children: React.ReactNode
 }
 
-export type DropdownMenuTriggerProps = {
-  children?: React.ReactNode
-  asChild?: boolean
-  className?: string
+export interface DropdownMenuTriggerProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Trigger> {
+  children: React.ReactNode
 }
 
-export type DropdownMenuContentProps = {
-  children?: React.ReactNode
-  className?: string
+export interface DropdownMenuContentProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Content> {
+  children: React.ReactNode
   sideOffset?: number
-  align?: "start" | "center" | "end"
-  alignOffset?: number
-  side?: "top" | "right" | "bottom" | "left"
-  forceMount?: boolean
 }
 
-export type DropdownMenuItemProps = {
-  children?: React.ReactNode
-  className?: string
+export interface DropdownMenuItemProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Item> {
+  children: React.ReactNode
   inset?: boolean
-  disabled?: boolean
-  onSelect?: (event: Event) => void
 }
 
-export type DropdownMenuCheckboxItemProps = {
-  children?: React.ReactNode
-  className?: string
+export interface DropdownMenuCheckboxItemProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.CheckboxItem> {
+  children: React.ReactNode
   checked?: boolean
   onCheckedChange?: (checked: boolean) => void
-  disabled?: boolean
 }
 
-export type DropdownMenuRadioItemProps = {
-  children?: React.ReactNode
-  className?: string
+export interface DropdownMenuRadioItemProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.RadioItem> {
+  children: React.ReactNode
   value: string
-  disabled?: boolean
 }
 
-export type DropdownMenuLabelProps = {
-  children?: React.ReactNode
-  className?: string
+export interface DropdownMenuLabelProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Label> {
+  children: React.ReactNode
   inset?: boolean
 }
 
-export type DropdownMenuSeparatorProps = {
+export interface DropdownMenuSeparatorProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Separator> {
   className?: string
 }
 
-export type DropdownMenuShortcutProps = {
-  className?: string
-  children?: React.ReactNode
+export interface DropdownMenuShortcutProps extends React.HTMLAttributes<HTMLSpanElement> {
+  children: React.ReactNode
 }
 
-export type DropdownMenuSubTriggerProps = {
-  children?: React.ReactNode
-  className?: string
+export interface DropdownMenuSubTriggerProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubTrigger> {
+  children: React.ReactNode
   inset?: boolean
 }
 
-export type DropdownMenuSubContentProps = {
-  children?: React.ReactNode
-  className?: string
-  forceMount?: boolean
+export interface DropdownMenuSubContentProps extends React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.SubContent> {
+  children: React.ReactNode
 }
 
 // Internal component references
@@ -201,7 +177,7 @@ const DropdownMenuRadioItem = React.forwardRef<
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <DropdownMenuPrimitive.ItemIndicator>
-        <Circle className="h-2 w-2 fill-current" />
+        <span className="h-2 w-2 rounded-full bg-current" />
       </DropdownMenuPrimitive.ItemIndicator>
     </span>
     {children}
@@ -265,8 +241,7 @@ export function dropdownMenu({
   )
 }
 
-// This is a special comment for GitHub workflow validation
-// export function dropdown-menu() {}
+
 
 /**
  * Primary component export used in the codebase
