@@ -4,9 +4,9 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
 
-export interface NavBarProps {}
+export type NavBarProps = object;
 
-export default function NavBar({}: NavBarProps) {
+export default function NavBar(_props: NavBarProps) {
   const { logout } = useAuth();
 
   const handleSignOut = async () => {
