@@ -55,6 +55,15 @@ jobs:
             echo "$missing_props"
             exit 1
           fi
+
+          echo "Validating component structure..."
+          find src/components -type f -name "*.tsx" | while read file; do
+            basename=$(basename "$file" .tsx)
+            if ! grep -q "export.*\(default\)*.*function.*${basename}.*{" "$file" && ! grep -q "export.*\(default\)*.*const.*${basename}.*=" "$file"; then
+              echo "⚠️ Component name '${basename}' does not match file name in $file"
+              exit 1
+            fi
+          done
         
       - name: Check Type Coverage
         run: |
