@@ -9,7 +9,7 @@ const ExpensesDashboard = dynamic(
   { ssr: false, loading: () => <Skeleton className="h-[400px] w-full" /> }
 );
 
-interface ExpensesDashboardWrapperProps {
+export interface ExpensesDashboardWrapperProps {
   initialMonth?: string;
 }
 
