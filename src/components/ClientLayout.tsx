@@ -1,6 +1,6 @@
 'use client';
 
-import { cn } from '@/lib/utils';
+
 import { ErrorBoundary } from './error-boundary';
 import NavBar from './NavBar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';

@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { ReactElement, ErrorInfo } from 'react';
-import { cn } from '@/lib/utils';
+
 
 export interface ErrorBoundaryProps {
   children: ReactElement;

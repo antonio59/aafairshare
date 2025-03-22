@@ -53,7 +53,10 @@ export interface MonthlySettlement {
   };
 }
 
-export interface SettlementsSummaryProps {}
+export interface SettlementsSummaryProps {
+  // No props needed for this component
+  [key: string]: never;
+}
 
 export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
   const [activeTab, setActiveTab] = useState<'active' | 'settled'>('active');

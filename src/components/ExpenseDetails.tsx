@@ -5,28 +5,19 @@ import { cn } from '@/lib/utils';
 import { createClient } from '@/lib/supabase/client';
 import LocationDropdown from './LocationDropdown';
 
-interface Category {
+export interface Category {
   id: string;
   category: string;
 }
 
-interface Location {
+export interface Location {
   id: string;
   location: string;
 }
 
-interface Expense {
-  id: string;
-  amount: number;
-  category_id: string;
-  location_id: string;
-  notes: string;
-  date: string;
-  paid_by: string;
-  split_type: 'Equal' | 'No Split';
-  users: {
-    name: string;
-  };
+import type { Expense as BaseExpense } from '@/types/expenses';
+
+export interface Expense extends BaseExpense {
   category?: Category;
   location?: Location;
 }

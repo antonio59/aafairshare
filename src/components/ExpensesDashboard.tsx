@@ -6,20 +6,7 @@ import { cn } from '@/lib/utils';
 import { exportToCSV, exportToPDF } from '@/utils/exportService';
 import { createStandardBrowserClient } from '@/utils/supabase-client';
 
-interface Expense {
-  id: string;
-  amount: number;
-  category_id: string;
-  location_id: string;
-  notes: string;
-  date: string;
-  paid_by: string;
-  split_type: 'Equal' | 'No Split';
-  users: {
-    name: string;
-  };
-  created_at: string;
-}
+import type { Expense } from '@/types/expenses';
 
 export interface ExpensesDashboardProps {
   initialMonth?: string;
