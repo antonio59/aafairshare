@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { cn } from '@/lib/utils';
 import { calculateSettlement, Expense as CalculatorExpense } from '@/utils/settlementCalculator';
 import { createStandardBrowserClient } from '@/utils/supabase-client';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -12,7 +13,7 @@ import { SettlementSkeletonGroup } from '@/components/settlements/SettlementSkel
 import { SettlementCard } from '@/components/settlements/SettlementCard';
 import { Check, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
 
-interface Settlement {
+export interface Settlement {
   id: string;
   user_id: string;
   amount: number;
@@ -33,7 +34,7 @@ interface Settlement {
   };
 }
 
-interface MonthlySettlement {
+export interface MonthlySettlement {
   month_year: string;
   settlements: Settlement[];
   totalAmount: number;
@@ -52,7 +53,9 @@ interface MonthlySettlement {
   };
 }
 
-export default function SettlementsSummary() {
+export interface SettlementsSummaryProps {}
+
+export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
   const [activeTab, setActiveTab] = useState<'active' | 'settled'>('active');
   const [monthlySettlements, setMonthlySettlements] = useState<MonthlySettlement[]>([]);
   const [expandedMonth, setExpandedMonth] = useState<string | null>(null);

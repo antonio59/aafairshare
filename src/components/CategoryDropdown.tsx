@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { cn } from '@/lib/utils';
 
-interface Category {
+export interface Category {
   id: string;
   category: string;
 }
 
-interface CategoryDropdownProps {
+export interface CategoryDropdownProps {
   value: string;
   onChange: (value: string) => void;
 }

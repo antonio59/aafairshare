@@ -1,12 +1,17 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { ErrorBoundary } from './error-boundary';
 import NavBar from './NavBar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
-function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
+export interface AuthenticatedLayoutProps {
+  children: React.ReactNode;
+}
+
+function AuthenticatedLayout({ children }: AuthenticatedLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, loading } = useAuth();
@@ -38,7 +43,11 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function ClientLayout({ children }: { children: React.ReactNode }) {
+export interface ClientLayoutProps {
+  children: React.ReactNode;
+}
+
+export default function ClientLayout({ children }: ClientLayoutProps) {
   return (
     <AuthProvider>
       <AuthenticatedLayout>{children}</AuthenticatedLayout>
