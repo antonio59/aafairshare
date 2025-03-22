@@ -37,6 +37,9 @@ jobs:
         
       - name: TypeScript Compilation Check
         run: npm run type-check
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
         
       - name: Check Type Coverage
         run: |
