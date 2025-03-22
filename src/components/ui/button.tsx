@@ -64,10 +64,7 @@ const ButtonComponent = React.forwardRef<HTMLButtonElement, ButtonProps>(
 // Add display name to fix ESLint error
 ButtonComponent.displayName = "ButtonComponent"
 
-// Create standardized exports (PascalCase and lowercase)
-const { PascalCase: Button, lowercase: button } = createComponentExports(ButtonComponent, "Button")
-
-// Export both versions
-export { Button, button }
+// Create standardized export (PascalCase only)
+export const Button = createComponentExports(ButtonComponent, "Button")
 
 export { buttonVariants }

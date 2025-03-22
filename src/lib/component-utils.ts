@@ -17,16 +17,10 @@ import type { ComponentType } from 'react';
 export function createComponentExports<T>(
   component: ComponentType<T>,
   displayName: string
-): {
-  PascalCase: ComponentType<T>;
-  lowercase: ComponentType<T>;
-} {
+): ComponentType<T> {
   // Set display name for better debugging
   component.displayName = displayName;
   
-  // Return both export formats using the same implementation
-  return {
-    PascalCase: component,
-    lowercase: component
-  };
+  // Return only PascalCase export
+  return component;
 }
