@@ -10,6 +10,7 @@ on:
       - 'src/lib/**'
       - 'tailwind.config.ts'
       - 'src/app/**/*.tsx'
+  workflow_dispatch:
 
 permissions:
   contents: read
