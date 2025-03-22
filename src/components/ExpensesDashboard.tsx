@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import ExpenseDetails from './ExpenseDetails';
+import { cn } from '@/lib/utils';
 import { exportToCSV, exportToPDF } from '@/utils/exportService';
 import { createStandardBrowserClient } from '@/utils/supabase-client';
 
