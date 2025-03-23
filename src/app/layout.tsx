@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import "./globals.css";
-// Import font CSS manually to avoid Next.js font conflicts with Babel
+// Import font CSS manually to avoid Next.js font conflicts with SWC
 import "@/styles/fonts.css";
 // Import the client wrapper component
 import { ClientLayoutWrapper } from "@/components/ClientLayoutWrapper";

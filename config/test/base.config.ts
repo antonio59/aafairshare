@@ -1,5 +1,3 @@
-import type { PlaywrightTestConfig, ReporterDescription } from '@playwright/test';
-
 // Ensure TypeScript uses correct module and target settings
 /// <reference lib="es2015" />
 /// <reference lib="dom" />
@@ -19,58 +17,33 @@ export const baseConfig = {
     ['html', { open: 'never' }],
     ['list'],
     ['json', { outputFile: 'test-results/results.json' }]
-  ] as ReporterDescription[],
+  ],
   outputDir: 'test-results',
   
   // Test retry settings
   retries: process.env.CI ? 2 : 0,
   workers: process.env.CI ? 2 : undefined,
   
-  // Browser settings for Playwright
-  browser: {
-    headless: true,
-    viewport: { width: 1280, height: 720 },
-    ignoreHTTPSErrors: true,
-  },
+  // Test execution settings
+  fullyParallel: true,
+  forbidOnly: process.env.CI === 'true',
   
-  // Test artifacts
-  artifacts: {
-    screenshot: 'only-on-failure' as const,
-    trace: 'retain-on-failure' as const,
-    video: 'on-first-retry' as const,
-  },
+  // Projects configuration
+  projects: [
+    {
+      name: 'chromium',
+      use: {
+        browserName: 'chromium',
+        viewport: { width: 1280, height: 720 }
+      }
+    }
+  ]
 };
 
 // Helper function to create Playwright config
-export function createPlaywrightConfig(config: Partial<PlaywrightTestConfig> = {}): PlaywrightTestConfig {
+export function createPlaywrightConfig(config: any = {}): any {
   return {
-    testDir: './e2e',
-    fullyParallel: true,
-    forbidOnly: baseConfig.CI,
-    retries: baseConfig.retries,
-    workers: baseConfig.workers,
-    reporter: baseConfig.reporters,
-    outputDir: baseConfig.outputDir,
-    use: {
-      baseURL: baseConfig.BASE_URL,
-      ...baseConfig.browser,
-      ...baseConfig.artifacts,
-      navigationTimeout: baseConfig.navigationTimeout,
-      actionTimeout: baseConfig.actionTimeout,
-    },
-    projects: [
-      {
-        name: 'chromium',
-        use: { browserName: 'chromium' },
-      },
-    ],
-    webServer: process.env.SKIP_WEB_SERVER === 'true' ? undefined : {
-      command: 'npm run start',
-      port: 3000,
-      reuseExistingServer: !baseConfig.CI,
-      stdout: 'ignore',
-      stderr: 'pipe',
-    },
-    ...config,
+    ...baseConfig,
+    ...config
   };
 }

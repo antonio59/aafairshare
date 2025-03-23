@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   
+  // Use the standardized browser client to ensure consistent cookie handling across the app
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -53,7 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const encodedValue = encodeURIComponent(value);
           const path = options.path || '/';
           const domain = options.domain ? `; domain=${options.domain}` : '';
-          document.cookie = `${name}=${encodedValue}; path=${path}${domain}; max-age=${options.maxAge || 3600}; SameSite=Lax; Secure`;
+          // Ensure consistent cookie settings with middleware
+          document.cookie = `${name}=${encodedValue}; path=${path}${domain}; max-age=${options.maxAge || 7 * 24 * 60 * 60}; SameSite=Lax; ${process.env.NODE_ENV === 'production' ? 'Secure' : ''}`;
         },
         remove(name: string, options: { path?: string; domain?: string }) {
           if (!VALID_COOKIE_NAME_REGEX.test(name)) {
@@ -67,14 +69,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           const path = options.path || '/';
           const domain = options.domain ? `; domain=${options.domain}` : '';
-          document.cookie = `${name}=; path=${path}${domain}; max-age=0; SameSite=Lax; Secure`;
+          document.cookie = `${name}=; path=${path}${domain}; max-age=0; SameSite=Lax; ${process.env.NODE_ENV === 'production' ? 'Secure' : ''}`;
         },
       },
       cookieOptions: {
         name: 'sb-session',
         path: '/',
         sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production'
+        secure: process.env.NODE_ENV === 'production',
+        httpOnly: false,
+        maxAge: 7 * 24 * 60 * 60 // 7 days in seconds
       }
     }
   );

@@ -1,327 +1,204 @@
 import '@testing-library/jest-dom';
-import * as React from 'react';
+import '@testing-library/jest-dom/extend-expect';
+import { jest } from '@jest/globals';
 
-// Comprehensive React 19 compatibility setup
-// These settings help suppress warnings and ensure tests run correctly with React 19
-process.env.REACT_DOM_ACT_WARNINGS = 'false';
+// Mock localStorage
+class MockStorage implements Storage {
+  private storage: { [key: string]: string } = {};
 
-// NODE_ENV is already set to 'test' by Jest automatically
-
-// Suppress specific console warnings for React 19
-const originalConsoleError = console.error;
-console.error = (...args) => {
-  const errorMsg = typeof args[0] === 'string' ? args[0] : '';
-  
-  // Filter out common React 19 warnings
-  if (errorMsg.includes('ReactDOMTestUtils.act') || 
-      errorMsg.includes('React.act') || 
-      errorMsg.includes('inside a test was not wrapped in act') ||
-      errorMsg.includes('Warning: ReactDOM.render')) {
-    return;
+  getItem(key: string): string | null {
+    return this.storage[key] || null;
   }
-  originalConsoleError(...args);
-};
 
-// Setup environment variables for tests using Object.defineProperty
-// This avoids TypeScript errors with read-only properties
-Object.defineProperty(process.env, 'NEXT_PUBLIC_SUPABASE_URL', {
-  value: 'https://example.supabase.co',
-  configurable: true
+  setItem(key: string, value: string): void {
+    this.storage[key] = value;
+  }
+
+  removeItem(key: string): void {
+    delete this.storage[key];
+  }
+
+  clear(): void {
+    this.storage = {};
+  }
+
+  key(index: number): string | null {
+    return Object.keys(this.storage)[index] || null;
+  }
+
+  get length(): number {
+    return Object.keys(this.storage).length;
+  }
+}
+
+const localStorageMock = new MockStorage();
+
+Object.defineProperty(window, 'localStorage', {
+  value: localStorageMock
 });
-Object.defineProperty(process.env, 'NEXT_PUBLIC_SUPABASE_ANON_KEY', {
-  value: 'example-anon-key',
-  configurable: true
-});
 
-// Mock Next.js navigation hooks
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    refresh: jest.fn(),
-    back: jest.fn(),
-    forward: jest.fn(),
-  }),
-  useSearchParams: () => new URLSearchParams(),
-  usePathname: () => '/',
-}));
+// Mock matchMedia with proper MediaQueryList implementation
+class MockMediaQueryList implements MediaQueryList {
+  matches: boolean = false;
+  media: string;
+  onchange: ((this: MediaQueryList, ev: MediaQueryListEvent) => any) | null = null;
 
-// Define mock component types
-type MockComponentProps = {
-  children: React.ReactNode;
-  className?: string;
-};
+  constructor(query: string) {
+    this.media = query;
+  }
 
-// Mock Supabase client
-jest.mock('@supabase/ssr', () => ({
-  createBrowserClient: jest.fn(() => ({
-    auth: {
-      getUser: jest.fn().mockResolvedValue({ 
-        data: { user: { id: 'test-user-id', email: 'test@example.com' } },
-        error: null
-      }),
-      signOut: jest.fn().mockResolvedValue({ error: null }),
-      signInWithPassword: jest.fn().mockResolvedValue({ error: null }),
-    },
-    from: jest.fn().mockReturnValue({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnValue({ error: null }),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-      single: jest.fn().mockReturnThis(),
-      order: jest.fn().mockReturnThis(),
-      limit: jest.fn().mockReturnThis(),
-      then: jest.fn().mockImplementation(callback => Promise.resolve(callback({ data: [], error: null })))
-    })
-  }))
-}));
+  addListener = jest.fn();
+  removeListener = jest.fn();
+  addEventListener = jest.fn();
+  removeEventListener = jest.fn();
 
-// Mock DOM elements for testing
-type MockElement = (props: MockComponentProps) => React.ReactElement;
+  dispatchEvent(event: MediaQueryListEvent): boolean {
+    return true;
+  }
+}
 
-// Mock Shadcn UI components with proper React forwardRef
-const createMockElement = (testId: string): any => {
-  return React.forwardRef(({ children, className, ...props }: MockComponentProps, ref) => {
-    return React.createElement('div', {
-      ref,
-      'data-testid': testId,
-      className,
-      ...props,
-      children
-    });
-  });
-};
-
-// Create mock components
-const mockComponents = {
-  Card: createMockElement('card'),
-  CardHeader: createMockElement('card-header'),
-  CardTitle: createMockElement('card-title'),
-  CardDescription: createMockElement('card-description'),
-  CardContent: createMockElement('card-content'),
-  CardFooter: createMockElement('card-footer'),
-  Button: createMockElement('button'),
-  Badge: createMockElement('badge'),
-  Tabs: createMockElement('tabs'),
-  TabsList: createMockElement('tabs-list'),
-  TabsTrigger: createMockElement('tabs-trigger'),
-  TabsContent: createMockElement('tabs-content'),
-  ScrollArea: createMockElement('scroll-area'),
-  Input: createMockElement('input'),
-  Label: createMockElement('label'),
-  Select: createMockElement('select'),
-  SelectTrigger: createMockElement('select-trigger'),
-  SelectValue: createMockElement('select-value'),
-  SelectContent: createMockElement('select-content'),
-  SelectItem: createMockElement('select-item'),
-  Dialog: createMockElement('dialog'),
-  DialogTrigger: createMockElement('dialog-trigger'),
-  DialogContent: createMockElement('dialog-content'),
-  DialogHeader: createMockElement('dialog-header'),
-  DialogTitle: createMockElement('dialog-title'),
-  DialogDescription: createMockElement('dialog-description'),
-  Tooltip: createMockElement('tooltip'),
-  TooltipProvider: createMockElement('tooltip-provider'),
-  TooltipContent: createMockElement('tooltip-content'),
-  TooltipTrigger: createMockElement('tooltip-trigger'),
-  DialogFooter: createMockElement('dialog-footer'),
-  Toast: createMockElement('toast'),
-
-  Calendar: createMockElement('calendar'),
-  Checkbox: createMockElement('checkbox'),
-  Skeleton: createMockElement('skeleton'),
-  Form: createMockElement('form'),
-  FormField: createMockElement('form-field'),
-  FormItem: createMockElement('form-item'),
-  FormLabel: createMockElement('form-label'),
-  FormControl: createMockElement('form-control'),
-  FormDescription: createMockElement('form-description'),
-  FormMessage: createMockElement('form-message'),
-  Toaster: createMockElement('toaster'),
-};
-
-// Mock UI components
-jest.mock('@/components/ui/button', () => ({
-  Button: mockComponents.Button
-}));
-jest.mock('@/components/ui/card', () => ({
-  Card: mockComponents.Card,
-  CardHeader: mockComponents.CardHeader,
-  CardTitle: mockComponents.CardTitle,
-  CardDescription: mockComponents.CardDescription,
-  CardContent: mockComponents.CardContent,
-  CardFooter: mockComponents.CardFooter
-}));
-jest.mock('@/components/ui/badge', () => ({
-  Badge: mockComponents.Badge
-}));
-jest.mock('@/components/ui/tabs', () => mockComponents);
-jest.mock('@/components/ui/input', () => ({
-  Input: mockComponents.Input
-}));
-jest.mock('@/components/ui/label', () => ({
-  Label: mockComponents.Label
-}));
-jest.mock('@/components/ui/select', () => mockComponents);
-jest.mock('@/components/ui/dialog', () => mockComponents);
-jest.mock('@/components/ui/toast', () => mockComponents);
-jest.mock('@/components/ui/tooltip', () => ({
-  Tooltip: mockComponents.Tooltip,
-  TooltipProvider: mockComponents.TooltipProvider,
-  TooltipContent: mockComponents.TooltipContent,
-  TooltipTrigger: mockComponents.TooltipTrigger
-}));
-jest.mock('@/components/ui/scroll-area', () => ({
-  ScrollArea: mockComponents.ScrollArea
-}));
-jest.mock('@/components/ui/calendar', () => mockComponents.Calendar);
-jest.mock('@/components/ui/checkbox', () => mockComponents.Checkbox);
-jest.mock('@/components/ui/skeleton', () => mockComponents.Skeleton);
-jest.mock('@/components/ui/form', () => mockComponents);
-
-// Mock Lucide Icons
-// Mock SVG components for Lucide icons
-const mockSvgComponent = (testId: string) => {
-  return function MockSvg(props: React.SVGProps<SVGSVGElement>) {
-    return React.createElement('svg', {
-      ...props,
-      'data-testid': testId
-    });
-  };
-};
-
-jest.mock('lucide-react', () => ({
-  ArrowRight: mockSvgComponent('arrow-right-icon'),
-  CheckCircle2: mockSvgComponent('check-circle-2-icon'),
-  AlarmClock: mockSvgComponent('alarm-clock-icon'),
-  AlertTriangle: mockSvgComponent('alert-triangle-icon'),
-  RefreshCw: mockSvgComponent('refresh-cw-icon')
-}));
-
-// Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
+  value: jest.fn((query: string) => new MockMediaQueryList(query))
 });
 
-// Mock Intersection Observer
-global.IntersectionObserver = class MockIntersectionObserver {
+// Mock IntersectionObserver
+class MockIntersectionObserver implements IntersectionObserver {
   root: Element | null = null;
   rootMargin: string = '0px';
   thresholds: ReadonlyArray<number> = [0];
-  
-  constructor(callback: IntersectionObserverCallback, options?: IntersectionObserverInit) {
-    // Mock constructor implementation
-  }
-  
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-  takeRecords(): IntersectionObserverEntry[] { return []; }
-};
+  observe = jest.fn();
+  unobserve = jest.fn();
+  disconnect = jest.fn();
 
-// Configure browser environment
-Object.defineProperty(window, 'matchMedia', {
+  takeRecords(): IntersectionObserverEntry[] {
+    // Create mock DOMRectReadOnly objects
+    const boundingClientRect = new DOMRect(0, 0, 100, 100);
+    const intersectionRect = new DOMRect(0, 0, 50, 50);
+    const rootBounds = this.root ? new DOMRect(0, 0, 800, 600) : null;
+
+    return [{
+      time: 0,
+      rootBounds,
+      boundingClientRect,
+      intersectionRect,
+      isIntersecting: false,
+      intersectionRatio: 0,
+      target: document.createElement('div')
+    }];
+  }
+}
+
+Object.defineProperty(window, 'IntersectionObserver', {
   writable: true,
-  value: jest.fn().mockImplementation(query => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: jest.fn(),
-    removeListener: jest.fn(),
-    addEventListener: jest.fn(),
-    removeEventListener: jest.fn(),
-    dispatchEvent: jest.fn(),
-  })),
+  value: MockIntersectionObserver
 });
 
-// Mock Next.js router
-jest.mock('next/navigation', () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    replace: jest.fn(),
-    refresh: jest.fn(),
+// Mock ResizeObserver
+class MockResizeObserver implements ResizeObserver {
+  observe = jest.fn();
+  unobserve = jest.fn();
+  disconnect = jest.fn();
+}
+
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  value: MockResizeObserver
+});
+
+// Mock window animation and scroll functions
+window.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => window.setTimeout(callback, 0));
+window.cancelAnimationFrame = jest.fn((handle: number) => window.clearTimeout(handle));
+window.scrollTo = jest.fn();
+window.scrollBy = jest.fn();
+window.scroll = jest.fn();
+
+// Mock window.location
+Object.defineProperty(window, 'location', {
+  value: {
+    href: 'http://localhost',
+    pathname: '/',
+    search: '',
+    hash: '',
+    protocol: 'http:',
+    host: 'localhost',
+    hostname: 'localhost',
+    port: '',
+    origin: 'http://localhost',
+    assign: jest.fn(),
+    reload: jest.fn(),
+    replace: jest.fn()
+  }
+});
+
+// Mock window.history
+Object.defineProperty(window, 'history', {
+  value: {
+    pushState: jest.fn(),
+    replaceState: jest.fn(),
+    go: jest.fn(),
     back: jest.fn(),
     forward: jest.fn(),
-  }),
-  useSearchParams: () => new URLSearchParams(),
-  usePathname: () => '/',
-}));
+    length: 1,
+    state: null
+  }
+});
 
-// Mock Supabase client
-jest.mock('@/types/supabase', () => ({
-  createClient: jest.fn(() => ({
-    auth: {
-      signInWithPassword: jest.fn(),
-      signUp: jest.fn(),
-      signOut: jest.fn(),
-    },
-    from: jest.fn(() => ({
-      select: jest.fn().mockReturnThis(),
-      insert: jest.fn().mockReturnThis(),
-      update: jest.fn().mockReturnThis(),
-      delete: jest.fn().mockReturnThis(),
-      eq: jest.fn().mockReturnThis(),
-    })),
-  })),
-}));
+// Mock window.matchMedia
+window.matchMedia = ((query: string): MediaQueryList => new MockMediaQueryList(query)) as (query: string) => MediaQueryList;
 
-// Mock native browser APIs
-global.atob = jest.fn(str => Buffer.from(str, 'base64').toString('binary'));
-global.btoa = jest.fn(str => Buffer.from(str, 'binary').toString('base64'));
+// Mock window.requestIdleCallback
+window.requestIdleCallback = jest.fn((callback: IdleRequestCallback) => window.setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 0 }), 0))
 
-// Use Node's native DOMException if available, otherwise mock it
-if (!global.DOMException) {
-  const DOMExceptionCodes = {
-    INDEX_SIZE_ERR: 1,
-    DOMSTRING_SIZE_ERR: 2,
-    HIERARCHY_REQUEST_ERR: 3,
-    WRONG_DOCUMENT_ERR: 4,
-    INVALID_CHARACTER_ERR: 5,
-    NO_DATA_ALLOWED_ERR: 6,
-    NO_MODIFICATION_ALLOWED_ERR: 7,
-    NOT_FOUND_ERR: 8,
-    NOT_SUPPORTED_ERR: 9,
-    INUSE_ATTRIBUTE_ERR: 10,
-    INVALID_STATE_ERR: 11,
-    SYNTAX_ERR: 12,
-    INVALID_MODIFICATION_ERR: 13,
-    NAMESPACE_ERR: 14,
-    INVALID_ACCESS_ERR: 15,
-    VALIDATION_ERR: 16,
-    TYPE_MISMATCH_ERR: 17,
-    SECURITY_ERR: 18,
-    NETWORK_ERR: 19,
-    ABORT_ERR: 20,
-    URL_MISMATCH_ERR: 21,
-    QUOTA_EXCEEDED_ERR: 22,
-    TIMEOUT_ERR: 23,
-    INVALID_NODE_TYPE_ERR: 24,
-    DATA_CLONE_ERR: 25,
-  };
+// Mock window.cancelIdleCallback
+window.cancelIdleCallback = jest.fn((handle: number) => window.clearTimeout(handle))
 
-  class DOMExceptionImpl extends Error {
-    constructor(message?: string, name?: string) {
-      super(message);
-      this.name = name || 'Error';
-      this.message = message || '';
+// Mock window.performance
+Object.defineProperty(window, 'performance', {
+  value: {
+    now: jest.fn(),
+    timing: {
+      navigationStart: 0
     }
   }
+});
 
-  // Add static properties to constructor
-  Object.entries(DOMExceptionCodes).forEach(([key, value]) => {
-    (DOMExceptionImpl as any)[key] = value;
-  });
+// Mock window.fetch
+window.fetch = jest.fn() as unknown as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
 
-  global.DOMException = DOMExceptionImpl as any;
-}
+// Mock window.indexedDB
+window.indexedDB = {
+  open: jest.fn()
+} as any;
+
+// Mock window.navigator
+Object.defineProperty(window.navigator, 'userAgent', {
+  value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.114 Safari/537.36'
+});
+
+// Mock window.requestAnimationFrame
+window.requestAnimationFrame = jest.fn((callback: FrameRequestCallback) => window.setTimeout(callback, 0))
+
+// Mock window.cancelAnimationFrame
+window.cancelAnimationFrame = jest.fn((handle: number) => window.clearTimeout(handle))
+
+// Mock window.scrollTo
+window.scrollTo = jest.fn();
+
+// Mock window.scrollBy
+window.scrollBy = jest.fn();
+
+// Mock window.scroll
+window.scroll = jest.fn();
+
+// Mock window.innerHeight
+Object.defineProperty(window, 'innerHeight', {
+  writable: true,
+  value: 768
+});
+
+// Mock window.innerWidth
+Object.defineProperty(window, 'innerWidth', {
+  writable: true,
+  value: 1024
+});

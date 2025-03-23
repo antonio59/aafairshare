@@ -1,124 +1,132 @@
 export type Database = {
   public: {
     Tables: {
-      categories: {
-        Row: {
-          id: string;
-          category: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          category: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          category?: string;
-          created_at?: string;
-        };
-      };
       expenses: {
         Row: {
           id: string;
           amount: number;
-          category_id: string;
-          location_id: string | null;
-          notes: string | null;
           date: string;
           paid_by: string;
-          split_type: 'Equal' | 'No Split';
           created_at: string;
+          updated_at?: string;
+          split_type: string;
+          category_id?: string;
+          description?: string;
+          location_id?: string;
         };
         Insert: {
           id?: string;
           amount: number;
-          category_id: string;
-          location_id?: string | null;
-          notes?: string | null;
           date: string;
           paid_by: string;
-          split_type?: 'Equal' | 'No Split';
           created_at?: string;
+          updated_at?: string;
+          split_type: string;
+          category_id?: string;
+          description?: string;
+          location_id?: string;
         };
         Update: {
           id?: string;
           amount?: number;
-          category_id?: string;
-          location_id?: string | null;
-          notes?: string | null;
           date?: string;
           paid_by?: string;
-          split_type?: 'Equal' | 'No Split';
           created_at?: string;
+          updated_at?: string;
+          split_type?: string;
+          category_id?: string;
+          description?: string;
+          location_id?: string;
         };
       };
-      locations: {
+      settlements: {
         Row: {
           id: string;
-          location: string;
+          from: string;
+          to: string;
+          amount: number;
+          month: string;
+          status: 'pending' | 'completed';
           created_at: string;
+          updated_at?: string;
+          is_settled?: boolean;
+          month_year?: string;
+          user_id?: string;
+          split_type?: string;
         };
         Insert: {
           id?: string;
-          location: string;
+          from: string;
+          to: string;
+          amount: number;
+          month: string;
+          status?: 'pending' | 'completed';
           created_at?: string;
+          updated_at?: string;
+          is_settled?: boolean;
+          month_year?: string;
+          user_id?: string;
+          split_type?: string;
         };
         Update: {
           id?: string;
-          location?: string;
+          from?: string;
+          to?: string;
+          amount?: number;
+          month?: string;
+          status?: 'pending' | 'completed';
           created_at?: string;
+          updated_at?: string;
+          is_settled?: boolean;
+          month_year?: string;
+          user_id?: string;
+          split_type?: string;
         };
       };
       users: {
         Row: {
           id: string;
-          name: string;
           email: string;
-          created_at: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
+          language?: string;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          name?: string;
+          created_at?: string;
+          updated_at?: string;
+          language?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          name?: string;
+          created_at?: string;
+          updated_at?: string;
+          language?: string;
+        };
+      };
+      categories: {
+        Row: {
+          id: string;
+          name: string;
+          created_at?: string;
+          updated_at?: string;
         };
         Insert: {
           id?: string;
           name: string;
-          email: string;
           created_at?: string;
+          updated_at?: string;
         };
         Update: {
           id?: string;
           name?: string;
-          email?: string;
           created_at?: string;
-        };
-      };
-      exports: {
-        Row: {
-          id: string;
-          user_id: string;
-          data_type: string;
-          format: 'csv' | 'pdf';
-          filters: Record<string, string | number | boolean | null>;
-          file_data: string;
-          created_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          data_type: string;
-          format: 'csv' | 'pdf';
-          filters: Record<string, string | number | boolean | null>;
-          file_name: string;
-          file_data: string;
-          created_at?: string;
-        };
-        Update: {
-          id?: string;
-          user_id?: string;
-          data_type?: string;
-          format?: 'csv' | 'pdf';
-          filters?: Record<string, string | number | boolean | null>;
-          file_name?: string;
-          file_data?: string;
-          created_at?: string;
+          updated_at?: string;
         };
       };
     };
@@ -133,9 +141,3 @@ export type Database = {
     };
   };
 };
-
-export type Tables<T extends keyof Database['public']['Tables']> =
-  Database['public']['Tables'][T]['Row'];
-
-export type Enums<T extends keyof Database['public']['Enums']> =
-  Database['public']['Enums'][T];

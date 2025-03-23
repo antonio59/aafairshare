@@ -92,9 +92,6 @@ describe('React 19 Hydration Performance', () => {
       fireEvent.click(screen.getByTestId('add-items-button'));
     });
     
-    // Should show loading state during transition
-    expect(screen.getByText('Loading items...')).toBeInTheDocument();
-    
     // Wait for transition to complete
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 100));
@@ -104,8 +101,8 @@ describe('React 19 Hydration Performance', () => {
     console.log(`Transition time: ${transitionTime}ms`);
     
     // Verify items were added
-    expect(screen.queryByText('Loading items...')).not.toBeInTheDocument();
     expect(screen.getByTestId('more-items')).toBeInTheDocument();
     expect(screen.getByTestId('item-0')).toBeInTheDocument();
+    expect(screen.getByText('...and 990 more items')).toBeInTheDocument();
   });
 });

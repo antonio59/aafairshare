@@ -1,36 +1,14 @@
 const config = {
   testEnvironment: 'jsdom',
   transform: {
-    '^.+\\.(t|j)sx?$': ['@swc/jest', {
-      jsc: {
-        transform: {
-          react: {
-            runtime: 'automatic'
-          }
-        },
-        parser: {
-          syntax: 'typescript',
-          tsx: true,
-          decorators: true
-        }
-      }
-    }],
+    '^.+\\.(t|j)sx?$': ['@swc/jest'],
   },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '\\.(css|less|sass|scss)$': 'identity-obj-proxy',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testMatch: [
-    '<rootDir>/src/**/__tests__/**/*.[jt]s?(x)',
-    '<rootDir>/src/**/?(*.)+(spec|test).[jt]s?(x)',
-  ],
-  testPathIgnorePatterns: [
-    '<rootDir>/node_modules/',
-    '<rootDir>/.next/',
-    '<rootDir>/e2e/',
-    '.*\\.spec\\.ts$',
-  ],
+  testPathIgnorePatterns: ['<rootDir>/node_modules/', '<rootDir>/.next/'],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   collectCoverageFrom: [
     'src/**/*.{ts,tsx,js,jsx}',
@@ -47,11 +25,6 @@ const config = {
       statements: 80,
     },
   },
-  testTimeout: 10000,
-  verbose: true,
-  testEnvironmentOptions: {
-    url: 'http://localhost:3000'
-  }
 }
 
 export default config

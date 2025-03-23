@@ -1,7 +1,7 @@
 'use client';
 
 
-import { ErrorBoundary } from './error-boundary';
+import { ErrorBoundary } from './ErrorBoundary';
 import NavBar from './NavBar';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { usePathname, useRouter } from 'next/navigation';

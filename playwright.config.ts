@@ -6,7 +6,7 @@ export default defineConfig({
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
   workers: 1,
-  reporter: 'html',
+  reporter: [['html', {}]],
   use: {
     trace: 'on-first-retry',
     screenshot: { mode: 'on' },
@@ -18,10 +18,4 @@ export default defineConfig({
       use: { ...devices['Desktop Chrome'] },
     },
   ],
-  expect: {
-    toHaveScreenshot: {
-      maxDiffPixelRatio: 0.05,
-      threshold: 0.2,
-    },
-  },
 });

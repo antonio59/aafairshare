@@ -1,4 +1,5 @@
 import { exportToPDF, exportToCSV } from '@/utils/exportService';
+import { createStandardBrowserClient } from '@/utils/supabase-client';
 
 interface Expense {
   id: string;
@@ -77,9 +78,48 @@ jest.mock('jspdf', () => ({
 
 jest.mock('jspdf-autotable', () => jest.fn());
 
+// Mock Supabase client
+jest.mock('@/utils/supabase-client', () => ({
+  createStandardBrowserClient: jest.fn(() => ({
+    auth: {
+      getUser: jest.fn().mockResolvedValue({
+        data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+        error: null
+      })
+    },
+    from: jest.fn().mockReturnValue({
+      select: jest.fn().mockReturnThis(),
+      insert: jest.fn().mockReturnThis(),
+      then: jest.fn().mockImplementation(callback => Promise.resolve(callback({
+        data: null,
+        error: null
+      })))
+    })
+  }))
+}));
+
 describe('Export Service', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+
+    // Reset Supabase mocks
+    (createStandardBrowserClient as jest.Mock).mockClear();
+    (createStandardBrowserClient as jest.Mock).mockImplementation(() => ({
+      auth: {
+        getUser: jest.fn().mockResolvedValue({
+          data: { user: { id: 'test-user-id', email: 'test@example.com' } },
+          error: null
+        })
+      },
+      from: jest.fn().mockReturnValue({
+        select: jest.fn().mockReturnThis(),
+        insert: jest.fn().mockReturnThis(),
+        then: jest.fn().mockImplementation(callback => Promise.resolve(callback({
+          data: null,
+          error: null
+        })))
+      })
+    }));
   });
 
   const mockExpenses: Expense[] = [

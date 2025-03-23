@@ -26,8 +26,13 @@ export async function middleware(request: NextRequest) {
             value,
             ...options,
             sameSite: "lax",
-            secure: process.env.NODE_ENV === "production"
+            secure: process.env.NODE_ENV === "production",
+            httpOnly: false,
+            path: "/",
+            maxAge: 7 * 24 * 60 * 60 // 7 days in seconds
           });
+          // Also set the cookie in the request headers for immediate availability
+          request.headers.set('Cookie', `${name}=${value}; ${request.headers.get('Cookie') || ''}`);
         },
         remove(name: string, options: CookieOptions) {
           // Remove cookie from the response
@@ -35,7 +40,9 @@ export async function middleware(request: NextRequest) {
             name,
             value: "",
             ...options,
-            maxAge: 0
+            maxAge: -1,
+            path: "/",
+            httpOnly: false
           });
         },
       },
@@ -44,6 +51,11 @@ export async function middleware(request: NextRequest) {
 
   try {
     const { data: { user }, error } = await supabase.auth.getUser();
+
+    // Log auth errors for debugging
+    if (error) {
+      console.error('Auth error in middleware:', error.message);
+    }
 
     // If there's an auth error but we're already on an auth page, just continue
     if (error && ["/signin", "/signup"].includes(pathname)) {
@@ -58,8 +70,7 @@ export async function middleware(request: NextRequest) {
     // If user is not signed in and tries to access protected pages, redirect to /signin
     if (!user && !["/signin", "/signup"].includes(pathname)) {
       // Clear any invalid auth cookies
-      response.cookies.delete("sb-access-token");
-      response.cookies.delete("sb-refresh-token");
+      response.cookies.delete("sb-session");
       return NextResponse.redirect(new URL("/signin", request.url));
     }
 
@@ -68,8 +79,7 @@ export async function middleware(request: NextRequest) {
     console.error('Middleware error:', err);
     // Only clear cookies and redirect if not already on an auth page
     if (!["/signin", "/signup"].includes(pathname)) {
-      response.cookies.delete("sb-access-token");
-      response.cookies.delete("sb-refresh-token");
+      response.cookies.delete("sb-session");
       return NextResponse.redirect(new URL("/signin", request.url));
     }
     return response;
@@ -89,4 +99,4 @@ export const config = {
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
-}; 
+};

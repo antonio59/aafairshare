@@ -13,7 +13,10 @@ export default defineConfig({
   forbidOnly: CI,
   retries: CI ? 2 : 0,
   workers: CI ? 1 : undefined,
-  reporter: [['html'], ['list']],
+  reporter: [
+    ['html', {}],
+    ['list', {}]
+  ],
   use: {
     baseURL: BASE_URL,
     trace: 'on-first-retry',
@@ -47,13 +50,5 @@ export default defineConfig({
         use: { ...devices['iPhone 12'] }
       }
     ])
-  ],
-  // Don't start a local dev server in CI - we're testing against the deployed app
-  webServer: CI ? undefined : {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !CI,
-    stdout: 'pipe',
-    stderr: 'pipe'
-  }
+  ]
 }); 

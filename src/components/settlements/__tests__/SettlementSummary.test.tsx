@@ -124,7 +124,7 @@ const mockSettlements: TestSettlement[] = [
   });
 
   it('handles empty settlements array', async () => {
-    const { getByText, getByTestId } = setup([]);
+    const { getByText, container } = setup([]);
     
     // Wait for React 19 concurrent rendering to complete
     await waitFor(() => {
@@ -136,8 +136,9 @@ const mockSettlements: TestSettlement[] = [
     
     // Verify empty settlements list
     await waitFor(() => {
-      const scrollArea = getByTestId('scroll-area');
-      expect(scrollArea).toBeInTheDocument();
+      const emptyList = container.querySelector('.space-y-4');
+      expect(emptyList).toBeInTheDocument();
+      expect(emptyList?.children.length).toBe(0);
     }, { timeout: 5000 });
   });
 
