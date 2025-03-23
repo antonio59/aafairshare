@@ -3,11 +3,13 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
 
-// Changed empty interface to use Record<string, never> which is the recommended way to represent an empty object type
-export type NavBarProps = Record<string, never>;
+export interface NavBarProps {
+  // Component currently doesn't accept any props
+}
 
-export default function NavBar(_props: NavBarProps) {
+export function NavBar(_props: NavBarProps) {
   const { logout } = useAuth();
 
   const handleSignOut = async () => {
