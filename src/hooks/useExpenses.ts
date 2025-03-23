@@ -11,13 +11,15 @@ interface UseExpensesReturn {
   exportExpenses: (format: 'csv' | 'pdf') => Promise<void>;
 }
 
+// Create Supabase client outside the hook to prevent unnecessary re-renders
+const supabase = createStandardBrowserClient();
+
 export function useExpenses(): UseExpensesReturn {
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const supabase = createStandardBrowserClient();
-
+  
+  // Memoize fetchExpenses with supabase client as dependency
   const fetchExpenses = useCallback(async ({ startDate, endDate }: ExpenseFilters) => {
     setIsLoading(true);
     setError(null);
@@ -39,7 +41,7 @@ export function useExpenses(): UseExpensesReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   const exportExpenses = useCallback(async (format: 'csv' | 'pdf') => {
     if (!expenses.length) return;

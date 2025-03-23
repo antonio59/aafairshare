@@ -1,65 +1,30 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ExpenseDetails from './ExpenseDetails';
 import { cn } from '@/lib/utils';
-import { exportToCSV, exportToPDF } from '@/utils/exportService';
-import { createStandardBrowserClient } from '@/utils/supabase-client';
-
-import type { Expense } from '@/types/expenses';
+import { useExpenses } from '@/hooks/useExpenses';
 
 export interface ExpensesDashboardProps {
   initialMonth?: string;
 }
 
-export default function ExpensesDashboard({ initialMonth }: ExpensesDashboardProps = {}) {
-  const [expenses, setExpenses] = useState<Expense[]>([]);
+const ExpensesDashboard = ({ initialMonth }: ExpensesDashboardProps = {}) => {
   const [selectedMonth, setSelectedMonth] = useState<string>(
     initialMonth || new Date().toISOString().slice(0, 7)
   );
-  const [isLoading, setIsLoading] = useState(false);
-
-  const supabase = createStandardBrowserClient();
-
-  const [error, setError] = useState<string | null>(null);
+  
+  const { expenses, isLoading, error, fetchExpenses, exportExpenses } = useExpenses();
 
   useEffect(() => {
-    const fetchExpenses = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const startDate = `${selectedMonth}-01`;
-        const date = new Date(startDate);
-        date.setMonth(date.getMonth() + 1);
-        date.setDate(0); // Get last day of selected month
-        const endDate = date.toISOString().split('T')[0];
-        
-        const { data: expensesData, error: expensesError } = await supabase
-          .from('expenses')
-          .select(`
-            *,
-            users:paid_by(name)
-          `)
-          .gte('date', startDate)
-          .lt('date', endDate)
-          .order('date', { ascending: false });
-
-        if (expensesError) {
-          throw new Error(`Failed to fetch expenses: ${expensesError.message}`);
-        }
-
-        setExpenses(expensesData || []);
-      } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
-        console.error('Error fetching expenses:', errorMessage);
-        setError(errorMessage);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchExpenses();
-  }, [selectedMonth, supabase]);
+    const startDate = `${selectedMonth}-01`;
+    const date = new Date(startDate);
+    date.setMonth(date.getMonth() + 1);
+    date.setDate(0); // Get last day of selected month
+    const endDate = date.toISOString().split('T')[0];
+    
+    fetchExpenses({ startDate, endDate });
+  }, [selectedMonth, fetchExpenses]);
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
 
@@ -78,7 +43,7 @@ export default function ExpensesDashboard({ initialMonth }: ExpensesDashboardPro
             )}
           />
           <button
-            onClick={() => exportToCSV(expenses, selectedMonth)}
+            onClick={() => exportExpenses('csv')}
             className={cn(
               "px-4 py-2 rounded transition-colors",
               "bg-blue-600 text-white hover:bg-blue-700"
@@ -87,7 +52,7 @@ export default function ExpensesDashboard({ initialMonth }: ExpensesDashboardPro
             CSV
           </button>
           <button
-            onClick={() => exportToPDF(expenses, selectedMonth)}
+            onClick={() => exportExpenses('pdf')}
             className={cn(
               "px-4 py-2 rounded transition-colors",
               "bg-green-600 text-white hover:bg-green-700"
@@ -134,28 +99,12 @@ export default function ExpensesDashboard({ initialMonth }: ExpensesDashboardPro
               key={expense.id}
               expense={expense}
               onUpdate={() => {
-                const fetchExpenses = async () => {
-                  const { data: expensesData, error: expensesError } = await supabase
-                    .from('expenses')
-                    .select(`
-                      *,
-                      users:paid_by(name)
-                    `)
-                    .gte('date', `${selectedMonth}-01`)
-                    .lt('date', `${selectedMonth}-31`)
-                    .order('date', { ascending: false });
-
-                  if (expensesError) {
-                    const errorMessage = `Failed to fetch expenses: ${expensesError.message}`;
-                    console.error(errorMessage);
-                    setError(errorMessage);
-                    return;
-                  }
-                  setError(null);
-
-                  setExpenses(expensesData || []);
-                };
-                fetchExpenses();
+                const startDate = `${selectedMonth}-01`;
+                const date = new Date(startDate);
+                date.setMonth(date.getMonth() + 1);
+                date.setDate(0);
+                const endDate = date.toISOString().split('T')[0];
+                fetchExpenses({ startDate, endDate });
               }}
             />
           ))}
@@ -163,4 +112,6 @@ export default function ExpensesDashboard({ initialMonth }: ExpensesDashboardPro
       </div>
     </div>
   );
-}
+};
+
+export default ExpensesDashboard;
