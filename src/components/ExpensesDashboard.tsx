@@ -4,12 +4,13 @@ import { useEffect, useState } from 'react';
 import ExpenseDetails from './ExpenseDetails';
 import { cn } from '@/lib/utils';
 import { useExpenses } from '@/hooks/useExpenses';
+import type { ExpenseFilters } from '@/types/expenses';
 
 export interface ExpensesDashboardProps {
   initialMonth?: string;
 }
 
-const ExpensesDashboard = ({ initialMonth }: ExpensesDashboardProps = {}) => {
+export function ExpensesDashboard({ initialMonth = new Date().toISOString().slice(0, 7) }: ExpensesDashboardProps) {
   const [selectedMonth, setSelectedMonth] = useState<string>(
     initialMonth || new Date().toISOString().slice(0, 7)
   );
@@ -23,10 +24,33 @@ const ExpensesDashboard = ({ initialMonth }: ExpensesDashboardProps = {}) => {
     date.setDate(0); // Get last day of selected month
     const endDate = date.toISOString().split('T')[0];
     
-    fetchExpenses({ startDate, endDate });
+    const filters: ExpenseFilters = { startDate, endDate };
+    fetchExpenses(filters);
   }, [selectedMonth, fetchExpenses]);
 
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+  const handleExport = async (format: 'csv' | 'pdf') => {
+    try {
+      await exportExpenses(format);
+    } catch (err) {
+      console.error('Failed to export expenses:', err);
+    }
+  };
+
+  const handleMonthChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSelectedMonth(e.target.value);
+  };
+
+  const handleExpenseUpdate = () => {
+    const startDate = `${selectedMonth}-01`;
+    const date = new Date(startDate);
+    date.setMonth(date.getMonth() + 1);
+    date.setDate(0);
+    const endDate = date.toISOString().split('T')[0];
+    const filters: ExpenseFilters = { startDate, endDate };
+    fetchExpenses(filters);
+  };
 
   return (
     <div className={cn("space-y-6")}>
@@ -36,14 +60,14 @@ const ExpensesDashboard = ({ initialMonth }: ExpensesDashboardProps = {}) => {
           <input
             type="month"
             value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
+            onChange={handleMonthChange}
             className={cn(
               "border rounded p-2",
               "focus:outline-none focus:ring-2 focus:ring-blue-500"
             )}
           />
           <button
-            onClick={() => exportExpenses('csv')}
+            onClick={() => handleExport('csv')}
             className={cn(
               "px-4 py-2 rounded transition-colors",
               "bg-blue-600 text-white hover:bg-blue-700"
@@ -52,7 +76,7 @@ const ExpensesDashboard = ({ initialMonth }: ExpensesDashboardProps = {}) => {
             CSV
           </button>
           <button
-            onClick={() => exportExpenses('pdf')}
+            onClick={() => handleExport('pdf')}
             className={cn(
               "px-4 py-2 rounded transition-colors",
               "bg-green-600 text-white hover:bg-green-700"
@@ -98,14 +122,7 @@ const ExpensesDashboard = ({ initialMonth }: ExpensesDashboardProps = {}) => {
             <ExpenseDetails
               key={expense.id}
               expense={expense}
-              onUpdate={() => {
-                const startDate = `${selectedMonth}-01`;
-                const date = new Date(startDate);
-                date.setMonth(date.getMonth() + 1);
-                date.setDate(0);
-                const endDate = date.toISOString().split('T')[0];
-                fetchExpenses({ startDate, endDate });
-              }}
+              onUpdate={handleExpenseUpdate}
             />
           ))}
         </div>
@@ -113,5 +130,3 @@ const ExpensesDashboard = ({ initialMonth }: ExpensesDashboardProps = {}) => {
     </div>
   );
 };
-
-export default ExpensesDashboard;
