@@ -290,12 +290,13 @@ export class MemStorage implements IStorage {
 
   async createExpense(insertExpense: InsertExpense): Promise<ExpenseWithDetails> {
     const id = this.expenseIdCounter++;
-    // Ensure that split_type is always defined with a default value if needed
+    // Ensure that split_type and month are always defined with default values if needed
     const expense = { 
       ...insertExpense, 
       id,
       split_type: insertExpense.split_type || "50/50",
-      notes: insertExpense.notes || null
+      notes: insertExpense.notes || null,
+      month: insertExpense.month || null
     };
     this.expenses.set(id, expense);
     
@@ -547,7 +548,11 @@ export class MemStorage implements IStorage {
 
   async createSettlement(insertSettlement: InsertSettlement): Promise<SettlementWithUsers> {
     const id = this.settlementIdCounter++;
-    const settlement = { ...insertSettlement, id };
+    const settlement = { 
+      ...insertSettlement, 
+      id,
+      notes: insertSettlement.notes || null 
+    };
     this.settlements.set(id, settlement);
     
     const settlementWithUsers = await this.getSettlement(id);
