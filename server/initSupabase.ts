@@ -110,13 +110,15 @@ async function createTables() {
     await executeSql(`
       CREATE TABLE IF NOT EXISTS expenses (
         id SERIAL PRIMARY KEY,
+        description TEXT NOT NULL,
         amount DECIMAL(10, 2) NOT NULL,
         date TIMESTAMP WITH TIME ZONE NOT NULL,
-        paid_by INTEGER NOT NULL REFERENCES users(id),
+        paid_by_user_id INTEGER NOT NULL REFERENCES users(id),
         split_type TEXT NOT NULL DEFAULT '50/50',
         notes TEXT,
         category_id INTEGER NOT NULL REFERENCES categories(id),
         location_id INTEGER NOT NULL REFERENCES locations(id),
+        month TEXT,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
       );
     `);
@@ -126,12 +128,13 @@ async function createTables() {
       CREATE TABLE IF NOT EXISTS recurring_expenses (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
+        description TEXT NOT NULL,
         amount DECIMAL(10, 2) NOT NULL,
         frequency TEXT NOT NULL,
         start_date TIMESTAMP WITH TIME ZONE NOT NULL,
         next_date TIMESTAMP WITH TIME ZONE NOT NULL,
         end_date TIMESTAMP WITH TIME ZONE,
-        paid_by INTEGER NOT NULL REFERENCES users(id),
+        paid_by_user_id INTEGER NOT NULL REFERENCES users(id),
         split_type TEXT NOT NULL DEFAULT '50/50',
         notes TEXT,
         category_id INTEGER NOT NULL REFERENCES categories(id),
