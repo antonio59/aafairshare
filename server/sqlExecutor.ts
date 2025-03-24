@@ -5,6 +5,13 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import { log } from './vite';
 
+// Get Supabase credentials for direct SQL execution
+const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
+const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || (import.meta.env.SUPABASE_SERVICE_KEY as string);
+// Prefer using the service key for admin operations if available
+const apiKey = supabaseServiceKey || supabaseKey;
+
 // Get the current file's directory path (ESM compatible)
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
