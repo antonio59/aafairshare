@@ -381,7 +381,7 @@ export class SupabaseStorage implements IStorage {
     if (error) throw new Error(`Failed to create recurring expense: ${error.message}`);
     
     // Get the full recurring expense with details
-    const recurringExpenseWithDetails = await this.getRecurringExpense(data.id);
+    const recurringExpenseWithDetails = await this.getRecurringExpense(data.id as number);
     if (!recurringExpenseWithDetails) {
       throw new Error("Failed to create recurring expense with details");
     }
@@ -567,7 +567,7 @@ export class SupabaseStorage implements IStorage {
     if (error) throw new Error(`Failed to create settlement: ${error.message}`);
     
     // Get the full settlement with details
-    const settlementWithDetails = await this.getSettlement(data.id);
+    const settlementWithDetails = await this.getSettlement(data.id as number);
     if (!settlementWithDetails) {
       throw new Error("Failed to create settlement with details");
     }

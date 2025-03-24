@@ -3,6 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import { log } from './vite';
 
+// Access Supabase URL and Key from environment variables directly
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
 /**
  * This script creates the SQL functions in Supabase
  * Run this once before initializing the database
@@ -22,23 +26,60 @@ export async function createSupabaseFunctions() {
     const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
     
     // Execute the SQL directly to create the exec_sql function
-    // Since we can't use execute directly, we'll use a raw HTTP request to Supabase
-    const { error } = await supabase.rpc('exec_sql', { sql: sqlContent }).catch(() => {
-      // If this fails, it's likely because the function doesn't exist yet
-      // We'll try a different approach
-      return { error: new Error('exec_sql function does not exist yet') };
-    });
+    // Try to use a direct SQL query approach
+    let error = null;
+    
+    try {
+      // Try to use the REST API directly to execute the SQL
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Missing Supabase credentials');
+      }
+
+      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify({ sql: sqlContent })
+      });
+      
+      if (!response.ok) {
+        error = new Error(`Failed to execute SQL: ${response.statusText}`);
+      }
+    } catch (err) {
+      error = err;
+      log('Error executing SQL directly: ' + (err as Error).message);
+    }
     
     if (error) {
       // If there was an error, it might be that exec_sql already exists
       // We'll check if we can execute a simple command to verify
-      const { error: testError } = await supabase.rpc('exec_sql', { sql: 'SELECT 1;' });
-      
-      if (testError) {
-        console.error('Error creating exec_sql function, and function does not exist:', error);
+      try {
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error('Missing Supabase credentials');
+        }
+        
+        const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`
+          },
+          body: JSON.stringify({ sql: 'SELECT 1;' })
+        });
+        
+        if (!response.ok) {
+          console.error('Error creating exec_sql function, and function does not exist:', error);
+          return false;
+        } else {
+          log('exec_sql function already exists and works.');
+        }
+      } catch (err) {
+        console.error('Error creating exec_sql function, and test query failed:', err);
         return false;
-      } else {
-        log('exec_sql function already exists and works.');
       }
     } else {
       log('Created exec_sql function in Supabase');
