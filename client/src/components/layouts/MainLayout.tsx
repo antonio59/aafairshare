@@ -68,18 +68,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 key={item.name} 
                 href={item.href}
                 onClick={closeMobileMenu}
+                className={cn(
+                  location === item.href
+                    ? 'text-primary bg-blue-50'
+                    : 'text-gray-600 hover:text-primary hover:bg-blue-50',
+                  'flex items-center px-2 py-2 text-sm font-medium rounded-md group'
+                )}
               >
-                <a
-                  className={cn(
-                    location === item.href
-                      ? 'text-primary bg-blue-50'
-                      : 'text-gray-600 hover:text-primary hover:bg-blue-50',
-                    'flex items-center px-2 py-2 text-sm font-medium rounded-md group'
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                  {item.name}
-                </a>
+                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                {item.name}
               </Link>
             ))}
           </nav>
@@ -135,18 +132,15 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   key={item.name} 
                   href={item.href}
                   onClick={closeMobileMenu}
+                  className={cn(
+                    location === item.href
+                      ? 'text-primary bg-blue-50'
+                      : 'text-gray-600 hover:text-primary hover:bg-blue-50',
+                    'flex items-center px-2 py-2 text-sm font-medium rounded-md group'
+                  )}
                 >
-                  <a
-                    className={cn(
-                      location === item.href
-                        ? 'text-primary bg-blue-50'
-                        : 'text-gray-600 hover:text-primary hover:bg-blue-50',
-                      'flex items-center px-2 py-2 text-sm font-medium rounded-md group'
-                    )}
-                  >
-                    <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                    {item.name}
-                  </a>
+                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
+                  {item.name}
                 </Link>
               ))}
             </nav>
@@ -189,16 +183,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
             <Link 
               key={item.name} 
               href={item.href}
+              className={cn(
+                'flex flex-col items-center py-3',
+                location === item.href ? 'text-primary' : 'text-gray-600'
+              )}
             >
-              <a
-                className={cn(
-                  'flex flex-col items-center py-3',
-                  location === item.href ? 'text-primary' : 'text-gray-600'
-                )}
-              >
-                <item.icon className="h-6 w-6" />
-                <span className="text-xs mt-1">{item.name}</span>
-              </a>
+              <item.icon className="h-6 w-6" />
+              <span className="text-xs mt-1">{item.name}</span>
             </Link>
           ))}
         </div>

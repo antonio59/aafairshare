@@ -1,8 +1,9 @@
-import { Express } from "express";
+import { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
 import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema } from "@shared/schema";
+import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes prefix
@@ -13,9 +14,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("API Error:", error);
     res.status(500).json({ message: error.message || "An error occurred" });
   };
+  
+  // Authentication middleware to protect routes
+  const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    if (req.isAuthenticated()) {
+      return next();
+    }
+    res.status(401).json({ message: "Unauthorized. Please log in." });
+  };
+  
+  // Authentication routes
+  app.post(`${API_PREFIX}/auth/login`, (req, res, next) => {
+    passport.authenticate('local', (err: Error, user: any, info: any) => {
+      if (err) {
+        return next(err);
+      }
+      
+      if (!user) {
+        return res.status(401).json({ message: info.message || "Invalid credentials" });
+      }
+      
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          return next(loginErr);
+        }
+        
+        return res.status(200).json({
+          message: "Login successful",
+          user: {
+            id: user.id,
+            username: user.username
+          }
+        });
+      });
+    })(req, res, next);
+  });
+  
+  app.post(`${API_PREFIX}/auth/logout`, (req, res) => {
+    req.logout((err) => {
+      if (err) {
+        return res.status(500).json({ message: "Logout failed" });
+      }
+      res.status(200).json({ message: "Logout successful" });
+    });
+  });
+  
+  app.get(`${API_PREFIX}/auth/status`, (req, res) => {
+    if (req.isAuthenticated()) {
+      return res.status(200).json({
+        isAuthenticated: true,
+        user: {
+          id: (req.user as any).id,
+          username: (req.user as any).username
+        }
+      });
+    }
+    res.status(200).json({ isAuthenticated: false });
+  });
 
   // Categories routes
-  app.get(`${API_PREFIX}/categories`, async (req, res) => {
+  app.get(`${API_PREFIX}/categories`, isAuthenticated, async (req, res) => {
     try {
       const categories = await storage.getAllCategories();
       res.json(categories);
@@ -24,7 +82,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post(`${API_PREFIX}/categories`, async (req, res) => {
+  app.post(`${API_PREFIX}/categories`, isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertCategorySchema.parse(req.body);
       const category = await storage.createCategory(validatedData);
@@ -34,7 +92,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch(`${API_PREFIX}/categories/:id`, async (req, res) => {
+  app.patch(`${API_PREFIX}/categories/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertCategorySchema.partial().parse(req.body);
@@ -50,7 +108,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete(`${API_PREFIX}/categories/:id`, async (req, res) => {
+  app.delete(`${API_PREFIX}/categories/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteCategory(id);
