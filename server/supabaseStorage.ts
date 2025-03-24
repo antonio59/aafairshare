@@ -36,102 +36,311 @@ export class SupabaseStorage implements IStorage {
   // Helper function to ensure tables exist and have default data
   private async ensureTablesExist(): Promise<boolean> {
     try {
-      // Create users table if it doesn't exist
+      console.log("Ensuring tables exist in Supabase...");
+      
+      // Create tables by trying an insert first to see if they exist
+      
+      // USERS TABLE
       try {
-        // First check if users table exists
-        await supabase.from('users').select('id').limit(1);
-        console.log("Users table exists");
-      } catch (error) {
-        // Create users table with correct schema
-        console.log("Creating users table...");
-        try {
-          // Table might not exist, use direct SQL to create it
-          const { data, error } = await supabase.from('_schemas').select('*');
-          console.log("Schema query result:", data ? "has data" : "no data", error ? error.message : "no error");
-          
-          // Create tables using Supabase API - this will create the table if it doesn't exist
+        // Check if users table exists
+        const { error: userCheckError } = await supabase.from('users').select('id').limit(1);
+        
+        if (userCheckError && userCheckError.code === '42P01') {
+          // Table doesn't exist, create sample data that will create the table
+          console.log("Creating users table with sample data...");
           const { error: createError } = await supabase.from('users').insert([
-            { id: 1, username: 'John', email: 'john@example.com', password: 'password' },
-            { id: 2, username: 'Sarah', email: 'sarah@example.com', password: 'password' }
-          ]).select();
+            { 
+              username: 'John',
+              email: 'john@example.com',
+              password: 'password'
+            },
+            { 
+              username: 'Sarah',
+              email: 'sarah@example.com',
+              password: 'password'
+            }
+          ]);
           
           if (createError) {
             console.error("Error creating users table:", createError);
           } else {
-            console.log("Successfully created users table and default users");
+            console.log("Users table created successfully");
           }
-        } catch (err) {
-          console.error("Exception creating users table:", err);
+        } else {
+          console.log("Users table already exists");
         }
+      } catch (err) {
+        console.error("Error checking/creating users table:", err);
       }
       
-      // Create categories table if it doesn't exist
+      // CATEGORIES TABLE
       try {
-        // First check if categories table exists
-        await supabase.from('categories').select('id').limit(1);
-        console.log("Categories table exists");
-      } catch (error) {
-        console.log("Creating categories table...");
-        try {
-          // Create categories table with default data
+        // Check if categories table exists
+        const { error: categoryCheckError } = await supabase.from('categories').select('id').limit(1);
+        
+        if (categoryCheckError && categoryCheckError.code === '42P01') {
+          // Table doesn't exist, create sample data that will create the table
+          console.log("Creating categories table with sample data...");
           const { error: createError } = await supabase.from('categories').insert([
-            { id: 1, name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
-            { id: 2, name: 'Rent', color: '#2196F3', icon: 'Home' },
-            { id: 3, name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
-            { id: 4, name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
-            { id: 5, name: 'Transportation', color: '#F44336', icon: 'Car' },
-            { id: 6, name: 'Dining', color: '#FF5722', icon: 'Utensils' },
-            { id: 7, name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
-            { id: 8, name: 'Other', color: '#607D8B', icon: 'Package' }
-          ]).select();
+            { name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
+            { name: 'Rent', color: '#2196F3', icon: 'Home' },
+            { name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
+            { name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
+            { name: 'Transportation', color: '#F44336', icon: 'Car' },
+            { name: 'Dining', color: '#FF5722', icon: 'Utensils' },
+            { name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
+            { name: 'Other', color: '#607D8B', icon: 'Package' }
+          ]);
           
           if (createError) {
             console.error("Error creating categories table:", createError);
           } else {
-            console.log("Successfully created categories table and default categories");
+            console.log("Categories table created successfully");
           }
-        } catch (err) {
-          console.error("Exception creating categories table:", err);
+        } else {
+          console.log("Categories table already exists");
         }
+      } catch (err) {
+        console.error("Error checking/creating categories table:", err);
       }
       
-      // Create locations table if it doesn't exist
+      // LOCATIONS TABLE
       try {
-        // First check if locations table exists
-        await supabase.from('locations').select('id').limit(1);
-        console.log("Locations table exists");
-      } catch (error) {
-        console.log("Creating locations table...");
-        try {
-          // Create locations table with default data
+        // Check if locations table exists
+        const { error: locationCheckError } = await supabase.from('locations').select('id').limit(1);
+        
+        if (locationCheckError && locationCheckError.code === '42P01') {
+          // Table doesn't exist, create sample data that will create the table
+          console.log("Creating locations table with sample data...");
           const { error: createError } = await supabase.from('locations').insert([
-            { id: 1, name: 'Supermarket' },
-            { id: 2, name: 'Restaurant' },
-            { id: 3, name: 'Online' },
-            { id: 4, name: 'Cinema' },
-            { id: 5, name: 'Pharmacy' },
-            { id: 6, name: 'Gas Station' },
-            { id: 7, name: 'Home' },
-            { id: 8, name: 'Other' }
-          ]).select();
+            { name: 'Supermarket' },
+            { name: 'Restaurant' },
+            { name: 'Online' },
+            { name: 'Cinema' },
+            { name: 'Pharmacy' },
+            { name: 'Gas Station' },
+            { name: 'Home' },
+            { name: 'Other' }
+          ]);
           
           if (createError) {
             console.error("Error creating locations table:", createError);
           } else {
-            console.log("Successfully created locations table and default locations");
+            console.log("Locations table created successfully");
           }
-        } catch (err) {
-          console.error("Exception creating locations table:", err);
+        } else {
+          console.log("Locations table already exists");
         }
+      } catch (err) {
+        console.error("Error checking/creating locations table:", err);
       }
       
-      // Since expenses, settlements, and recurring_expenses tables reference the others,
-      // they will be created when needed by the respective operations
+      // EXPENSES TABLE
+      try {
+        // Check if expenses table exists
+        const { error: expenseCheckError } = await supabase.from('expenses').select('id').limit(1);
+        
+        if (expenseCheckError && expenseCheckError.code === '42P01') {
+          // Table doesn't exist, we need the other tables to exist first
+          // Let's try to create it with a sample expense that has valid foreign keys
+          console.log("Creating expenses table with sample data...");
+          
+          // Get a valid category, location, and user
+          const { data: categories } = await supabase.from('categories').select('id').limit(1);
+          const { data: locations } = await supabase.from('locations').select('id').limit(1);
+          const { data: users } = await supabase.from('users').select('id').limit(1);
+          
+          if (categories?.length && locations?.length && users?.length) {
+            // Now we can create a sample expense
+            const { error: createError } = await supabase.from('expenses').insert([
+              { 
+                description: 'Sample Expense',
+                amount: '10.00',
+                date: new Date().toISOString(),
+                category_id: categories[0].id,
+                location_id: locations[0].id,
+                paid_by_user_id: users[0].id,
+                split_type: '50/50',
+                notes: 'This is a sample expense to create the table structure'
+              }
+            ]);
+            
+            if (createError) {
+              if (createError.code === '42P01') {
+                console.log("Expenses table needs to be created with correct schema");
+              } else {
+                console.error("Error creating expenses table:", createError);
+              }
+            } else {
+              console.log("Expenses table created successfully");
+              
+              // Now delete the sample expense as it was just for table creation
+              await supabase.from('expenses').delete().eq('description', 'Sample Expense');
+            }
+          } else {
+            console.log("Dependencies not available for expenses table creation");
+          }
+        } else {
+          console.log("Expenses table already exists");
+        }
+      } catch (err) {
+        console.error("Error checking/creating expenses table:", err);
+      }
       
+      // RECURRING EXPENSES TABLE - Similar approach as expenses table
+      try {
+        const { error: recurringCheckError } = await supabase.from('recurring_expenses').select('id').limit(1);
+        
+        if (recurringCheckError && recurringCheckError.code === '42P01') {
+          console.log("Creating recurring_expenses table with sample data...");
+          
+          // Get a valid category, location, and user
+          const { data: categories } = await supabase.from('categories').select('id').limit(1);
+          const { data: locations } = await supabase.from('locations').select('id').limit(1);
+          const { data: users } = await supabase.from('users').select('id').limit(1);
+          
+          if (categories?.length && locations?.length && users?.length) {
+            // Create sample recurring expense
+            const { error: createError } = await supabase.from('recurring_expenses').insert([
+              { 
+                name: 'Sample Recurring',
+                description: 'Sample Recurring Expense',
+                amount: '25.00',
+                frequency: 'monthly',
+                start_date: new Date().toISOString(),
+                next_date: new Date().toISOString(),
+                category_id: categories[0].id,
+                location_id: locations[0].id,
+                paid_by_user_id: users[0].id,
+                split_type: '50/50',
+                is_active: false,
+                notes: 'This is a sample recurring expense to create the table structure'
+              }
+            ]);
+            
+            if (createError) {
+              if (createError.code === '42P01') {
+                console.log("Recurring expenses table needs to be created with correct schema");
+              } else {
+                console.error("Error creating recurring_expenses table:", createError);
+              }
+            } else {
+              console.log("Recurring expenses table created successfully");
+              
+              // Now delete the sample as it was just for table creation
+              await supabase.from('recurring_expenses').delete().eq('name', 'Sample Recurring');
+            }
+          }
+        } else {
+          console.log("Recurring expenses table already exists");
+        }
+      } catch (err) {
+        console.error("Error checking/creating recurring_expenses table:", err);
+      }
+      
+      // SETTLEMENTS TABLE
+      try {
+        const { error: settlementCheckError } = await supabase.from('settlements').select('id').limit(1);
+        
+        if (settlementCheckError && settlementCheckError.code === '42P01') {
+          console.log("Creating settlements table with sample data...");
+          
+          // Get valid users
+          const { data: users } = await supabase.from('users').select('id').limit(2);
+          
+          if (users && users.length >= 2) {
+            // Create sample settlement
+            const { error: createError } = await supabase.from('settlements').insert([
+              { 
+                amount: '15.00',
+                date: new Date().toISOString(),
+                month: new Date().toISOString().substring(0, 7), // YYYY-MM format
+                from_user_id: users[0].id,
+                to_user_id: users[1].id,
+                notes: 'This is a sample settlement to create the table structure'
+              }
+            ]);
+            
+            if (createError) {
+              if (createError.code === '42P01') {
+                console.log("Settlements table needs to be created with correct schema");
+              } else {
+                console.error("Error creating settlements table:", createError);
+              }
+            } else {
+              console.log("Settlements table created successfully");
+              
+              // Now delete the sample as it was just for table creation
+              await supabase.from('settlements').delete().eq('notes', 'This is a sample settlement to create the table structure');
+            }
+          }
+        } else {
+          console.log("Settlements table already exists");
+        }
+      } catch (err) {
+        console.error("Error checking/creating settlements table:", err);
+      }
+      
+      // Now let's make sure we have default data
+      await this.addDefaultDataIfNeeded();
+      
+      console.log("Supabase tables initialized successfully!");
       return true;
     } catch (error) {
       console.error("Error initializing Supabase tables:", error);
       return false;
+    }
+  }
+  
+  // Helper method to add default data if tables are empty
+  private async addDefaultDataIfNeeded(): Promise<void> {
+    try {
+      // Add default users if there are none
+      const { data: users } = await supabase.from('users').select('id');
+      
+      if (!users || users.length === 0) {
+        console.log("Adding default users...");
+        await supabase.from('users').insert([
+          { id: 1, username: 'John', email: 'john@example.com', password: 'password' },
+          { id: 2, username: 'Sarah', email: 'sarah@example.com', password: 'password' }
+        ]);
+      }
+      
+      // Add default categories if there are none
+      const { data: categories } = await supabase.from('categories').select('id');
+      
+      if (!categories || categories.length === 0) {
+        console.log("Adding default categories...");
+        await supabase.from('categories').insert([
+          { id: 1, name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
+          { id: 2, name: 'Rent', color: '#2196F3', icon: 'Home' },
+          { id: 3, name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
+          { id: 4, name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
+          { id: 5, name: 'Transportation', color: '#F44336', icon: 'Car' },
+          { id: 6, name: 'Dining', color: '#FF5722', icon: 'Utensils' },
+          { id: 7, name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
+          { id: 8, name: 'Other', color: '#607D8B', icon: 'Package' }
+        ]);
+      }
+      
+      // Add default locations if there are none
+      const { data: locations } = await supabase.from('locations').select('id');
+      
+      if (!locations || locations.length === 0) {
+        console.log("Adding default locations...");
+        await supabase.from('locations').insert([
+          { id: 1, name: 'Supermarket' },
+          { id: 2, name: 'Restaurant' },
+          { id: 3, name: 'Online' },
+          { id: 4, name: 'Cinema' },
+          { id: 5, name: 'Pharmacy' },
+          { id: 6, name: 'Gas Station' },
+          { id: 7, name: 'Home' },
+          { id: 8, name: 'Other' }
+        ]);
+      }
+    } catch (error) {
+      console.error("Error adding default data:", error);
     }
   }
   // User operations
@@ -176,6 +385,56 @@ export class SupabaseStorage implements IStorage {
     }));
     
     try {
+      // First check if the users table exists and if not create it
+      try {
+        const { error: tableCheckError } = await supabase.from('users').select('id').limit(1);
+        
+        if (tableCheckError && tableCheckError.code === '42P01') {
+          console.log("Users table does not exist, creating it now...");
+          
+          // Use RPC to create the table using SQL
+          const createTableSQL = `
+            CREATE TABLE IF NOT EXISTS users (
+              id SERIAL PRIMARY KEY,
+              username TEXT NOT NULL UNIQUE,
+              email TEXT NOT NULL UNIQUE,
+              password TEXT NOT NULL
+            );
+          `;
+          
+          // Get Supabase credentials
+          const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
+          const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+          
+          if (!supabaseUrl || !supabaseKey) {
+            console.error("Missing Supabase credentials");
+            throw new Error("Missing Supabase credentials");
+          }
+          
+          // Execute the SQL directly with fetch
+          const createResponse = await fetch(`${supabaseUrl}/rest/v1/`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': supabaseKey,
+              'Authorization': `Bearer ${supabaseKey}`,
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ query: createTableSQL })
+          });
+          
+          if (!createResponse.ok) {
+            console.error("Error creating users table:", await createResponse.text());
+          } else {
+            console.log("Created users table successfully");
+          }
+        }
+      } catch (tableErr) {
+        console.error("Error checking/creating users table:", tableErr);
+      }
+      
+      // Now try to insert the user
+      console.log("Attempting to insert user into users table");
       const { data, error } = await supabase
         .from('users')
         .insert(user)
@@ -184,7 +443,8 @@ export class SupabaseStorage implements IStorage {
       
       if (error) {
         console.error("Supabase error creating user:", error);
-        throw new Error(`Failed to create user: ${error.message}`);
+        console.error("Error details:", JSON.stringify(error));
+        throw new Error(`Failed to create user: ${error.message || JSON.stringify(error)}`);
       }
       
       if (!data) {
@@ -196,6 +456,7 @@ export class SupabaseStorage implements IStorage {
       return data as User;
     } catch (err) {
       console.error("Exception creating user:", err);
+      console.error("Error stack:", (err as Error).stack);
       throw new Error(`Failed to create user: ${(err as Error).message}`);
     }
   }
