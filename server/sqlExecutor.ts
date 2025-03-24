@@ -1,5 +1,13 @@
 import { supabase } from './supabase';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { log } from './vite';
+
+// Get the current file's directory path (ESM compatible)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 interface PostgresResult {
   success: boolean;
@@ -13,77 +21,63 @@ interface PostgresResult {
  */
 export async function executeSql(sql: string): Promise<PostgresResult> {
   try {
-    // Get Supabase credentials
-    const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
-    const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+    console.log("Executing SQL directly...");
     
-    if (!supabaseUrl || !supabaseKey) {
-      console.error("Missing Supabase credentials");
-      return { success: false, message: "Missing Supabase credentials" };
-    }
-    
-    console.log("Executing SQL:", sql.substring(0, 100) + (sql.length > 100 ? "..." : ""));
-    
-    // For Supabase, we can't execute arbitrary SQL directly through the REST API
-    // However, we can use the Supabase client to perform operations that match our needs
-    
+    // First try to use the exec_sql RPC function
     try {
-      // Check what kind of operation we're trying to perform
-      const operation = sql.trim().split(/\s+/)[0].toUpperCase();
-      
-      if (operation === 'CREATE' && sql.includes('TABLE IF NOT EXISTS')) {
-        // This is a table creation - we can check if the table exists
-        // and if not, create it using the regular API
-        const tableName = sql.match(/CREATE\s+TABLE\s+IF\s+NOT\s+EXISTS\s+(\w+)/i)?.[1];
-        
-        if (!tableName) {
-          return { 
-            success: false, 
-            message: "Could not extract table name from CREATE TABLE statement" 
-          };
-        }
-        
-        // Try checking if the table exists by querying it
-        try {
-          await supabase.from(tableName).select('count').limit(1);
-          // If we get here, the table exists
-          return { success: true, message: `Table ${tableName} already exists` };
-        } catch (tableError: any) {
-          if (tableError.code === '42P01') { // Table doesn't exist
-            // We couldn't create the table through SQL directly, but we can 
-            // inform the caller so they can use the regular API methods
-            return { 
-              success: false, 
-              message: `Table ${tableName} doesn't exist and must be created using the Supabase API`,
-              tableName
-            };
-          } else {
-            // Some other error
-            return { 
-              success: false, 
-              message: `Error checking if table ${tableName} exists: ${tableError.message}`
-            };
-          }
-        }
+      const { error } = await supabase.rpc('exec_sql', { sql });
+      if (error) {
+        console.error("RPC exec_sql error:", error);
+        throw error;
       }
       
-      // For other operations, we use the regular Supabase client methods
-      // This is a fallback that will almost certainly not work for raw SQL
-      console.log("Warning: Direct SQL execution is not supported. Using Supabase client API instead.");
       return { 
-        success: false, 
-        message: "Direct SQL execution not supported in this environment. Please use the Supabase API methods."
+        success: true, 
+        message: "SQL executed successfully via RPC" 
       };
-    } catch (err) {
-      console.error("Error in SQL execution logic:", err);
-      return { 
-        success: false, 
-        message: `Error in SQL execution logic: ${(err as Error).message}`
-      };
+    } catch (rpcError) {
+      console.error("Failed to execute SQL via RPC. Error:", rpcError);
+      
+      // Try fallback method - make direct HTTP request to Supabase
+      try {
+        console.log("Attempting direct REST API execution...");
+        
+        const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
+        const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+        
+        if (!supabaseUrl || !supabaseKey) {
+          throw new Error("Supabase credentials not available");
+        }
+        
+        const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': supabaseKey,
+            'Authorization': `Bearer ${supabaseKey}`
+          },
+          body: JSON.stringify({ sql })
+        });
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`REST API execution failed: ${response.status} ${response.statusText} - ${errorText}`);
+        }
+        
+        return { 
+          success: true, 
+          message: "SQL executed successfully via REST API" 
+        };
+      } catch (restError) {
+        console.error("REST API execution failed:", restError);
+        throw restError;
+      }
     }
   } catch (error) {
-    console.error("Failed to execute SQL:", error);
-    return { success: false, message: `Failed to execute SQL: ${(error as Error).message}` };
+    return { 
+      success: false, 
+      message: `Error executing SQL: ${(error as Error).message}`
+    };
   }
 }
 
@@ -93,33 +87,62 @@ export async function executeSql(sql: string): Promise<PostgresResult> {
  */
 export async function createTableIfNotExists(tableName: string, tableSchema: string): Promise<PostgresResult> {
   try {
-    // First check if the table exists
-    try {
-      const { error } = await supabase.from(tableName).select('count').limit(1);
-      
-      if (!error) {
-        // Table exists
-        return { success: true, message: `Table ${tableName} already exists` };
-      }
-      
-      if (error.code !== '42P01') {
-        // Some other error
-        return { success: false, message: `Error checking table ${tableName}: ${error.message}` };
-      }
-    } catch (err) {
-      // Continue to create the table
-    }
+    console.log(`Creating table ${tableName} if it doesn't exist...`);
     
-    // Table doesn't exist, create it
-    const sql = `
+    const result = await executeSql(`
       CREATE TABLE IF NOT EXISTS ${tableName} (
         ${tableSchema}
       );
-    `;
+    `);
     
-    return await executeSql(sql);
+    return {
+      ...result,
+      tableName,
+      message: result.success 
+        ? `Table ${tableName} created or already exists` 
+        : `Failed to create table ${tableName}: ${result.message}`
+    };
   } catch (error) {
-    console.error(`Failed to create table ${tableName}:`, error);
-    return { success: false, message: `Failed to create table ${tableName}: ${(error as Error).message}` };
+    return { 
+      success: false, 
+      tableName,
+      message: `Error creating table ${tableName}: ${(error as Error).message}`
+    };
+  }
+}
+
+/**
+ * Execute the contents of the direct_sql_tables.sql file
+ * to create all tables at once
+ */
+export async function executeSqlFile(): Promise<PostgresResult> {
+  try {
+    // Read the SQL file
+    const sqlFilePath = path.resolve(__dirname, 'direct_sql_tables.sql');
+    
+    if (!fs.existsSync(sqlFilePath)) {
+      return {
+        success: false,
+        message: `SQL file not found at ${sqlFilePath}`
+      };
+    }
+    
+    const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
+    console.log("Executing SQL file content...");
+    
+    // Execute the SQL
+    const result = await executeSql(sqlContent);
+    
+    return {
+      ...result,
+      message: result.success 
+        ? "SQL file executed successfully" 
+        : `Failed to execute SQL file: ${result.message}`
+    };
+  } catch (error) {
+    return {
+      success: false,
+      message: `Error executing SQL file: ${(error as Error).message}`
+    };
   }
 }

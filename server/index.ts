@@ -7,6 +7,8 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { storage, MemStorage, IStorage } from "./storage"; 
 import { SupabaseStorage } from "./supabaseStorage";
 import { initializeSupabaseDatabase } from "./initSupabase";
+import { createSupabaseFunctions } from "./createSupabaseFunctions";
+import { executeSqlFile } from "./sqlExecutor";
 
 const app = express();
 app.use(express.json());

@@ -42,67 +42,89 @@ export class SupabaseStorage implements IStorage {
     try {
       console.log("Ensuring tables exist in Supabase...");
       
-      // Create tables by trying an insert first to see if they exist
+      // Create tables using direct SQL through RPC or REST API
       
       // USERS TABLE
       try {
-        // Check if users table exists
-        const { error: userCheckError } = await supabase.from('users').select('id').limit(1);
+        // Directly create the users table using SQL
+        console.log("Creating users table using SQL...");
         
-        if (userCheckError && userCheckError.code === '42P01') {
-          // Table doesn't exist, create sample data that will create the table
-          console.log("Creating users table with sample data...");
-          const { error: createError } = await supabase.from('users').insert([
-            { 
-              username: 'John',
-              email: 'john@example.com',
-              password: 'password'
-            },
-            { 
-              username: 'Sarah',
-              email: 'sarah@example.com',
-              password: 'password'
-            }
-          ]);
+        // Use supabase.rpc if available in your project
+        const createUsersSql = `
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            email TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+        `;
+        
+        // Execute the SQL directly
+        const { error: createError } = await supabase.rpc('exec_sql', { sql: createUsersSql });
+        
+        if (createError) {
+          console.error("Error creating users table via SQL:", createError);
+          console.log("Trying to check if the table already exists...");
           
-          if (createError) {
-            console.error("Error creating users table:", createError);
+          // Check if the table already exists
+          const { error: checkError } = await supabase.from('users').select('id').limit(1);
+          
+          if (checkError) {
+            console.error("Error checking users table:", checkError);
           } else {
-            console.log("Users table created successfully");
+            console.log("Users table exists and is accessible");
           }
         } else {
-          console.log("Users table already exists");
+          console.log("Users table created successfully via SQL");
         }
       } catch (err) {
-        console.error("Error checking/creating users table:", err);
+        console.error("Exception during users table creation:", err);
       }
       
       // CATEGORIES TABLE
       try {
-        // Check if categories table exists
-        const { error: categoryCheckError } = await supabase.from('categories').select('id').limit(1);
+        // Directly create the categories table using SQL
+        console.log("Creating categories table using SQL...");
         
-        if (categoryCheckError && categoryCheckError.code === '42P01') {
-          // Table doesn't exist, create sample data that will create the table
-          console.log("Creating categories table with sample data...");
-          const { error: createError } = await supabase.from('categories').insert([
-            { name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
-            { name: 'Rent', color: '#2196F3', icon: 'Home' },
-            { name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
-            { name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
-            { name: 'Transportation', color: '#F44336', icon: 'Car' },
-            { name: 'Dining', color: '#FF5722', icon: 'Utensils' },
-            { name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
-            { name: 'Other', color: '#607D8B', icon: 'Package' }
-          ]);
+        const createCategoriesSql = `
+          CREATE TABLE IF NOT EXISTS categories (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            color TEXT NOT NULL,
+            icon TEXT NOT NULL,
+            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+          );
+        `;
+        
+        // Execute the SQL directly
+        const { error: createError } = await supabase.rpc('exec_sql', { sql: createCategoriesSql });
+        
+        if (createError) {
+          console.error("Error creating categories table via SQL:", createError);
           
-          if (createError) {
-            console.error("Error creating categories table:", createError);
+          // Check if the table already exists
+          const { error: checkError } = await supabase.from('categories').select('id').limit(1);
+          
+          if (checkError) {
+            console.error("Error checking categories table:", checkError);
+            
+            // Try direct insert to create the table
+            console.log("Trying to create categories via insert...");
+            const { error: insertError } = await supabase.from('categories').insert([
+              { name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' }
+            ]);
+            
+            if (insertError) {
+              console.error("Failed to create categories via insert:", insertError);
+            } else {
+              console.log("Categories table created via insert");
+            }
           } else {
-            console.log("Categories table created successfully");
+            console.log("Categories table exists and is accessible");
           }
         } else {
-          console.log("Categories table already exists");
+          console.log("Categories table created successfully via SQL");
         }
       } catch (err) {
         console.error("Error checking/creating categories table:", err);
