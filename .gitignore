@@ -87,3 +87,21 @@ pnpm-debug.log*
 Thumbs.db
 *.pem
 *storybook.log
+
+# Backup and temporary files
+.eslintrc.json.bak
+*.bak
+supabase/.temp/
+
+# Test snapshots and reports
+e2e/tests/**/*.spec.ts-snapshots/
+e2e/tests/**/*-snapshots/
+src/tests/reports/
+src/tests/**/*.spec.ts-snapshots/
+
+# Generated files
+public/client-settlements.js
+public/dashboard-client.js
+
+# Credentials and secrets
+.github/github-pat.txt
