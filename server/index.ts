@@ -100,17 +100,36 @@ app.use((req, res, next) => {
   
   const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
   const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || (import.meta.env.SUPABASE_SERVICE_KEY as string);
   
-  // We'll just use in-memory storage consistently since Supabase table creation has issues
-  log("Using in-memory storage for a consistent experience");
-  storageImplementation = storage;
-  
-  // Output connection info about Supabase but we won't try to use it for table creation
-  if (supabaseUrl && supabaseKey) {
-    log("Supabase credentials found but we're using in-memory storage for reliability");
-    log("You can access Supabase directly via the Supabase dashboard");
+  // Try to use Supabase with service key if available
+  if (supabaseUrl && supabaseServiceKey) {
+    log("Supabase service key found - using Supabase for persistent storage");
+    try {
+      // Initialize the SupabaseStorage
+      storageImplementation = new SupabaseStorage();
+      // Execute createSupabaseFunctions to create any required SQL functions 
+      await createSupabaseFunctions();
+      log("Successfully initialized Supabase storage with service key");
+    } catch (error) {
+      log(`Error initializing Supabase storage: ${error}`);
+      log("Falling back to in-memory storage");
+      storageImplementation = storage;
+    }
+  } else if (supabaseUrl && supabaseKey) {
+    log("Supabase API key found but no service key - attempting to use Supabase for storage");
+    try {
+      // Initialize the SupabaseStorage
+      storageImplementation = new SupabaseStorage();
+      log("Successfully initialized Supabase storage with regular API key");
+    } catch (error) {
+      log(`Error initializing Supabase storage: ${error}`);
+      log("Falling back to in-memory storage");
+      storageImplementation = storage;
+    }
   } else {
     log("No Supabase credentials found. Using in-memory storage only.");
+    storageImplementation = storage;
   }
   
   const server = await registerRoutes(app);
@@ -151,9 +170,19 @@ app.use((req, res, next) => {
       log(`The app is now running and should be accessible via Replit`);
       log(`If you're accessing from outside Replit, use http://0.0.0.0:${port}`);
       
-      log("Data will be stored in-memory only (will be lost on restart).");
-      if (supabaseUrl && supabaseKey) {
-        log("Note: Supabase credentials exist but we're using in-memory storage for reliable operation.");
+      // Show appropriate storage message
+      if (storageImplementation instanceof SupabaseStorage) {
+        log("Data will be stored persistently in Supabase.");
+        if (supabaseServiceKey) {
+          log("Using service key with admin privileges for database operations.");
+        } else {
+          log("Using regular API key for database operations.");
+        }
+      } else {
+        log("Data will be stored in-memory only (will be lost on restart).");
+        if (supabaseUrl && (supabaseKey || supabaseServiceKey)) {
+          log("Note: Supabase connection failed, falling back to in-memory storage.");
+        }
       }
     });
   };
