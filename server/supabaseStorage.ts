@@ -903,6 +903,7 @@ export class SupabaseStorage implements IStorage {
       if (nextDate <= today) {
         // Create a new expense based on the recurring expense
         const newExpense: InsertExpense = {
+          description: recurringExpense.description,
           amount: recurringExpense.amount,
           date: nextDate,
           paid_by_user_id: recurringExpense.paid_by_user_id,
@@ -1056,7 +1057,7 @@ export class SupabaseStorage implements IStorage {
     // Calculate user expenses
     const userExpenses: Record<number, number> = {};
     for (const expense of monthExpenses) {
-      const paidById = expense.paid_by;
+      const paidById = expense.paidByUser.id;
       
       if (!userExpenses[paidById]) {
         userExpenses[paidById] = 0;
@@ -1146,11 +1147,11 @@ export class SupabaseStorage implements IStorage {
     const user2Id = users[1].id;
     
     const user1Paid = monthExpenses
-      .filter(expense => expense.paid_by === user1Id)
+      .filter(expense => expense.paidByUser.id === user1Id)
       .reduce((total, expense) => total + Number(expense.amount), 0);
     
     const user2Paid = monthExpenses
-      .filter(expense => expense.paid_by === user2Id)
+      .filter(expense => expense.paidByUser.id === user2Id)
       .reduce((total, expense) => total + Number(expense.amount), 0);
     
     // Calculate the 50/50 split (how much each should pay)
@@ -1158,12 +1159,12 @@ export class SupabaseStorage implements IStorage {
     
     // Calculate what user1 actually paid for user2
     const user1PaidForUser2 = monthExpenses
-      .filter(expense => expense.paid_by === user1Id && expense.split_type === "50/50")
+      .filter(expense => expense.paidByUser.id === user1Id && expense.split_type === "50/50")
       .reduce((total, expense) => total + Number(expense.amount) / 2, 0);
     
     // Calculate what user2 actually paid for user1
     const user2PaidForUser1 = monthExpenses
-      .filter(expense => expense.paid_by === user2Id && expense.split_type === "50/50")
+      .filter(expense => expense.paidByUser.id === user2Id && expense.split_type === "50/50")
       .reduce((total, expense) => total + Number(expense.amount) / 2, 0);
     
     // Calculate the final settlement amount
