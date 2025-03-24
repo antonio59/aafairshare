@@ -23,11 +23,12 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { LockKeyhole, User } from "lucide-react";
+import { LockKeyhole, User, Mail } from "lucide-react";
 
 // Form schema for validation
 const formSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
+  email: z.string().email("Please enter a valid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
   confirmPassword: z.string().min(6, "Confirm password is required"),
 }).refine(data => data.password === data.confirmPassword, {
@@ -47,6 +48,7 @@ export default function Register() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       username: "",
+      email: "",
       password: "",
       confirmPassword: "",
     },
@@ -59,6 +61,7 @@ export default function Register() {
     try {
       const response = await apiRequest('POST', '/api/auth/register', {
         username: data.username,
+        email: data.email,
         password: data.password
       });
       
@@ -115,6 +118,30 @@ export default function Register() {
                         <Input
                           className="pl-10"
                           placeholder="Enter a username"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Mail className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <Input
+                          className="pl-10"
+                          type="email"
+                          placeholder="Enter your email address"
                           {...field}
                           disabled={isLoading}
                         />
