@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import SummaryCard from "@/components/SummaryCard";
 import ExpenseTable from "@/components/ExpenseTable";
@@ -33,7 +33,7 @@ export default function Dashboard() {
   });
 
   // If there's an error with summary, show toast
-  React.useEffect(() => {
+  useEffect(() => {
     if (summaryError) {
       toast({
         title: "Error",
@@ -55,7 +55,7 @@ export default function Dashboard() {
   });
   
   // If there's an error with expenses, show toast
-  React.useEffect(() => {
+  useEffect(() => {
     if (expensesError) {
       toast({
         title: "Error",
