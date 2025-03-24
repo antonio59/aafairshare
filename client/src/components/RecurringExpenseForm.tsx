@@ -591,7 +591,7 @@ export default function RecurringExpenseForm({
                             {categories.map((category) => (
                               <CommandItem
                                 key={category.id}
-                                value={category.name}
+                                value={category.name.toString()}
                                 onSelect={() => {
                                   form.setValue("category_id", category.id);
                                 }}
