@@ -255,7 +255,13 @@ export class MemStorage implements IStorage {
 
   async createExpense(insertExpense: InsertExpense): Promise<ExpenseWithDetails> {
     const id = this.expenseIdCounter++;
-    const expense = { ...insertExpense, id };
+    // Ensure that split_type is always defined with a default value if needed
+    const expense = { 
+      ...insertExpense, 
+      id,
+      split_type: insertExpense.split_type || "50/50",
+      notes: insertExpense.notes || null
+    };
     this.expenses.set(id, expense);
     
     const expenseWithDetails = await this.getExpense(id);

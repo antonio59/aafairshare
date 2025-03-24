@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import SummaryCard from "@/components/SummaryCard";
 import SettlementHistory from "@/components/SettlementHistory";
@@ -37,7 +37,7 @@ export default function Settlement() {
   });
 
   // Show error toast if summary query fails
-  React.useEffect(() => {
+  useEffect(() => {
     if (summaryError) {
       toast({
         title: "Error",

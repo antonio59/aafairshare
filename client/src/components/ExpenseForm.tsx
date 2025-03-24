@@ -382,7 +382,11 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                     <Textarea
                       placeholder="Optional notes about this expense"
                       className="resize-none"
-                      {...field}
+                      value={field.value || ''}
+                      onChange={field.onChange}
+                      onBlur={field.onBlur}
+                      name={field.name}
+                      ref={field.ref}
                     />
                   </FormControl>
                   <FormMessage />
