@@ -55,7 +55,7 @@ export const expenses = pgTable("expenses", {
   description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
-  paid_by: integer("paid_by_user_id").notNull(), // reference to user ID
+  paid_by_user_id: integer("paid_by_user_id").notNull(), // reference to user ID
   split_type: text("split_type").notNull().default("50/50"),
   notes: text("notes"),
   category_id: integer("category_id").notNull(), // reference to category ID
@@ -67,7 +67,7 @@ export const insertExpenseSchema = createInsertSchema(expenses).pick({
   description: true,
   amount: true,
   date: true,
-  paid_by: true,
+  paid_by_user_id: true,
   split_type: true,
   notes: true,
   category_id: true,
@@ -124,7 +124,7 @@ export const recurringExpenses = pgTable("recurring_expenses", {
   start_date: timestamp("start_date").notNull(),
   end_date: timestamp("end_date"),
   next_date: timestamp("next_date").notNull(),
-  paid_by: integer("paid_by_user_id").notNull(), // reference to user ID
+  paid_by_user_id: integer("paid_by_user_id").notNull(), // reference to user ID
   split_type: text("split_type").notNull().default("50/50"),
   notes: text("notes"),
   category_id: integer("category_id").notNull(), // reference to category ID
@@ -140,7 +140,7 @@ export const insertRecurringExpenseSchema = createInsertSchema(recurringExpenses
   start_date: true,
   end_date: true,
   next_date: true,
-  paid_by: true,
+  paid_by_user_id: true,
   split_type: true,
   notes: true,
   category_id: true,
