@@ -123,9 +123,11 @@ export function Combobox({
                 <CommandGroup>
                   <CommandItem
                     onSelect={() => {
-                      onCreateNew(searchQuery)
-                      setOpen(false)
-                      setSearchQuery("")
+                      if (onCreateNew) {
+                        onCreateNew(searchQuery)
+                        setOpen(false)
+                        setSearchQuery("")
+                      }
                     }}
                   >
                     <Plus className="mr-2 h-4 w-4" />

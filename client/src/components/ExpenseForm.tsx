@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertExpenseSchema } from "@shared/schema";
+import { insertExpenseSchema, insertLocationSchema } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
@@ -12,11 +12,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Combobox, ComboboxItem } from "@/components/ui/combobox";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Category, ExpenseWithDetails, Location, User } from "@shared/schema";
+import { Category, ExpenseWithDetails, Location, User, InsertLocation } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { SPLIT_TYPES } from "@/lib/constants";
 
@@ -54,6 +55,18 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
+  });
+  
+  // Create new location mutation
+  const createLocationMutation = useMutation({
+    mutationFn: async (locationName: string): Promise<Location> => {
+      const newLocation: InsertLocation = { name: locationName };
+      const response = await apiRequest('POST', '/api/locations', newLocation);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+    },
   });
   
   // Form setup
@@ -202,34 +215,61 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
             <FormField
               control={form.control}
               name="location_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(parseInt(value))} 
-                    defaultValue={field.value?.toString()}
-                    value={field.value?.toString()}
-                  >
+              render={({ field }) => {
+                // Convert locations array to combobox items
+                const locationItems: ComboboxItem[] = locations?.map(location => ({
+                  value: location.id.toString(),
+                  label: location.name
+                })) || [];
+                
+                // Find the selected location
+                const selectedLocation = locations?.find(loc => loc.id === field.value);
+                
+                // Handle creation of a new location
+                const handleCreateLocation = async (locationName: string) => {
+                  try {
+                    const newLocation = await createLocationMutation.mutateAsync(locationName);
+                    // Update the form field with the new location ID
+                    field.onChange(newLocation.id);
+                    
+                    toast({
+                      title: "Location added",
+                      description: `"${locationName}" has been added to locations.`,
+                    });
+                  } catch (error) {
+                    toast({
+                      title: "Error",
+                      description: "Failed to create new location.",
+                      variant: "destructive"
+                    });
+                  }
+                };
+                
+                return (
+                  <FormItem>
+                    <FormLabel>Location</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a location" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
                       {locationsLoading ? (
-                        <SelectItem value="loading" disabled>Loading locations...</SelectItem>
+                        <Button variant="outline" disabled className="w-full justify-start">
+                          Loading locations...
+                        </Button>
                       ) : (
-                        locations?.map((location) => (
-                          <SelectItem key={location.id} value={location.id.toString()}>
-                            {location.name}
-                          </SelectItem>
-                        ))
+                        <Combobox
+                          items={locationItems}
+                          value={field.value?.toString()}
+                          onSelect={(value) => field.onChange(parseInt(value))}
+                          onCreateNew={handleCreateLocation}
+                          placeholder="Select or add a location"
+                          createNewLabel="Add new location"
+                          emptyMessage="No locations found. Type to add a new one."
+                          disabled={isSubmitting}
+                        />
                       )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             
             <FormField
