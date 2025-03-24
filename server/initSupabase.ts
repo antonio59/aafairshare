@@ -65,18 +65,34 @@ export async function initializeSupabaseDatabase() {
 
 async function createTables() {
   try {
-    log("Creating tables via direct PostgreSQL connection...");
+    log("Creating tables via direct SQL...");
     
-    // Try to execute the full SQL file first using PostgreSQL
-    const result = await executeSqlFileWithPostgres();
+    // Read and execute the SQL file directly
+    const sqlFilePath = path.resolve(__dirname, 'direct_sql_tables.sql');
+    const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
     
-    if (result.success) {
-      log("Successfully created tables via direct PostgreSQL connection!");
-      return true;
+    // Execute each statement separately
+    const statements = sqlContent.split(';')
+      .map(stmt => stmt.trim())
+      .filter(stmt => stmt.length > 0);
+    
+    for (const statement of statements) {
+      try {
+        const { data, error } = await supabase.rpc('exec_sql', {
+          sql_query: statement
+        });
+        
+        if (error) {
+          log(`Warning executing statement: ${error.message}`);
+        } else {
+          log(`Successfully executed SQL statement`);
+        }
+      } catch (stmtError) {
+        log(`Error executing statement: ${stmtError.message}`);
+      }
     }
     
-    log(`SQL file execution failed: ${result.message}`);
-    log("Trying to create tables one by one...");
+    log("Completed SQL execution");
     
     // Create users table
     const usersResult = await executeDirectSql(`
