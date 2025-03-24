@@ -14,6 +14,14 @@ export function formatCurrency(amount: number): string {
 }
 
 /**
+ * Legacy dollar formatter - DO NOT USE, kept for backwards compatibility
+ * @deprecated Use formatCurrency instead
+ */
+export function formatDollar(amount: number): string {
+  return formatCurrency(amount);
+}
+
+/**
  * Format a date string to a human-readable format
  */
 export function formatDate(dateString: string): string {
@@ -28,11 +36,33 @@ export function formatDate(dateString: string): string {
  * Format a month string (YYYY-MM) to a readable month and year
  */
 export function formatMonth(monthString: string): string {
-  const [year, month] = monthString.split('-');
-  const date = new Date(parseInt(year), parseInt(month) - 1);
+  const parts = monthString.split('-');
   
-  return date.toLocaleDateString('en-GB', {
-    month: 'long',
-    year: 'numeric',
-  });
+  if (parts.length !== 2) {
+    return monthString; // Return original if not in YYYY-MM format
+  }
+  
+  const [year, month] = parts;
+  
+  if (!year || !month) {
+    return monthString; // Return original if missing parts
+  }
+  
+  try {
+    const yearNum = parseInt(year);
+    const monthNum = parseInt(month) - 1; // JavaScript months are 0-indexed
+    
+    if (isNaN(yearNum) || isNaN(monthNum)) {
+      return monthString;
+    }
+    
+    const date = new Date(yearNum, monthNum);
+    
+    return date.toLocaleDateString('en-GB', {
+      month: 'long',
+      year: 'numeric',
+    });
+  } catch (error) {
+    return monthString; // Return original if any error occurs
+  }
 }

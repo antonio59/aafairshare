@@ -101,12 +101,15 @@ export function observeCoreWebVitals() {
     // Track LCP (Largest Contentful Paint)
     const lcpObserver = new PerformanceObserver((entryList) => {
       const entries = entryList.getEntries();
+      if (entries.length === 0) return;
+      
       const lastEntry = entries[entries.length - 1];
+      if (!lastEntry) return;
       
       reportWebVitals({
         id: `lcp-${Date.now()}`,
         name: 'LCP',
-        value: lastEntry.startTime,
+        value: lastEntry.startTime || 0,
         label: 'web-vital',
       });
     });

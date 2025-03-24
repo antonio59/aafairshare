@@ -1,16 +1,34 @@
-import { NextResponse } from 'next/server';
+import { type NextRequest, NextResponse } from 'next/server';
+
 import { createClient } from '@/lib/supabase/server';
 
-export async function GET() {
-  try {
-    const supabase = createClient();
-    const { data: categories, error } = await supabase
-      .from('categories')
-      .select('id, category')
-      .order('category');
+// GET /api/categories - Get all categories
+export async function GET(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
 
-    if (error) throw error;
-    return NextResponse.json(categories);
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    // Fetch categories from the database
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('category', { ascending: true });
+
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching categories:', error);
     return NextResponse.json(
@@ -20,34 +38,54 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+// POST /api/categories - Create a new category
+export async function POST(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
   try {
-    const { category } = await request.json();
-    if (!category) {
+    const body = await request.json();
+    
+    // Validation
+    if (!body.category || typeof body.category !== 'string') {
       return NextResponse.json(
         { error: 'Category name is required' },
         { status: 400 }
       );
     }
 
-    const supabase = createClient();
+    // Insert the new category
     const { data, error } = await supabase
       .from('categories')
-      .insert([{ category }])
+      .insert([{ 
+        category: body.category.trim(),
+        created_by: user.id 
+      }])
       .select()
       .single();
 
     if (error) {
-      if (error.code === '23505') { // Unique violation
+      // Handle unique constraint violations
+      if (error.code === '23505') {
         return NextResponse.json(
-          { error: 'Category already exists' },
-          { status: 400 }
+          { error: 'A category with this name already exists' },
+          { status: 409 }
         );
       }
       throw error;
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error('Error creating category:', error);
     return NextResponse.json(
@@ -57,11 +95,23 @@ export async function POST(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+// PUT /api/categories?id=:id - Update a category
+export async function PUT(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const id = request.nextUrl.searchParams.get('id');
     if (!id) {
       return NextResponse.json(
         { error: 'Category ID is required' },
@@ -69,13 +119,89 @@ export async function DELETE(request: Request) {
       );
     }
 
-    const supabase = createClient();
+    const body = await request.json();
+    
+    // Validation
+    if (!body.category || typeof body.category !== 'string') {
+      return NextResponse.json(
+        { error: 'Category name is required' },
+        { status: 400 }
+      );
+    }
+
+    // Update the category
+    const { data, error } = await supabase
+      .from('categories')
+      .update({ 
+        category: body.category.trim(),
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      // Handle unique constraint violations
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'A category with this name already exists' },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Category not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(data);
+  } catch (error) {
+    console.error('Error updating category:', error);
+    return NextResponse.json(
+      { error: 'Failed to update category' },
+      { status: 500 }
+    );
+  }
+}
+
+// DELETE /api/categories?id=:id - Delete a category
+export async function DELETE(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const id = request.nextUrl.searchParams.get('id');
+    if (!id) {
+      return NextResponse.json(
+        { error: 'Category ID is required' },
+        { status: 400 }
+      );
+    }
+
+    // Delete the category
     const { error } = await supabase
       .from('categories')
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting category:', error);

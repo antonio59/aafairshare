@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
+
 import type { Expense, ExpenseFilters } from '@/types/expenses';
+
 import { exportToCSV, exportToPDF } from '@/utils/exportService';
 import { createStandardBrowserClient } from '@/utils/supabase-client';
 
@@ -11,10 +13,9 @@ interface UseExpensesReturn {
   exportExpenses: (format: 'csv' | 'pdf') => Promise<void>;
 }
 
-// Create Supabase client outside the hook to prevent unnecessary re-renders
-const supabase = createStandardBrowserClient();
-
 export function useExpenses(): UseExpensesReturn {
+  // Create Supabase client inside the hook - only runs on client side
+  const supabase = createStandardBrowserClient();
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +47,14 @@ export function useExpenses(): UseExpensesReturn {
   const exportExpenses = useCallback(async (format: 'csv' | 'pdf') => {
     if (!expenses.length) return;
     
-    const month = expenses[0].date.slice(0, 7); // Get YYYY-MM from first expense
+    // Make sure the first expense and its date exist
+    const firstExpense = expenses[0];
+    if (!firstExpense || !firstExpense.date) {
+      setError('Invalid expense data for export');
+      return;
+    }
+    
+    const month = firstExpense.date.slice(0, 7); // Get YYYY-MM from first expense
     
     try {
       if (format === 'csv') {

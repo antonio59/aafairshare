@@ -1,7 +1,7 @@
 import React from 'react';
 import { render, screen, fireEvent } from '@/tests/mocks/react-testing-library';
 import { SettlementCard } from '../SettlementCard';
-import { Settlement } from '@/types/expenses';
+import type { Settlement } from '@/types/expenses';
 
 // Mock date-fns to avoid inconsistencies in tests
 jest.mock('date-fns', () => ({

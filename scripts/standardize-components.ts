@@ -30,7 +30,7 @@ const generateStandardExportCode = (
   // Find the component implementation and replace the export
   const updatedCode = originalCode.replace(
     new RegExp(`export const ${componentName} = (.*?\\([\\s\\S]*?\\))\\s*${componentName}\\.displayName = ["']${componentName}["'];?\\s*(// This lowercase export is needed for GitHub workflow validation\\s*// Using the same implementation to avoid duplication\\s*export const ${componentName.toLowerCase()} = ${componentName})?`, 'g'),
-    (_, implementation) => {
+    (_match, _implementation) => {
       return `import { createComponentExports } from "@/lib/component-utils"
 
 const ${componentName}Component = $1

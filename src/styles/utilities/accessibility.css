@@ -1,0 +1,35 @@
+/**
+ * Accessibility utilities
+ * These enhance the project's accessibility features
+ */
+
+@layer base {
+  /* Improved focus styles for keyboard navigation */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Ensure text remains visible during webfont load */
+  html {
+    @apply font-display;
+  }
+
+  /* Skip to content link - hidden visually but available for screen readers */
+  .skip-to-content {
+    @apply absolute -top-full left-0 z-50 bg-background px-4 py-2 text-sm text-foreground transition-all focus:top-0;
+  }
+}
+
+@layer utilities {
+  /* Screen reader only text */
+  .sr-only {
+    @apply absolute overflow-hidden h-[1px] w-[1px] p-0 whitespace-nowrap;
+    clip: rect(0, 0, 0, 0);
+    clip-path: inset(50%);
+  }
+
+  /* Visually hidden but available to assistive technology */
+  .visually-hidden {
+    @apply invisible absolute;
+  }
+}

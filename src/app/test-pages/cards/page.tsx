@@ -1,136 +1,85 @@
-import React from 'react';
-import { 
-  Card, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardContent, 
-  CardFooter 
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 
-/**
- * Cards Test Page
- * 
- * This page showcases card components with various layouts and content
- * to verify Tailwind CSS 4 styling and React 19 compatibility.
- */
 export default function CardsTestPage() {
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Card Component Test</h1>
+    <div className="container py-10">
+      <h1 className="text-3xl font-bold mb-6">Card Component Tests</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Basic Card */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card data-testid="basic-card">
           <CardHeader>
             <CardTitle>Basic Card</CardTitle>
-            <CardDescription>This is a simple card with header, content, and footer</CardDescription>
+            <CardDescription>A standard card with header, content, and footer</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>This card demonstrates the basic structure of a card component with Tailwind CSS 4 styling.</p>
+            <p>This is the main content of the card. It can contain any kind of content like text, lists, or other components.</p>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button variant="outline" size="sm">Cancel</Button>
-            <Button size="sm">Save</Button>
+            <Button variant="outline">Cancel</Button>
+            <Button>Save</Button>
           </CardFooter>
         </Card>
         
-        {/* Content-Only Card */}
         <Card data-testid="content-only-card">
           <CardContent className="pt-6">
-            <p className="text-lg font-medium mb-2">Content-Only Card</p>
-            <p className="text-sm text-muted-foreground">
-              This card has only content without header or footer sections.
-              It demonstrates the flexibility of the card component.
-            </p>
+            <p>This is a content-only card without a formal header or footer. Sometimes you just need a simple container without the extra structure.</p>
           </CardContent>
         </Card>
         
-        {/* Interactive Card */}
-        <Card 
-          data-testid="interactive-card"
-          className="hover:shadow-lg transition-shadow duration-300"
-        >
+        <Card className="hover:border-primary transition-colors cursor-pointer" data-testid="interactive-card">
           <CardHeader>
             <CardTitle>Interactive Card</CardTitle>
-            <CardDescription>This card has hover effects</CardDescription>
+            <CardDescription>This card has hover and active states</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Hover over this card to see the shadow effect. This tests Tailwind CSS 4&apos;s transition utilities.</p>
+            <p>Hover over this card to see it change. Interactive cards are useful for clickable content or navigation.</p>
           </CardContent>
-          <CardFooter>
-            <Button className="w-full">View Details</Button>
-          </CardFooter>
         </Card>
         
-        {/* Card with Image */}
-        <Card data-testid="image-card" className="overflow-hidden">
-          <div className="h-48 bg-muted flex items-center justify-center">
-            <svg 
-              className="h-12 w-12 text-muted-foreground" 
-              xmlns="http://www.w3.org/2000/svg" 
-              width="24" 
-              height="24" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="2" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-            >
-              <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-              <circle cx="9" cy="9" r="2" />
-              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-            </svg>
+        <Card data-testid="image-card">
+          <div className="h-40 bg-gray-200 rounded-t-lg flex items-center justify-center">
+            <span className="text-gray-500">Placeholder Image</span>
           </div>
           <CardHeader>
-            <CardTitle>Card with Image</CardTitle>
-            <CardDescription>This card has an image placeholder</CardDescription>
+            <CardTitle>Card With Image</CardTitle>
+            <CardDescription>Cards often contain images or media</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>Cards with images are commonly used for product displays, blog posts, and media galleries.</p>
+            <p>This card demonstrates how to include an image or other media with card content.</p>
           </CardContent>
         </Card>
         
-        {/* Nested Cards */}
-        <Card data-testid="nested-card" className="p-6">
-          <CardTitle className="mb-4">Nested Cards</CardTitle>
-          <div className="space-y-4">
-            <Card className="bg-muted/50">
-              <CardContent className="p-4">
-                <p className="font-medium">Nested Card 1</p>
-                <p className="text-sm">Testing nested card components</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-muted/50">
-              <CardContent className="p-4">
-                <p className="font-medium">Nested Card 2</p>
-                <p className="text-sm">Testing component composition</p>
-              </CardContent>
-            </Card>
-          </div>
-        </Card>
-        
-        {/* Custom Styled Card */}
-        <Card 
-          data-testid="custom-styled-card" 
-          className="bg-gradient-to-br from-primary/20 to-secondary/20 border-primary/20"
-        >
+        <Card data-testid="nested-card">
           <CardHeader>
-            <CardTitle className="text-primary">Custom Styled Card</CardTitle>
-            <CardDescription>Testing Tailwind CSS 4 gradient utilities</CardDescription>
+            <CardTitle>Nested Cards</CardTitle>
+            <CardDescription>Cards can contain other cards</CardDescription>
           </CardHeader>
           <CardContent>
-            <p>This card uses custom styling with Tailwind CSS 4&apos;s gradient utilities and color opacity modifiers.</p>
+            <Card className="bg-muted/50">
+              <CardHeader>
+                <CardTitle className="text-sm">Nested Card</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm">This is a card nested inside another card.</p>
+              </CardContent>
+            </Card>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-primary text-primary-foreground" data-testid="custom-styled-card">
+          <CardHeader>
+            <CardTitle>Custom Styled Card</CardTitle>
+            <CardDescription className="text-primary-foreground/80">Cards can have custom styling</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p>This card uses a custom background and text color to make it stand out.</p>
           </CardContent>
           <CardFooter>
-            <Button variant="outline" className="border-primary/50 text-primary hover:bg-primary/10">
-              Custom Button
-            </Button>
+            <Button variant="secondary">Action</Button>
           </CardFooter>
         </Card>
       </div>
     </div>
-  );
+  )
 }

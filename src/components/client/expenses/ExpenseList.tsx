@@ -2,9 +2,10 @@
 
 import { Suspense } from 'react';
 
+import type { Expense } from '@/types/expenses';
+
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import type { Expense } from '@/types/expenses';
 import { formatCurrency } from '@/utils/formatters';
 
 export interface ExpenseListProps {

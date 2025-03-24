@@ -1,0 +1,27 @@
+/**
+ * Navbar specific styles
+ * These complement the Tailwind utility classes for the Navbar component
+ */
+
+@layer components {
+  /* Navbar-specific styles */
+  .navbar-link {
+    @apply flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary relative;
+  }
+
+  .navbar-link.active {
+    @apply text-foreground after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-primary;
+  }
+
+  .navbar-link.inactive {
+    @apply text-muted-foreground;
+  }
+
+  .navbar-mobile-menu {
+    @apply fixed inset-y-0 right-0 z-50 w-full max-w-sm translate-x-full bg-background shadow-lg transition duration-300 ease-in-out;
+  }
+
+  .navbar-mobile-menu.open {
+    @apply translate-x-0;
+  }
+}

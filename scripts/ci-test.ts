@@ -5,9 +5,11 @@
  * error handling and reporting.
  */
 
-import { execSync, ExecSyncOptions } from 'child_process';
+import { execSync } from 'child_process';
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join } from 'path';
+
+import type { ExecSyncOptions } from 'child_process';
 
 interface CommandOptions {
   ignoreError?: boolean;

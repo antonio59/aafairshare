@@ -1,0 +1,132 @@
+/* Shared styles for all auth pages */
+.auth-layout {
+  height: 100vh;
+  width: 100%;
+}
+
+.auth-container {
+  min-height: 100vh;
+  display: flex;
+  background: linear-gradient(to bottom right, #f0f5ff, #f5f7ff);
+}
+
+.auth-sidebar {
+  display: none;
+  width: 50%;
+  background: linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%);
+  color: white;
+  padding: 2.5rem;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+@media (min-width: 768px) {
+  .auth-sidebar {
+    display: flex;
+  }
+}
+
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-logo-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.auth-title {
+  margin-top: 4rem;
+  font-size: 1.875rem;
+  font-weight: bold;
+}
+
+.auth-subtitle {
+  margin-top: 1rem;
+  font-size: 1.125rem;
+  color: #BBDEFB;
+}
+
+.auth-feature {
+  display: flex;
+  align-items: flex-start;
+  margin-top: 4rem;
+  gap: 0.75rem;
+}
+
+.auth-feature:not(:first-child) {
+  margin-top: 1.5rem;
+}
+
+.auth-feature-icon {
+  margin-top: 0.25rem;
+  background-color: rgba(255,255,255,0.2);
+  border-radius: 9999px;
+  padding: 0.25rem;
+}
+
+.auth-feature-title {
+  font-weight: 600;
+}
+
+.auth-feature-desc {
+  color: #BBDEFB;
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+.auth-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .auth-content {
+    width: 50%;
+    padding: 2rem;
+  }
+}
+
+.auth-mobile-logo {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 2.5rem;
+}
+
+@media (min-width: 768px) {
+  .auth-mobile-logo {
+    display: none;
+  }
+}
+
+.auth-mobile-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.auth-mobile-logo-icon {
+  color: #4F46E5;
+}
+
+.auth-mobile-logo-text {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #4F46E5;
+}
+
+.auth-card {
+  background: white;
+  border-radius: 0.75rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border: 1px solid #f3f4f6;
+  padding: 2rem;
+  width: 100%;
+  max-width: 28rem;
+}

@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { Expense } from '@/utils/types';
+
+import type { Expense } from '@/types/expenses';
+
 import { exportToCSV, exportToPDF } from '@/utils/exportService';
 
 interface UseExportReturn {

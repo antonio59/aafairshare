@@ -1,25 +1,14 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Expense Creation Flow', () => {
+  // Navigate to expenses page before each test
   test.beforeEach(async ({ page }) => {
-    // Setup: Navigate to app and log in
-    await page.goto('/');
-    
-    // Example login implementation
-    // (Adjust according to your actual authentication flow)
-    if (await page.locator('text=Login').isVisible()) {
-      await page.fill('[data-testid="email-input"]', 'test@example.com');
-      await page.fill('[data-testid="password-input"]', 'password123');
-      await page.click('[data-testid="login-button"]');
-      await page.waitForURL('**/dashboard');
-    }
+    // We can remove the login step as it's handled by auth.setup.ts
+    // Go straight to expenses page
+    await page.goto('/expenses');
   });
 
   test('should create a new expense', async ({ page }) => {
-    // Navigate to expenses page
-    await page.click('a:has-text("Expenses")');
-    await page.waitForURL('**/expenses');
-    
     // Click the create expense button
     await page.click('[data-testid="create-expense-button"]');
     
@@ -48,12 +37,11 @@ test.describe('Expense Creation Flow', () => {
     
     // Verify expense appears in the list
     await expect(page.locator('text=Team Lunch')).toBeVisible();
-    await expect(page.locator('text=$120.50')).toBeVisible();
+    await expect(page.locator('text=£120.50')).toBeVisible(); // Note: Using GBP now (£)
   });
 
   test('should validate expense form inputs', async ({ page }) => {
-    // Navigate to expenses page
-    await page.click('a:has-text("Expenses")');
+    // Click the create expense button
     await page.click('[data-testid="create-expense-button"]');
     
     // Try to submit without filling required fields
@@ -74,8 +62,7 @@ test.describe('Expense Creation Flow', () => {
   });
 
   test('should allow uploading receipts for an expense', async ({ page }) => {
-    // Navigate to expenses creation
-    await page.click('a:has-text("Expenses")');
+    // Click the create expense button
     await page.click('[data-testid="create-expense-button"]');
     
     // Fill necessary fields
@@ -100,8 +87,7 @@ test.describe('Expense Creation Flow', () => {
   });
 
   test('should add expense to a settlement', async ({ page }) => {
-    // Navigate to expenses
-    await page.click('a:has-text("Expenses")');
+    // Click the create expense button
     await page.click('[data-testid="create-expense-button"]');
     
     // Fill expense details
@@ -118,11 +104,11 @@ test.describe('Expense Creation Flow', () => {
     await page.click('[data-testid="submit-expense"]');
     
     // Navigate to the settlement
-    await page.click('a:has-text("Settlements")');
+    await page.goto('/settlements');
     await page.click('text=Weekend Trip');
     
     // Verify expense is in the settlement
     await expect(page.locator('text=Group Activity')).toBeVisible();
-    await expect(page.locator('text=$75.00')).toBeVisible();
+    await expect(page.locator('text=£75.00')).toBeVisible(); // Note: Using GBP now (£)
   });
 }); 

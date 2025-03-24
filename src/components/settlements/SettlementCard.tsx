@@ -1,8 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { format } from "date-fns";
-import { Settlement } from "@/types/expenses";
+import { useState } from "react";
+
+import type { Settlement } from "@/types/expenses";
+
+import { Badge } from "@/components/ui/badge";
 import {
   Card,
   CardContent,
@@ -11,7 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Tooltip,
   TooltipContent,

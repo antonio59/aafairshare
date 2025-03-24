@@ -1,105 +1,131 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+'use client'
 
-/**
- * Responsive Layout Test Page
- * 
- * This page tests responsive layouts with Tailwind CSS 4 to ensure
- * components adapt correctly to different viewport sizes.
- */
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 export default function ResponsiveTestPage() {
   return (
-    <div className="container mx-auto p-4 md:p-8">
-      <h1 className="text-2xl md:text-3xl font-bold mb-4 md:mb-8">Responsive Layout Test</h1>
+    <div className="container py-10">
+      <h1 className="text-3xl font-bold mb-6">Responsive Layout Tests</h1>
       
-      {/* Responsive Grid Layout */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Responsive Grid</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map((item) => (
-            <Card key={item} data-testid={`grid-item-${item}`}>
-              <CardContent className="p-4">
-                <p className="font-medium">Grid Item {item}</p>
-                <p className="text-sm text-muted-foreground">
-                  This grid adapts to different screen sizes
-                </p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </section>
-      
-      {/* Responsive Flex Layout */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Responsive Flex</h2>
-        <div className="flex flex-col md:flex-row gap-4">
-          <Card className="flex-1" data-testid="flex-item-1">
-            <CardHeader>
-              <CardTitle>Flex Item 1</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>This layout switches between column and row based on viewport width</p>
-            </CardContent>
-          </Card>
-          <Card className="flex-1" data-testid="flex-item-2">
-            <CardHeader>
-              <CardTitle>Flex Item 2</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p>Testing Tailwind CSS 4 flex utilities with responsive modifiers</p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-      
-      {/* Responsive Typography */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Responsive Typography</h2>
-        <Card data-testid="responsive-typography">
-          <CardContent className="p-6">
-            <h3 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-bold mb-2">
-              This heading changes size
-            </h3>
-            <p className="text-xs sm:text-sm md:text-base lg:text-lg">
-              This paragraph text also adapts to different viewport sizes using Tailwind&apos;s responsive modifiers.
-            </p>
+      <div className="space-y-10">
+        <Card>
+          <CardHeader>
+            <CardTitle>Responsive Grid Layout</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((item) => (
+                <div
+                  key={item}
+                  className="bg-muted p-4 rounded-md text-center"
+                  data-testid={`grid-item-${item}`}
+                >
+                  Item {item}
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
-      </section>
-      
-      {/* Responsive Spacing */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Responsive Spacing</h2>
-        <div className="p-2 sm:p-4 md:p-6 lg:p-8 bg-muted rounded-lg" data-testid="responsive-spacing">
-          <div className="mb-2 sm:mb-4 md:mb-6 lg:mb-8">
-            <p className="font-medium">Responsive Padding and Margin</p>
-            <p className="text-sm text-muted-foreground">
-              This container has different padding and margin based on screen size
-            </p>
-          </div>
-          <Button className="w-full sm:w-auto">Responsive Button</Button>
-        </div>
-      </section>
-      
-      {/* Responsive Visibility */}
-      <section className="mb-8">
-        <h2 className="text-xl font-semibold mb-4">Responsive Visibility</h2>
-        <div className="border rounded-lg p-4">
-          <p className="hidden sm:block" data-testid="visible-on-sm-and-up">
-            This text is hidden on mobile but visible on sm screens and up
-          </p>
-          <p className="block md:hidden" data-testid="visible-until-md">
-            This text is visible on mobile and sm screens but hidden on md screens and up
-          </p>
-          <p className="hidden lg:block" data-testid="visible-on-lg-and-up">
-            This text is only visible on lg screens and up
-          </p>
-          <p className="block sm:hidden" data-testid="visible-only-xs">
-            This text is only visible on mobile (xs)
-          </p>
-        </div>
-      </section>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Responsive Typography</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div data-testid="responsive-typography">
+              <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold">
+                Responsive Heading
+              </h1>
+              <p className="text-sm sm:text-base md:text-lg mt-2">
+                This paragraph adjusts its size based on the viewport width.
+              </p>
+              <p className="text-xs sm:text-sm md:text-base mt-2 text-muted-foreground">
+                Smaller text also adjusts accordingly for better readability.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Responsive Spacing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div data-testid="responsive-spacing" className="space-y-4 sm:space-y-6 md:space-y-8">
+              <div className="p-4 sm:p-6 md:p-8 bg-muted rounded-md">
+                This box has responsive padding that increases on larger screens.
+              </div>
+              <div className="p-4 sm:p-6 md:p-8 bg-muted rounded-md">
+                The vertical spacing between these boxes also increases on larger screens.
+              </div>
+              <div className="p-4 sm:p-6 md:p-8 bg-muted rounded-md">
+                Consistent spacing helps maintain visual hierarchy.
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Responsive Visibility</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="block sm:hidden" data-testid="visible-only-xs">
+              <p className="p-4 bg-yellow-100 dark:bg-yellow-950 text-yellow-800 dark:text-yellow-200 rounded-md">
+                This content is only visible on mobile screens (xs).
+              </p>
+            </div>
+            
+            <div className="hidden sm:block" data-testid="visible-on-sm-and-up">
+              <p className="p-4 bg-blue-100 dark:bg-blue-950 text-blue-800 dark:text-blue-200 rounded-md">
+                This content is visible on sm screens and up (tablet and desktop).
+              </p>
+            </div>
+            
+            <div className="mt-4 hidden md:block">
+              <p className="p-4 bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-200 rounded-md">
+                This content is visible on md screens and up (desktop only).
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Responsive Flex Direction</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="p-4 bg-muted rounded-md flex-1">
+                <h3 className="font-medium">First Item</h3>
+                <p>This container changes from vertical to horizontal layout.</p>
+              </div>
+              <div className="p-4 bg-muted rounded-md flex-1">
+                <h3 className="font-medium">Second Item</h3>
+                <p>Items stack vertically on mobile and side-by-side on larger screens.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Responsive Component Behavior</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="sm:flex sm:justify-between sm:items-center">
+              <div className="mb-4 sm:mb-0">
+                <h3 className="text-lg font-semibold">Product Title</h3>
+                <p className="text-muted-foreground">This is a product description</p>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <div className="p-2 bg-muted rounded text-center sm:w-20">£99.99</div>
+                <button className="bg-primary text-primary-foreground rounded p-2">Add to Cart</button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
-  );
+  )
 }

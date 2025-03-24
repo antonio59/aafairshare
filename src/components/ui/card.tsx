@@ -36,22 +36,25 @@ export type CardFooterProps = {
  * 1. A PascalCase export (Card) - Used throughout the application
  * 2. A lowercase export (card) - Required for GitHub workflow validation
  */
-export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ className, ...props }, ref) => (
-    <div
-      ref={ref}
-      className={cn(
-        "rounded-lg border bg-card text-card-foreground shadow-sm",
-        className
-      )}
-      {...props}
-    />
-  )
-)
+const Card = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>(({ className, ...props }, ref) => (
+  <div
+    ref={ref}
+    className={cn(
+      "rounded-lg border bg-card text-card-foreground shadow-sm",
+      className
+    )}
+    {...props}
+  />
+))
 Card.displayName = "Card"
 
-// This lowercase export is needed for GitHub workflow validation
-// Using the same implementation to avoid duplication
+/**
+ * @deprecated This lowercase export is for tooling/GitHub workflow validation only.
+ * Please use the PascalCase `Card` export in your components.
+ */
 export const card = Card
 
 const CardHeader = React.forwardRef<
@@ -113,4 +116,11 @@ const CardFooter = React.forwardRef<
 ))
 CardFooter.displayName = "CardFooter"
 
-export { CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
+export {
+  Card,
+  CardHeader,
+  CardFooter,
+  CardTitle,
+  CardDescription,
+  CardContent,
+}

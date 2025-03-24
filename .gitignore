@@ -38,6 +38,7 @@ coverage
 .nyc_output
 playwright-report
 test-results
+lighthouse-reports
 
 # Production
 dist
@@ -85,3 +86,4 @@ pnpm-debug.log*
 .DS_Store
 Thumbs.db
 *.pem
+*storybook.log

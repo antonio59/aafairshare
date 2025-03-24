@@ -1,32 +1,36 @@
-import type { Config } from 'tailwindcss';
+import containerQueries from '@tailwindcss/container-queries';
 import typography from '@tailwindcss/typography';
+import animate from 'tailwindcss-animate';
 
-// Updated configuration for Tailwind CSS 4
+import type { Config } from 'tailwindcss';
+
 const config = {
-  future: {
-    // Enable Tailwind CSS 4 features
-    hoverOnlyWhenSupported: true,
-    respectDefaultRingColorOpacity: true,
-    disableColorOpacityUtilitiesByDefault: false,
-    relativeContentPathsByDefault: true,
-  },
-  content: [
-    './src/**/*.{js,ts,jsx,tsx,mdx}',
-  ],
   darkMode: 'class',
+  content: [
+    './src/pages/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/components/**/*.{js,ts,jsx,tsx,mdx}',
+    './src/app/**/*.{js,ts,jsx,tsx,mdx}',
+  ],
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     container: {
       center: true,
       padding: '2rem',
       screens: {
+        'sm': '640px',
+        'md': '768px',
+        'lg': '1024px',
+        'xl': '1280px',
         '2xl': '1400px',
       },
     },
+    fontFamily: {
+      sans: ['var(--font-sans)'],
+      mono: ['var(--font-mono)'],
+    },
     extend: {
-      fontFamily: {
-        geist: ['var(--font-geist-sans)'],
-        'geist-mono': ['var(--font-geist-mono)'],
-      },
       colors: {
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
@@ -67,15 +71,92 @@ const config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      keyframes: {
+        'accordion-down': {
+          from: { height: '0' },
+          to: { height: 'var(--radix-accordion-content-height)' },
+        },
+        'accordion-up': {
+          from: { height: 'var(--radix-accordion-content-height)' },
+          to: { height: '0' },
+        },
+        'slide-from-left': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        'slide-to-left': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-100%)' },
+        },
+        'slide-from-right': {
+          '0%': { transform: 'translateX(100%)' },
+          '100%': { transform: 'translateX(0)' },
+        },
+        'slide-to-right': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'fade-in': {
+          '0%': { opacity: '0' },
+          '100%': { opacity: '1' },
+        },
+        'fade-out': {
+          '0%': { opacity: '1' },
+          '100%': { opacity: '0' },
+        },
+      },
       animation: {
-        'pulse': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'pulse-delayed-0': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'pulse-delayed-1': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.4s',
-        'pulse-delayed-2': 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.8s',
+        'accordion-down': 'accordion-down 0.2s ease-out',
+        'accordion-up': 'accordion-up 0.2s ease-out',
+        'slide-from-left': 'slide-from-left 0.3s ease-out',
+        'slide-to-left': 'slide-to-left 0.3s ease-out',
+        'slide-from-right': 'slide-from-right 0.3s ease-out',
+        'slide-to-right': 'slide-to-right 0.3s ease-out',
+        'fade-in': 'fade-in 0.2s ease-out',
+        'fade-out': 'fade-out 0.2s ease-out',
+      },
+      typography: {
+        DEFAULT: {
+          css: {
+            maxWidth: '65ch',
+            color: 'hsl(var(--foreground))',
+            a: {
+              color: 'hsl(var(--primary))',
+              '&:hover': {
+                color: 'hsl(var(--primary))',
+              },
+            },
+            strong: {
+              color: 'hsl(var(--foreground))',
+            },
+            code: {
+              color: 'hsl(var(--foreground))',
+            },
+            h1: {
+              color: 'hsl(var(--foreground))',
+            },
+            h2: {
+              color: 'hsl(var(--foreground))',
+            },
+            h3: {
+              color: 'hsl(var(--foreground))',
+            },
+            h4: {
+              color: 'hsl(var(--foreground))',
+            },
+            blockquote: {
+              color: 'hsl(var(--muted-foreground))',
+            },
+          },
+        },
       },
     },
   },
-  plugins: [typography],
+  plugins: [
+    animate,
+    containerQueries,
+    typography,
+  ],
 } satisfies Config;
 
 export default config;

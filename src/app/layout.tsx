@@ -1,13 +1,22 @@
-import { Metadata } from "next";
 import "./globals.css";
-// Import font CSS manually to avoid Next.js font conflicts with SWC
-import "@/styles/fonts.css";
-// Import the client wrapper component
-import { ClientLayoutWrapper } from "@/components/ClientLayoutWrapper";
+import { Inter } from 'next/font/google';
+
+import type { Metadata } from "next";
+
+import { AppLayout } from "@/components/layout/AppLayout";
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/contexts/AuthContext';
+
+// Load Inter as our primary font
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const metadata: Metadata = {
-  title: 'AAFairShare',
-  description: 'Expense splitting application',
+  title: 'FairShare - Split Expenses Fairly',
+  description: 'Track and split expenses with friends and family',
   icons: {
     icon: '/favicon.svg',
   },
@@ -19,9 +28,18 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body className="min-h-screen bg-background font-geist antialiased">
-        <ClientLayoutWrapper>{children}</ClientLayoutWrapper>
+    <html lang="en" className={inter.variable}>
+      <head>
+        <meta charSet="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
+      <body>
+        <AuthProvider>
+          <AppLayout>
+            {children}
+          </AppLayout>
+          <Toaster />
+        </AuthProvider>
       </body>
     </html>
   );

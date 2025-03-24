@@ -1,11 +1,12 @@
 'use client';
 
+import { format, addMonths, subMonths, parse } from 'date-fns';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useEffect, useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent } from '@/components/ui/card';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { format, addMonths, subMonths, parse } from 'date-fns';
 
 export interface MonthSelectorProps {
   selectedMonth: string;

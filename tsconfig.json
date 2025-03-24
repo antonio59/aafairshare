@@ -12,8 +12,7 @@
       "./src/types"
     ],
     "types": [
-      "node",
-      "jest"
+      "node"
     ]
   },
   "include": [
@@ -28,6 +27,11 @@
     "node_modules",
     ".next",
     "out",
-    "dist"
+    "dist",
+    "src/tests/**/*",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**/*",
+    "src/__mocks__/**/*"
   ]
 }

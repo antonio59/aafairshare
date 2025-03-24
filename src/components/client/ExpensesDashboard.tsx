@@ -1,13 +1,16 @@
 'use client';
 
-import React, { Suspense, lazy, useTransition } from 'react';
 import { useQueryState } from 'nuqs';
-import { useExpenses } from '@/hooks/useExpenses';
+import React, { Suspense, lazy, useTransition } from 'react';
+
+import type { ExpenseFilters } from '@/types/expenses';
+
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/components/ui/use-toast';
-import { Button } from '@/components/ui/button';
+import { useExpenses } from '@/hooks/useExpenses';
 import { formatMonth } from '@/utils/formatters';
-import type { ExpenseFilters } from '@/types/expenses';
+
 
 // Error boundary component for React 19 with improved error handling
 export interface ErrorFallbackProps {
@@ -34,25 +37,43 @@ function ErrorFallback({ error, resetErrorBoundary }: ErrorFallbackProps) {
   );
 }
 
-// Import smaller components using dynamic imports with improved loading patterns for React 19
+// Import smaller components using dynamic imports with improved loading patterns and error handling for React 19
 const MonthSelector = lazy(() => 
-  import('./expenses/MonthSelector').then(mod => ({ default: mod.MonthSelector }))
+  import('./expenses/MonthSelector')
+    .then(mod => ({ default: mod.MonthSelector }))
+    .catch(err => {
+      console.error('Failed to load MonthSelector:', err);
+      return { default: () => <div className="p-4 border rounded">Failed to load Month Selector</div> };
+    })
 );
 const ExpenseList = lazy(() => 
-  import('./expenses/ExpenseList').then(mod => ({ default: mod.ExpenseList }))
+  import('./expenses/ExpenseList')
+    .then(mod => ({ default: mod.ExpenseList }))
+    .catch(err => {
+      console.error('Failed to load ExpenseList:', err);
+      return { default: () => <div className="p-4 border rounded">Failed to load Expense List</div> };
+    })
 );
 const ExportButton = lazy(() => 
-  import('./expenses/ExportButton').then(mod => ({ default: mod.ExportButton }))
+  import('./expenses/ExportButton')
+    .then(mod => ({ default: mod.ExportButton }))
+    .catch(err => {
+      console.error('Failed to load ExportButton:', err);
+      return { default: () => <div className="p-4 border rounded">Failed to load Export Button</div> };
+    })
 );
 
 // Preload critical components for better user experience
 // This is a React 19 optimization to start loading components before they're needed
-// Immediately invoke to start loading on module initialization
-(() => {
-  import('./expenses/MonthSelector');
-  import('./expenses/ExpenseList');
-  import('./expenses/ExportButton');
-})();
+// Only run on client side to avoid "document is not defined" errors
+if (typeof window !== 'undefined') {
+  // Immediately invoke to start loading on module initialization
+  (() => {
+    import('./expenses/MonthSelector');
+    import('./expenses/ExpenseList');
+    import('./expenses/ExportButton');
+  })();
+}
 
 // This is a fallback for any loading state
 const LoadingSkeleton = () => (
@@ -114,12 +135,27 @@ export function ExpensesDashboard({
 
   const refreshExpenses = async (month: string) => {
     const startDate = `${month}-01`;
-    const date: Date = new Date(startDate);
+    const date = new Date(startDate);
     date.setMonth(date.getMonth() + 1);
     date.setDate(0);
-    const endDate = date.toISOString().split('T')[0];
     
-    const filters: ExpenseFilters = { startDate, endDate };
+    // Ensure endDate is always a string by providing a fallback
+    let endDate = startDate;
+    try {
+      const endDateParts = date.toISOString().split('T');
+      if (endDateParts[0]) {
+        endDate = endDateParts[0];
+      }
+    } catch (err) {
+      console.error('Error formatting end date:', err);
+      // If there's an error, use the last day of the month as fallback
+      endDate = `${month}-${new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()}`;
+    }
+    
+    const filters: ExpenseFilters = { 
+      startDate,
+      endDate
+    };
     await fetchExpenses(filters);
   };
 
@@ -170,7 +206,7 @@ export function ExpensesDashboard({
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold">
           {formatMonth(selectedMonth)}
-          {isPending && <span className="ml-2 inline-block h-4 w-4 animate-pulse rounded-full bg-muted"></span>}
+          {isPending && <span className="ml-2 inline-block h-4 w-4 animate-pulse rounded-full bg-muted" />}
         </h2>
       </div>
       

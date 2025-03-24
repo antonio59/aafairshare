@@ -10,8 +10,8 @@
  */
 
 import fs from 'fs';
-import path from 'path';
 import { glob } from 'glob';
+import path from 'path';
 
 // Define patterns to search for
 const patterns = {
@@ -37,7 +37,6 @@ async function analyzeFile(filePath: string) {
   const lines = content.split('\n');
   
   // Check for effects without cleanup
-  let match;
   let lineNumber = 0;
   
   for (const line of lines) {

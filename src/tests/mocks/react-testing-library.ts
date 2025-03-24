@@ -3,9 +3,11 @@
  * This provides a comprehensive solution for handling React 19 with testing-library
  */
 
-import React, { ReactElement, Suspense } from 'react';
-import * as RTL from '@testing-library/react';
-import { RenderOptions, RenderResult, waitFor as originalWaitFor } from '@testing-library/react';
+import React, { Suspense } from 'react';
+import type { ReactElement } from 'react';
+import { render as originalRender, screen, fireEvent, within, act, cleanup, waitForElementToBeRemoved } from '@testing-library/react';
+import type { RenderOptions, RenderResult } from '@testing-library/react';
+import { waitFor as originalWaitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // Default timeout for async operations (3 seconds)
@@ -49,7 +51,7 @@ function render(ui: ReactElement, options?: Omit<RenderOptions, 'queries'>): Ren
     : React.createElement(TestWrapper, null, ui);
 
   // Render with the wrapped component
-  const result = RTL.render(wrappedUI, options);
+  const result = originalRender(wrappedUI, options);
   
   // Restore console.error
   console.error = originalError;
@@ -76,14 +78,12 @@ const waitFor = async <T,>(callback: () => T | Promise<T>, options?: Parameters<
 
 // Export everything from RTL but override render and waitFor
 export { render, waitFor };
-export const { 
-  screen, 
-  fireEvent, 
-  within, 
-  act, 
+export {
+  screen,
+  fireEvent,
+  within,
+  act,
   cleanup,
-  waitForElementToBeRemoved
-} = RTL;
-
-// Re-export userEvent
-export { userEvent };
+  waitForElementToBeRemoved,
+  userEvent,
+};

@@ -3,66 +3,81 @@
 ## Directory Structure
 
 ```
-psrc/
+src/
 ├── app/                  # Next.js App Router pages and API routes
 │   ├── api/              # API routes
 │   │   ├── expenses/     # Expense-related endpoints
-│   │   ├── settlements/  # Settlement-related endpoints
-│   │   └── users/        # User-related endpoints
+│   │   ├── locations/    # Location-related endpoints
+│   │   └── categories/   # Category-related endpoints
 │   ├── expenses/         # Expense feature pages
 │   ├── settlements/      # Settlement feature pages
-│   ├── auth/             # Authentication pages
+│   ├── signin/           # Authentication pages
 │   ├── settings/         # Settings pages
 │   ├── layout.tsx        # Root layout
 │   └── page.tsx          # Home page
 │
-├── components/           # Shared components
-│   ├── ui/              # UI components
-│   │   ├── button.tsx
-│   │   ├── dialog.tsx
-│   │   └── tabs.tsx
-│   ├── NavBar.tsx
-│   └── error-boundary.tsx
+├── components/           # Component directories by feature
+│   ├── ui/               # UI components (buttons, cards, etc)
+│   ├── layout/           # Layout components
+│   │   ├── NavBar.tsx    # Navigation bar
+│   │   └── ClientLayout.tsx # Client-side layout wrapper
+│   ├── auth/             # Authentication components
+│   ├── expenses/         # Expense management components
+│   ├── settlements/      # Settlement components
+│   ├── categories/       # Category components
+│   └── locations/        # Location components
 │
-├── contexts/            # React contexts
-│   └── AuthContext.tsx
+├── contexts/             # React contexts
+│   └── AuthContext.tsx   # Authentication context
 │
-├── features/            # Feature-based modules
-│   ├── expenses/        # Expense management feature
-│   │   ├── components/  # Feature-specific components
-│   │   ├── hooks/      # Feature-specific hooks
-│   │   └── utils/      # Feature-specific utilities
-│   ├── auth/           # Authentication feature
-│   ├── settlements/    # Settlement feature
-│   └── shared/         # Shared utilities
+├── hooks/                # Custom React hooks
+│   ├── useAuth.ts        # Authentication hooks
+│   ├── useExpenses.ts    # Expense management hooks
+│   └── useExport.ts      # Data export hooks
 │
-├── hooks/              # Global hooks
-│   └── useExport.ts
+├── lib/                  # Library code
+│   ├── supabase/         # Supabase client configuration
+│   └── utils.ts          # Utility functions
 │
-└── utils/              # Global utilities
-    ├── api-fetcher.ts
-    ├── date-utils.ts
-    └── exportService.ts
+├── styles/               # Global stylesheets
+│   └── globals.css       # Global CSS
+│
+├── types/                # TypeScript type definitions
+│   ├── expenses.ts       # Expense-related types
+│   └── supabase.ts       # Supabase schema types
+│
+└── utils/                # Utility functions
+    ├── exportService.ts  # Data export utilities
+    ├── formatters.ts     # Data formatting utilities
+    └── settlementCalculator.ts # Settlement calculation logic
 ```
 
-## Feature Module Structure
+## Component Structure
 
-Each feature module follows a consistent structure:
+Components are organized by feature and functionality:
 
-### Components
-- Feature-specific components
-- Container components
-- Feature-specific layouts
+### UI Components (`components/ui/`)
+- Reusable UI elements (buttons, cards, dialogs)
+- Form controls
+- Layout primitives
+- No business logic
 
-### Hooks
-- Custom hooks for feature logic
-- State management hooks
-- Effect hooks
+### Feature Components (`components/{feature}/`)
+- Feature-specific components (expenses, settlements, etc.)
+- May contain business logic
+- Each feature has its own directory
 
-### Utils
-- Feature-specific utilities
-- Validation logic
-- Helper functions
+### Layout Components (`components/layout/`)
+- Application layout structure
+- Navigation components
+- Error boundaries
+- Page layouts
+
+### Hooks (`hooks/`)
+- Feature-specific custom hooks
+- Data fetching hooks
+- State management
+- Business logic abstraction
 
 ## App Directory Structure
 

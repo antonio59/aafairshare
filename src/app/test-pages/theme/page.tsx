@@ -1,143 +1,191 @@
-'use client';
+'use client'
 
-import React, { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { MoonIcon, SunIcon } from 'lucide-react'
+import { useTheme } from 'next-themes'
+import { useState, useEffect } from 'react'
 
-/**
- * Theme Test Page
- * 
- * This page tests theme switching between light and dark mode
- * to verify Tailwind CSS 4 theming capabilities with React 19.
- */
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+
 export default function ThemeTestPage() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  
-  // Only show the UI after component has mounted to avoid hydration mismatch
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only rendering theme components after mount
   useEffect(() => {
-    setMounted(true);
-  }, []);
-  
+    setMounted(true)
+  }, [])
+
   if (!mounted) {
-    return null;
+    return null
   }
-  
-  const toggleTheme = () => {
-    setTheme(theme === 'dark' ? 'light' : 'dark');
-  };
-  
+
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Theme System Test</h1>
+    <div className="container py-10">
+      <h1 className="text-3xl font-bold mb-6">Theme System Tests</h1>
       
-      <div className="flex items-center justify-between mb-8 p-4 border rounded-lg">
-        <div>
-          <h2 className="text-xl font-semibold">Current Theme: {theme}</h2>
-          <p className="text-muted-foreground">Toggle between light and dark mode</p>
-        </div>
-        
+      <div className="flex justify-end mb-4">
         <div className="flex items-center space-x-2">
-          <Label htmlFor="theme-toggle">Toggle Theme</Label>
-          <Switch 
-            id="theme-toggle"
-            data-testid="theme-toggle"
+          <SunIcon className="h-4 w-4" />
+          <Switch
             checked={theme === 'dark'}
-            onCheckedChange={toggleTheme}
+            onCheckedChange={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            data-testid="theme-toggle"
           />
+          <MoonIcon className="h-4 w-4" />
         </div>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Theme Colors */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardHeader>
             <CardTitle>Theme Colors</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Background Colors</p>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-4 bg-background border rounded-md">background</div>
-                <div className="p-4 bg-foreground text-background border rounded-md">foreground</div>
+                <div className="bg-background p-4 rounded-md border">background</div>
+                <div className="bg-muted p-4 rounded-md">muted</div>
               </div>
-              
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Foreground Colors</p>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-4 bg-card border rounded-md">card</div>
-                <div className="p-4 bg-card-foreground text-background border rounded-md">card-foreground</div>
+                <div className="bg-foreground text-background p-4 rounded-md">foreground</div>
+                <div className="bg-muted-foreground text-background p-4 rounded-md">muted-foreground</div>
               </div>
-              
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Primary Colors</p>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-4 bg-primary text-primary-foreground border rounded-md">primary</div>
-                <div className="p-4 bg-primary-foreground text-primary border rounded-md">primary-foreground</div>
+                <div className="bg-primary text-primary-foreground p-4 rounded-md">primary</div>
+                <div className="bg-primary-foreground text-primary p-4 rounded-md border">primary-foreground</div>
               </div>
-              
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Secondary Colors</p>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-4 bg-secondary text-secondary-foreground border rounded-md">secondary</div>
-                <div className="p-4 bg-secondary-foreground text-secondary border rounded-md">secondary-foreground</div>
+                <div className="bg-secondary text-secondary-foreground p-4 rounded-md">secondary</div>
+                <div className="bg-secondary-foreground text-secondary p-4 rounded-md border">secondary-foreground</div>
               </div>
-              
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Accent Colors</p>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-4 bg-muted text-muted-foreground border rounded-md">muted</div>
-                <div className="p-4 bg-muted-foreground text-muted border rounded-md">muted-foreground</div>
+                <div className="bg-accent text-accent-foreground p-4 rounded-md">accent</div>
+                <div className="bg-accent-foreground text-accent p-4 rounded-md border">accent-foreground</div>
               </div>
-              
+            </div>
+            
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Destructive Colors</p>
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-4 bg-accent text-accent-foreground border rounded-md">accent</div>
-                <div className="p-4 bg-accent-foreground text-accent border rounded-md">accent-foreground</div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <div className="p-4 bg-destructive text-destructive-foreground border rounded-md">destructive</div>
-                <div className="p-4 bg-destructive-foreground text-destructive border rounded-md">destructive-foreground</div>
+                <div className="bg-destructive text-destructive-foreground p-4 rounded-md">destructive</div>
+                <div className="bg-destructive-foreground text-destructive p-4 rounded-md border">destructive-foreground</div>
               </div>
             </div>
           </CardContent>
         </Card>
         
-        {/* Component Theme Preview */}
         <Card>
           <CardHeader>
-            <CardTitle>Component Theme Preview</CardTitle>
+            <CardTitle>Component Theming</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-2">
-              <h3 className="text-lg font-medium">Buttons</h3>
+              <p className="text-sm font-medium">Buttons</p>
               <div className="flex flex-wrap gap-2">
-                <Button variant="default">Default</Button>
+                <Button>Primary</Button>
                 <Button variant="secondary">Secondary</Button>
+                <Button variant="destructive">Destructive</Button>
                 <Button variant="outline">Outline</Button>
                 <Button variant="ghost">Ghost</Button>
-                <Button variant="destructive">Destructive</Button>
               </div>
             </div>
             
+            <div className="h-px bg-border w-full" />
+            
             <div className="space-y-2">
-              <h3 className="text-lg font-medium">Cards</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="border rounded-md p-3 bg-card">
-                  <p className="font-medium">Card</p>
-                  <p className="text-sm text-muted-foreground">Card with default background</p>
-                </div>
-                <div className="border rounded-md p-3 bg-muted">
-                  <p className="font-medium">Muted Card</p>
-                  <p className="text-sm text-muted-foreground">Card with muted background</p>
-                </div>
+              <p className="text-sm font-medium">Cards</p>
+              <div className="grid grid-cols-1 gap-2">
+                <div className="bg-card text-card-foreground p-4 rounded-md border">Card</div>
+                <div className="bg-card text-card-foreground p-4 rounded-md border border-primary">Card with border</div>
               </div>
             </div>
             
+            <div className="h-px bg-border w-full" />
+            
             <div className="space-y-2">
-              <h3 className="text-lg font-medium">Form Elements</h3>
-              <div className="flex items-center space-x-2">
-                <Switch id="airplane-mode" />
-                <Label htmlFor="airplane-mode">Airplane Mode</Label>
+              <p className="text-sm font-medium">Form Elements</p>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Switch id="theme-mode" />
+                  <Label htmlFor="theme-mode">Switch</Label>
+                </div>
+                <input
+                  type="text"
+                  placeholder="Input"
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                />
+                <select className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+                  <option>Select option</option>
+                </select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle>Text Colors & Contrast</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div>
+                <h2 className="text-xl font-bold">Default Text</h2>
+                <p>This is the default text color for the current theme.</p>
+                <p className="text-sm text-muted-foreground">This is muted text, used for less important information.</p>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="bg-primary text-primary-foreground p-4 rounded-md">
+                  <h3 className="font-medium">Primary Background</h3>
+                  <p className="text-sm">Text on primary background should be readable.</p>
+                </div>
+                
+                <div className="bg-secondary text-secondary-foreground p-4 rounded-md">
+                  <h3 className="font-medium">Secondary Background</h3>
+                  <p className="text-sm">Text on secondary background should be readable.</p>
+                </div>
+                
+                <div className="bg-accent text-accent-foreground p-4 rounded-md">
+                  <h3 className="font-medium">Accent Background</h3>
+                  <p className="text-sm">Text on accent background should be readable.</p>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-destructive text-destructive-foreground p-4 rounded-md">
+                  <h3 className="font-medium">Destructive Background</h3>
+                  <p className="text-sm">Error messages and warnings should be clearly visible.</p>
+                </div>
+                
+                <div className="bg-muted text-muted-foreground p-4 rounded-md">
+                  <h3 className="font-medium">Muted Background</h3>
+                  <p className="text-sm">Subtle backgrounds should have appropriate text contrast.</p>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  );
+  )
 }

@@ -1,188 +1,68 @@
-import React from 'react';
-import { Button } from '@/components/ui/button';
+import { ArrowRight, LoaderCircle, Plus } from 'lucide-react'
 
-/**
- * Button Test Page
- * 
- * This page showcases all button variants to verify Tailwind CSS 4 styling
- * and React 19 compatibility.
- */
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 export default function ButtonsTestPage() {
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Button Component Test</h1>
+    <div className="container py-10">
+      <h1 className="text-3xl font-bold mb-6">Button Component Tests</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <div className="space-y-4 border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Button Variants</h2>
-          
-          <div className="flex flex-col gap-4">
-            <Button 
-              data-testid="button-default"
-              variant="default"
-            >
-              Default Button
-            </Button>
-            
-            <Button 
-              data-testid="button-destructive"
-              variant="destructive"
-            >
-              Destructive Button
-            </Button>
-            
-            <Button 
-              data-testid="button-outline"
-              variant="outline"
-            >
-              Outline Button
-            </Button>
-            
-            <Button 
-              data-testid="button-secondary"
-              variant="secondary"
-            >
-              Secondary Button
-            </Button>
-            
-            <Button 
-              data-testid="button-ghost"
-              variant="ghost"
-            >
-              Ghost Button
-            </Button>
-            
-            <Button 
-              data-testid="button-link"
-              variant="link"
-            >
-              Link Button
-            </Button>
-          </div>
-        </div>
+      <div className="space-y-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Button Variants</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-4">
+            <Button data-testid="button-default">Default</Button>
+            <Button variant="destructive" data-testid="button-destructive">Destructive</Button>
+            <Button variant="outline" data-testid="button-outline">Outline</Button>
+            <Button variant="secondary" data-testid="button-secondary">Secondary</Button>
+            <Button variant="ghost" data-testid="button-ghost">Ghost</Button>
+            <Button variant="link" data-testid="button-link">Link</Button>
+          </CardContent>
+        </Card>
         
-        <div className="space-y-4 border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Button Sizes</h2>
-          
-          <div className="flex flex-col gap-4">
-            <Button 
-              data-testid="button-size-default"
-              size="default"
-            >
-              Default Size
-            </Button>
-            
-            <Button 
-              data-testid="button-size-sm"
-              size="sm"
-            >
-              Small Size
-            </Button>
-            
-            <Button 
-              data-testid="button-size-lg"
-              size="lg"
-            >
-              Large Size
-            </Button>
-            
-            <Button 
-              data-testid="button-size-icon"
-              size="icon"
-            >
-              <svg 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <path d="M12 5v14M5 12h14" />
-              </svg>
-            </Button>
-          </div>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Button Sizes</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center gap-4">
+            <Button data-testid="button-size-default">Default Size</Button>
+            <Button size="sm" data-testid="button-size-sm">Small</Button>
+            <Button size="lg" data-testid="button-size-lg">Large</Button>
+            <Button size="icon" data-testid="button-size-icon"><Plus /></Button>
+          </CardContent>
+        </Card>
         
-        <div className="space-y-4 border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Button States</h2>
-          
-          <div className="flex flex-col gap-4">
-            <Button data-testid="button-normal">
-              Normal Button
+        <Card>
+          <CardHeader>
+            <CardTitle>Button States</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-4">
+            <Button data-testid="button-normal">Normal</Button>
+            <Button disabled data-testid="button-disabled">Disabled</Button>
+            <Button disabled>
+              <LoaderCircle className="mr-2 h-4 w-4 animate-spin" />
+              <span data-testid="button-loading">Loading</span>
             </Button>
-            
-            <Button data-testid="button-disabled" disabled>
-              Disabled Button
-            </Button>
-            
-            <div className="flex items-center gap-2">
-              <Button data-testid="button-loading" disabled>
-                <svg 
-                  className="mr-2 h-4 w-4 animate-spin" 
-                  xmlns="http://www.w3.org/2000/svg" 
-                  width="24" 
-                  height="24" 
-                  viewBox="0 0 24 24" 
-                  fill="none" 
-                  stroke="currentColor" 
-                  strokeWidth="2" 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round"
-                >
-                  <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                </svg>
-                Loading
-              </Button>
-            </div>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
         
-        <div className="space-y-4 border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Button with Icons</h2>
-          
-          <div className="flex flex-col gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Buttons with Icons</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap gap-4">
             <Button data-testid="button-with-left-icon">
-              <svg 
-                className="mr-2 h-4 w-4" 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
-              Left Icon
+              <Plus className="mr-2 h-4 w-4" /> New Item
             </Button>
-            
             <Button data-testid="button-with-right-icon">
-              Right Icon
-              <svg 
-                className="ml-2 h-4 w-4" 
-                xmlns="http://www.w3.org/2000/svg" 
-                width="24" 
-                height="24" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2" 
-                strokeLinecap="round" 
-                strokeLinejoin="round"
-              >
-                <path d="M5 12h14M12 5l7 7-7 7" />
-              </svg>
+              Continue <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
+  )
 }

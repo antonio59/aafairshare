@@ -1,9 +1,10 @@
 'use client';
 
+import { Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+
 import { Button } from '@/components/ui/button';
 // Improved for React 19 hydration - only import what we need
-import { Download, Loader2 } from 'lucide-react';
 
 export interface ExportButtonProps {
   onExport: (format: 'csv' | 'pdf') => Promise<void>;

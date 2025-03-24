@@ -1,22 +1,34 @@
-import { NextResponse } from 'next/server';
-// Removing unused import
+import { type NextRequest, NextResponse } from 'next/server';
+
 import { createClient } from '@/lib/supabase/server';
 
-function isValidUUID(uuid: string) {
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  return uuidRegex.test(uuid);
-}
+// GET /api/locations - Get all locations
+export async function GET(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
 
-export async function GET() {
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
   try {
-    const supabase = createClient();
-    const { data: locations, error } = await supabase
+    // Fetch locations from the database
+    const { data, error } = await supabase
       .from('locations')
-      .select('id, location')
-      .order('location');
+      .select('*')
+      .order('location', { ascending: true });
 
-    if (error) throw error;
-    return NextResponse.json(locations);
+    if (error) {
+      throw error;
+    }
+
+    return NextResponse.json(data);
   } catch (error) {
     console.error('Error fetching locations:', error);
     return NextResponse.json(
@@ -26,34 +38,54 @@ export async function GET() {
   }
 }
 
-export async function POST(request: Request) {
+// POST /api/locations - Create a new location
+export async function POST(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
   try {
-    const { location } = await request.json();
-    if (!location) {
+    const body = await request.json();
+    
+    // Validation
+    if (!body.location || typeof body.location !== 'string') {
       return NextResponse.json(
         { error: 'Location name is required' },
         { status: 400 }
       );
     }
 
-    const supabase = createClient();
+    // Insert the new location
     const { data, error } = await supabase
       .from('locations')
-      .insert([{ location }])
+      .insert([{ 
+        location: body.location.trim(),
+        created_by: user.id 
+      }])
       .select()
       .single();
 
     if (error) {
-      if (error.code === '23505') { // Unique violation
+      // Handle unique constraint violations
+      if (error.code === '23505') {
         return NextResponse.json(
-          { error: 'Location already exists' },
-          { status: 400 }
+          { error: 'A location with this name already exists' },
+          { status: 409 }
         );
       }
       throw error;
     }
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, { status: 201 });
   } catch (error) {
     console.error('Error creating location:', error);
     return NextResponse.json(
@@ -63,35 +95,69 @@ export async function POST(request: Request) {
   }
 }
 
-export async function PUT(request: Request) {
+// PUT /api/locations?id=:id - Update a location
+export async function PUT(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
   try {
-    const supabase = createClient();
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
-    const { location } = await request.json();
-
-    if (!id || !location) {
+    const id = request.nextUrl.searchParams.get('id');
+    if (!id) {
       return NextResponse.json(
-        { error: 'Location ID and new location name are required' },
+        { error: 'Location ID is required' },
         { status: 400 }
       );
     }
 
-    if (!isValidUUID(id)) {
+    const body = await request.json();
+    
+    // Validation
+    if (!body.location || typeof body.location !== 'string') {
       return NextResponse.json(
-        { error: 'Invalid location ID format' },
+        { error: 'Location name is required' },
         { status: 400 }
       );
     }
 
+    // Update the location
     const { data, error } = await supabase
       .from('locations')
-      .update({ location })
+      .update({ 
+        location: body.location.trim(),
+        updated_at: new Date().toISOString()
+      })
       .eq('id', id)
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // Handle unique constraint violations
+      if (error.code === '23505') {
+        return NextResponse.json(
+          { error: 'A location with this name already exists' },
+          { status: 409 }
+        );
+      }
+      throw error;
+    }
+
+    if (!data) {
+      return NextResponse.json(
+        { error: 'Location not found' },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(data);
   } catch (error) {
     console.error('Error updating location:', error);
@@ -102,11 +168,23 @@ export async function PUT(request: Request) {
   }
 }
 
-export async function DELETE(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    const id = searchParams.get('id');
+// DELETE /api/locations?id=:id - Delete a location
+export async function DELETE(request: NextRequest) {
+  const response = NextResponse.next();
+  const supabase = await createClient(request, response);
+  
+  // Check if the user is authenticated
+  const { data: { user } } = await supabase.auth.getUser();
 
+  if (!user) {
+    return NextResponse.json(
+      { error: 'Authentication required' },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const id = request.nextUrl.searchParams.get('id');
     if (!id) {
       return NextResponse.json(
         { error: 'Location ID is required' },
@@ -114,20 +192,16 @@ export async function DELETE(request: Request) {
       );
     }
 
-    if (!isValidUUID(id)) {
-      return NextResponse.json(
-        { error: 'Invalid location ID format' },
-        { status: 400 }
-      );
-    }
-
-    const supabase = createClient();
+    // Delete the location
     const { error } = await supabase
       .from('locations')
       .delete()
       .eq('id', id);
 
-    if (error) throw error;
+    if (error) {
+      throw error;
+    }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting location:', error);

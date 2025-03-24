@@ -1,7 +1,20 @@
-'use client';
+'use client'
 
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { useState } from 'react'
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Dialog,
   DialogContent,
@@ -10,203 +23,181 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
-/**
- * Dialogs Test Page
- * 
- * This page showcases dialog components with various configurations
- * to verify Tailwind CSS 4 styling and React 19 compatibility.
- */
 export default function DialogsTestPage() {
-  const [open, setOpen] = useState(false);
-  const [openAlert, setOpenAlert] = useState(false);
-  const [openForm, setOpenForm] = useState(false);
+  const [controlledOpen, setControlledOpen] = useState(false)
   
   return (
-    <div className="container mx-auto p-8">
-      <h1 className="text-3xl font-bold mb-8">Dialog Component Test</h1>
+    <div className="container py-10">
+      <h1 className="text-3xl font-bold mb-6">Dialog Component Tests</h1>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {/* Basic Dialog */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Basic Dialog</h2>
-          <p className="mb-4">A simple dialog with title, description, and actions.</p>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button data-testid="open-dialog-button">Open Dialog</Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Basic Dialog</DialogTitle>
-                <DialogDescription>
-                  This is a basic dialog component with a title, description, and actions.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <p>Dialog content goes here. This area can contain any React components.</p>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Save changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Dialog</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button data-testid="open-dialog-button">Open Dialog</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Dialog Title</DialogTitle>
+                  <DialogDescription>
+                    This is a basic dialog that demonstrates the standard dialog component.
+                  </DialogDescription>
+                </DialogHeader>
+                <p className="py-4">
+                  Dialogs provide a way to present content that requires user attention or interaction.
+                </p>
+                <DialogFooter>
+                  <Button type="submit">Save changes</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
         
-        {/* Controlled Dialog */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Controlled Dialog</h2>
-          <p className="mb-4">A dialog with controlled open state using React 19 hooks.</p>
-          
-          <Button 
-            onClick={() => setOpen(true)}
-            data-testid="open-controlled-dialog-button"
-          >
-            Open Controlled Dialog
-          </Button>
-          
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Controlled Dialog</DialogTitle>
-                <DialogDescription>
-                  This dialog&apos;s open state is controlled using React 19 hooks.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <p>Using controlled dialogs gives you more flexibility for complex interactions.</p>
-              </div>
-              <DialogFooter className="flex justify-between">
-                <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-                <Button onClick={() => setOpen(false)}>Continue</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Controlled Dialog</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={() => setControlledOpen(true)}
+              data-testid="open-controlled-dialog-button"
+            >
+              Open Controlled Dialog
+            </Button>
+            
+            <Dialog open={controlledOpen} onOpenChange={setControlledOpen}>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Controlled Dialog</DialogTitle>
+                  <DialogDescription>
+                    This dialog's state is controlled externally.
+                  </DialogDescription>
+                </DialogHeader>
+                <p className="py-4">
+                  Controlled dialogs are useful when you need to manage the dialog state from outside the component.
+                </p>
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setControlledOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={() => setControlledOpen(false)}>
+                    Continue
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
         
-        {/* Alert Dialog */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Alert Dialog</h2>
-          <p className="mb-4">A dialog for confirming destructive actions.</p>
-          
-          <Button 
-            variant="destructive" 
-            onClick={() => setOpenAlert(true)}
-            data-testid="open-alert-dialog-button"
-          >
-            Delete Item
-          </Button>
-          
-          <Dialog open={openAlert} onOpenChange={setOpenAlert}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Are you sure?</DialogTitle>
-                <DialogDescription>
-                  This action cannot be undone. This will permanently delete the item
-                  and remove the data from our servers.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter className="flex justify-between sm:justify-end sm:space-x-2">
-                <Button variant="outline" onClick={() => setOpenAlert(false)}>
-                  Cancel
-                </Button>
+        <Card>
+          <CardHeader>
+            <CardTitle>Alert Dialog</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
                 <Button 
-                  variant="destructive" 
-                  onClick={() => setOpenAlert(false)}
+                  variant="destructive"
+                  data-testid="open-alert-dialog-button"
                 >
-                  Delete
+                  Delete Item
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the item and remove all associated data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction>Continue</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardContent>
+        </Card>
         
-        {/* Form Dialog */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Form Dialog</h2>
-          <p className="mb-4">A dialog containing a form with input fields.</p>
-          
-          <Button 
-            onClick={() => setOpenForm(true)}
-            data-testid="open-form-dialog-button"
-          >
-            Edit Profile
-          </Button>
-          
-          <Dialog open={openForm} onOpenChange={setOpenForm}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Edit profile</DialogTitle>
-                <DialogDescription>
-                  Make changes to your profile here. Click save when you&apos;re done.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right">
-                    Name
-                  </Label>
-                  <Input
-                    id="name"
-                    defaultValue="John Doe"
-                    className="col-span-3"
-                  />
+        <Card>
+          <CardHeader>
+            <CardTitle>Form Dialog</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button data-testid="open-form-dialog-button">Edit Profile</Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Edit profile</DialogTitle>
+                  <DialogDescription>
+                    Make changes to your profile here. Click save when you're done.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Name
+                    </Label>
+                    <Input id="name" defaultValue="John Doe" className="col-span-3" />
+                  </div>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="email" className="text-right">
+                      Email
+                    </Label>
+                    <Input id="email" defaultValue="john@example.com" className="col-span-3" />
+                  </div>
                 </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="email" className="text-right">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    defaultValue="john.doe@example.com"
-                    className="col-span-3"
-                  />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit" onClick={() => setOpenForm(false)}>Save changes</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+                <DialogFooter>
+                  <Button type="submit">Save changes</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
         
-        {/* Custom Styled Dialog */}
-        <div className="border rounded-lg p-6">
-          <h2 className="text-xl font-semibold mb-4">Custom Styled Dialog</h2>
-          <p className="mb-4">A dialog with custom styling using Tailwind CSS 4.</p>
-          
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button 
-                variant="outline"
-                className="bg-gradient-to-r from-primary/20 to-secondary/20 border-primary/20"
-                data-testid="open-custom-dialog-button"
-              >
-                Custom Dialog
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px] bg-gradient-to-br from-background to-muted border-primary/20">
-              <DialogHeader>
-                <DialogTitle className="text-primary">Custom Styled Dialog</DialogTitle>
-                <DialogDescription>
-                  This dialog uses custom styling with Tailwind CSS 4.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="py-4">
-                <p>Custom dialogs can be styled to match your brand or create unique experiences.</p>
-              </div>
-              <DialogFooter>
-                <Button className="bg-gradient-to-r from-primary to-secondary hover:from-primary/90 hover:to-secondary/90">
-                  Continue
+        <Card>
+          <CardHeader>
+            <CardTitle>Custom Styled Dialog</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Dialog>
+              <DialogTrigger asChild>
+                <Button 
+                  variant="outline"
+                  data-testid="open-custom-dialog-button"
+                >
+                  Show Custom Dialog
                 </Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px] bg-primary text-primary-foreground">
+                <DialogHeader>
+                  <DialogTitle>Custom Styled Dialog</DialogTitle>
+                  <DialogDescription className="text-primary-foreground/70">
+                    This dialog has custom styling applied.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  <p>Dialogs can be styled to match your application's design system.</p>
+                </div>
+                <DialogFooter>
+                  <Button variant="secondary">Close</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          </CardContent>
+        </Card>
       </div>
     </div>
-  );
+  )
 }

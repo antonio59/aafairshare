@@ -1,18 +1,11 @@
-import * as React from "react";
+"use client"
 
-import { cn } from "@/lib/utils";
+import * as React from "react"
 
-/**
- * Textarea component props
- * Extends the standard HTML textarea attributes with additional properties
- */
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  /**
-   * Optional flag to indicate if the textarea should auto-resize based on content
-   * This can be implemented in the future for better UX
-   */
-  autoResize?: boolean;
-}
+import { cn } from "@/lib/utils"
+
+export interface TextareaProps
+  extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {}
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
   ({ className, ...props }, ref) => {
@@ -25,9 +18,9 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
         ref={ref}
         {...props}
       />
-    );
+    )
   }
-);
-Textarea.displayName = "Textarea";
+)
+Textarea.displayName = "Textarea"
 
-export { Textarea };
+export { Textarea }

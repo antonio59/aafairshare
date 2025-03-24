@@ -1,5 +1,5 @@
-import { Expense } from '@/types/expenses';
-import { User } from '@/utils/settlementCalculator';
+import type { Expense } from '@/types/expenses';
+import type { User } from '@/utils/settlementCalculator';
 import { calculateSettlement, createSettlementRecord } from '../settlementCalculator';
 
 describe('Settlement Calculator Enhanced Tests', () => {

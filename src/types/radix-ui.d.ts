@@ -3,7 +3,7 @@
  * Compatible with React 19 and TypeScript 5.x
  */
 declare module '@radix-ui/react-dropdown-menu' {
-  import * as React from 'react';
+  import type * as React from 'react';
   
   // Common primitive props
   type PrimitiveButtonProps = React.ComponentPropsWithoutRef<'button'> & {

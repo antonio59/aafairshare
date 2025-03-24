@@ -1,6 +1,6 @@
-import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
+import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -70,8 +70,15 @@ const ButtonComponent = React.forwardRef<HTMLButtonElement, ButtonProps>(
 // Add display name to fix ESLint error
 ButtonComponent.displayName = "Button"
 
-// Export both PascalCase and lowercase versions
+/**
+ * Main export - PascalCase following React component conventions
+ */
 export const Button = ButtonComponent
+
+/**
+ * @deprecated This lowercase export is for compatibility with certain tooling.
+ * Please use the PascalCase `Button` export in your components.
+ */
 export const button = ButtonComponent
 
 export { buttonVariants }

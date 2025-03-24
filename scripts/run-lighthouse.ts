@@ -6,8 +6,11 @@
  */
 
 import { existsSync, mkdirSync, writeFileSync } from 'fs';
+import lighthouse from 'lighthouse';
 import { join, dirname } from 'path';
-import lighthouse, { RunnerResult } from 'lighthouse';
+
+import type { RunnerResult } from 'lighthouse';
+
 type CategoryResult = { score: number | null };
 import { launch } from 'chrome-launcher';
 type ChromeLauncher = Awaited<ReturnType<typeof launch>>;
