@@ -6,8 +6,8 @@ import { dirname } from 'path';
 import { log } from './vite';
 
 // Access Supabase URL and Key from environment variables directly
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY || import.meta.env.SUPABASE_KEY;
 
 // Get the current file's directory path (ESM compatible)
 const __filename = fileURLToPath(import.meta.url);
