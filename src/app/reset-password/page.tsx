@@ -2,9 +2,9 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 
-import { SignUpForm } from '@/components/auth/sign-up-form'
+import { ResetPasswordForm } from '@/components/auth/reset-password-form'
 
-export default async function SignUpPage() {
+export default async function ResetPasswordPage() {
   // Get cookies for authentication
   const cookieStore = await cookies()
   
@@ -39,13 +39,13 @@ export default async function SignUpPage() {
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <div className="flex flex-col space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Create an Account
+            Reset Password
           </h1>
           <p className="text-sm text-muted-foreground">
-            Sign up to start sharing expenses
+            Enter your email to receive a password reset link
           </p>
         </div>
-        <SignUpForm />
+        <ResetPasswordForm />
       </div>
     </div>
   )

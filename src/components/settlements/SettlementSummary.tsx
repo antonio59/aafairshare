@@ -1,25 +1,28 @@
 'use client';
 
+import { format } from 'date-fns';
+import { CheckCircle2, ArrowRight, AlarmClock, Loader2 } from 'lucide-react';
 import * as React from 'react';
 import { useState } from 'react';
-import { format } from 'date-fns';
-import { createStandardBrowserClient } from '@/utils/supabase-client';
-import { CheckCircle2, ArrowRight, AlarmClock, Loader2 } from 'lucide-react';
+
+import type { Settlement } from '@/types/expenses';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+
 
 // Import UI components
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { 
   Tooltip, 
   TooltipContent, 
   TooltipProvider, 
   TooltipTrigger 
 } from '@/components/ui/tooltip';
+import { createStandardBrowserClient } from '@/utils/supabase-client';
 
 // Import types
-import type { Settlement } from '@/types/expenses';
 
 export interface SettlementSummaryProps {
   settlements: Settlement[];
@@ -32,7 +35,7 @@ export function SettlementSummary({ settlements, month, onSettlementUpdated }: S
   const totalSettlements = settlements.reduce((sum, s) => sum + s.amount, 0);
   const formattedMonth = format(new Date(month), 'MMMM yyyy');
   const pendingSettlements = settlements.filter(s => s.status === 'pending');
-  const _completedSettlements = settlements.filter(s => s.status === 'completed');
+  // Removed unused variable
   
   const supabase = createStandardBrowserClient();
   
@@ -40,12 +43,16 @@ export function SettlementSummary({ settlements, month, onSettlementUpdated }: S
     try {
       setUpdatingSettlementId(settlementId);
       
-      // Update the settlement status in the database
+      const now = new Date().toISOString();
+      
+      // Update the settlement status in the database with the correct field structure
       const { error } = await supabase
         .from('settlements')
         .update({ 
           status: newStatus,
-          updated_at: new Date().toISOString()
+          updated_at: now,
+          is_settled: newStatus === 'completed',
+          settled_date: newStatus === 'completed' ? now : null
         })
         .eq('id', settlementId);
       

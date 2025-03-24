@@ -1,37 +1,40 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { cn } from '@/lib/utils';
-import { calculateSettlement, Expense as CalculatorExpense } from '@/utils/settlementCalculator';
-import { createStandardBrowserClient } from '@/utils/supabase-client';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/components/ui/use-toast';
-import { SettlementSkeletonGroup } from '@/components/settlements/SettlementSkeleton';
-import { SettlementCard } from '@/components/settlements/SettlementCard';
 import { Check, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState, useEffect, useCallback } from 'react';
+
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+
+import { SettlementCard } from '@/components/settlements/SettlementCard';
+import { SettlementSkeletonGroup } from '@/components/settlements/SettlementSkeleton';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { useToast } from '@/components/ui/use-toast';
+import { cn } from '@/lib/utils';
+import { calculateSettlement, type CalculatorExpense } from '@/utils/settlementCalculator';
+import { createStandardBrowserClient } from '@/utils/supabase-client';
+
 
 export interface Settlement {
   id: string;
-  user_id: string;
+  user_id: string | null;
   amount: number;
   status: string;
   created_at: string;
-  updated_at: string;
+  updated_at: string | null;
   month_year: string;
-  split_type: string;
+  split_type: string | null;
   paid_by_user?: {
     id: string;
-    email: string;
-    name: string;
-  };
+    email: string | null;
+    name: string | null;
+  } | null;
   owed_by_user?: {
     id: string;
-    email: string;
-    name: string;
-  };
+    email: string | null;
+    name: string | null;
+  } | null;
 }
 
 export interface MonthlySettlement {
@@ -80,14 +83,21 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
       const settledMonths = new Set(settlementsData?.map(s => s.month_year) || []);
 
       // Fetch all users first to ensure we include both in calculations
-      const { data: usersData } = await supabase
+      const { data: rawUsersData } = await supabase
         .from('users')
         .select('id, email, name');
 
-      if (!usersData || usersData.length !== 2) {
+      if (!rawUsersData || rawUsersData.length !== 2) {
         console.error('Expected exactly two users');
         return;
       }
+      
+      // Convert user data to the format expected by the calculator
+      const usersData = rawUsersData.map(user => ({
+        id: user.id,
+        email: user.email || '',
+        name: user.name || ''
+      }));
 
       // Then fetch expenses for settlement calculations
       const { data: expensesData, error: expensesError } = await supabase
@@ -103,29 +113,18 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
         return;
       }
 
-    // Group expenses by month
-    interface GroupedExpense {
-      id: string;
-      amount: number;
-      date: string;
-      paid_by: string;
-      created_at: string;
-      split_type: string;
-      paid_by_user: {
-        id: string;
-        email: string;
-        name: string;
-      };
-    }
+    // Group expenses by month - using a type that matches the actual structure
+    type GroupedExpense = typeof expensesData[0];
 
     const groupedExpenses = expensesData?.reduce((acc: { [key: string]: GroupedExpense[] }, expense) => {
       const monthYear = new Date(expense.date).toISOString().slice(0, 7);
       if (!acc[monthYear]) {
         acc[monthYear] = [];
       }
-      acc[monthYear].push(expense);
+      // Non-null assertion since we just initialized the array if it didn't exist
+      acc[monthYear]!.push(expense);
       return acc;
-    }, {}) || {};
+    }, {} as { [key: string]: GroupedExpense[] }) || {};
 
     // Convert grouped expenses to monthly settlements format
     const monthlySettlements = Object.entries(groupedExpenses)
@@ -138,30 +137,49 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
           userTotals[user.id] = {
             paid: 0,
             owed: 0,
-            email: user.email,
-            name: user.name
+            email: user.email || '',
+            name: user.name || ''
           };
         });
         
         // Calculate totals for each user for display purposes
         expenses.forEach((expense) => {
           const paidByUserId = expense.paid_by;
-          userTotals[paidByUserId].paid += expense.amount;
+          // Make sure the user exists in userTotals and has the expected properties
+          if (paidByUserId && userTotals[paidByUserId]) {
+            userTotals[paidByUserId]!.paid += expense.amount;
+          }
         });
 
         const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
         
         // Convert expenses to the format expected by our calculator
-        const calculatorExpenses: CalculatorExpense[] = expenses.map(expense => ({
-          id: expense.id,
-          amount: expense.amount,
-          date: expense.date,
-          paid_by: expense.paid_by,
-          split_type: expense.split_type
-        }));
+        const calculatorExpenses: CalculatorExpense[] = expenses
+          .filter(expense => expense.paid_by !== null) // Filter out expenses with null paid_by
+          .map(expense => ({
+            id: expense.id,
+            amount: expense.amount,
+            date: expense.date,
+            // Use type assertion to tell TypeScript this is non-null now
+            paid_by: expense.paid_by as string,
+            split_type: expense.split_type || 'Equal'
+          }));
         
         // Use our improved settlement calculator for accurate calculations
-        const settlement = calculateSettlement(calculatorExpenses, usersData);
+        const settlementResults = calculateSettlement(calculatorExpenses, usersData);
+        
+        // Get first settlement or create a default one if no settlement exists
+        const settlement = settlementResults && settlementResults.length > 0 
+          ? {
+              from: settlementResults[0]?.from || '',
+              to: settlementResults[0]?.to || '',
+              amount: settlementResults[0]?.amount || 0
+            }
+          : {
+              from: '',
+              to: '',
+              amount: 0
+            };
 
         return {
           month_year: monthYear,
@@ -213,23 +231,39 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
       const now = new Date().toISOString();
       
       // Find the user IDs from userTotals
-      const [[user1Id, user1Data], [user2Id, user2Data]] = Object.entries(userTotals);
-      const paidByUserId = user1Data.paid > user2Data.paid ? user1Id : user2Id;
-      const owedByUserId = user1Data.paid > user2Data.paid ? user2Id : user1Id;
+      const entries = Object.entries(userTotals);
+      if (entries.length >= 2) {
+        const entry1 = entries[0];
+        const entry2 = entries[1];
+        
+        if (entry1 && entry2) {
+          const user1Id = entry1[0];
+          const user1Data = entry1[1];
+          const user2Id = entry2[0];
+          const user2Data = entry2[1];
+          
+          const paidByUserId = user1Data.paid > user2Data.paid ? user1Id : user2Id;
+          const owedByUserId = user1Data.paid > user2Data.paid ? user2Id : user1Id;
       
-      await supabase
-        .from('settlements')
-        .upsert({
-          month_year: monthYear,
-          amount: settlement.amount,
-          is_settled: true,
-          settled_date: now,
-          user_id: user.id,
-          paid_by_user_id: paidByUserId,
-          owed_by_user_id: owedByUserId,
-          created_at: now,
-          updated_at: now
-        });
+        await supabase
+          .from('settlements')
+          .upsert({
+            month_year: monthYear,
+            amount: settlement.amount,
+            is_settled: true,
+            settled_date: now,
+            user_id: user.id,
+            paid_by_user_id: paidByUserId,
+            owed_by_user_id: owedByUserId,
+            created_at: now,
+            updated_at: now
+          });
+        } else {
+          console.error('Invalid user data in entries');
+        }
+      } else {
+        console.error('Not enough user totals to process settlement');
+      }
     }
 
       // Move fetchSettlements inside useEffect to avoid scope issues
@@ -341,9 +375,11 @@ export default function SettlementsSummary({}: SettlementsSummaryProps = {}) {
                       to: monthGroup.settlement.to,
                       amount: monthGroup.settlement.amount,
                       month: monthGroup.month_year,
+                      month_year: monthGroup.month_year,
                       status: activeTab === 'settled' ? 'completed' : 'pending',
                       created_at: monthGroup.settlements[0]?.created_at || new Date().toISOString(),
-                      updated_at: undefined
+                      updated_at: null,
+                      user_id: null
                     }}
                     className={cn(
                       "mt-4 border-blue-200 bg-blue-50/50",

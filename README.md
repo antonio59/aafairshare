@@ -333,7 +333,44 @@ crontab -l
 
 You should see a line containing `keep-supabase-alive`.
 
-## Troubleshooting
+## Project Maintenance & Troubleshooting
+
+### TypeScript & Build System
+
+The project uses strict TypeScript configuration with the `verbatimModuleSyntax: true` option, which requires careful handling of type imports. To help maintain the codebase, several utility scripts have been created:
+
+```bash
+# Fix TypeScript issues
+npm run fix:ts       # Fix all TypeScript issues automatically
+npm run fix:all      # Fix TypeScript, run linting, and format code
+```
+
+The `fix:ts` script addresses several common issues:
+- Converts regular imports to type imports where appropriate
+- Fixes Supabase client usage to properly await the Promise
+- Updates cookie handling for Next.js 15 compatibility
+- Standardizes auth context usage across components
+
+### Fixing Build Failures
+
+If you encounter build failures, run these commands in sequence:
+
+```bash
+# Step 1: Fix TypeScript issues
+npm run fix:ts
+
+# Step 2: Run TypeScript type checking
+npm run typecheck
+
+# Step 3: Run ESLint to fix linting issues
+npm run lint:fix
+
+# Step 4: Format code consistently
+npm run format
+
+# Step 5: Try building again
+npm run build
+```
 
 ### Blank Screen Issue
 

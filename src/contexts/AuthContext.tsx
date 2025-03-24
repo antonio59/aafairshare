@@ -1,152 +1,150 @@
 'use client';
 
-import { createContext, useContext, ReactNode, useState, useEffect } from 'react';
-import { Session } from '@supabase/supabase-js';
-import { useRouter } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
+import { 
+  createContext, 
+  useContext, 
+  useEffect, 
+  useState, 
+  type ReactNode 
+} from 'react';
 
-const VALID_COOKIE_NAME_REGEX = /^[\w!#$%&'*.^`|~+-]+$/;
-const VALID_COOKIE_PATH_REGEX = /^[\w!#$%&'()*+,-./:=@~_]+$/;
-const VALID_COOKIE_DOMAIN_REGEX = /^[a-z0-9-_.]+$/i;
+import type { Session, User } from '@supabase/supabase-js';
 
-type AuthContextType = {
-  user: null | { id: string; email: string };
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
-  logout: () => Promise<void>;
-  loading: boolean;
-};
+import { createStandardBrowserClient } from '@/utils/supabase-client';
 
-const AuthContext = createContext<AuthContextType>({} as AuthContextType);
+// Define the shape of our auth context
+export interface AuthContextType {
+  user: User | null;
+  session: Session | null;
+  isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<{
+    error: Error | null;
+    data: { user: User | null } | null;
+  }>;
+  signOut: () => Promise<void>;
+  refreshSession: () => Promise<void>;
+}
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<null | { id: string; email: string }>(null);
-  const [loading, setLoading] = useState(true);
-  const router = useRouter();
+// Create the context with default values
+export const AuthContext = createContext<AuthContextType>({
+  user: null,
+  session: null,
+  isLoading: true,
+  signIn: async () => ({ error: null, data: null }),
+  signOut: async () => {},
+  refreshSession: async () => {},
+});
+
+// Hook to use the auth context
+export const useAuth = () => useContext(AuthContext);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+export function AuthProvider({ children }: AuthProviderProps) {
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
-  // Use the standardized browser client to ensure consistent cookie handling across the app
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          if (!VALID_COOKIE_NAME_REGEX.test(name)) {
-            console.error('Invalid cookie name');
-            return undefined;
-          }
-          const value = document.cookie
-            .split('; ')
-            .find((row) => row.startsWith(`${name}=`))
-            ?.split('=')[1];
-          return value ? decodeURIComponent(value) : undefined;
-        },
-        set(name: string, value: string, options: { path?: string; maxAge?: number; domain?: string }) {
-          if (!VALID_COOKIE_NAME_REGEX.test(name)) {
-            throw new Error('Invalid cookie name');
-          }
-          if (options.path && !VALID_COOKIE_PATH_REGEX.test(options.path)) {
-            throw new Error('Invalid cookie path');
-          }
-          if (options.domain && !VALID_COOKIE_DOMAIN_REGEX.test(options.domain)) {
-            throw new Error('Invalid cookie domain');
-          }
-          const encodedValue = encodeURIComponent(value);
-          const path = options.path || '/';
-          const domain = options.domain ? `; domain=${options.domain}` : '';
-          // Ensure consistent cookie settings with middleware
-          document.cookie = `${name}=${encodedValue}; path=${path}${domain}; max-age=${options.maxAge || 7 * 24 * 60 * 60}; SameSite=Lax; ${process.env.NODE_ENV === 'production' ? 'Secure' : ''}`;
-        },
-        remove(name: string, options: { path?: string; domain?: string }) {
-          if (!VALID_COOKIE_NAME_REGEX.test(name)) {
-            throw new Error('Invalid cookie name');
-          }
-          if (options.path && !VALID_COOKIE_PATH_REGEX.test(options.path)) {
-            throw new Error('Invalid cookie path');
-          }
-          if (options.domain && !VALID_COOKIE_DOMAIN_REGEX.test(options.domain)) {
-            throw new Error('Invalid cookie domain');
-          }
-          const path = options.path || '/';
-          const domain = options.domain ? `; domain=${options.domain}` : '';
-          document.cookie = `${name}=; path=${path}${domain}; max-age=0; SameSite=Lax; ${process.env.NODE_ENV === 'production' ? 'Secure' : ''}`;
-        },
-      },
-      cookieOptions: {
-        name: 'sb-session',
-        path: '/',
-        sameSite: 'lax',
-        secure: process.env.NODE_ENV === 'production',
-        httpOnly: false,
-        maxAge: 7 * 24 * 60 * 60 // 7 days in seconds
-      }
-    }
-  );
+  // Initialize Supabase client
+  const supabase = createStandardBrowserClient();
 
+  // Function to sign in
+  const signIn = async (email: string, password: string) => {
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      return { error, data: { user: data?.user || null } };
+    } catch (error) {
+      console.error('Sign in error:', error);
+      return { 
+        error: error instanceof Error ? error : new Error('Unknown error occurred'), 
+        data: null 
+      };
+    }
+  };
+
+  // Function to sign out
+  const signOut = async () => {
+    try {
+      await supabase.auth.signOut();
+      setUser(null);
+      setSession(null);
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  };
+
+  // Function to refresh the session
+  const refreshSession = async () => {
+    try {
+      setIsLoading(true);
+      const { data } = await supabase.auth.getSession();
+      setSession(data.session);
+      setUser(data.session?.user || null);
+    } catch (error) {
+      console.error('Session refresh error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Subscribe to auth changes on component mount
   useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event: string, session: Session | null) => {
-      if (session) {
-        setUser({ id: session.user.id, email: session.user.email || '' });
-      } else {
-        setUser(null);
+    let authListener: { subscription: { unsubscribe: () => void } | null } = { subscription: null };
+    
+    const fetchUser = async () => {
+      try {
+        setIsLoading(true);
+        
+        // Get the initial session
+        const { data: { session } } = await supabase.auth.getSession();
+        setSession(session);
+        setUser(session?.user || null);
+        
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (_event, session) => {
+            setSession(session);
+            setUser(session?.user || null);
+          }
+        );
+        
+        authListener.subscription = subscription;
+        
+      } catch (error) {
+        console.error('Error fetching user:', error);
+      } finally {
+        setIsLoading(false);
       }
-      setLoading(false);
-    });
+    };
 
-    return () => subscription.unsubscribe();
-  }, [supabase.auth]);
+    void fetchUser();
+    
+    // Return cleanup function
+    return () => {
+      if (authListener.subscription) {
+        authListener.subscription.unsubscribe();
+      }
+    };
+  }, []);
 
-  const login = async (email: string, password: string): Promise<void> => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    // Wait for session to be set
-    if (data?.session) {
-      setUser({ id: data.session.user.id, email: data.session.user.email || '' });
-      setLoading(false);
-      // Use router.push instead of refresh to ensure client-side navigation
-      router.push('/expenses');
-    }
-  };
-
-  const register = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      throw error;
-    }
-
-    router.refresh();
-  };
-
-  const logout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      throw error;
-    }
-    // Clear any cached data
-    localStorage.clear();
-    sessionStorage.clear();
-    // Force a complete page reload to clear all state
-    window.location.href = '/signin';
+  const value = {
+    user,
+    session,
+    isLoading,
+    signIn,
+    signOut,
+    refreshSession,
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
 }
-
-export const useAuth = () => useContext(AuthContext);

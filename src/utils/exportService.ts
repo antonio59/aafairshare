@@ -1,9 +1,12 @@
 'use client';
 
 import jsPDF from 'jspdf';
+
 import 'jspdf-autotable';
 import type { Expense, ExportableExpense, Settlement } from '@/types/expenses';
+
 import { format } from 'date-fns';
+
 import { createStandardBrowserClient } from '@/utils/supabase-client';
 
 class ExportError extends Error {
@@ -18,16 +21,17 @@ interface ExportResult<T> {
   fileName: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-interface ExportData {
-  Date: string;
-  Amount: number;
-  Category: string;
-  Location: string;
-  Notes: string;
-  'Paid By': string;
-  'Split Type': string;
-}
+// This interface represents the CSV header structure 
+// Used for documentation purposes
+type ExportDataHeaders = [
+  'Date',
+  'Amount',
+  'Category',
+  'Location',
+  'Notes',
+  'Paid By',
+  'Split Type'
+];
 
 interface ExportMetadata {
   format: 'csv' | 'pdf';
@@ -108,18 +112,19 @@ export async function exportToCSV(expenses: Expense[], month: string): Promise<E
 
     const formattedExpenses: ExportableExpense[] = expenses.map(expense => ({
       ...expense,
-      category: categoryMap.get(expense.category_id) || 'Unknown',
-      location: locationMap.get(expense.location_id) || 'Unknown',
+      category: expense.category_id ? categoryMap.get(expense.category_id) || 'Unknown' : 'Unknown',
+      location: expense.location_id ? locationMap.get(expense.location_id) || 'Unknown' : 'Unknown',
     }));
 
-    const headers = ['Date', 'Amount', 'Category', 'Location', 'Notes', 'Paid By', 'Split Type'] as const;
+    // Use our predefined headers type
+    const headers: ExportDataHeaders = ['Date', 'Amount', 'Category', 'Location', 'Notes', 'Paid By', 'Split Type'];
     const rows = formattedExpenses.map(expense => [
       format(new Date(expense.date), 'dd/MM/yyyy'),
       `£${expense.amount.toFixed(2)}`,
       expense.category,
       expense.location,
       expense.notes,
-      expense.users.name,
+      expense.users?.name || 'Unknown',
       expense.split_type
     ]);
 
@@ -128,7 +133,8 @@ export async function exportToCSV(expenses: Expense[], month: string): Promise<E
     const userExpenses = new Map<string, number>();
     formattedExpenses.forEach(exp => {
       const amount = exp.split_type === 'Equal' ? exp.amount / 2 : exp.amount;
-      userExpenses.set(exp.users.name, (userExpenses.get(exp.users.name) || 0) + amount);
+      const userName = exp.users?.name || 'Unknown';
+      userExpenses.set(userName, (userExpenses.get(userName) || 0) + amount);
     });
 
     // Calculate settlements between users
@@ -153,8 +159,11 @@ export async function exportToCSV(expenses: Expense[], month: string): Promise<E
               to: user,
               amount: amountPerUser,
               month,
+              month_year: month,
               status: 'pending',
               created_at: new Date().toISOString(),
+              updated_at: null,
+              user_id: null
             });
           });
         }
@@ -229,8 +238,8 @@ export async function exportToPDF(
     // Format expenses
     const formattedExpenses: ExportableExpense[] = expenses.map(expense => ({
       ...expense,
-      category: categoryMap.get(expense.category_id) || 'Unknown',
-      location: locationMap.get(expense.location_id) || 'Unknown',
+      category: expense.category_id ? categoryMap.get(expense.category_id) || 'Unknown' : 'Unknown',
+      location: expense.location_id ? locationMap.get(expense.location_id) || 'Unknown' : 'Unknown',
     }));
 
     // Calculate total
@@ -265,7 +274,7 @@ export async function exportToPDF(
         expense.category,
         expense.location,
         `£${expense.amount.toFixed(2)}`,
-        expense.split_type,
+        expense.split_type || 'Unknown',
         expense.notes || ''
       ]),
       startY: margin + 35,
@@ -296,7 +305,8 @@ export async function exportToPDF(
     const userExpenses = new Map<string, number>();
     formattedExpenses.forEach(exp => {
       const amount = exp.split_type === 'Equal' ? exp.amount / 2 : exp.amount;
-      userExpenses.set(exp.users.name, (userExpenses.get(exp.users.name) || 0) + amount);
+      const userName = exp.users?.name || 'Unknown';
+      userExpenses.set(userName, (userExpenses.get(userName) || 0) + amount);
     });
 
     // Calculate settlements between users
@@ -321,8 +331,11 @@ export async function exportToPDF(
               to: user,
               amount: amountPerUser,
               month,
+              month_year: month,
               status: 'pending',
               created_at: new Date().toISOString(),
+              updated_at: null,
+              user_id: null
             });
           });
         }
