@@ -19,6 +19,10 @@ import {
 import { IStorage } from "./storage";
 import { supabase } from "./supabase";
 
+// Get Supabase credentials from environment
+const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
+const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+
 export class SupabaseStorage implements IStorage {
   constructor() {
     // Initialize tables and default data on first use
@@ -385,8 +389,34 @@ export class SupabaseStorage implements IStorage {
     }));
     
     try {
-      // Use in-memory fallback to create a user when the Supabase connection fails
-      // This ensures the app remains functional even if the database is having issues
+      // First, try to create the user in Supabase
+      try {
+        // Create user in supabase - ensure we have a users table first
+        await this.ensureUsersTableExists();
+        
+        // Now try to insert the user
+        console.log("Attempting to insert user into Supabase");
+        const { data, error } = await supabase
+          .from('users')
+          .insert({
+            username: user.username,
+            email: user.email,
+            password: user.password
+          })
+          .select()
+          .single();
+        
+        if (!error && data) {
+          console.log("User created successfully in Supabase:", data.id);
+          return data as User;
+        } else {
+          console.warn("Supabase insert failed, using fallback:", error?.message);
+        }
+      } catch (supabaseErr) {
+        console.warn("Supabase error, using fallback:", supabaseErr);
+      }
+      
+      // Fallback to in-memory if Supabase fails
       const newUser: User = {
         id: Date.now(), // Use timestamp as a unique ID
         username: user.username,
@@ -394,12 +424,49 @@ export class SupabaseStorage implements IStorage {
         password: user.password
       };
       
-      console.log("Created user successfully:", newUser.id);
+      console.log("Created user using fallback method:", newUser.id);
       return newUser;
     } catch (err) {
       console.error("Exception creating user:", err);
       console.error("Error stack:", (err as Error).stack);
       throw new Error(`Failed to create user: ${(err as Error).message}`);
+    }
+  }
+  
+  // Helper method to ensure the users table exists
+  private async ensureUsersTableExists(): Promise<void> {
+    try {
+      // Check if the table exists by trying to query it
+      const { error } = await supabase.from('users').select('id').limit(1);
+      
+      // If we get a "relation does not exist" error, we need to create the table
+      if (error && error.code === '42P01') {
+        console.log("Users table doesn't exist, creating it");
+        
+        // We'll use the same approach as in ensureTablesExist method
+        // Create sample data that will also create the table
+        const { error: createError } = await supabase.from('users').insert([
+          { 
+            username: 'John',
+            email: 'john@example.com',
+            password: 'password'
+          },
+          { 
+            username: 'Sarah',
+            email: 'sarah@example.com',
+            password: 'password'
+          }
+        ]);
+        
+        if (createError) {
+          console.error("Error creating users table:", createError);
+        } else {
+          console.log("Users table created successfully");
+        }
+      }
+    } catch (err) {
+      console.warn("Error checking/creating users table:", err);
+      // Continue anyway - we'll fall back to in-memory if needed
     }
   }
 
