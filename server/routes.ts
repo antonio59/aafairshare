@@ -124,7 +124,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Locations routes
-  app.get(`${API_PREFIX}/locations`, async (req, res) => {
+  app.get(`${API_PREFIX}/locations`, isAuthenticated, async (req, res) => {
     try {
       const locations = await storage.getAllLocations();
       res.json(locations);
@@ -133,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post(`${API_PREFIX}/locations`, async (req, res) => {
+  app.post(`${API_PREFIX}/locations`, isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertLocationSchema.parse(req.body);
       const location = await storage.createLocation(validatedData);
@@ -143,7 +143,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch(`${API_PREFIX}/locations/:id`, async (req, res) => {
+  app.patch(`${API_PREFIX}/locations/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertLocationSchema.partial().parse(req.body);
@@ -159,7 +159,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete(`${API_PREFIX}/locations/:id`, async (req, res) => {
+  app.delete(`${API_PREFIX}/locations/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteLocation(id);
@@ -175,7 +175,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Expenses routes
-  app.get(`${API_PREFIX}/expenses`, async (req, res) => {
+  app.get(`${API_PREFIX}/expenses`, isAuthenticated, async (req, res) => {
     try {
       const month = req.query.month as string;
       let expenses;
@@ -192,7 +192,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get(`${API_PREFIX}/expenses/:id`, async (req, res) => {
+  app.get(`${API_PREFIX}/expenses/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const expense = await storage.getExpense(id);
@@ -207,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post(`${API_PREFIX}/expenses`, async (req, res) => {
+  app.post(`${API_PREFIX}/expenses`, isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertExpenseSchema.parse(req.body);
       const expense = await storage.createExpense(validatedData);
@@ -217,7 +217,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch(`${API_PREFIX}/expenses/:id`, async (req, res) => {
+  app.patch(`${API_PREFIX}/expenses/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const validatedData = insertExpenseSchema.partial().parse(req.body);
@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete(`${API_PREFIX}/expenses/:id`, async (req, res) => {
+  app.delete(`${API_PREFIX}/expenses/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteExpense(id);
@@ -249,7 +249,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Settlements routes
-  app.get(`${API_PREFIX}/settlements`, async (req, res) => {
+  app.get(`${API_PREFIX}/settlements`, isAuthenticated, async (req, res) => {
     try {
       const month = req.query.month as string;
       let settlements;
@@ -266,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post(`${API_PREFIX}/settlements`, async (req, res) => {
+  app.post(`${API_PREFIX}/settlements`, isAuthenticated, async (req, res) => {
     try {
       const validatedData = insertSettlementSchema.parse(req.body);
       const settlement = await storage.createSettlement(validatedData);
@@ -277,7 +277,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Summary route
-  app.get(`${API_PREFIX}/summary/:month`, async (req, res) => {
+  app.get(`${API_PREFIX}/summary/:month`, isAuthenticated, async (req, res) => {
     try {
       const month = req.params.month;
       const summary = await storage.getMonthSummary(month);
@@ -288,7 +288,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Users route - just to get all users
-  app.get(`${API_PREFIX}/users`, async (req, res) => {
+  app.get(`${API_PREFIX}/users`, isAuthenticated, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       res.json(users);

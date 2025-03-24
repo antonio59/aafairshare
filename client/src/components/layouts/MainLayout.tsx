@@ -7,26 +7,29 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { User } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
 export default function MainLayout({ children }: MainLayoutProps) {
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { toast } = useToast();
   
-  // Get users
-  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
-    queryKey: ['/api/users'],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Could not load users data",
-        variant: "destructive"
-      });
-    }
+  // Define the auth status response type
+  interface AuthStatusResponse {
+    isAuthenticated: boolean;
+    user?: {
+      id: number;
+      username: string;
+    };
+  }
+  
+  // Get current user from auth status
+  const { data: authData, isLoading: authLoading } = useQuery<AuthStatusResponse>({
+    queryKey: ['/api/auth/status']
   });
   
   const closeMobileMenu = () => setMobileMenuOpen(false);
@@ -39,19 +42,33 @@ export default function MainLayout({ children }: MainLayoutProps) {
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
   
-  // Find the current user (default to the first user)
-  const currentUser = users?.length ? users[0] : null;
+  // Get current user from auth data
+  const currentUser = authData?.isAuthenticated ? authData.user : null;
   
-  const switchUser = () => {
-    if (!users || users.length < 2) return;
-    
-    const newUser = users[0].id === currentUser?.id ? users[1] : users[0];
-    
-    toast({
-      title: "User Switched",
-      description: `Now logged in as ${newUser.username}`,
-      variant: "default"
-    });
+  const handleLogout = async () => {
+    try {
+      const response = await apiRequest('POST', '/api/auth/logout');
+      
+      if (response.ok) {
+        toast({
+          title: "Logged out",
+          description: "You have been logged out successfully",
+        });
+        setLocation('/login');
+      } else {
+        toast({
+          title: "Logout failed",
+          description: "An error occurred during logout",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Logout error",
+        description: "Could not connect to the server",
+        variant: "destructive"
+      });
+    }
   };
   
   return (
@@ -93,10 +110,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                 </p>
                 <button 
                   className="text-xs font-medium text-gray-500 hover:text-primary"
-                  onClick={switchUser}
-                  disabled={usersLoading || !users || users.length < 2}
+                  onClick={handleLogout}
                 >
-                  Switch User
+                  Logout
                 </button>
               </div>
             </div>
@@ -157,10 +173,9 @@ export default function MainLayout({ children }: MainLayoutProps) {
                   </p>
                   <button 
                     className="text-xs font-medium text-gray-500 hover:text-primary"
-                    onClick={switchUser}
-                    disabled={usersLoading || !users || users.length < 2}
+                    onClick={handleLogout}
                   >
-                    Switch User
+                    Logout
                   </button>
                 </div>
               </div>

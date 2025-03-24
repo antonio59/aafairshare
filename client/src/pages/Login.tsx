@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
 import {
   Card,
   CardContent,
@@ -37,6 +38,28 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+
+  // Define auth response type
+  interface AuthStatusResponse {
+    isAuthenticated: boolean;
+    user?: {
+      id: number;
+      username: string;
+    };
+  }
+
+  // Check if user is already authenticated
+  const { data: authData, isLoading: isCheckingAuth } = useQuery<AuthStatusResponse>({
+    queryKey: ['/api/auth/status'],
+    retry: false,
+  });
+
+  // Redirect to dashboard if already logged in
+  useEffect(() => {
+    if (authData && authData.isAuthenticated) {
+      setLocation('/');
+    }
+  }, [authData, setLocation]);
 
   // Initialize form
   const form = useForm<FormData>({
@@ -106,7 +129,7 @@ export default function Login() {
                           className="pl-10"
                           placeholder="Enter your username"
                           {...field}
-                          disabled={isLoading}
+                          disabled={isLoading || isCheckingAuth}
                         />
                       </div>
                     </FormControl>
@@ -130,7 +153,7 @@ export default function Login() {
                           type="password"
                           placeholder="Enter your password"
                           {...field}
-                          disabled={isLoading}
+                          disabled={isLoading || isCheckingAuth}
                         />
                       </div>
                     </FormControl>
@@ -138,8 +161,8 @@ export default function Login() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Log in"}
+              <Button type="submit" className="w-full" disabled={isLoading || isCheckingAuth}>
+                {isLoading ? "Logging in..." : isCheckingAuth ? "Checking..." : "Log in"}
               </Button>
             </form>
           </Form>
