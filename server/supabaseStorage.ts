@@ -143,6 +143,17 @@ export class SupabaseStorage implements IStorage {
     if (error || !data) return undefined;
     return data as User;
   }
+  
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', email)
+      .single();
+    
+    if (error || !data) return undefined;
+    return data as User;
+  }
 
   async createUser(user: InsertUser): Promise<User> {
     const { data, error } = await supabase

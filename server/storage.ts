@@ -21,6 +21,7 @@ export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   
@@ -101,8 +102,8 @@ export class MemStorage implements IStorage {
 
   private initializeDefaultData(): void {
     // Create default users
-    const john: InsertUser = { username: "John", password: "password" };
-    const sarah: InsertUser = { username: "Sarah", password: "password" };
+    const john: InsertUser = { username: "John", email: "john@example.com", password: "password" };
+    const sarah: InsertUser = { username: "Sarah", email: "sarah@example.com", password: "password" };
     this.createUser(john);
     this.createUser(sarah);
     
