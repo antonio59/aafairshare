@@ -1,62 +1,45 @@
-// Script to check if the database tables exist in Supabase
-import pkg from 'pg';
-const { Pool } = pkg;
+import { createClient } from '@supabase/supabase-js';
+import { log } from './server/vite.js';
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 
 async function checkDatabase() {
-  // Get the database URL from environment
-  const databaseUrl = process.env.DATABASE_URL;
-  
-  if (!databaseUrl) {
-    console.error('DATABASE_URL environment variable is not set');
-    process.exit(1);
-  }
-  
-  const pool = new Pool({ connectionString: databaseUrl });
-  
   try {
+    console.log('Checking Supabase connection...');
+    console.log('SUPABASE_URL exists:', !!supabaseUrl);
+    console.log('SUPABASE_KEY exists:', !!supabaseKey);
+    console.log('SUPABASE_SERVICE_KEY exists:', !!supabaseServiceKey);
+
+    // Initialize Supabase client
+    const supabase = createClient(
+      supabaseUrl || '',
+      supabaseServiceKey || supabaseKey || ''
+    );
+
     // Check if tables exist
     const tables = ['users', 'categories', 'locations', 'expenses', 'recurring_expenses', 'settlements'];
-    const results = {};
-    
+
     for (const table of tables) {
       try {
-        // Check if table exists
-        const { rowCount } = await pool.query(`
-          SELECT EXISTS (
-            SELECT FROM information_schema.tables 
-            WHERE table_schema = 'public'
-            AND table_name = $1
-          )
-        `, [table]);
-        
-        results[table] = rowCount > 0;
-        console.log(`Table '${table}' exists: ${results[table]}`);
+        const { data, error } = await supabase
+          .from(table)
+          .select('count(*)')
+          .limit(1);
+
+        if (error) {
+          console.error(`Error checking table '${table}':`, error.message);
+        } else {
+          console.log(`Table '${table}' exists and has ${data[0]?.count || 0} rows`);
+        }
       } catch (err) {
-        results[table] = false;
-        console.error(`Error checking table '${table}':`, err.message);
+        console.error(`Error checking table '${table}':`, err);
       }
     }
-    
-    // Check if any tables need to be created
-    const missingTables = tables.filter(table => !results[table]);
-    
-    if (missingTables.length > 0) {
-      console.log(`Missing tables: ${missingTables.join(', ')}`);
-      console.log('You need to run the setup-database.js script to create these tables.');
-    } else {
-      console.log('All required database tables exist!');
-    }
-    
   } catch (error) {
-    console.error('Error connecting to database:', error.message);
-  } finally {
-    // Close the pool
-    await pool.end();
+    console.error('Database check failed:', error);
   }
 }
 
-// Run the function
-checkDatabase().catch(err => {
-  console.error('Unhandled error:', err);
-  process.exit(1);
-});
+checkDatabase().catch(console.error);
