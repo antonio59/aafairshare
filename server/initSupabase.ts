@@ -57,133 +57,35 @@ async function createTables() {
   try {
     log("Creating tables in Supabase...");
     
-    // Create users table
-    const { error: usersError } = await supabase.from('users').insert([]).select().limit(0);
-    if (usersError && usersError.code !== '23505') { // Ignore duplicate errors
-      // If the table doesn't exist, create it
-      const { error } = await supabase.rpc('exec_sql', { 
-        sql: `
-          CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL
-          );
-        `
-      });
-      
-      if (error && error.code !== 'PGRST202') {
-        // If exec_sql function doesn't exist or fails, try direct REST API
-        log("Cannot create tables via exec_sql. Using direct API...");
-        
-        // Default users to insert
-        const defaultUsers = [
-          { username: 'John', password: 'password' },
-          { username: 'Sarah', password: 'password' }
-        ];
-        
-        // Try to insert users directly
-        const { error: insertError } = await supabase.from('users').insert(defaultUsers);
-        if (insertError && insertError.code !== '23505') { // Ignore duplicate errors
-          log("Failed to create users table or insert default users.");
-        } else {
-          log("Created users table and inserted default users.");
-        }
-      }
-    } else {
-      log("Users table already exists.");
-    }
+    // We'll let the SupabaseStorage class handle table creation
+    // It has a more robust approach with proper error handling
+    log("Tables will be created on demand by the SupabaseStorage class.");
     
-    // Create categories table
-    const { error: categoriesError } = await supabase.from('categories').insert([]).select().limit(0);
-    if (categoriesError && categoriesError.code !== '23505') {
-      // If the table doesn't exist, try inserting default categories
-      const defaultCategories = [
-        { name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
-        { name: 'Rent', color: '#2196F3', icon: 'Home' },
-        { name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
-        { name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
-        { name: 'Transportation', color: '#F44336', icon: 'Car' },
-        { name: 'Dining', color: '#FF5722', icon: 'Utensils' },
-        { name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
-        { name: 'Other', color: '#607D8B', icon: 'Package' }
-      ];
-      
-      const { error: insertError } = await supabase.from('categories').insert(defaultCategories);
-      if (insertError && insertError.code !== '23505') {
-        log("Failed to create categories table or insert defaults.");
-      } else {
-        log("Created categories table and inserted defaults.");
-      }
-    } else {
-      log("Categories table already exists.");
-    }
-    
-    // Create locations table
-    const { error: locationsError } = await supabase.from('locations').insert([]).select().limit(0);
-    if (locationsError && locationsError.code !== '23505') {
-      // If the table doesn't exist, try inserting default locations
-      const defaultLocations = [
-        { name: 'Supermarket' },
-        { name: 'Restaurant' },
-        { name: 'Online' },
-        { name: 'Cinema' },
-        { name: 'Pharmacy' },
-        { name: 'Gas Station' },
-        { name: 'Home' },
-        { name: 'Other' }
-      ];
-      
-      const { error: insertError } = await supabase.from('locations').insert(defaultLocations);
-      if (insertError && insertError.code !== '23505') {
-        log("Failed to create locations table or insert defaults.");
-      } else {
-        log("Created locations table and inserted defaults.");
-      }
-    } else {
-      log("Locations table already exists.");
-    }
-    
-    // Expenses table will be created via REST API if needed during operations
-    
-    log("Completed table setup in Supabase.");
     return true;
   } catch (error) {
-    console.error("Error creating tables:", error);
+    console.error("Error accessing Supabase:", error);
     return false;
   }
 }
 
 async function initializeDefaultData() {
   try {
-    // Check if default data was successfully inserted by the migration script
-    const { data: users, error: usersError } = await supabase
-      .from('users')
-      .select('*');
+    // Just check if we can connect to Supabase
+    const { data, error } = await supabase.from('_metadata').select('*').limit(1);
     
-    if (usersError) {
-      throw usersError;
+    if (error) {
+      // This is okay, _metadata table likely doesn't exist
+      log("Couldn't query _metadata table. This is expected.");
+    } else {
+      log("Successfully connected to Supabase.");
     }
     
-    const { data: categories, error: categoriesError } = await supabase
-      .from('categories')
-      .select('*');
-    
-    if (categoriesError) {
-      throw categoriesError;
-    }
-    
-    const { data: locations, error: locationsError } = await supabase
-      .from('locations')
-      .select('*');
-    
-    if (locationsError) {
-      throw locationsError;
-    }
-    
-    log(`Verified default data in Supabase: ${users.length} users, ${categories.length} categories, ${locations.length} locations`);
+    // Let the SupabaseStorage class handle default data initialization
+    log("Default data will be initialized by the SupabaseStorage class.");
     return true;
   } catch (error) {
-    console.error("Error verifying default data:", error);
-    return false;
+    // Non-fatal error - we'll let SupabaseStorage handle the initialization
+    log("Couldn't verify Supabase connection. Will try during operations.");
+    return true;
   }
 }

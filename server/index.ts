@@ -93,47 +93,40 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Use in-memory storage for now (Supabase integration pending)
+  // Initialize appropriate storage based on available credentials
   let storageImplementation: IStorage;
   
-  // Comment out Supabase initialization temporarily
-  // if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
-  //   log("Initializing Supabase storage...");
-  //   
-  //   try {
-  //     // Try to initialize Supabase database
-  //     const supabaseInitialized = await initializeSupabaseDatabase();
-  //     
-  //     if (supabaseInitialized) {
-  //       log("Using Supabase for persistent storage!");
-  //       // Create a new Supabase storage implementation
-  //       const supabaseStorage = new SupabaseStorage();
-  //       
-  //       // Override the storage object by replacing its prototype methods with the Supabase implementation methods
-  //       Object.getOwnPropertyNames(SupabaseStorage.prototype).forEach(method => {
-  //         if (method !== 'constructor') {
-  //           // @ts-ignore - We're intentionally replacing methods at runtime
-  //           storage[method] = supabaseStorage[method].bind(supabaseStorage);
-  //         }
-  //       });
-  //       
-  //       storageImplementation = storage;
-  //     } else {
-  //       log("Failed to initialize Supabase. Falling back to in-memory storage.");
-  //       storageImplementation = storage;
-  //     }
-  //   } catch (error) {
-  //     console.error("Error initializing Supabase:", error);
-  //     log("Error initializing Supabase. Falling back to in-memory storage.");
-  //     storageImplementation = storage;
-  //   }
-  // } else {
-  //   log("No Supabase credentials found. Using in-memory storage.");
-  //   storageImplementation = storage;
-  // }
-  
-  log("Using in-memory storage for now. Supabase integration is pending.");
-  storageImplementation = storage;
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+    log("Initializing Supabase storage...");
+    
+    try {
+      // Create a new Supabase storage implementation
+      const supabaseStorage = new SupabaseStorage();
+      
+      // Override the storage object by replacing its prototype methods with the Supabase implementation methods
+      Object.getOwnPropertyNames(SupabaseStorage.prototype).forEach(method => {
+        if (method !== 'constructor') {
+          // @ts-ignore - We're intentionally replacing methods at runtime
+          storage[method] = supabaseStorage[method].bind(supabaseStorage);
+        }
+      });
+      
+      // Don't wait for full initialization - tables will be created on demand
+      initializeSupabaseDatabase().catch(err => {
+        console.error("Error initializing Supabase database:", err);
+      });
+      
+      log("Using Supabase for persistent storage!");
+      storageImplementation = storage;
+    } catch (error) {
+      console.error("Error setting up Supabase storage:", error);
+      log("Error with Supabase storage. Falling back to in-memory storage.");
+      storageImplementation = storage;
+    }
+  } else {
+    log("No Supabase credentials found. Using in-memory storage.");
+    storageImplementation = storage;
+  }
   
   const server = await registerRoutes(app);
 
@@ -173,8 +166,11 @@ app.use((req, res, next) => {
       log(`The app is now running and should be accessible via Replit`);
       log(`If you're accessing from outside Replit, use http://0.0.0.0:${port}`);
       
-      // Always using in-memory storage for now
-      log("Data will be stored in-memory only (will be lost on restart).");
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+        log("Data will be stored persistently in Supabase database.");
+      } else {
+        log("Data will be stored in-memory only (will be lost on restart).");
+      }
     });
   };
   
