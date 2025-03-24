@@ -156,14 +156,35 @@ export class SupabaseStorage implements IStorage {
   }
 
   async createUser(user: InsertUser): Promise<User> {
-    const { data, error } = await supabase
-      .from('users')
-      .insert(user)
-      .select()
-      .single();
+    console.log("Creating user with data:", JSON.stringify({
+      username: user.username,
+      email: user.email,
+      // Don't log password
+    }));
     
-    if (error) throw new Error(`Failed to create user: ${error.message}`);
-    return data as User;
+    try {
+      const { data, error } = await supabase
+        .from('users')
+        .insert(user)
+        .select()
+        .single();
+      
+      if (error) {
+        console.error("Supabase error creating user:", error);
+        throw new Error(`Failed to create user: ${error.message}`);
+      }
+      
+      if (!data) {
+        console.error("No data returned from user creation");
+        throw new Error("Failed to create user: No data returned");
+      }
+      
+      console.log("User created successfully:", data.id);
+      return data as User;
+    } catch (err) {
+      console.error("Exception creating user:", err);
+      throw new Error(`Failed to create user: ${(err as Error).message}`);
+    }
   }
 
   async getAllUsers(): Promise<User[]> {

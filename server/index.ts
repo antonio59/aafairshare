@@ -96,40 +96,9 @@ app.use((req, res, next) => {
   // Initialize appropriate storage based on available credentials
   let storageImplementation: IStorage;
   
-  const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY || import.meta.env.SUPABASE_KEY;
-  
-  if (supabaseUrl && supabaseKey) {
-    log("Initializing Supabase storage...");
-    
-    try {
-      // Create a new Supabase storage implementation
-      const supabaseStorage = new SupabaseStorage();
-      
-      // Override the storage object by replacing its prototype methods with the Supabase implementation methods
-      Object.getOwnPropertyNames(SupabaseStorage.prototype).forEach(method => {
-        if (method !== 'constructor') {
-          // @ts-ignore - We're intentionally replacing methods at runtime
-          storage[method] = supabaseStorage[method].bind(supabaseStorage);
-        }
-      });
-      
-      // Don't wait for full initialization - tables will be created on demand
-      initializeSupabaseDatabase().catch(err => {
-        console.error("Error initializing Supabase database:", err);
-      });
-      
-      log("Using Supabase for persistent storage!");
-      storageImplementation = storage;
-    } catch (error) {
-      console.error("Error setting up Supabase storage:", error);
-      log("Error with Supabase storage. Falling back to in-memory storage.");
-      storageImplementation = storage;
-    }
-  } else {
-    log("No Supabase credentials found. Using in-memory storage.");
-    storageImplementation = storage;
-  }
+  // For now, use memory storage until we resolve Supabase issues
+  log("Using in-memory storage for testing.");
+  storageImplementation = storage;
   
   const server = await registerRoutes(app);
 
@@ -168,12 +137,7 @@ app.use((req, res, next) => {
       // Simplify logging for Replit environment
       log(`The app is now running and should be accessible via Replit`);
       log(`If you're accessing from outside Replit, use http://0.0.0.0:${port}`);
-      
-      if (supabaseUrl && supabaseKey) {
-        log("Data will be stored persistently in Supabase database.");
-      } else {
-        log("Data will be stored in-memory only (will be lost on restart).");
-      }
+      log("Data will be stored in-memory only (will be lost on restart).");
     });
   };
   
