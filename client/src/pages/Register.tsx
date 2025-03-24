@@ -1,12 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
 import {
   Card,
   CardContent,
@@ -29,38 +27,20 @@ import { LockKeyhole, User } from "lucide-react";
 
 // Form schema for validation
 const formSchema = z.object({
-  username: z.string().min(1, "Username is required"),
-  password: z.string().min(1, "Password is required"),
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Confirm password is required"),
+}).refine(data => data.password === data.confirmPassword, {
+  message: "Passwords must match",
+  path: ["confirmPassword"]
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-export default function Login() {
+export default function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-
-  // Define auth response type
-  interface AuthStatusResponse {
-    isAuthenticated: boolean;
-    user?: {
-      id: number;
-      username: string;
-    };
-  }
-
-  // Check if user is already authenticated
-  const { data: authData, isLoading: isCheckingAuth } = useQuery<AuthStatusResponse>({
-    queryKey: ['/api/auth/status'],
-    retry: false,
-  });
-
-  // Redirect to dashboard if already logged in
-  useEffect(() => {
-    if (authData && authData.isAuthenticated) {
-      setLocation('/');
-    }
-  }, [authData, setLocation]);
 
   // Initialize form
   const form = useForm<FormData>({
@@ -68,6 +48,7 @@ export default function Login() {
     defaultValues: {
       username: "",
       password: "",
+      confirmPassword: "",
     },
   });
 
@@ -76,31 +57,31 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const response = await apiRequest('POST', '/api/auth/login', data);
+      const response = await apiRequest('POST', '/api/auth/register', {
+        username: data.username,
+        password: data.password
+      });
       
       if (response.ok) {
-        // Invalidate auth status cache so it will refetch and show as logged in
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
-        
         toast({
-          title: "Login successful",
-          description: "You have been logged in successfully.",
+          title: "Registration successful",
+          description: "Your account has been created. You can now log in.",
         });
         
-        // Force navigation to dashboard
-        window.location.href = '/';
+        // Navigate to login page
+        setLocation('/login');
       } else {
         const errorData = await response.json();
         toast({
-          title: "Login failed",
-          description: errorData.message || "Invalid username or password",
+          title: "Registration failed",
+          description: errorData.message || "Failed to create account",
           variant: "destructive",
         });
       }
     } catch (error) {
       toast({
-        title: "Login failed",
-        description: "An error occurred during login. Please try again.",
+        title: "Registration failed",
+        description: "An error occurred during registration. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -112,9 +93,9 @@ export default function Login() {
     <div className="flex items-center justify-center min-h-screen bg-gray-50">
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">AAFairShare</CardTitle>
+          <CardTitle className="text-2xl font-bold text-center">Create Account</CardTitle>
           <CardDescription className="text-center">
-            Log in to manage your shared expenses
+            Register to start managing your shared expenses
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -133,9 +114,9 @@ export default function Login() {
                         </div>
                         <Input
                           className="pl-10"
-                          placeholder="Enter your username"
+                          placeholder="Enter a username"
                           {...field}
-                          disabled={isLoading || isCheckingAuth}
+                          disabled={isLoading}
                         />
                       </div>
                     </FormControl>
@@ -157,9 +138,9 @@ export default function Login() {
                         <Input
                           className="pl-10"
                           type="password"
-                          placeholder="Enter your password"
+                          placeholder="Create a password"
                           {...field}
-                          disabled={isLoading || isCheckingAuth}
+                          disabled={isLoading}
                         />
                       </div>
                     </FormControl>
@@ -167,23 +148,47 @@ export default function Login() {
                   </FormItem>
                 )}
               />
-              <Button type="submit" className="w-full" disabled={isLoading || isCheckingAuth}>
-                {isLoading ? "Logging in..." : isCheckingAuth ? "Checking..." : "Log in"}
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <LockKeyhole className="h-5 w-5 text-gray-400" />
+                        </div>
+                        <Input
+                          className="pl-10"
+                          type="password"
+                          placeholder="Confirm your password"
+                          {...field}
+                          disabled={isLoading}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
             </form>
           </Form>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <p className="px-8 text-center text-sm text-gray-500">
-            By logging in, you agree to our terms of service and privacy policy.
+            By registering, you agree to our terms of service and privacy policy.
           </p>
           <Button 
             variant="outline" 
             className="w-full" 
-            onClick={() => setLocation('/register')}
-            disabled={isLoading || isCheckingAuth}
+            onClick={() => setLocation('/login')}
+            disabled={isLoading}
           >
-            Don't have an account? Register
+            Already have an account? Log in
           </Button>
         </CardFooter>
       </Card>

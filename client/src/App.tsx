@@ -11,6 +11,7 @@ import Settlement from "@/pages/Settlement";
 import Settings from "@/pages/Settings";
 import RecurringExpenses from "@/pages/RecurringExpenses";
 import Login from "@/pages/Login";
+import Register from "@/pages/Register";
 import MainLayout from "@/components/layouts/MainLayout";
 import { useEffect } from "react";
 
@@ -61,6 +62,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Switch>
         <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
         <Route path="/">
           {() => <ProtectedRoute component={Dashboard} />}
         </Route>

@@ -2,7 +2,7 @@ import { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage, IStorage } from "./storage";
 import { z } from "zod";
-import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema, insertRecurringExpenseSchema } from "@shared/schema";
+import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema, insertRecurringExpenseSchema, insertUserSchema } from "@shared/schema";
 import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -70,6 +70,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
     res.status(200).json({ isAuthenticated: false });
+  });
+  
+  // Registration route
+  app.post(`${API_PREFIX}/auth/register`, async (req, res) => {
+    try {
+      // Validate the user data
+      const validatedData = insertUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.getUserByUsername(validatedData.username);
+      if (existingUser) {
+        return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Create the new user
+      const newUser = await storage.createUser(validatedData);
+      
+      res.status(201).json({
+        message: "User registered successfully",
+        user: {
+          id: newUser.id,
+          username: newUser.username
+        }
+      });
+    } catch (error) {
+      handleError(res, error);
+    }
   });
 
   // Categories routes
