@@ -26,13 +26,13 @@ export async function createSupabaseFunctions() {
     
     // First, we need to create the exec_sql function for executing arbitrary SQL
     // This is done directly against the Supabase database
-    const sqlFilePath = path.resolve(__dirname, 'execSqlFunction.sql');
+    const sqlFunctionPath = path.resolve(__dirname, 'execSqlFunction.sql');
     
-    if (!fs.existsSync(sqlFilePath)) {
-      throw new Error(`SQL function file not found at ${sqlFilePath}`);
+    if (!fs.existsSync(sqlFunctionPath)) {
+      throw new Error(`SQL function file not found at ${sqlFunctionPath}`);
     }
     
-    const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
+    const sqlFunctionContent = fs.readFileSync(sqlFunctionPath, 'utf8');
     
     // Execute the SQL directly to create the exec_sql function
     // Try to use a direct SQL query approach
@@ -51,7 +51,7 @@ export async function createSupabaseFunctions() {
           'apikey': apiKey,
           'Authorization': `Bearer ${apiKey}`
         },
-        body: JSON.stringify({ sql: sqlContent })
+        body: JSON.stringify({ sql: sqlFunctionContent })
       });
       
       if (!response.ok) {
@@ -94,7 +94,40 @@ export async function createSupabaseFunctions() {
       log('Created exec_sql function in Supabase');
     }
     
-    return true;
+    // Now execute our database schema SQL file to create all tables
+    const sqlTablesPath = path.resolve(__dirname, 'direct_sql_tables.sql');
+    
+    if (!fs.existsSync(sqlTablesPath)) {
+      throw new Error(`SQL tables file not found at ${sqlTablesPath}`);
+    }
+    
+    const sqlTablesContent = fs.readFileSync(sqlTablesPath, 'utf8');
+    
+    try {
+      log('Creating database tables in Supabase...');
+      
+      const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec_sql`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiKey,
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify({ sql: sqlTablesContent })
+      });
+      
+      if (!response.ok) {
+        const responseData = await response.json();
+        console.error('Error creating database tables:', responseData);
+        return false;
+      }
+      
+      log('Successfully created database tables in Supabase');
+      return true;
+    } catch (err) {
+      console.error('Error creating database tables:', err);
+      return false;
+    }
   } catch (error) {
     console.error('Failed to create SQL functions:', error);
     return false;

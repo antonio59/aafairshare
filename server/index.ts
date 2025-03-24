@@ -101,53 +101,82 @@ app.use((req, res, next) => {
   let storageImplementation: IStorage;
   
   try {
-    // Try to initialize the database using direct PostgreSQL access
-    log("Initializing database with direct PostgreSQL access...");
+    // First try to use Supabase as requested by the user
+    const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
+    const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || (import.meta.env.SUPABASE_SERVICE_KEY as string);
     
-    // Create the database tables using our SQL script
-    const result = await executeSqlFileWithPostgres();
-    if (result.success) {
-      log("Successfully created database tables with direct PostgreSQL");
-      
-      // Use DatabaseStorage implementation with Drizzle ORM
-      storageImplementation = new DatabaseStorage();
-      log("Using direct PostgreSQL database storage");
+    log("Checking Supabase credentials...");
+    console.log("SUPABASE_URL exists:", !!supabaseUrl);
+    console.log("SUPABASE_KEY exists:", !!supabaseKey);
+    console.log("SUPABASE_SERVICE_KEY exists:", !!supabaseServiceKey);
+    
+    // Try to use Supabase with service key if available
+    if (supabaseUrl && supabaseServiceKey) {
+      log("Supabase service key found - using Supabase for persistent storage");
+      try {
+        // Execute createSupabaseFunctions to create any required SQL functions 
+        await createSupabaseFunctions();
+        // Initialize the SupabaseStorage
+        storageImplementation = new SupabaseStorage();
+        log("Successfully initialized Supabase storage with service key");
+      } catch (error) {
+        log(`Error initializing Supabase storage: ${error}`);
+        log("Trying direct PostgreSQL access...");
+        
+        // Fall back to direct PostgreSQL
+        const result = await executeSqlFileWithPostgres();
+        if (result.success) {
+          log("Successfully created database tables with direct PostgreSQL");
+          
+          // Use DatabaseStorage implementation with Drizzle ORM
+          storageImplementation = new DatabaseStorage();
+          log("Using direct PostgreSQL database storage");
+        } else {
+          log(`Error creating database tables: ${result.message}`);
+          log("Falling back to in-memory storage");
+          storageImplementation = storage;
+        }
+      }
+    } else if (supabaseUrl && supabaseKey) {
+      log("Supabase API key found but no service key - attempting to use Supabase for storage");
+      try {
+        // Initialize the SupabaseStorage
+        storageImplementation = new SupabaseStorage();
+        log("Successfully initialized Supabase storage with regular API key");
+      } catch (error) {
+        log(`Error initializing Supabase storage: ${error}`);
+        log("Trying direct PostgreSQL access...");
+        
+        // Fall back to direct PostgreSQL
+        const result = await executeSqlFileWithPostgres();
+        if (result.success) {
+          log("Successfully created database tables with direct PostgreSQL");
+          
+          // Use DatabaseStorage implementation with Drizzle ORM
+          storageImplementation = new DatabaseStorage();
+          log("Using direct PostgreSQL database storage");
+        } else {
+          log(`Error creating database tables: ${result.message}`);
+          log("Falling back to in-memory storage");
+          storageImplementation = storage;
+        }
+      }
     } else {
-      log(`Error creating database tables: ${result.message}`);
+      // If no Supabase credentials, try direct PostgreSQL
+      log("No Supabase credentials found. Trying direct PostgreSQL access...");
       
-      // Fall back to trying Supabase
-      const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
-      const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
-      const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || (import.meta.env.SUPABASE_SERVICE_KEY as string);
-      
-      // Try to use Supabase with service key if available
-      if (supabaseUrl && supabaseServiceKey) {
-        log("Supabase service key found - using Supabase for persistent storage");
-        try {
-          // Initialize the SupabaseStorage
-          storageImplementation = new SupabaseStorage();
-          // Execute createSupabaseFunctions to create any required SQL functions 
-          await createSupabaseFunctions();
-          log("Successfully initialized Supabase storage with service key");
-        } catch (error) {
-          log(`Error initializing Supabase storage: ${error}`);
-          log("Falling back to in-memory storage");
-          storageImplementation = storage;
-        }
-      } else if (supabaseUrl && supabaseKey) {
-        log("Supabase API key found but no service key - attempting to use Supabase for storage");
-        try {
-          // Initialize the SupabaseStorage
-          storageImplementation = new SupabaseStorage();
-          log("Successfully initialized Supabase storage with regular API key");
-        } catch (error) {
-          log(`Error initializing Supabase storage: ${error}`);
-          log("Falling back to in-memory storage");
-          storageImplementation = storage;
-        }
+      const result = await executeSqlFileWithPostgres();
+      if (result.success) {
+        log("Successfully created database tables with direct PostgreSQL");
+        
+        // Use DatabaseStorage implementation with Drizzle ORM
+        storageImplementation = new DatabaseStorage();
+        log("Using direct PostgreSQL database storage");
       } else {
-        log("No Supabase credentials found. Using in-memory storage only.");
-        storageImplementation = storage;
+        log(`Error creating database tables: ${result.message}`);
+        log("Falling back to in-memory storage");
+        storageImplementation = storage; 
       }
     }
   } catch (error) {
