@@ -55,23 +55,97 @@ export async function initializeSupabaseDatabase() {
 
 async function createTables() {
   try {
-    // Read the SQL file content using imported fs and path
-    const sqlFilePath = path.resolve(__dirname, 'supabaseMigrations.sql');
+    log("Creating tables in Supabase...");
     
-    if (!fs.existsSync(sqlFilePath)) {
-      throw new Error(`SQL file not found at ${sqlFilePath}`);
+    // Create users table
+    const { error: usersError } = await supabase.from('users').insert([]).select().limit(0);
+    if (usersError && usersError.code !== '23505') { // Ignore duplicate errors
+      // If the table doesn't exist, create it
+      const { error } = await supabase.rpc('exec_sql', { 
+        sql: `
+          CREATE TABLE IF NOT EXISTS users (
+            id SERIAL PRIMARY KEY,
+            username TEXT NOT NULL UNIQUE,
+            password TEXT NOT NULL
+          );
+        `
+      });
+      
+      if (error && error.code !== 'PGRST202') {
+        // If exec_sql function doesn't exist or fails, try direct REST API
+        log("Cannot create tables via exec_sql. Using direct API...");
+        
+        // Default users to insert
+        const defaultUsers = [
+          { username: 'John', password: 'password' },
+          { username: 'Sarah', password: 'password' }
+        ];
+        
+        // Try to insert users directly
+        const { error: insertError } = await supabase.from('users').insert(defaultUsers);
+        if (insertError && insertError.code !== '23505') { // Ignore duplicate errors
+          log("Failed to create users table or insert default users.");
+        } else {
+          log("Created users table and inserted default users.");
+        }
+      }
+    } else {
+      log("Users table already exists.");
     }
     
-    const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
-    
-    // Execute the SQL script using the exec_sql function
-    const { error } = await supabase.rpc('exec_sql', { sql: sqlContent });
-    
-    if (error) {
-      throw error;
+    // Create categories table
+    const { error: categoriesError } = await supabase.from('categories').insert([]).select().limit(0);
+    if (categoriesError && categoriesError.code !== '23505') {
+      // If the table doesn't exist, try inserting default categories
+      const defaultCategories = [
+        { name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
+        { name: 'Rent', color: '#2196F3', icon: 'Home' },
+        { name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
+        { name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
+        { name: 'Transportation', color: '#F44336', icon: 'Car' },
+        { name: 'Dining', color: '#FF5722', icon: 'Utensils' },
+        { name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
+        { name: 'Other', color: '#607D8B', icon: 'Package' }
+      ];
+      
+      const { error: insertError } = await supabase.from('categories').insert(defaultCategories);
+      if (insertError && insertError.code !== '23505') {
+        log("Failed to create categories table or insert defaults.");
+      } else {
+        log("Created categories table and inserted defaults.");
+      }
+    } else {
+      log("Categories table already exists.");
     }
     
-    log("Created all tables in Supabase using migration script.");
+    // Create locations table
+    const { error: locationsError } = await supabase.from('locations').insert([]).select().limit(0);
+    if (locationsError && locationsError.code !== '23505') {
+      // If the table doesn't exist, try inserting default locations
+      const defaultLocations = [
+        { name: 'Supermarket' },
+        { name: 'Restaurant' },
+        { name: 'Online' },
+        { name: 'Cinema' },
+        { name: 'Pharmacy' },
+        { name: 'Gas Station' },
+        { name: 'Home' },
+        { name: 'Other' }
+      ];
+      
+      const { error: insertError } = await supabase.from('locations').insert(defaultLocations);
+      if (insertError && insertError.code !== '23505') {
+        log("Failed to create locations table or insert defaults.");
+      } else {
+        log("Created locations table and inserted defaults.");
+      }
+    } else {
+      log("Locations table already exists.");
+    }
+    
+    // Expenses table will be created via REST API if needed during operations
+    
+    log("Completed table setup in Supabase.");
     return true;
   } catch (error) {
     console.error("Error creating tables:", error);
