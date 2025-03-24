@@ -408,68 +408,61 @@ export class SupabaseStorage implements IStorage {
     }));
     
     try {
-      // First, try to create the user in Supabase
-      try {
-        // Create user in supabase - ensure we have a users table first
-        console.log("Ensuring users table exists before creating user");
-        await this.ensureUsersTableExists();
-        
-        // Now try to insert the user
-        console.log("Attempting to insert user into Supabase");
-        console.log("User data to insert:", JSON.stringify({
+      // Ensure users table exists before attempting to insert
+      console.log("Ensuring users table exists before creating user");
+      await this.ensureUsersTableExists();
+      
+      // Now try to insert the user
+      console.log("Inserting user into Supabase");
+      
+      const result = await supabase
+        .from('users')
+        .insert({
           username: user.username,
           email: user.email,
-          password: "******" // Masked for security
-        }));
-        
-        try {
-          const result = await supabase
-            .from('users')
-            .insert({
-              username: user.username,
-              email: user.email,
-              password: user.password
-            })
-            .select()
-            .single();
-          
-          console.log("Insert user result:", JSON.stringify({
-            data: result.data ? "Data received" : "No data",
-            status: result.status,
-            statusText: result.statusText,
-            error: result.error ? JSON.stringify(result.error) : "No error"
-          }));
-          
-          if (!result.error && result.data) {
-            console.log("User created successfully in Supabase:", result.data.id);
-            return result.data as User;
-          } else {
-            console.warn("Supabase insert failed, using fallback:", 
-                        result.error?.message || "Unknown error",
-                        "Status:", result.status);
-            console.log("Full error:", JSON.stringify(result.error));
+          password: user.password  // In a production app, this would be hashed
+        })
+        .select()
+        .single();
+      
+      // Log detailed result for debugging
+      console.log("Supabase user creation result:", JSON.stringify({
+        status: result.status,
+        statusText: result.statusText,
+        error: result.error ? {
+          message: result.error.message,
+          code: result.error.code,
+          details: result.error.details
+        } : "No error",
+        data: result.data ? { id: result.data.id, username: result.data.username } : "No data"
+      }));
+      
+      // Handle errors from Supabase
+      if (result.error) {
+        // Check for duplicate key errors
+        if (result.error.code === '23505') { // PostgreSQL unique violation code
+          if (result.error.message.includes('username')) {
+            throw new Error('Username already exists');
+          } else if (result.error.message.includes('email')) {
+            throw new Error('Email already exists');
           }
-        } catch (insertErr) {
-          console.error("Exception during user insert:", insertErr);
         }
-      } catch (supabaseErr) {
-        console.warn("Supabase error, using fallback:", supabaseErr);
+        
+        // For other errors, throw with the message
+        throw new Error(`Failed to create user: ${result.error.message}`);
       }
       
-      // Fallback to in-memory if Supabase fails
-      const newUser: User = {
-        id: Date.now(), // Use timestamp as a unique ID
-        username: user.username,
-        email: user.email,
-        password: user.password
-      };
+      // Check that we got data back
+      if (!result.data) {
+        throw new Error("Failed to create user: No data returned from Supabase");
+      }
       
-      console.log("Created user using fallback method:", newUser.id);
-      return newUser;
+      console.log("User created successfully in Supabase, ID:", result.data.id);
+      return result.data as User;
     } catch (err) {
-      console.error("Exception creating user:", err);
-      console.error("Error stack:", (err as Error).stack);
-      throw new Error(`Failed to create user: ${(err as Error).message}`);
+      console.error("Error creating user:", err instanceof Error ? err.message : String(err));
+      // Re-throw the error to be handled by the API route
+      throw err;
     }
   }
   
