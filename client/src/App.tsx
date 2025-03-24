@@ -32,12 +32,12 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   });
 
   useEffect(() => {
-    if (!isLoading && authData && !authData.isAuthenticated) {
+    if (!isLoading && (!authData || !authData.isAuthenticated)) {
       setLocation('/login');
     }
   }, [authData, isLoading, setLocation]);
 
-  if (isLoading) {
+  if (isLoading || !authData || !authData.isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
@@ -46,12 +46,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
         </div>
       </div>
     );
-  }
-
-  if (!authData?.isAuthenticated) {
-    // Redirect to login if not authenticated
-    setLocation('/login');
-    return null;
   }
 
   return (
