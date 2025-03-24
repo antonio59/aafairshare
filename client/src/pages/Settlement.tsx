@@ -33,15 +33,19 @@ export default function Settlement() {
     isLoading: summaryLoading,
     isError: summaryError
   } = useQuery<MonthSummary>({
-    queryKey: [`/api/summary/${currentMonth}`],
-    onError: () => {
+    queryKey: [`/api/summary/${currentMonth}`]
+  });
+
+  // Show error toast if summary query fails
+  React.useEffect(() => {
+    if (summaryError) {
       toast({
         title: "Error",
         description: "Failed to load summary data. Please try again.",
         variant: "destructive"
       });
     }
-  });
+  }, [summaryError, toast]);
 
   // Fetch settlements for the month
   const {
@@ -49,15 +53,19 @@ export default function Settlement() {
     isLoading: settlementsLoading,
     isError: settlementsError
   } = useQuery<SettlementWithUsers[]>({
-    queryKey: [`/api/settlements?month=${currentMonth}`],
-    onError: () => {
+    queryKey: [`/api/settlements?month=${currentMonth}`]
+  });
+  
+  // Show error toast if settlements query fails
+  React.useEffect(() => {
+    if (settlementsError) {
       toast({
         title: "Error",
         description: "Failed to load settlements data. Please try again.",
         variant: "destructive"
       });
     }
-  });
+  }, [settlementsError, toast]);
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);

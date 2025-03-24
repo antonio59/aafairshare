@@ -4,7 +4,8 @@ export const USERS = [
 ];
 
 export const SPLIT_TYPES = [
-  { value: "50/50", label: "50/50" }
+  { value: "50/50", label: "50/50 Split" },
+  { value: "100%", label: "100% Other User" }
 ];
 
 export const MONTHS = [

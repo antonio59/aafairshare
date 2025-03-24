@@ -386,19 +386,41 @@ export class MemStorage implements IStorage {
       const user1Paid = userExpenses[user1.id] || 0;
       const user2Paid = userExpenses[user2.id] || 0;
       
-      const user1Share = totalExpenses / 2;
-      const user2Share = totalExpenses / 2;
+      // Calculate each user's share based on split types
+      let user1Share = 0;
+      let user2Share = 0;
       
+      // Calculate shares based on expense split types
+      expenses.forEach(expense => {
+        const amount = Number(expense.amount);
+        
+        if (expense.split_type === "50/50") {
+          // 50/50 split - each user pays half
+          user1Share += amount / 2;
+          user2Share += amount / 2;
+        } else if (expense.split_type === "100%") {
+          // 100% Other User - the other user pays full amount
+          if (expense.paid_by === user1.id) {
+            // User 1 paid, but User 2 owes 100%
+            user2Share += amount;
+          } else if (expense.paid_by === user2.id) {
+            // User 2 paid, but User 1 owes 100%
+            user1Share += amount;
+          }
+        }
+      });
+      
+      // Calculate balance (what each user paid minus what they should have paid)
       const user1Balance = user1Paid - user1Share;
       const user2Balance = user2Paid - user2Share;
       
       if (user1Balance > 0) {
-        // User 1 paid more, so User 2 owes User 1
+        // User 1 paid more than their share, so User 2 owes User 1
         settlementAmount = Math.abs(user1Balance);
         fromUserId = user2.id;
         toUserId = user1.id;
       } else {
-        // User 2 paid more, so User 1 owes User 2
+        // User 2 paid more than their share, so User 1 owes User 2
         settlementAmount = Math.abs(user2Balance);
         fromUserId = user1.id;
         toUserId = user2.id;
