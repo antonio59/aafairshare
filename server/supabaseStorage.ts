@@ -261,7 +261,7 @@ export class SupabaseStorage implements IStorage {
     if (error) throw new Error(`Failed to create expense: ${error.message}`);
     
     // Get the full expense with details
-    const expenseWithDetails = await this.getExpense(data.id);
+    const expenseWithDetails = await this.getExpense(data.id as number);
     if (!expenseWithDetails) {
       throw new Error("Failed to create expense with details");
     }

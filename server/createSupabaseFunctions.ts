@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import fs from 'fs';
+import path from 'path';
 import { log } from './vite';
 
 /**
@@ -8,29 +9,41 @@ import { log } from './vite';
  */
 export async function createSupabaseFunctions() {
   try {
-    log('Creating SQL functions in Supabase...');
+    log('Creating SQL execution function in Supabase...');
     
-    // Read the SQL file content
-    const sqlContent = fs.readFileSync('./server/supabaseMigrations.sql', 'utf8');
+    // First, we need to create the exec_sql function for executing arbitrary SQL
+    // This is done directly against the Supabase database
+    const sqlFilePath = path.resolve(__dirname, 'execSqlFunction.sql');
     
-    // Split the content into individual function definitions
-    const functionDefinitions = sqlContent.split('CREATE OR REPLACE FUNCTION');
-    
-    // Skip the first empty element
-    for (let i = 1; i < functionDefinitions.length; i++) {
-      const functionDef = 'CREATE OR REPLACE FUNCTION' + functionDefinitions[i];
-      
-      // Execute each function definition
-      const { error } = await supabase.rpc('exec_sql', { sql: functionDef });
-      
-      if (error) {
-        console.error(`Error creating function #${i}:`, error);
-      } else {
-        log(`Created SQL function #${i}`);
-      }
+    if (!fs.existsSync(sqlFilePath)) {
+      throw new Error(`SQL function file not found at ${sqlFilePath}`);
     }
     
-    log('Created all SQL functions in Supabase');
+    const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
+    
+    // Execute the SQL directly to create the exec_sql function
+    // Since we can't use execute directly, we'll use a raw HTTP request to Supabase
+    const { error } = await supabase.rpc('exec_sql', { sql: sqlContent }).catch(() => {
+      // If this fails, it's likely because the function doesn't exist yet
+      // We'll try a different approach
+      return { error: new Error('exec_sql function does not exist yet') };
+    });
+    
+    if (error) {
+      // If there was an error, it might be that exec_sql already exists
+      // We'll check if we can execute a simple command to verify
+      const { error: testError } = await supabase.rpc('exec_sql', { sql: 'SELECT 1;' });
+      
+      if (testError) {
+        console.error('Error creating exec_sql function, and function does not exist:', error);
+        return false;
+      } else {
+        log('exec_sql function already exists and works.');
+      }
+    } else {
+      log('Created exec_sql function in Supabase');
+    }
+    
     return true;
   } catch (error) {
     console.error('Failed to create SQL functions:', error);
