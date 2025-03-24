@@ -37,10 +37,19 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   }, [authData, isLoading, setLocation]);
 
   if (isLoading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <h2 className="text-lg font-medium mb-2">Loading...</h2>
+          <p className="text-gray-500">Please wait while we verify your authentication.</p>
+        </div>
+      </div>
+    );
   }
 
   if (!authData?.isAuthenticated) {
+    // Redirect to login if not authenticated
+    setLocation('/login');
     return null;
   }
 

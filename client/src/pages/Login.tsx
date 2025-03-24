@@ -79,11 +79,16 @@ export default function Login() {
       const response = await apiRequest('POST', '/api/auth/login', data);
       
       if (response.ok) {
+        // Invalidate auth status cache so it will refetch and show as logged in
+        await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
+        
         toast({
           title: "Login successful",
           description: "You have been logged in successfully.",
         });
-        setLocation('/');
+        
+        // Force navigation to dashboard
+        window.location.href = '/';
       } else {
         const errorData = await response.json();
         toast({
