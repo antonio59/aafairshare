@@ -11,6 +11,9 @@ import {
   Settlement,
   InsertSettlement,
   SettlementWithUsers,
+  RecurringExpense,
+  InsertRecurringExpense,
+  RecurringExpenseWithDetails,
   MonthSummary
 } from "@shared/schema";
 
@@ -43,6 +46,15 @@ export interface IStorage {
   updateExpense(id: number, expense: Partial<InsertExpense>): Promise<ExpenseWithDetails | undefined>;
   deleteExpense(id: number): Promise<boolean>;
   
+  // Recurring Expense operations
+  getRecurringExpense(id: number): Promise<RecurringExpenseWithDetails | undefined>;
+  getAllRecurringExpenses(): Promise<RecurringExpenseWithDetails[]>;
+  getActiveRecurringExpenses(): Promise<RecurringExpenseWithDetails[]>;
+  createRecurringExpense(recurringExpense: InsertRecurringExpense): Promise<RecurringExpenseWithDetails>;
+  updateRecurringExpense(id: number, recurringExpense: Partial<InsertRecurringExpense>): Promise<RecurringExpenseWithDetails | undefined>;
+  deleteRecurringExpense(id: number): Promise<boolean>;
+  processRecurringExpenses(): Promise<ExpenseWithDetails[]>;
+  
   // Settlement operations
   getSettlement(id: number): Promise<SettlementWithUsers | undefined>;
   getAllSettlements(): Promise<SettlementWithUsers[]>;
@@ -59,12 +71,14 @@ export class MemStorage implements IStorage {
   private locations: Map<number, Location>;
   private expenses: Map<number, Expense>;
   private settlements: Map<number, Settlement>;
+  private recurringExpenses: Map<number, RecurringExpense>;
   
   private userIdCounter: number;
   private categoryIdCounter: number;
   private locationIdCounter: number;
   private expenseIdCounter: number;
   private settlementIdCounter: number;
+  private recurringExpenseIdCounter: number;
 
   constructor() {
     this.users = new Map();
@@ -72,12 +86,14 @@ export class MemStorage implements IStorage {
     this.locations = new Map();
     this.expenses = new Map();
     this.settlements = new Map();
+    this.recurringExpenses = new Map();
     
     this.userIdCounter = 1;
     this.categoryIdCounter = 1;
     this.locationIdCounter = 1;
     this.expenseIdCounter = 1;
     this.settlementIdCounter = 1;
+    this.recurringExpenseIdCounter = 1;
     
     // Initialize with default users
     this.initializeDefaultData();
@@ -286,6 +302,179 @@ export class MemStorage implements IStorage {
 
   async deleteExpense(id: number): Promise<boolean> {
     return this.expenses.delete(id);
+  }
+
+  // Recurring Expense operations
+  async getRecurringExpense(id: number): Promise<RecurringExpenseWithDetails | undefined> {
+    const recurringExpense = this.recurringExpenses.get(id);
+    if (!recurringExpense) {
+      return undefined;
+    }
+    
+    const category = await this.getCategory(recurringExpense.category_id);
+    const location = await this.getLocation(recurringExpense.location_id);
+    const paidByUser = await this.getUser(recurringExpense.paid_by);
+    
+    if (!category || !location || !paidByUser) {
+      return undefined;
+    }
+    
+    return {
+      ...recurringExpense,
+      category,
+      location,
+      paidByUser
+    };
+  }
+
+  async getAllRecurringExpenses(): Promise<RecurringExpenseWithDetails[]> {
+    const recurringExpenses = Array.from(this.recurringExpenses.values());
+    const recurringExpensesWithDetails: RecurringExpenseWithDetails[] = [];
+    
+    for (const recurringExpense of recurringExpenses) {
+      const category = await this.getCategory(recurringExpense.category_id);
+      const location = await this.getLocation(recurringExpense.location_id);
+      const paidByUser = await this.getUser(recurringExpense.paid_by);
+      
+      if (category && location && paidByUser) {
+        recurringExpensesWithDetails.push({
+          ...recurringExpense,
+          category,
+          location,
+          paidByUser
+        });
+      }
+    }
+    
+    return recurringExpensesWithDetails.sort((a, b) => {
+      return new Date(b.next_date).getTime() - new Date(a.next_date).getTime();
+    });
+  }
+
+  async getActiveRecurringExpenses(): Promise<RecurringExpenseWithDetails[]> {
+    const allRecurringExpenses = await this.getAllRecurringExpenses();
+    return allRecurringExpenses.filter(expense => expense.is_active);
+  }
+
+  async createRecurringExpense(insertRecurringExpense: InsertRecurringExpense): Promise<RecurringExpenseWithDetails> {
+    const id = this.recurringExpenseIdCounter++;
+    // Ensure that split_type and is_active are always defined with default values if needed
+    const recurringExpense = { 
+      ...insertRecurringExpense, 
+      id,
+      split_type: insertRecurringExpense.split_type || "50/50",
+      notes: insertRecurringExpense.notes || null,
+      is_active: insertRecurringExpense.is_active ?? true,
+      // Ensure end_date is either a Date or null, not undefined
+      end_date: insertRecurringExpense.end_date || null
+    };
+    this.recurringExpenses.set(id, recurringExpense);
+    
+    const recurringExpenseWithDetails = await this.getRecurringExpense(id);
+    if (!recurringExpenseWithDetails) {
+      throw new Error("Failed to create recurring expense with details");
+    }
+    
+    return recurringExpenseWithDetails;
+  }
+
+  async updateRecurringExpense(id: number, updatedRecurringExpense: Partial<InsertRecurringExpense>): Promise<RecurringExpenseWithDetails | undefined> {
+    const existingRecurringExpense = this.recurringExpenses.get(id);
+    if (!existingRecurringExpense) {
+      return undefined;
+    }
+    
+    // Make a copy of the updatedRecurringExpense object to avoid mutating the input
+    const updatedData = { ...updatedRecurringExpense };
+    
+    // Make sure end_date is either a Date or null, not undefined
+    if ('end_date' in updatedData) {
+      updatedData.end_date = updatedData.end_date || null;
+    }
+    
+    const updated = { ...existingRecurringExpense, ...updatedData };
+    this.recurringExpenses.set(id, updated);
+    
+    return this.getRecurringExpense(id);
+  }
+
+  async deleteRecurringExpense(id: number): Promise<boolean> {
+    return this.recurringExpenses.delete(id);
+  }
+
+  // Function to process recurring expenses and create actual expenses from them
+  async processRecurringExpenses(): Promise<ExpenseWithDetails[]> {
+    const today = new Date();
+    const activeRecurringExpenses = await this.getActiveRecurringExpenses();
+    const createdExpenses: ExpenseWithDetails[] = [];
+    
+    for (const recurringExpense of activeRecurringExpenses) {
+      const nextDate = new Date(recurringExpense.next_date);
+      
+      // Check if next_date is today or in the past
+      if (nextDate <= today) {
+        // Create a new expense based on the recurring expense
+        const newExpense: InsertExpense = {
+          amount: recurringExpense.amount,
+          date: nextDate,
+          paid_by: recurringExpense.paid_by,
+          split_type: recurringExpense.split_type,
+          notes: recurringExpense.notes ? `${recurringExpense.notes} (Recurring: ${recurringExpense.name})` : `Recurring: ${recurringExpense.name}`,
+          category_id: recurringExpense.category_id,
+          location_id: recurringExpense.location_id
+        };
+        
+        const createdExpense = await this.createExpense(newExpense);
+        createdExpenses.push(createdExpense);
+        
+        // Calculate and update the next occurrence date
+        const nextOccurrenceDate = this.calculateNextOccurrence(nextDate, recurringExpense.frequency);
+        
+        // Check if end_date is defined and next occurrence exceeds it
+        if (recurringExpense.end_date && nextOccurrenceDate > new Date(recurringExpense.end_date)) {
+          // Deactivate the recurring expense
+          await this.updateRecurringExpense(recurringExpense.id, { is_active: false });
+        } else {
+          // Update the next_date
+          await this.updateRecurringExpense(recurringExpense.id, { 
+            next_date: nextOccurrenceDate 
+          });
+        }
+      }
+    }
+    
+    return createdExpenses;
+  }
+  
+  // Helper function to calculate the next occurrence based on frequency
+  private calculateNextOccurrence(currentDate: Date, frequency: string): Date {
+    const nextDate = new Date(currentDate);
+    
+    switch (frequency) {
+      case 'daily':
+        nextDate.setDate(nextDate.getDate() + 1);
+        break;
+      case 'weekly':
+        nextDate.setDate(nextDate.getDate() + 7);
+        break;
+      case 'biweekly':
+        nextDate.setDate(nextDate.getDate() + 14);
+        break;
+      case 'monthly':
+        nextDate.setMonth(nextDate.getMonth() + 1);
+        break;
+      case 'quarterly':
+        nextDate.setMonth(nextDate.getMonth() + 3);
+        break;
+      case 'yearly':
+        nextDate.setFullYear(nextDate.getFullYear() + 1);
+        break;
+      default:
+        // Default to monthly if frequency is not recognized
+        nextDate.setMonth(nextDate.getMonth() + 1);
+    }
+    
+    return nextDate;
   }
 
   // Settlement operations

@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
-import { BarChart3, Home, PiggyBank, Settings, ShoppingCart } from 'lucide-react';
+import { BarChart3, Home, PiggyBank, Settings, ShoppingCart, RepeatIcon } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -37,6 +37,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
     { name: 'Expenses', href: '/expenses', icon: ShoppingCart },
+    { name: 'Recurring', href: '/recurring-expenses', icon: RepeatIcon },
     { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Settlement', href: '/settlement', icon: PiggyBank },
     { name: 'Settings', href: '/settings', icon: Settings },

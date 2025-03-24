@@ -4,45 +4,74 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  NODE_VERSION: '18'
 
 jobs:
-  deploy:
-    name: Deploy
+  build-and-deploy:
+    name: Build and Deploy
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment || 'staging' }}
+    
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v3
-
+        with:
+          fetch-depth: 0
+      
       - name: Set up Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '20'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: npm ci
-
-      - name: Build
-        run: npm run build
-
-      # Add your deployment steps here
-      # Example for Vercel:
-      # - name: Deploy to Vercel
-      #   uses: amondnet/vercel-action@v20
-      #   with:
-      #     vercel-token: ${{ secrets.VERCEL_TOKEN }}
-      #     vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-      #     vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-      #     vercel-args: '--prod'
       
-      # Or for Netlify:
-      # - name: Deploy to Netlify
-      #   uses: nwtgck/actions-netlify@v1.2
-      #   with:
-      #     publish-dir: './dist'
-      #     production-branch: main
-      #     github-token: ${{ secrets.GITHUB_TOKEN }}
-      #     deploy-message: "Deploy from GitHub Actions"
-      #   env:
-      #     NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
-      #     NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+      
+      - name: Run tests
+        run: npm test
+      
+      - name: Deploy to staging
+        if: ${{ github.event.inputs.environment == 'staging' || github.event.inputs.environment == null }}
+        run: |
+          echo "Deploying to staging environment"
+          # Replace with your staging deployment commands
+          # For example:
+          # - Upload to AWS S3 + CloudFront
+          # - Deploy to Vercel or Netlify
+          # - Deploy to a staging server via SSH
+      
+      - name: Deploy to production
+        if: ${{ github.event.inputs.environment == 'production' }}
+        run: |
+          echo "Deploying to production environment"
+          # Replace with your production deployment commands
+          # For example:
+          # - Upload to AWS S3 + CloudFront
+          # - Deploy to Vercel or Netlify
+          # - Deploy to a production server via SSH
+      
+      - name: Notify deployment status
+        uses: rtCamp/action-slack-notify@v2
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_CHANNEL: deployments
+          SLACK_COLOR: ${{ job.status }}
+          SLACK_TITLE: Deployment to ${{ github.event.inputs.environment || 'staging' }}
+          SLACK_MESSAGE: 'Application deployed to ${{ github.event.inputs.environment || "staging" }} :rocket:'
+          SLACK_FOOTER: 'Household Expenses Management App'

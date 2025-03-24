@@ -9,6 +9,7 @@ import Expenses from "@/pages/Expenses";
 import Analytics from "@/pages/Analytics";
 import Settlement from "@/pages/Settlement";
 import Settings from "@/pages/Settings";
+import RecurringExpenses from "@/pages/RecurringExpenses";
 import Login from "@/pages/Login";
 import MainLayout from "@/components/layouts/MainLayout";
 import { useEffect } from "react";
@@ -80,6 +81,9 @@ function App() {
         </Route>
         <Route path="/settings">
           {() => <ProtectedRoute component={Settings} />}
+        </Route>
+        <Route path="/recurring-expenses">
+          {() => <ProtectedRoute component={RecurringExpenses} />}
         </Route>
         <Route>
           {() => <ProtectedRoute component={NotFound} />}

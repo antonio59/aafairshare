@@ -19,6 +19,8 @@ A modern, mobile-first application for managing household expenses between two u
 
 ### Getting Started
 
+#### Method 1: Direct Installation
+
 1. Clone the repository:
    ```
    git clone https://github.com/yourusername/household-expenses.git
@@ -36,6 +38,35 @@ A modern, mobile-first application for managing household expenses between two u
    ```
 
 4. Open your browser and navigate to http://localhost:5000
+
+#### Method 2: Using Docker
+
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/household-expenses.git
+   cd household-expenses
+   ```
+
+2. Build and run with Docker Compose:
+   ```
+   docker-compose up --build
+   ```
+
+3. Open your browser and navigate to http://localhost:5000
+
+#### Method 3: Using Pre-built Docker Image
+
+1. Pull the Docker image from GitHub Container Registry:
+   ```
+   docker pull ghcr.io/yourusername/household-expenses:latest
+   ```
+
+2. Run the container:
+   ```
+   docker run -p 5000:5000 ghcr.io/yourusername/household-expenses:latest
+   ```
+
+3. Open your browser and navigate to http://localhost:5000
 
 ### Project Structure
 
@@ -80,7 +111,24 @@ This project uses GitHub Actions for CI/CD and other automated tasks:
   - Builds the application
   - Deploys to the hosting environment
 
-### 5. Dependabot
+### 5. Docker Image Build and Push
+
+- **Workflow file**: `.github/workflows/docker.yml`
+- **Trigger**: On push to main branch or tags, and pull requests
+- **Functions**: 
+  - Builds Docker image using the Dockerfile
+  - Pushes to GitHub Container Registry (ghcr.io)
+  - Tags images with semantic versioning and git SHA
+
+### 6. Issue Triage
+
+- **Workflow file**: `.github/workflows/issue-triage.yml`
+- **Trigger**: When issues are opened or reopened
+- **Functions**: 
+  - Automatically adds "needs-triage" label
+  - Adds a welcome comment for the issue creator
+
+### 7. Dependabot
 
 - **Configuration file**: `.github/dependabot.yml`
 - **Functions**: 

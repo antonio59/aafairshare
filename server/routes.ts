@@ -2,7 +2,7 @@ import { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema } from "@shared/schema";
+import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema, insertRecurringExpenseSchema } from "@shared/schema";
 import passport from "passport";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -309,6 +309,136 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const month = req.params.month;
       const summary = await storage.getMonthSummary(month);
       res.json(summary);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  // Recurring Expenses routes
+  app.get(`${API_PREFIX}/recurring-expenses`, isAuthenticated, async (req, res) => {
+    try {
+      const activeOnly = req.query.active === 'true';
+      let recurringExpenses;
+      
+      if (activeOnly) {
+        recurringExpenses = await storage.getActiveRecurringExpenses();
+      } else {
+        recurringExpenses = await storage.getAllRecurringExpenses();
+      }
+      
+      res.json(recurringExpenses);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.get(`${API_PREFIX}/recurring-expenses/:id`, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const recurringExpense = await storage.getRecurringExpense(id);
+      
+      if (!recurringExpense) {
+        return res.status(404).json({ message: "Recurring expense not found" });
+      }
+      
+      res.json(recurringExpense);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.post(`${API_PREFIX}/recurring-expenses`, isAuthenticated, async (req, res) => {
+    try {
+      // Handle type conversions before validation
+      const recurringExpenseData = {
+        ...req.body,
+        // Convert amount to string if it's a number
+        amount: typeof req.body.amount === 'number' ? req.body.amount.toString() : req.body.amount,
+        // Ensure dates are properly parsed if they're strings
+        start_date: req.body.start_date instanceof Date ? req.body.start_date : new Date(req.body.start_date),
+        next_date: req.body.next_date instanceof Date ? req.body.next_date : new Date(req.body.next_date),
+        end_date: req.body.end_date ? (req.body.end_date instanceof Date ? req.body.end_date : new Date(req.body.end_date)) : null,
+      };
+      
+      const validatedData = insertRecurringExpenseSchema.parse(recurringExpenseData);
+      const recurringExpense = await storage.createRecurringExpense(validatedData);
+      res.status(201).json(recurringExpense);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.patch(`${API_PREFIX}/recurring-expenses/:id`, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Handle type conversions before validation
+      const recurringExpenseData = { ...req.body };
+      
+      // Handle amount conversion if present
+      if (recurringExpenseData.amount !== undefined) {
+        recurringExpenseData.amount = typeof recurringExpenseData.amount === 'number' 
+          ? recurringExpenseData.amount.toString() 
+          : recurringExpenseData.amount;
+      }
+      
+      // Handle date conversions if present
+      if (recurringExpenseData.start_date !== undefined) {
+        recurringExpenseData.start_date = recurringExpenseData.start_date instanceof Date 
+          ? recurringExpenseData.start_date 
+          : new Date(recurringExpenseData.start_date);
+      }
+      
+      if (recurringExpenseData.next_date !== undefined) {
+        recurringExpenseData.next_date = recurringExpenseData.next_date instanceof Date 
+          ? recurringExpenseData.next_date 
+          : new Date(recurringExpenseData.next_date);
+      }
+      
+      if (recurringExpenseData.end_date !== undefined) {
+        recurringExpenseData.end_date = recurringExpenseData.end_date 
+          ? (recurringExpenseData.end_date instanceof Date 
+            ? recurringExpenseData.end_date 
+            : new Date(recurringExpenseData.end_date))
+          : null;
+      }
+      
+      const validatedData = insertRecurringExpenseSchema.partial().parse(recurringExpenseData);
+      const updatedRecurringExpense = await storage.updateRecurringExpense(id, validatedData);
+      
+      if (!updatedRecurringExpense) {
+        return res.status(404).json({ message: "Recurring expense not found" });
+      }
+      
+      res.json(updatedRecurringExpense);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.delete(`${API_PREFIX}/recurring-expenses/:id`, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteRecurringExpense(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Recurring expense not found" });
+      }
+      
+      res.status(204).send();
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  // Process recurring expenses endpoint
+  app.post(`${API_PREFIX}/process-recurring-expenses`, isAuthenticated, async (req, res) => {
+    try {
+      const processedExpenses = await storage.processRecurringExpenses();
+      res.status(200).json({
+        message: `${processedExpenses.length} recurring expenses processed`,
+        expenses: processedExpenses
+      });
     } catch (error) {
       handleError(res, error);
     }

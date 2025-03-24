@@ -106,6 +106,48 @@ export type SettlementWithUsers = Settlement & {
   toUser: User;
 };
 
+// Recurring Expenses table
+export const recurringExpenses = pgTable("recurring_expenses", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+  frequency: text("frequency").notNull(), // 'monthly', 'weekly', etc
+  start_date: timestamp("start_date").notNull(),
+  end_date: timestamp("end_date"),
+  next_date: timestamp("next_date").notNull(),
+  paid_by: integer("paid_by").notNull(), // reference to user ID
+  split_type: text("split_type").notNull().default("50/50"),
+  notes: text("notes"),
+  category_id: integer("category_id").notNull(), // reference to category ID
+  location_id: integer("location_id").notNull(), // reference to location ID
+  is_active: boolean("is_active").notNull().default(true),
+});
+
+export const insertRecurringExpenseSchema = createInsertSchema(recurringExpenses).pick({
+  name: true,
+  amount: true,
+  frequency: true,
+  start_date: true,
+  end_date: true,
+  next_date: true,
+  paid_by: true,
+  split_type: true,
+  notes: true,
+  category_id: true,
+  location_id: true,
+  is_active: true,
+});
+
+export type InsertRecurringExpense = z.infer<typeof insertRecurringExpenseSchema>;
+export type RecurringExpense = typeof recurringExpenses.$inferSelect;
+
+// Extended RecurringExpense type with related data
+export type RecurringExpenseWithDetails = RecurringExpense & {
+  category: Category;
+  location: Location;
+  paidByUser: User;
+};
+
 // Custom types for API responses
 export type MonthSummary = {
   month: string;
