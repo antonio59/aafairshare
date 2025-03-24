@@ -18,6 +18,8 @@ import {
 } from "@shared/schema";
 
 export interface IStorage {
+  // Error handling callback - returns true if operation should continue with fallback
+  onStorageOperationError?: (operation: string, error: any) => boolean;
   // User operations
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
@@ -67,6 +69,8 @@ export interface IStorage {
 }
 
 export class MemStorage implements IStorage {
+  onStorageOperationError?: (operation: string, error: any) => boolean;
+  
   private users: Map<number, User>;
   private categories: Map<number, Category>;
   private locations: Map<number, Location>;

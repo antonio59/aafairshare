@@ -24,6 +24,7 @@ const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as
 const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
 
 export class SupabaseStorage implements IStorage {
+  onStorageOperationError?: (operation: string, error: any) => boolean;
   constructor() {
     // Initialize tables and default data on first use
     this.ensureTablesExist().then(success => {
@@ -42,89 +43,67 @@ export class SupabaseStorage implements IStorage {
     try {
       console.log("Ensuring tables exist in Supabase...");
       
-      // Create tables using direct SQL through RPC or REST API
+      // We'll try a direct approach using the Supabase client
+      // First, let's check if the users table exists by trying to access it
       
       // USERS TABLE
       try {
-        // Directly create the users table using SQL
-        console.log("Creating users table using SQL...");
+        console.log("Checking if users table exists in Supabase...");
+        const { data: usersData, error: usersError } = await supabase.from('users').select('id').limit(1);
         
-        // Use supabase.rpc if available in your project
-        const createUsersSql = `
-          CREATE TABLE IF NOT EXISTS users (
-            id SERIAL PRIMARY KEY,
-            username TEXT NOT NULL UNIQUE,
-            email TEXT NOT NULL UNIQUE,
-            password TEXT NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-          );
-        `;
-        
-        // Execute the SQL directly
-        const { error: createError } = await supabase.rpc('exec_sql', { sql: createUsersSql });
-        
-        if (createError) {
-          console.error("Error creating users table via SQL:", createError);
-          console.log("Trying to check if the table already exists...");
+        if (usersError && usersError.code === '42P01') {
+          // Table doesn't exist - we'll try to create it via direct insert
+          console.log("Users table doesn't exist. Attempting to create it via direct insert...");
           
-          // Check if the table already exists
-          const { error: checkError } = await supabase.from('users').select('id').limit(1);
+          // Try inserting a test user which will create the table with appropriate columns
+          const { data: createData, error: createError } = await supabase.from('users').insert({
+            username: 'test_user_init',
+            email: 'test_init@example.com',
+            password: 'test_password'
+          }).select();
           
-          if (checkError) {
-            console.error("Error checking users table:", checkError);
+          if (createError) {
+            console.error("Failed to create users table via insert:", createError);
           } else {
-            console.log("Users table exists and is accessible");
+            console.log("Users table created successfully via insert");
+            
+            // Clean up test user
+            await supabase.from('users').delete().eq('username', 'test_user_init');
           }
+        } else if (usersError) {
+          console.error("Error checking users table:", usersError);
         } else {
-          console.log("Users table created successfully via SQL");
+          console.log("Users table already exists");
         }
       } catch (err) {
-        console.error("Exception during users table creation:", err);
+        console.error("Exception during users table check/creation:", err);
       }
       
       // CATEGORIES TABLE
       try {
-        // Directly create the categories table using SQL
-        console.log("Creating categories table using SQL...");
+        console.log("Checking if categories table exists in Supabase...");
+        const { data: categoriesData, error: categoriesError } = await supabase.from('categories').select('id').limit(1);
         
-        const createCategoriesSql = `
-          CREATE TABLE IF NOT EXISTS categories (
-            id SERIAL PRIMARY KEY,
-            name TEXT NOT NULL,
-            color TEXT NOT NULL,
-            icon TEXT NOT NULL,
-            created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-          );
-        `;
-        
-        // Execute the SQL directly
-        const { error: createError } = await supabase.rpc('exec_sql', { sql: createCategoriesSql });
-        
-        if (createError) {
-          console.error("Error creating categories table via SQL:", createError);
+        if (categoriesError && categoriesError.code === '42P01') {
+          // Table doesn't exist - create it via direct insert
+          console.log("Categories table doesn't exist. Attempting to create it via direct insert...");
           
-          // Check if the table already exists
-          const { error: checkError } = await supabase.from('categories').select('id').limit(1);
+          // Try inserting a test category which will create the table with appropriate columns
+          const { data: createData, error: createError } = await supabase.from('categories').insert({
+            name: 'Groceries', 
+            color: '#4CAF50', 
+            icon: 'ShoppingCart'
+          }).select();
           
-          if (checkError) {
-            console.error("Error checking categories table:", checkError);
-            
-            // Try direct insert to create the table
-            console.log("Trying to create categories via insert...");
-            const { error: insertError } = await supabase.from('categories').insert([
-              { name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' }
-            ]);
-            
-            if (insertError) {
-              console.error("Failed to create categories via insert:", insertError);
-            } else {
-              console.log("Categories table created via insert");
-            }
+          if (createError) {
+            console.error("Failed to create categories table via insert:", createError);
           } else {
-            console.log("Categories table exists and is accessible");
+            console.log("Categories table created successfully via insert");
           }
+        } else if (categoriesError) {
+          console.error("Error checking categories table:", categoriesError);
         } else {
-          console.log("Categories table created successfully via SQL");
+          console.log("Categories table already exists");
         }
       } catch (err) {
         console.error("Error checking/creating categories table:", err);
@@ -132,28 +111,42 @@ export class SupabaseStorage implements IStorage {
       
       // LOCATIONS TABLE
       try {
-        // Check if locations table exists
-        const { error: locationCheckError } = await supabase.from('locations').select('id').limit(1);
+        console.log("Checking if locations table exists in Supabase...");
+        const { data: locationsData, error: locationsError } = await supabase.from('locations').select('id').limit(1);
         
-        if (locationCheckError && locationCheckError.code === '42P01') {
-          // Table doesn't exist, create sample data that will create the table
-          console.log("Creating locations table with sample data...");
-          const { error: createError } = await supabase.from('locations').insert([
-            { name: 'Supermarket' },
-            { name: 'Restaurant' },
-            { name: 'Online' },
-            { name: 'Cinema' },
-            { name: 'Pharmacy' },
-            { name: 'Gas Station' },
-            { name: 'Home' },
-            { name: 'Other' }
-          ]);
+        if (locationsError && locationsError.code === '42P01') {
+          // Table doesn't exist - create it via direct insert
+          console.log("Locations table doesn't exist. Attempting to create it via direct insert...");
+          
+          // Try inserting a test location which will create the table with appropriate columns
+          const { data: createData, error: createError } = await supabase.from('locations').insert({
+            name: 'Supermarket'
+          }).select();
           
           if (createError) {
-            console.error("Error creating locations table:", createError);
+            console.error("Failed to create locations table via insert:", createError);
           } else {
-            console.log("Locations table created successfully");
+            console.log("Locations table created successfully via insert");
+            
+            // Now add other default locations
+            const { error: insertError } = await supabase.from('locations').insert([
+              { name: 'Restaurant' },
+              { name: 'Online' },
+              { name: 'Cinema' },
+              { name: 'Pharmacy' },
+              { name: 'Gas Station' },
+              { name: 'Home' },
+              { name: 'Other' }
+            ]);
+            
+            if (insertError) {
+              console.error("Error adding additional locations:", insertError);
+            } else {
+              console.log("Added default locations successfully");
+            }
           }
+        } else if (locationsError) {
+          console.error("Error checking locations table:", locationsError);
         } else {
           console.log("Locations table already exists");
         }
@@ -163,49 +156,47 @@ export class SupabaseStorage implements IStorage {
       
       // EXPENSES TABLE
       try {
-        // Check if expenses table exists
-        const { error: expenseCheckError } = await supabase.from('expenses').select('id').limit(1);
+        console.log("Checking if expenses table exists in Supabase...");
+        const { data: expensesData, error: expensesError } = await supabase.from('expenses').select('id').limit(1);
         
-        if (expenseCheckError && expenseCheckError.code === '42P01') {
-          // Table doesn't exist, we need the other tables to exist first
-          // Let's try to create it with a sample expense that has valid foreign keys
-          console.log("Creating expenses table with sample data...");
+        if (expensesError && expensesError.code === '42P01') {
+          // Table doesn't exist - we need the dependencies first (users, categories, locations)
+          console.log("Expenses table doesn't exist. Checking if dependencies exist...");
           
-          // Get a valid category, location, and user
+          // Check if the dependency tables exist and have at least one row
           const { data: categories } = await supabase.from('categories').select('id').limit(1);
           const { data: locations } = await supabase.from('locations').select('id').limit(1);
           const { data: users } = await supabase.from('users').select('id').limit(1);
           
           if (categories?.length && locations?.length && users?.length) {
-            // Now we can create a sample expense
-            const { error: createError } = await supabase.from('expenses').insert([
-              { 
-                description: 'Sample Expense',
-                amount: '10.00',
-                date: new Date().toISOString(),
-                category_id: categories[0].id,
-                location_id: locations[0].id,
-                paid_by_user_id: users[0].id,
-                split_type: '50/50',
-                notes: 'This is a sample expense to create the table structure'
-              }
-            ]);
+            // All dependencies exist, create the expenses table via sample data
+            console.log("Dependencies exist. Creating expenses table via sample data...");
+            
+            const { data: createData, error: createError } = await supabase.from('expenses').insert({
+              description: 'Sample Expense',
+              amount: '10.00',
+              date: new Date().toISOString(),
+              category_id: categories[0].id,
+              location_id: locations[0].id,
+              paid_by_user_id: users[0].id,
+              split_type: '50/50',
+              notes: 'This is a sample expense to create the table structure'
+            }).select();
             
             if (createError) {
-              if (createError.code === '42P01') {
-                console.log("Expenses table needs to be created with correct schema");
-              } else {
-                console.error("Error creating expenses table:", createError);
-              }
+              console.error("Failed to create expenses table via insert:", createError);
             } else {
-              console.log("Expenses table created successfully");
+              console.log("Expenses table created successfully via insert");
               
-              // Now delete the sample expense as it was just for table creation
+              // Clean up sample data
               await supabase.from('expenses').delete().eq('description', 'Sample Expense');
             }
           } else {
-            console.log("Dependencies not available for expenses table creation");
+            console.log("Dependencies are missing for expenses table creation");
+            console.log(`Categories exist: ${!!categories?.length}, Locations exist: ${!!locations?.length}, Users exist: ${!!users?.length}`);
           }
+        } else if (expensesError) {
+          console.error("Error checking expenses table:", expensesError);
         } else {
           console.log("Expenses table already exists");
         }
@@ -213,93 +204,99 @@ export class SupabaseStorage implements IStorage {
         console.error("Error checking/creating expenses table:", err);
       }
       
-      // RECURRING EXPENSES TABLE - Similar approach as expenses table
+      // RECURRING EXPENSES TABLE
       try {
-        const { error: recurringCheckError } = await supabase.from('recurring_expenses').select('id').limit(1);
+        console.log("Checking if recurring_expenses table exists in Supabase...");
+        const { data: recurringData, error: recurringError } = await supabase.from('recurring_expenses').select('id').limit(1);
         
-        if (recurringCheckError && recurringCheckError.code === '42P01') {
-          console.log("Creating recurring_expenses table with sample data...");
+        if (recurringError && recurringError.code === '42P01') {
+          // Table doesn't exist - we need the dependencies first (users, categories, locations)
+          console.log("Recurring expenses table doesn't exist. Checking if dependencies exist...");
           
-          // Get a valid category, location, and user
+          // Check if the dependency tables exist and have at least one row
           const { data: categories } = await supabase.from('categories').select('id').limit(1);
           const { data: locations } = await supabase.from('locations').select('id').limit(1);
           const { data: users } = await supabase.from('users').select('id').limit(1);
           
           if (categories?.length && locations?.length && users?.length) {
-            // Create sample recurring expense
-            const { error: createError } = await supabase.from('recurring_expenses').insert([
-              { 
-                name: 'Sample Recurring',
-                description: 'Sample Recurring Expense',
-                amount: '25.00',
-                frequency: 'monthly',
-                start_date: new Date().toISOString(),
-                next_date: new Date().toISOString(),
-                category_id: categories[0].id,
-                location_id: locations[0].id,
-                paid_by_user_id: users[0].id,
-                split_type: '50/50',
-                is_active: false,
-                notes: 'This is a sample recurring expense to create the table structure'
-              }
-            ]);
+            // All dependencies exist, create the recurring expenses table via sample data
+            console.log("Dependencies exist. Creating recurring expenses table via sample data...");
+            
+            const { data: createData, error: createError } = await supabase.from('recurring_expenses').insert({
+              name: 'Sample Recurring',
+              description: 'Sample Recurring Expense',
+              amount: '25.00',
+              frequency: 'monthly',
+              start_date: new Date().toISOString(),
+              next_date: new Date().toISOString(),
+              category_id: categories[0].id,
+              location_id: locations[0].id,
+              paid_by_user_id: users[0].id,
+              split_type: '50/50',
+              is_active: false,
+              notes: 'This is a sample recurring expense to create the table structure'
+            }).select();
             
             if (createError) {
-              if (createError.code === '42P01') {
-                console.log("Recurring expenses table needs to be created with correct schema");
-              } else {
-                console.error("Error creating recurring_expenses table:", createError);
-              }
+              console.error("Failed to create recurring expenses table via insert:", createError);
             } else {
-              console.log("Recurring expenses table created successfully");
+              console.log("Recurring expenses table created successfully via insert");
               
-              // Now delete the sample as it was just for table creation
+              // Clean up sample data
               await supabase.from('recurring_expenses').delete().eq('name', 'Sample Recurring');
             }
+          } else {
+            console.log("Dependencies are missing for recurring expenses table creation");
+            console.log(`Categories exist: ${!!categories?.length}, Locations exist: ${!!locations?.length}, Users exist: ${!!users?.length}`);
           }
+        } else if (recurringError) {
+          console.error("Error checking recurring expenses table:", recurringError);
         } else {
           console.log("Recurring expenses table already exists");
         }
       } catch (err) {
-        console.error("Error checking/creating recurring_expenses table:", err);
+        console.error("Error checking/creating recurring expenses table:", err);
       }
       
       // SETTLEMENTS TABLE
       try {
-        const { error: settlementCheckError } = await supabase.from('settlements').select('id').limit(1);
+        console.log("Checking if settlements table exists in Supabase...");
+        const { data: settlementsData, error: settlementsError } = await supabase.from('settlements').select('id').limit(1);
         
-        if (settlementCheckError && settlementCheckError.code === '42P01') {
-          console.log("Creating settlements table with sample data...");
+        if (settlementsError && settlementsError.code === '42P01') {
+          // Table doesn't exist - we need the dependencies first (users)
+          console.log("Settlements table doesn't exist. Checking if users exist...");
           
-          // Get valid users
+          // Check if we have at least two users for a proper settlement
           const { data: users } = await supabase.from('users').select('id').limit(2);
           
           if (users && users.length >= 2) {
-            // Create sample settlement
-            const { error: createError } = await supabase.from('settlements').insert([
-              { 
-                amount: '15.00',
-                date: new Date().toISOString(),
-                month: new Date().toISOString().substring(0, 7), // YYYY-MM format
-                from_user_id: users[0].id,
-                to_user_id: users[1].id,
-                notes: 'This is a sample settlement to create the table structure'
-              }
-            ]);
+            // Users exist, create the settlements table via sample data
+            console.log("Users exist. Creating settlements table via sample data...");
+            
+            const { data: createData, error: createError } = await supabase.from('settlements').insert({
+              amount: '15.00',
+              date: new Date().toISOString(),
+              month: new Date().toISOString().substring(0, 7), // YYYY-MM format
+              from_user_id: users[0].id,
+              to_user_id: users[1].id,
+              notes: 'This is a sample settlement to create the table structure'
+            }).select();
             
             if (createError) {
-              if (createError.code === '42P01') {
-                console.log("Settlements table needs to be created with correct schema");
-              } else {
-                console.error("Error creating settlements table:", createError);
-              }
+              console.error("Failed to create settlements table via insert:", createError);
             } else {
-              console.log("Settlements table created successfully");
+              console.log("Settlements table created successfully via insert");
               
-              // Now delete the sample as it was just for table creation
+              // Clean up sample data
               await supabase.from('settlements').delete().eq('notes', 'This is a sample settlement to create the table structure');
             }
+          } else {
+            console.log("Not enough users available for settlements table creation");
+            console.log(`Users available: ${users ? users.length : 0}`);
           }
+        } else if (settlementsError) {
+          console.error("Error checking settlements table:", settlementsError);
         } else {
           console.log("Settlements table already exists");
         }

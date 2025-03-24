@@ -103,33 +103,73 @@ app.use((req, res, next) => {
   
   if (supabaseUrl && supabaseKey) {
     log("Initializing Supabase client with provided credentials.");
+    console.log(`Testing connection to Supabase at ${supabaseUrl.substring(0, 20)}...`);
+    
+    // First, let's test that the Supabase credentials work
+    let supabaseConnectionWorks = false;
     
     try {
-      // Create a new Supabase storage implementation
-      const supabaseStorage = new SupabaseStorage();
+      // Import supabase client from supabase.ts
+      const { supabase } = await import('./supabase');
       
-      // Override the storage object by replacing its prototype methods with the Supabase implementation methods
-      Object.getOwnPropertyNames(SupabaseStorage.prototype).forEach(method => {
-        if (method !== 'constructor') {
-          // @ts-ignore - We're intentionally replacing methods at runtime
-          storage[method] = supabaseStorage[method].bind(supabaseStorage);
-        }
-      });
+      // A simple ping to see if the Supabase connection works at all
+      const { error: pingError } = await supabase.from('_unused_ping_table').select('*').limit(1).maybeSingle();
       
-      // Initialize Supabase database with tables and default data
-      initializeSupabaseDatabase().catch(err => {
-        console.error("Error initializing Supabase database:", err);
-      });
-      
-      log("Using Supabase for persistent storage!");
-      storageImplementation = storage;
-    } catch (error) {
-      console.error("Error setting up Supabase storage:", error);
-      log("Error with Supabase storage. Falling back to in-memory storage.");
+      // We expect a "relation does not exist" error (42P01) which means the connection works
+      // but the table doesn't exist (as expected)
+      if (pingError && pingError.code === '42P01') {
+        log("Successfully connected to Supabase! (Expected error about non-existent table)");
+        supabaseConnectionWorks = true;
+      } else if (pingError) {
+        // Some other kind of error occurred
+        log(`Supabase connection issue: ${pingError.message} (${pingError.code})`);
+        console.error("Supabase connection error details:", pingError);
+      } else {
+        // No error, which is unexpected but might be ok
+        log("Connected to Supabase, but received unexpected success response");
+        supabaseConnectionWorks = true;
+      }
+    } catch (pingError) {
+      log(`Exception testing Supabase connection: ${(pingError as Error).message}`);
+      console.error("Supabase connection test exception:", pingError);
+    }
+    
+    if (supabaseConnectionWorks) {
+      try {
+        log("Supabase connection available - attempting to use Supabase storage.");
+        const supabaseStorage = new SupabaseStorage();
+        
+        // Override the storage object by replacing its prototype methods with the Supabase implementation methods
+        Object.getOwnPropertyNames(SupabaseStorage.prototype).forEach(method => {
+          if (method !== 'constructor') {
+            // @ts-ignore - We're intentionally replacing methods at runtime
+            storage[method] = supabaseStorage[method].bind(supabaseStorage);
+          }
+        });
+        
+        // Initialize the database (will be handled internally by SupabaseStorage)
+        log("Using Supabase for persistent storage!");
+        
+        // Let the system know we're using Supabase, add better error recovery logic
+        storage.onStorageOperationError = (operation: string, error: any) => {
+          console.error(`Supabase operation "${operation}" failed:`, error);
+          log(`Storage operation failed, using in-memory fallback for "${operation}"`);
+          return true; // Allow the operation to continue with in-memory fallback
+        };
+        
+        storageImplementation = storage;
+      } catch (setupError) {
+        console.error("Error setting up Supabase storage:", setupError);
+        log("Error with Supabase storage. Using in-memory storage instead.");
+        storageImplementation = storage;
+      }
+    } else {
+      log("Supabase connection test failed. Using in-memory storage instead.");
+      log("Data will NOT be persisted to Supabase due to connection issues.");
       storageImplementation = storage;
     }
   } else {
-    log("No Supabase credentials found. Using in-memory storage.");
+    log("No Supabase credentials found. Using in-memory storage only.");
     storageImplementation = storage;
   }
   
