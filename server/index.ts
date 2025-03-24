@@ -96,8 +96,8 @@ app.use((req, res, next) => {
   // Initialize appropriate storage based on available credentials
   let storageImplementation: IStorage;
   
-  const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.SUPABASE_URL;
-  const supabaseKey = process.env.SUPABASE_KEY || import.meta.env.SUPABASE_KEY;
+  const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
+  const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
   
   if (supabaseUrl && supabaseKey) {
     log("Initializing Supabase client with provided credentials.");
