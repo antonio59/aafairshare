@@ -1,6 +1,6 @@
 import { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { storage, IStorage } from "./storage";
 import { z } from "zod";
 import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema, insertRecurringExpenseSchema } from "@shared/schema";
 import passport from "passport";

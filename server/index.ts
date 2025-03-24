@@ -4,7 +4,9 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { storage } from "./storage";
+import { storage, MemStorage, IStorage } from "./storage"; 
+import { SupabaseStorage } from "./supabaseStorage";
+import { initializeSupabaseDatabase } from "./initSupabase";
 
 const app = express();
 app.use(express.json());
@@ -91,6 +93,44 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Initialize Supabase if credentials are available
+  let storageImplementation: IStorage;
+  
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+    log("Initializing Supabase storage...");
+    
+    try {
+      // Try to initialize Supabase database
+      const supabaseInitialized = await initializeSupabaseDatabase();
+      
+      if (supabaseInitialized) {
+        log("Using Supabase for persistent storage!");
+        // Create a new Supabase storage implementation
+        const supabaseStorage = new SupabaseStorage();
+        
+        // Override the storage object by replacing its prototype methods with the Supabase implementation methods
+        Object.getOwnPropertyNames(SupabaseStorage.prototype).forEach(method => {
+          if (method !== 'constructor') {
+            // @ts-ignore - We're intentionally replacing methods at runtime
+            storage[method] = supabaseStorage[method].bind(supabaseStorage);
+          }
+        });
+        
+        storageImplementation = storage;
+      } else {
+        log("Failed to initialize Supabase. Falling back to in-memory storage.");
+        storageImplementation = storage;
+      }
+    } catch (error) {
+      console.error("Error initializing Supabase:", error);
+      log("Error initializing Supabase. Falling back to in-memory storage.");
+      storageImplementation = storage;
+    }
+  } else {
+    log("No Supabase credentials found. Using in-memory storage.");
+    storageImplementation = storage;
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -129,6 +169,11 @@ app.use((req, res, next) => {
       log(`The app is now running and should be accessible via Replit`);
       log(`If you're accessing from outside Replit, use http://0.0.0.0:${port}`);
       
+      if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+        log("Data will be stored persistently in Supabase database.");
+      } else {
+        log("Data will be stored in-memory only (will be lost on restart).");
+      }
     });
   };
   

@@ -675,4 +675,5 @@ export class MemStorage implements IStorage {
   }
 }
 
+// Create and export a default instance of MemStorage
 export const storage = new MemStorage();
