@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
@@ -7,7 +7,9 @@ import { getCurrentMonth, formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import CategoryChart from "@/components/CategoryChart";
-import { useReactToPrint } from "react-to-print";
+import LocationChart from "@/components/LocationChart";
+import SplitTypeChart from "@/components/SplitTypeChart";
+import DateDistributionChart from "@/components/DateDistributionChart";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
 
@@ -16,7 +18,7 @@ Chart.register(...registerables);
 export default function Analytics() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
-  const printRef = useRef(null);
+  const printRef = useRef<HTMLDivElement>(null);
 
   // Fetch summary data for the month
   const { 
@@ -24,30 +26,77 @@ export default function Analytics() {
     isLoading: summaryLoading,
     isError: summaryError
   } = useQuery<MonthSummary>({
-    queryKey: [`/api/summary/${currentMonth}`],
-    onError: () => {
+    queryKey: [`/api/summary/${currentMonth}`]
+  });
+
+  // Show error toast if query fails
+  useEffect(() => {
+    if (summaryError) {
       toast({
         title: "Error",
         description: "Failed to load summary data. Please try again.",
         variant: "destructive"
       });
     }
-  });
+  }, [summaryError, toast]);
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
   };
 
-  const handlePrint = useReactToPrint({
-    content: () => printRef.current,
-    documentTitle: `Expenses Analytics - ${currentMonth}`,
-    onAfterPrint: () => {
+  // Handle print functionality
+  const handlePrint = useCallback(() => {
+    if (!printRef.current) return;
+    
+    try {
+      const content = printRef.current;
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        throw new Error('Could not open print window');
+      }
+      
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>Expenses Analytics - ${currentMonth}</title>
+            <style>
+              body { font-family: Arial, sans-serif; padding: 20px; }
+              .page-break { page-break-before: always; }
+              h1 { color: #333; }
+              .summary { margin-bottom: 20px; text-align: center; }
+              .summary h2 { color: #444; }
+              .total { font-size: 24px; font-weight: bold; color: #6366f1; }
+            </style>
+          </head>
+          <body>
+            <h1>Expenses Analytics Report - ${currentMonth}</h1>
+            <div class="summary">
+              <h2>Monthly Summary</h2>
+              <p class="total">Total: ${summary ? formatCurrency(summary.totalExpenses) : "£0.00"}</p>
+              <p>Settlement: ${summary ? formatCurrency(summary.settlementAmount) : "£0.00"}</p>
+            </div>
+            ${content.innerHTML}
+          </body>
+        </html>
+      `);
+      
+      printWindow.document.close();
+      printWindow.focus();
+      printWindow.print();
+      printWindow.close();
+      
       toast({
         title: "PDF Generated",
         description: "The analytics report has been exported as PDF."
       });
+    } catch (err) {
+      toast({
+        title: "Print Error",
+        description: "Failed to generate PDF. Please try again.",
+        variant: "destructive"
+      });
     }
-  });
+  }, [currentMonth, summary, toast]);
 
   const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
     if (format === 'pdf') {
@@ -161,6 +210,18 @@ export default function Analytics() {
         
         {/* Category distribution chart */}
         <CategoryChart summary={summary} isLoading={summaryLoading} />
+        
+        {/* Location distribution chart */}
+        <LocationChart summary={summary} isLoading={summaryLoading} />
+        
+        {/* Two charts in grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Split type chart */}
+          <SplitTypeChart summary={summary} isLoading={summaryLoading} />
+          
+          {/* Date distribution chart */}
+          <DateDistributionChart summary={summary} isLoading={summaryLoading} />
+        </div>
       </div>
     </div>
   );
