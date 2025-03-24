@@ -38,12 +38,12 @@ CREATE TABLE IF NOT EXISTS expenses (
 
 -- Create trigger to automatically set month from date
 CREATE OR REPLACE FUNCTION set_expense_month()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER AS $BODY$
 BEGIN
   NEW.month = to_char(NEW.date, 'YYYY-MM');
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$BODY$ LANGUAGE plpgsql;
 
 -- Drop trigger if exists
 DROP TRIGGER IF EXISTS set_expense_month_trigger ON expenses;

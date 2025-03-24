@@ -8,6 +8,7 @@ import { storage as memStorage, MemStorage, IStorage } from "./storage";
 import { SupabaseStorage } from "./supabaseStorage";
 import { initializeSupabaseDatabase } from "./initSupabase";
 import { createSupabaseFunctions } from "./createSupabaseFunctions";
+import { executeSqlFileWithPostgres } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -112,50 +113,42 @@ app.use((req, res, next) => {
     console.log("SUPABASE_SERVICE_KEY exists:", !!supabaseServiceKey);
     console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
     
-    // Always use Supabase when credentials are available
-    if (supabaseUrl && (supabaseServiceKey || supabaseKey)) {
-      log("Supabase credentials found - using Supabase for cloud storage");
-      try {
-        // Initialize the SupabaseStorage
-        log("Initializing Supabase connection...");
-        storageImplementation = new SupabaseStorage();
-        
-        // Try to create tables and functions in sequence for better error isolation
-        try {
-          log("Attempting to create Supabase helper functions...");
-          await createSupabaseFunctions();
-          log("Supabase helper functions created successfully");
-        } catch (funcError) {
-          log(`Note: Helper function creation skipped: ${funcError}`);
-        }
-        
-        // Initialize default data if needed
-        try {
-          log("Initializing database tables and default data...");
-          await initializeSupabaseDatabase();
-          log("Database initialization completed successfully");
-        } catch (initError) {
-          log(`Database initialization error: ${initError}`);
-          log("Will attempt to create tables through the storage class directly");
-        }
-        
-        log("Successfully connected to Supabase cloud storage");
-      } catch (error) {
-        log(`Error initializing Supabase storage: ${error}`);
-        log("Falling back to in-memory storage");
-        storageImplementation = memStorage;
-      }
+    // Require Supabase credentials - don't fall back to in-memory
+    if (!supabaseUrl || (!supabaseServiceKey && !supabaseKey)) {
+      log("ERROR: Missing Supabase credentials. The application requires Supabase for storage.");
+      throw new Error("Missing required Supabase credentials");
     }
-    // If no Supabase credentials, use in-memory as fallback
-    else {
-      log("No Supabase credentials found. Using in-memory storage");
-      log("WARNING: This is not recommended for production use");
-      storageImplementation = memStorage;
+    
+    log("Supabase credentials found - using Supabase for cloud storage");
+    
+    // Create database schema first using direct PostgreSQL connection
+    log("Creating database schema using direct PostgreSQL connection...");
+    const sqlResult = await executeSqlFileWithPostgres();
+    if (sqlResult.success) {
+      log("Successfully created database objects via direct SQL execution");
+    } else {
+      log(`Warning: SQL setup encountered an issue: ${sqlResult.message}`);
+      log("Will continue with Supabase API for data access");
     }
+    
+    // Initialize the SupabaseStorage after creating schema
+    log("Initializing Supabase connection...");
+    storageImplementation = new SupabaseStorage();
+    
+    // Attempt to run any additional initialization
+    try {
+      log("Initializing database tables and default data...");
+      await initializeSupabaseDatabase();
+      log("Database initialization completed successfully");
+    } catch (initError) {
+      log(`Database initialization via API encountered an issue: ${initError}`);
+      log("Database access will continue to use direct SQL when needed");
+    }
+    
+    log("Successfully connected to Supabase cloud storage");
   } catch (error) {
-    log(`Error during database initialization: ${error}`);
-    log("Falling back to in-memory storage");
-    storageImplementation = memStorage;
+    log(`CRITICAL ERROR: Failed to initialize database: ${error}`);
+    throw error; // Don't continue without database
   }
   
   // Set the global storage to use the initialized implementation
