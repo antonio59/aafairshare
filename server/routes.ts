@@ -65,7 +65,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         isAuthenticated: true,
         user: {
           id: (req.user as any).id,
-          username: (req.user as any).username
+          username: (req.user as any).username,
+          email: (req.user as any).email
         }
       });
     }
@@ -78,10 +79,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Validate the user data
       const validatedData = insertUserSchema.parse(req.body);
       
-      // Check if user already exists
-      const existingUser = await storage.getUserByUsername(validatedData.username);
-      if (existingUser) {
+      // Check if username already exists
+      const existingUsername = await storage.getUserByUsername(validatedData.username);
+      if (existingUsername) {
         return res.status(400).json({ message: "Username already exists" });
+      }
+      
+      // Check if email already exists
+      const existingEmail = await storage.getUserByEmail(validatedData.email);
+      if (existingEmail) {
+        return res.status(400).json({ message: "Email already exists" });
       }
       
       // Create the new user
@@ -91,7 +98,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "User registered successfully",
         user: {
           id: newUser.id,
-          username: newUser.username
+          username: newUser.username,
+          email: newUser.email
         }
       });
     } catch (error) {
