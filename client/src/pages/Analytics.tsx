@@ -9,7 +9,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CategoryChart from "@/components/CategoryChart";
 import LocationChart from "@/components/LocationChart";
 import SplitTypeChart from "@/components/SplitTypeChart";
-import DateDistributionChart from "@/components/DateDistributionChart";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
 
@@ -214,14 +213,8 @@ export default function Analytics() {
         {/* Location distribution chart */}
         <LocationChart summary={summary} isLoading={summaryLoading} />
         
-        {/* Two charts in grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Split type chart */}
-          <SplitTypeChart summary={summary} isLoading={summaryLoading} />
-          
-          {/* Date distribution chart */}
-          <DateDistributionChart summary={summary} isLoading={summaryLoading} />
-        </div>
+        {/* Split type chart */}
+        <SplitTypeChart summary={summary} isLoading={summaryLoading} />
       </div>
     </div>
   );
