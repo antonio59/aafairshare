@@ -14,16 +14,8 @@ import {
   RecurringExpense,
   InsertRecurringExpense,
   RecurringExpenseWithDetails,
-  MonthSummary,
-  users, 
-  categories,
-  locations,
-  expenses,
-  settlements,
-  recurringExpenses
+  MonthSummary
 } from "@shared/schema";
-import { db } from "./db";
-import { eq, and, desc, asc, like, sql, gt, lte, isNull, count, sum } from "drizzle-orm";
 
 export interface IStorage {
   // Error handling callback - returns true if operation should continue with fallback
