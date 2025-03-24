@@ -2,8 +2,15 @@ import { createClient } from '@supabase/supabase-js';
 import { log } from './vite';
 
 // Get Supabase credentials from environment
-const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
-const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+// Log the environment variables presence (not the actual values for security)
+console.log('Environment variable check:');
+console.log('process.env.SUPABASE_URL exists:', !!supabaseUrl);
+console.log('process.env.SUPABASE_KEY exists:', !!supabaseKey);
+console.log('URL starts with:', supabaseUrl?.substring(0, 8));
+console.log('Key starts with:', supabaseKey?.substring(0, 8));
 
 // Initialize Supabase client
 let supabase: ReturnType<typeof createClient>;

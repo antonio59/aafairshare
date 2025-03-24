@@ -392,25 +392,46 @@ export class SupabaseStorage implements IStorage {
       // First, try to create the user in Supabase
       try {
         // Create user in supabase - ensure we have a users table first
+        console.log("Ensuring users table exists before creating user");
         await this.ensureUsersTableExists();
         
         // Now try to insert the user
         console.log("Attempting to insert user into Supabase");
-        const { data, error } = await supabase
-          .from('users')
-          .insert({
-            username: user.username,
-            email: user.email,
-            password: user.password
-          })
-          .select()
-          .single();
+        console.log("User data to insert:", JSON.stringify({
+          username: user.username,
+          email: user.email,
+          password: "******" // Masked for security
+        }));
         
-        if (!error && data) {
-          console.log("User created successfully in Supabase:", data.id);
-          return data as User;
-        } else {
-          console.warn("Supabase insert failed, using fallback:", error?.message);
+        try {
+          const result = await supabase
+            .from('users')
+            .insert({
+              username: user.username,
+              email: user.email,
+              password: user.password
+            })
+            .select()
+            .single();
+          
+          console.log("Insert user result:", JSON.stringify({
+            data: result.data ? "Data received" : "No data",
+            status: result.status,
+            statusText: result.statusText,
+            error: result.error ? JSON.stringify(result.error) : "No error"
+          }));
+          
+          if (!result.error && result.data) {
+            console.log("User created successfully in Supabase:", result.data.id);
+            return result.data as User;
+          } else {
+            console.warn("Supabase insert failed, using fallback:", 
+                        result.error?.message || "Unknown error",
+                        "Status:", result.status);
+            console.log("Full error:", JSON.stringify(result.error));
+          }
+        } catch (insertErr) {
+          console.error("Exception during user insert:", insertErr);
         }
       } catch (supabaseErr) {
         console.warn("Supabase error, using fallback:", supabaseErr);
@@ -436,8 +457,11 @@ export class SupabaseStorage implements IStorage {
   // Helper method to ensure the users table exists
   private async ensureUsersTableExists(): Promise<void> {
     try {
+      console.log("Checking if users table exists...");
       // Check if the table exists by trying to query it
       const { error } = await supabase.from('users').select('id').limit(1);
+      
+      console.log("Query response error:", error);
       
       // If we get a "relation does not exist" error, we need to create the table
       if (error && error.code === '42P01') {
@@ -445,24 +469,35 @@ export class SupabaseStorage implements IStorage {
         
         // We'll use the same approach as in ensureTablesExist method
         // Create sample data that will also create the table
-        const { error: createError } = await supabase.from('users').insert([
-          { 
-            username: 'John',
-            email: 'john@example.com',
-            password: 'password'
-          },
-          { 
-            username: 'Sarah',
-            email: 'sarah@example.com',
-            password: 'password'
-          }
-        ]);
+        console.log("Attempting to create users table with sample data");
         
-        if (createError) {
-          console.error("Error creating users table:", createError);
-        } else {
-          console.log("Users table created successfully");
+        try {
+          const result = await supabase.from('users').insert([
+            { 
+              username: 'John',
+              email: 'john@example.com',
+              password: 'password'
+            },
+            { 
+              username: 'Sarah',
+              email: 'sarah@example.com',
+              password: 'password'
+            }
+          ]);
+          
+          console.log("Full insert result:", JSON.stringify(result));
+          
+          if (result.error) {
+            console.error("Error creating users table:", result.error);
+            console.error("Error details:", JSON.stringify(result.error));
+          } else {
+            console.log("Users table created successfully");
+          }
+        } catch (insertErr) {
+          console.error("Exception during insert operation:", insertErr);
         }
+      } else {
+        console.log("Users table exists (or error is not 42P01)");
       }
     } catch (err) {
       console.warn("Error checking/creating users table:", err);
