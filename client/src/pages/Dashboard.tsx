@@ -28,30 +28,42 @@ export default function Dashboard() {
     isError: summaryError
   } = useQuery<MonthSummary>({
     queryKey: [`/api/summary/${currentMonth}`],
-    onError: () => {
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1
+  });
+
+  // If there's an error with summary, show toast
+  React.useEffect(() => {
+    if (summaryError) {
       toast({
         title: "Error",
         description: "Failed to load summary data. Please try again.",
         variant: "destructive"
       });
     }
-  });
+  }, [summaryError, toast]);
 
   // Fetch expenses for the month
   const { 
-    data: expenses, 
+    data: expenses = [], // provide empty array as default
     isLoading: expensesLoading,
     isError: expensesError
   } = useQuery<ExpenseWithDetails[]>({
     queryKey: [`/api/expenses?month=${currentMonth}`],
-    onError: () => {
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1
+  });
+  
+  // If there's an error with expenses, show toast
+  React.useEffect(() => {
+    if (expensesError) {
       toast({
         title: "Error",
         description: "Failed to load expenses data. Please try again.",
         variant: "destructive"
       });
     }
-  });
+  }, [expensesError, toast]);
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
@@ -150,10 +162,8 @@ export default function Dashboard() {
         <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-medium text-gray-800">Recent Expenses</h3>
-            <Link href="/expenses">
-              <a className="text-sm font-medium text-primary hover:text-blue-700">
-                View all
-              </a>
+            <Link href="/expenses" className="text-sm font-medium text-primary hover:text-blue-700">
+              View all
             </Link>
           </div>
         </div>

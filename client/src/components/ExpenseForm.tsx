@@ -173,6 +173,11 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>{expense ? "Edit Expense" : "Add New Expense"}</DialogTitle>
+          <p className="text-sm text-muted-foreground">
+            {expense 
+              ? "Update expense details using the form below." 
+              : "Enter expense details using the form below."}
+          </p>
         </DialogHeader>
         
         <Form {...form}>
