@@ -905,7 +905,7 @@ export class SupabaseStorage implements IStorage {
         const newExpense: InsertExpense = {
           amount: recurringExpense.amount,
           date: nextDate,
-          paid_by: recurringExpense.paid_by,
+          paid_by_user_id: recurringExpense.paid_by_user_id,
           split_type: recurringExpense.split_type,
           notes: recurringExpense.notes ? `${recurringExpense.notes} (Recurring: ${recurringExpense.name})` : `Recurring: ${recurringExpense.name}`,
           category_id: recurringExpense.category_id,

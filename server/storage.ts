@@ -651,10 +651,10 @@ export class MemStorage implements IStorage {
           user2Share += amount / 2;
         } else if (expense.split_type === "100%") {
           // 100% Other User - the other user pays full amount
-          if (expense.paid_by === user1.id) {
+          if (expense.paid_by_user_id === user1.id) {
             // User 1 paid, but User 2 owes 100%
             user2Share += amount;
-          } else if (expense.paid_by === user2.id) {
+          } else if (expense.paid_by_user_id === user2.id) {
             // User 2 paid, but User 1 owes 100%
             user1Share += amount;
           }
@@ -911,7 +911,7 @@ export class DatabaseStorage implements IStorage {
       // Get related data
       const [category] = await db.select().from(categories).where(eq(categories.id, expense.category_id));
       const [location] = await db.select().from(locations).where(eq(locations.id, expense.location_id));
-      const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by));
+      const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by_user_id));
       
       if (!category || !location || !paidByUser) {
         return undefined;
@@ -942,7 +942,7 @@ export class DatabaseStorage implements IStorage {
       for (const expense of allExpenses) {
         const [category] = await db.select().from(categories).where(eq(categories.id, expense.category_id));
         const [location] = await db.select().from(locations).where(eq(locations.id, expense.location_id));
-        const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by_user_id));
         
         if (category && location && paidByUser) {
           expensesWithDetails.push({
@@ -979,7 +979,7 @@ export class DatabaseStorage implements IStorage {
       for (const expense of monthExpenses) {
         const [category] = await db.select().from(categories).where(eq(categories.id, expense.category_id));
         const [location] = await db.select().from(locations).where(eq(locations.id, expense.location_id));
-        const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by_user_id));
         
         if (category && location && paidByUser) {
           expensesWithDetails.push({
@@ -1073,7 +1073,7 @@ export class DatabaseStorage implements IStorage {
       // Get related data
       const [category] = await db.select().from(categories).where(eq(categories.id, recurringExpense.category_id));
       const [location] = await db.select().from(locations).where(eq(locations.id, recurringExpense.location_id));
-      const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by));
+      const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by_user_id));
       
       if (!category || !location || !paidByUser) {
         return undefined;
@@ -1108,7 +1108,7 @@ export class DatabaseStorage implements IStorage {
       for (const recurringExpense of allRecurringExpenses) {
         const [category] = await db.select().from(categories).where(eq(categories.id, recurringExpense.category_id));
         const [location] = await db.select().from(locations).where(eq(locations.id, recurringExpense.location_id));
-        const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by_user_id));
         
         if (category && location && paidByUser) {
           recurringExpensesWithDetails.push({
@@ -1145,7 +1145,7 @@ export class DatabaseStorage implements IStorage {
       for (const recurringExpense of activeRecurringExpenses) {
         const [category] = await db.select().from(categories).where(eq(categories.id, recurringExpense.category_id));
         const [location] = await db.select().from(locations).where(eq(locations.id, recurringExpense.location_id));
-        const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by_user_id));
         
         if (category && location && paidByUser) {
           recurringExpensesWithDetails.push({
@@ -1251,7 +1251,7 @@ export class DatabaseStorage implements IStorage {
             description: recurringExpense.description,
             amount: recurringExpense.amount,
             date: nextDate,
-            paid_by: recurringExpense.paid_by,
+            paid_by_user_id: recurringExpense.paid_by_user_id,
             split_type: recurringExpense.split_type,
             notes: recurringExpense.notes ? `${recurringExpense.notes} (Recurring: ${recurringExpense.name})` : `Recurring: ${recurringExpense.name}`,
             category_id: recurringExpense.category_id,
