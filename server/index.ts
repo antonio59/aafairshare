@@ -4,12 +4,10 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { storage as memStorage, MemStorage, IStorage, DatabaseStorage } from "./storage"; 
+import { storage as memStorage, MemStorage, IStorage } from "./storage"; 
 import { SupabaseStorage } from "./supabaseStorage";
 import { initializeSupabaseDatabase } from "./initSupabase";
 import { createSupabaseFunctions } from "./createSupabaseFunctions";
-import { executeSqlFile } from "./sqlExecutor";
-import { executeSqlFileWithPostgres } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -27,7 +25,7 @@ app.use(session({
 }));
 
 // Create a global storage variable that will be properly initialized later
-let storage: IStorage = memStorage;
+let storage: IStorage;
 
 // Passport configuration
 app.use(passport.initialize());
@@ -114,50 +112,33 @@ app.use((req, res, next) => {
     console.log("SUPABASE_SERVICE_KEY exists:", !!supabaseServiceKey);
     console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
     
-    // Since we've verified our tables exist, try to use DatabaseStorage first
-    if (process.env.DATABASE_URL) {
-      log("Database URL found - attempting to use direct PostgreSQL database access");
+    // Always use Supabase when credentials are available
+    if (supabaseUrl && (supabaseServiceKey || supabaseKey)) {
+      log("Supabase credentials found - using Supabase for cloud storage");
       try {
-        // Use DatabaseStorage with Drizzle ORM
-        storageImplementation = new DatabaseStorage();
-        log("Successfully initialized PostgreSQL database storage");
-      } catch (error) {
-        log(`Error initializing PostgreSQL database: ${error}`);
+        // First try to create any functions or setup needed
+        await createSupabaseFunctions();
         
-        // Try Supabase as fallback if credentials are available
-        if (supabaseUrl && (supabaseServiceKey || supabaseKey)) {
-          log("Trying Supabase as fallback...");
-          try {
-            // Initialize the SupabaseStorage
-            storageImplementation = new SupabaseStorage();
-            log("Successfully initialized Supabase storage");
-          } catch (supabaseError) {
-            log(`Error initializing Supabase storage: ${supabaseError}`);
-            log("Falling back to in-memory storage");
-            storageImplementation = memStorage;
-          }
-        } else {
-          log("Falling back to in-memory storage");
-          storageImplementation = memStorage;
-        }
-      }
-    }
-    // If no Database URL, try Supabase
-    else if (supabaseUrl && (supabaseServiceKey || supabaseKey)) {
-      log("Supabase credentials found - attempting to use Supabase for storage");
-      try {
         // Initialize the SupabaseStorage
         storageImplementation = new SupabaseStorage();
-        log("Successfully initialized Supabase storage");
+        log("Successfully initialized Supabase cloud storage");
+        
+        // Initialize default data if needed
+        try {
+          await initializeSupabaseDatabase();
+        } catch (initError) {
+          log(`Note: Default data initialization skipped: ${initError}`);
+        }
       } catch (error) {
         log(`Error initializing Supabase storage: ${error}`);
         log("Falling back to in-memory storage");
         storageImplementation = memStorage;
       }
     }
-    // If neither database nor Supabase is available
+    // If no Supabase credentials, use in-memory as fallback
     else {
-      log("No database credentials found. Using in-memory storage");
+      log("No Supabase credentials found. Using in-memory storage");
+      log("WARNING: This is not recommended for production use");
       storageImplementation = memStorage;
     }
   } catch (error) {
@@ -209,20 +190,19 @@ app.use((req, res, next) => {
       
       // Show appropriate storage message
       if (storageImplementation instanceof SupabaseStorage) {
-        log("Data will be stored persistently in Supabase.");
+        log("Data will be stored persistently in Supabase cloud.");
         // Check environment variables directly
         if (process.env.SUPABASE_SERVICE_KEY) {
           log("Using service key with admin privileges for database operations.");
         } else {
           log("Using regular API key for database operations.");
         }
-      } else if (storageImplementation instanceof DatabaseStorage) {
-        log("Data will be stored persistently in PostgreSQL database.");
       } else {
         log("Data will be stored in-memory only (will be lost on restart).");
         // Check environment variables directly
         if (process.env.SUPABASE_URL && (process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_KEY)) {
-          log("Note: Database connection failed, falling back to in-memory storage.");
+          log("Note: Supabase connection failed, falling back to in-memory storage.");
+          log("WARNING: This is not recommended for production use.");
         }
       }
     });
