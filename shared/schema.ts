@@ -158,6 +158,13 @@ export type MonthSummary = {
     amount: number;
     percentage: number;
   }>;
+  locationTotals: Array<{
+    location: Location;
+    amount: number;
+    percentage: number;
+  }>;
+  splitTypeTotals: Record<string, number>;
+  dateDistribution: Record<string, number>;
   settlementAmount: number;
   settlementDirection: {
     fromUserId: number;

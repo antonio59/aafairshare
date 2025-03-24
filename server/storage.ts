@@ -543,6 +543,7 @@ export class MemStorage implements IStorage {
     const expenses = await this.getExpensesByMonth(month);
     const users = await this.getAllUsers();
     const categories = await this.getAllCategories();
+    const locations = await this.getAllLocations();
     
     // Calculate total expenses
     const totalExpenses = expenses.reduce((total, expense) => total + Number(expense.amount), 0);
@@ -568,6 +569,41 @@ export class MemStorage implements IStorage {
       };
     }).filter(categoryTotal => categoryTotal.amount > 0)
       .sort((a, b) => b.amount - a.amount);
+    
+    // Calculate location totals
+    const locationTotals = locations.map(location => {
+      const locationExpenses = expenses.filter(expense => expense.location_id === location.id);
+      const amount = locationExpenses.reduce((total, expense) => total + Number(expense.amount), 0);
+      const percentage = totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0;
+      
+      return {
+        location,
+        amount,
+        percentage
+      };
+    }).filter(locationTotal => locationTotal.amount > 0)
+      .sort((a, b) => b.amount - a.amount);
+    
+    // Calculate split type totals
+    const splitTypeTotals: Record<string, number> = {};
+    expenses.forEach(expense => {
+      const amount = Number(expense.amount);
+      if (!splitTypeTotals[expense.split_type]) {
+        splitTypeTotals[expense.split_type] = 0;
+      }
+      splitTypeTotals[expense.split_type] += amount;
+    });
+    
+    // Calculate date distribution (by day of month)
+    const dateDistribution: Record<string, number> = {};
+    expenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const dayOfMonth = date.getDate().toString();
+      if (!dateDistribution[dayOfMonth]) {
+        dateDistribution[dayOfMonth] = 0;
+      }
+      dateDistribution[dayOfMonth] += Number(expense.amount);
+    });
     
     // Calculate settlement amount and direction
     let settlementAmount = 0;
@@ -627,6 +663,9 @@ export class MemStorage implements IStorage {
       totalExpenses,
       userExpenses,
       categoryTotals,
+      locationTotals,
+      splitTypeTotals,
+      dateDistribution,
       settlementAmount,
       settlementDirection: {
         fromUserId,
