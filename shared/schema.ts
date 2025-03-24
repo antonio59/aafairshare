@@ -52,16 +52,19 @@ export type Location = typeof locations.$inferSelect;
 // Expenses table
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
+  description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
-  paid_by: integer("paid_by").notNull(), // reference to user ID
+  paid_by: integer("paid_by_user_id").notNull(), // reference to user ID
   split_type: text("split_type").notNull().default("50/50"),
   notes: text("notes"),
   category_id: integer("category_id").notNull(), // reference to category ID
   location_id: integer("location_id").notNull(), // reference to location ID
+  month: text("month"), // YYYY-MM format, auto-populated by trigger
 });
 
 export const insertExpenseSchema = createInsertSchema(expenses).pick({
+  description: true,
   amount: true,
   date: true,
   paid_by: true,
@@ -69,6 +72,7 @@ export const insertExpenseSchema = createInsertSchema(expenses).pick({
   notes: true,
   category_id: true,
   location_id: true,
+  month: true,
 });
 
 export type InsertExpense = z.infer<typeof insertExpenseSchema>;
@@ -84,19 +88,21 @@ export type ExpenseWithDetails = Expense & {
 // Settlements table
 export const settlements = pgTable("settlements", {
   id: serial("id").primaryKey(),
-  month: text("month").notNull(), // Format: YYYY-MM
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-  settled_at: timestamp("settled_at").notNull(),
+  date: timestamp("date").notNull(),
+  month: text("month").notNull(), // Format: YYYY-MM
   from_user_id: integer("from_user_id").notNull(),
   to_user_id: integer("to_user_id").notNull(),
+  notes: text("notes"),
 });
 
 export const insertSettlementSchema = createInsertSchema(settlements).pick({
-  month: true,
   amount: true,
-  settled_at: true,
+  date: true,
+  month: true,
   from_user_id: true,
   to_user_id: true,
+  notes: true,
 });
 
 export type InsertSettlement = z.infer<typeof insertSettlementSchema>;
@@ -112,12 +118,13 @@ export type SettlementWithUsers = Settlement & {
 export const recurringExpenses = pgTable("recurring_expenses", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
+  description: text("description").notNull(),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   frequency: text("frequency").notNull(), // 'monthly', 'weekly', etc
   start_date: timestamp("start_date").notNull(),
   end_date: timestamp("end_date"),
   next_date: timestamp("next_date").notNull(),
-  paid_by: integer("paid_by").notNull(), // reference to user ID
+  paid_by: integer("paid_by_user_id").notNull(), // reference to user ID
   split_type: text("split_type").notNull().default("50/50"),
   notes: text("notes"),
   category_id: integer("category_id").notNull(), // reference to category ID
@@ -127,6 +134,7 @@ export const recurringExpenses = pgTable("recurring_expenses", {
 
 export const insertRecurringExpenseSchema = createInsertSchema(recurringExpenses).pick({
   name: true,
+  description: true,
   amount: true,
   frequency: true,
   start_date: true,

@@ -14,8 +14,16 @@ import {
   RecurringExpense,
   InsertRecurringExpense,
   RecurringExpenseWithDetails,
-  MonthSummary
+  MonthSummary,
+  users, 
+  categories,
+  locations,
+  expenses,
+  settlements,
+  recurringExpenses
 } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc, asc, like, sql, gt, lte, isNull, count, sum } from "drizzle-orm";
 
 export interface IStorage {
   // Error handling callback - returns true if operation should continue with fallback
@@ -687,4 +695,944 @@ export class MemStorage implements IStorage {
 }
 
 // Create and export a default instance of MemStorage
+export class DatabaseStorage implements IStorage {
+  onStorageOperationError?: (operation: string, error: any) => boolean;
+
+  async getUser(id: number): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (error) {
+      console.error(`Error getting user ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getUser', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user;
+    } catch (error) {
+      console.error(`Error getting user by username ${username}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getUserByUsername', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    try {
+      const [user] = await db.select().from(users).where(eq(users.email, email));
+      return user;
+    } catch (error) {
+      console.error(`Error getting user by email ${email}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getUserByEmail', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    try {
+      const [createdUser] = await db.insert(users).values(user).returning();
+      return createdUser;
+    } catch (error) {
+      console.error(`Error creating user:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('createUser', error)) {
+        throw new Error(`Failed to create user: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    try {
+      return await db.select().from(users);
+    } catch (error) {
+      console.error(`Error getting all users:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getAllUsers', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getCategory(id: number): Promise<Category | undefined> {
+    try {
+      const [category] = await db.select().from(categories).where(eq(categories.id, id));
+      return category;
+    } catch (error) {
+      console.error(`Error getting category ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getCategory', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async getAllCategories(): Promise<Category[]> {
+    try {
+      return await db.select().from(categories);
+    } catch (error) {
+      console.error(`Error getting all categories:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getAllCategories', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createCategory(category: InsertCategory): Promise<Category> {
+    try {
+      const [createdCategory] = await db.insert(categories).values(category).returning();
+      return createdCategory;
+    } catch (error) {
+      console.error(`Error creating category:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('createCategory', error)) {
+        throw new Error(`Failed to create category: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  async updateCategory(id: number, category: Partial<InsertCategory>): Promise<Category | undefined> {
+    try {
+      const [updatedCategory] = await db
+        .update(categories)
+        .set(category)
+        .where(eq(categories.id, id))
+        .returning();
+      return updatedCategory;
+    } catch (error) {
+      console.error(`Error updating category ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('updateCategory', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async deleteCategory(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(categories).where(eq(categories.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting category ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('deleteCategory', error)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async getLocation(id: number): Promise<Location | undefined> {
+    try {
+      const [location] = await db.select().from(locations).where(eq(locations.id, id));
+      return location;
+    } catch (error) {
+      console.error(`Error getting location ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getLocation', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async getAllLocations(): Promise<Location[]> {
+    try {
+      return await db.select().from(locations);
+    } catch (error) {
+      console.error(`Error getting all locations:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getAllLocations', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createLocation(location: InsertLocation): Promise<Location> {
+    try {
+      const [createdLocation] = await db.insert(locations).values(location).returning();
+      return createdLocation;
+    } catch (error) {
+      console.error(`Error creating location:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('createLocation', error)) {
+        throw new Error(`Failed to create location: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  async updateLocation(id: number, location: Partial<InsertLocation>): Promise<Location | undefined> {
+    try {
+      const [updatedLocation] = await db
+        .update(locations)
+        .set(location)
+        .where(eq(locations.id, id))
+        .returning();
+      return updatedLocation;
+    } catch (error) {
+      console.error(`Error updating location ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('updateLocation', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async deleteLocation(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(locations).where(eq(locations.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting location ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('deleteLocation', error)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async getExpense(id: number): Promise<ExpenseWithDetails | undefined> {
+    try {
+      // Get expense with related data
+      const [expense] = await db.select().from(expenses).where(eq(expenses.id, id));
+      
+      if (!expense) {
+        return undefined;
+      }
+      
+      // Get related data
+      const [category] = await db.select().from(categories).where(eq(categories.id, expense.category_id));
+      const [location] = await db.select().from(locations).where(eq(locations.id, expense.location_id));
+      const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by));
+      
+      if (!category || !location || !paidByUser) {
+        return undefined;
+      }
+      
+      return {
+        ...expense,
+        category,
+        location,
+        paidByUser
+      };
+    } catch (error) {
+      console.error(`Error getting expense ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getExpense', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async getAllExpenses(): Promise<ExpenseWithDetails[]> {
+    try {
+      // Get all expenses
+      const allExpenses = await db.select().from(expenses).orderBy(desc(expenses.date));
+      const expensesWithDetails: ExpenseWithDetails[] = [];
+      
+      // Get related data for each expense
+      for (const expense of allExpenses) {
+        const [category] = await db.select().from(categories).where(eq(categories.id, expense.category_id));
+        const [location] = await db.select().from(locations).where(eq(locations.id, expense.location_id));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by));
+        
+        if (category && location && paidByUser) {
+          expensesWithDetails.push({
+            ...expense,
+            category,
+            location,
+            paidByUser
+          });
+        }
+      }
+      
+      return expensesWithDetails;
+    } catch (error) {
+      console.error(`Error getting all expenses:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getAllExpenses', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getExpensesByMonth(month: string): Promise<ExpenseWithDetails[]> {
+    try {
+      // Get expenses by month
+      const monthExpenses = await db
+        .select()
+        .from(expenses)
+        .where(eq(expenses.month, month))
+        .orderBy(desc(expenses.date));
+      
+      const expensesWithDetails: ExpenseWithDetails[] = [];
+      
+      // Get related data for each expense
+      for (const expense of monthExpenses) {
+        const [category] = await db.select().from(categories).where(eq(categories.id, expense.category_id));
+        const [location] = await db.select().from(locations).where(eq(locations.id, expense.location_id));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, expense.paid_by));
+        
+        if (category && location && paidByUser) {
+          expensesWithDetails.push({
+            ...expense,
+            category,
+            location,
+            paidByUser
+          });
+        }
+      }
+      
+      return expensesWithDetails;
+    } catch (error) {
+      console.error(`Error getting expenses by month ${month}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getExpensesByMonth', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createExpense(expense: InsertExpense): Promise<ExpenseWithDetails> {
+    try {
+      // Ensure defaults
+      const expenseToCreate = {
+        ...expense,
+        split_type: expense.split_type || "50/50",
+        notes: expense.notes || null,
+      };
+      
+      const [createdExpense] = await db.insert(expenses).values(expenseToCreate).returning();
+      
+      const expenseWithDetails = await this.getExpense(createdExpense.id);
+      if (!expenseWithDetails) {
+        throw new Error("Failed to create expense with details");
+      }
+      
+      return expenseWithDetails;
+    } catch (error) {
+      console.error(`Error creating expense:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('createExpense', error)) {
+        throw new Error(`Failed to create expense: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  async updateExpense(id: number, expense: Partial<InsertExpense>): Promise<ExpenseWithDetails | undefined> {
+    try {
+      const [updatedExpense] = await db
+        .update(expenses)
+        .set(expense)
+        .where(eq(expenses.id, id))
+        .returning();
+      
+      return await this.getExpense(id);
+    } catch (error) {
+      console.error(`Error updating expense ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('updateExpense', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async deleteExpense(id: number): Promise<boolean> {
+    try {
+      await db.delete(expenses).where(eq(expenses.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting expense ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('deleteExpense', error)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async getRecurringExpense(id: number): Promise<RecurringExpenseWithDetails | undefined> {
+    try {
+      // Get recurring expense
+      const [recurringExpense] = await db
+        .select()
+        .from(recurringExpenses)
+        .where(eq(recurringExpenses.id, id));
+      
+      if (!recurringExpense) {
+        return undefined;
+      }
+      
+      // Get related data
+      const [category] = await db.select().from(categories).where(eq(categories.id, recurringExpense.category_id));
+      const [location] = await db.select().from(locations).where(eq(locations.id, recurringExpense.location_id));
+      const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by));
+      
+      if (!category || !location || !paidByUser) {
+        return undefined;
+      }
+      
+      return {
+        ...recurringExpense,
+        category,
+        location,
+        paidByUser
+      };
+    } catch (error) {
+      console.error(`Error getting recurring expense ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getRecurringExpense', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async getAllRecurringExpenses(): Promise<RecurringExpenseWithDetails[]> {
+    try {
+      // Get all recurring expenses
+      const allRecurringExpenses = await db
+        .select()
+        .from(recurringExpenses)
+        .orderBy(desc(recurringExpenses.next_date));
+      
+      const recurringExpensesWithDetails: RecurringExpenseWithDetails[] = [];
+      
+      // Get related data for each recurring expense
+      for (const recurringExpense of allRecurringExpenses) {
+        const [category] = await db.select().from(categories).where(eq(categories.id, recurringExpense.category_id));
+        const [location] = await db.select().from(locations).where(eq(locations.id, recurringExpense.location_id));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by));
+        
+        if (category && location && paidByUser) {
+          recurringExpensesWithDetails.push({
+            ...recurringExpense,
+            category,
+            location,
+            paidByUser
+          });
+        }
+      }
+      
+      return recurringExpensesWithDetails;
+    } catch (error) {
+      console.error(`Error getting all recurring expenses:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getAllRecurringExpenses', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getActiveRecurringExpenses(): Promise<RecurringExpenseWithDetails[]> {
+    try {
+      // Get active recurring expenses
+      const activeRecurringExpenses = await db
+        .select()
+        .from(recurringExpenses)
+        .where(eq(recurringExpenses.is_active, true))
+        .orderBy(asc(recurringExpenses.next_date));
+      
+      const recurringExpensesWithDetails: RecurringExpenseWithDetails[] = [];
+      
+      // Get related data for each recurring expense
+      for (const recurringExpense of activeRecurringExpenses) {
+        const [category] = await db.select().from(categories).where(eq(categories.id, recurringExpense.category_id));
+        const [location] = await db.select().from(locations).where(eq(locations.id, recurringExpense.location_id));
+        const [paidByUser] = await db.select().from(users).where(eq(users.id, recurringExpense.paid_by));
+        
+        if (category && location && paidByUser) {
+          recurringExpensesWithDetails.push({
+            ...recurringExpense,
+            category,
+            location,
+            paidByUser
+          });
+        }
+      }
+      
+      return recurringExpensesWithDetails;
+    } catch (error) {
+      console.error(`Error getting active recurring expenses:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getActiveRecurringExpenses', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createRecurringExpense(recurringExpense: InsertRecurringExpense): Promise<RecurringExpenseWithDetails> {
+    try {
+      // Ensure defaults
+      const recurringExpenseToCreate = {
+        ...recurringExpense,
+        split_type: recurringExpense.split_type || "50/50",
+        notes: recurringExpense.notes || null,
+        is_active: recurringExpense.is_active ?? true,
+        end_date: recurringExpense.end_date || null
+      };
+      
+      const [createdRecurringExpense] = await db
+        .insert(recurringExpenses)
+        .values(recurringExpenseToCreate)
+        .returning();
+      
+      const recurringExpenseWithDetails = await this.getRecurringExpense(createdRecurringExpense.id);
+      if (!recurringExpenseWithDetails) {
+        throw new Error("Failed to create recurring expense with details");
+      }
+      
+      return recurringExpenseWithDetails;
+    } catch (error) {
+      console.error(`Error creating recurring expense:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('createRecurringExpense', error)) {
+        throw new Error(`Failed to create recurring expense: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  async updateRecurringExpense(id: number, recurringExpense: Partial<InsertRecurringExpense>): Promise<RecurringExpenseWithDetails | undefined> {
+    try {
+      // Make sure end_date is properly handled
+      const updateData = { ...recurringExpense };
+      if ('end_date' in updateData) {
+        updateData.end_date = updateData.end_date || null;
+      }
+      
+      const [updatedRecurringExpense] = await db
+        .update(recurringExpenses)
+        .set(updateData)
+        .where(eq(recurringExpenses.id, id))
+        .returning();
+      
+      return await this.getRecurringExpense(id);
+    } catch (error) {
+      console.error(`Error updating recurring expense ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('updateRecurringExpense', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async deleteRecurringExpense(id: number): Promise<boolean> {
+    try {
+      await db.delete(recurringExpenses).where(eq(recurringExpenses.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting recurring expense ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('deleteRecurringExpense', error)) {
+        return false;
+      }
+      throw error;
+    }
+  }
+
+  async processRecurringExpenses(): Promise<ExpenseWithDetails[]> {
+    try {
+      const today = new Date();
+      const activeRecurringExpenses = await this.getActiveRecurringExpenses();
+      const createdExpenses: ExpenseWithDetails[] = [];
+      
+      for (const recurringExpense of activeRecurringExpenses) {
+        const nextDate = new Date(recurringExpense.next_date);
+        
+        // Check if next_date is today or in the past
+        if (nextDate <= today) {
+          // Create a new expense based on the recurring expense
+          const newExpense: InsertExpense = {
+            description: recurringExpense.description,
+            amount: recurringExpense.amount,
+            date: nextDate,
+            paid_by: recurringExpense.paid_by,
+            split_type: recurringExpense.split_type,
+            notes: recurringExpense.notes ? `${recurringExpense.notes} (Recurring: ${recurringExpense.name})` : `Recurring: ${recurringExpense.name}`,
+            category_id: recurringExpense.category_id,
+            location_id: recurringExpense.location_id
+          };
+          
+          const createdExpense = await this.createExpense(newExpense);
+          createdExpenses.push(createdExpense);
+          
+          // Calculate and update the next occurrence date
+          const nextOccurrenceDate = this.calculateNextOccurrence(nextDate, recurringExpense.frequency);
+          
+          // Check if end_date is defined and next occurrence exceeds it
+          if (recurringExpense.end_date && nextOccurrenceDate > new Date(recurringExpense.end_date)) {
+            // Deactivate the recurring expense
+            await this.updateRecurringExpense(recurringExpense.id, { is_active: false });
+          } else {
+            // Update the next_date
+            await this.updateRecurringExpense(recurringExpense.id, { 
+              next_date: nextOccurrenceDate 
+            });
+          }
+        }
+      }
+      
+      return createdExpenses;
+    } catch (error) {
+      console.error(`Error processing recurring expenses:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('processRecurringExpenses', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  private calculateNextOccurrence(currentDate: Date, frequency: string): Date {
+    const date = new Date(currentDate);
+    
+    switch (frequency) {
+      case 'daily':
+        date.setDate(date.getDate() + 1);
+        break;
+      case 'weekly':
+        date.setDate(date.getDate() + 7);
+        break;
+      case 'bi-weekly':
+        date.setDate(date.getDate() + 14);
+        break;
+      case 'monthly':
+        date.setMonth(date.getMonth() + 1);
+        break;
+      case 'quarterly':
+        date.setMonth(date.getMonth() + 3);
+        break;
+      case 'yearly':
+        date.setFullYear(date.getFullYear() + 1);
+        break;
+      default:
+        // Default to monthly
+        date.setMonth(date.getMonth() + 1);
+    }
+    
+    return date;
+  }
+
+  async getSettlement(id: number): Promise<SettlementWithUsers | undefined> {
+    try {
+      // Get settlement
+      const [settlement] = await db
+        .select()
+        .from(settlements)
+        .where(eq(settlements.id, id));
+      
+      if (!settlement) {
+        return undefined;
+      }
+      
+      // Get related users
+      const [fromUser] = await db.select().from(users).where(eq(users.id, settlement.from_user_id));
+      const [toUser] = await db.select().from(users).where(eq(users.id, settlement.to_user_id));
+      
+      if (!fromUser || !toUser) {
+        return undefined;
+      }
+      
+      return {
+        ...settlement,
+        fromUser,
+        toUser
+      };
+    } catch (error) {
+      console.error(`Error getting settlement ${id}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getSettlement', error)) {
+        return undefined;
+      }
+      throw error;
+    }
+  }
+
+  async getAllSettlements(): Promise<SettlementWithUsers[]> {
+    try {
+      // Get all settlements
+      const allSettlements = await db
+        .select()
+        .from(settlements)
+        .orderBy(desc(settlements.date));
+      
+      const settlementsWithUsers: SettlementWithUsers[] = [];
+      
+      // Get related users for each settlement
+      for (const settlement of allSettlements) {
+        const [fromUser] = await db.select().from(users).where(eq(users.id, settlement.from_user_id));
+        const [toUser] = await db.select().from(users).where(eq(users.id, settlement.to_user_id));
+        
+        if (fromUser && toUser) {
+          settlementsWithUsers.push({
+            ...settlement,
+            fromUser,
+            toUser
+          });
+        }
+      }
+      
+      return settlementsWithUsers;
+    } catch (error) {
+      console.error(`Error getting all settlements:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getAllSettlements', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async getSettlementsByMonth(month: string): Promise<SettlementWithUsers[]> {
+    try {
+      // Get settlements by month
+      const monthSettlements = await db
+        .select()
+        .from(settlements)
+        .where(eq(settlements.month, month))
+        .orderBy(desc(settlements.date));
+      
+      const settlementsWithUsers: SettlementWithUsers[] = [];
+      
+      // Get related users for each settlement
+      for (const settlement of monthSettlements) {
+        const [fromUser] = await db.select().from(users).where(eq(users.id, settlement.from_user_id));
+        const [toUser] = await db.select().from(users).where(eq(users.id, settlement.to_user_id));
+        
+        if (fromUser && toUser) {
+          settlementsWithUsers.push({
+            ...settlement,
+            fromUser,
+            toUser
+          });
+        }
+      }
+      
+      return settlementsWithUsers;
+    } catch (error) {
+      console.error(`Error getting settlements by month ${month}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getSettlementsByMonth', error)) {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  async createSettlement(settlement: InsertSettlement): Promise<SettlementWithUsers> {
+    try {
+      const [createdSettlement] = await db
+        .insert(settlements)
+        .values(settlement)
+        .returning();
+      
+      const settlementWithUsers = await this.getSettlement(createdSettlement.id);
+      if (!settlementWithUsers) {
+        throw new Error("Failed to create settlement with users");
+      }
+      
+      return settlementWithUsers;
+    } catch (error) {
+      console.error(`Error creating settlement:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('createSettlement', error)) {
+        throw new Error(`Failed to create settlement: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  async getMonthSummary(month: string): Promise<MonthSummary> {
+    try {
+      // Get expenses for the month
+      const monthExpenses = await this.getExpensesByMonth(month);
+      
+      // Calculate total expenses
+      const totalExpenses = monthExpenses.reduce((total, expense) => total + Number(expense.amount), 0);
+      
+      // Get all users
+      const allUsers = await this.getAllUsers();
+      
+      // Calculate user expenses
+      const userExpenses: Record<number, number> = {};
+      for (const user of allUsers) {
+        userExpenses[user.id] = 0;
+      }
+      
+      // Calculate the expenses
+      for (const expense of monthExpenses) {
+        const paidById = expense.paidByUser.id;
+        const amount = Number(expense.amount);
+        
+        if (expense.split_type === "50/50") {
+          // Add half to the person who paid (they already paid the full amount)
+          userExpenses[paidById] += amount / 2;
+          
+          // Determine the other user
+          const otherUserId = allUsers.find(u => u.id !== paidById)?.id;
+          if (otherUserId) {
+            // Add half to the other person (they owe this amount)
+            userExpenses[otherUserId] -= amount / 2;
+          }
+        } else if (expense.split_type === "100%") {
+          // Add full amount to the person who paid
+          userExpenses[paidById] += 0;
+          
+          // Determine the other user
+          const otherUserId = allUsers.find(u => u.id !== paidById)?.id;
+          if (otherUserId) {
+            // The other person owes the full amount
+            userExpenses[otherUserId] -= amount;
+          }
+        }
+      }
+      
+      // Category totals
+      const categoryTotals: Record<number, number> = {};
+      for (const expense of monthExpenses) {
+        const categoryId = expense.category.id;
+        if (!categoryTotals[categoryId]) {
+          categoryTotals[categoryId] = 0;
+        }
+        categoryTotals[categoryId] += Number(expense.amount);
+      }
+      
+      // Format category totals
+      const formattedCategoryTotals = Object.entries(categoryTotals).map(([categoryId, amount]) => {
+        const category = monthExpenses.find(e => e.category.id === Number(categoryId))?.category;
+        if (!category) return null;
+        
+        return {
+          category,
+          amount,
+          percentage: this.calculatePercent(amount, totalExpenses)
+        };
+      }).filter(Boolean) as Array<{
+        category: Category;
+        amount: number;
+        percentage: number;
+      }>;
+      
+      // Location totals
+      const locationTotals: Record<number, number> = {};
+      for (const expense of monthExpenses) {
+        const locationId = expense.location.id;
+        if (!locationTotals[locationId]) {
+          locationTotals[locationId] = 0;
+        }
+        locationTotals[locationId] += Number(expense.amount);
+      }
+      
+      // Format location totals
+      const formattedLocationTotals = Object.entries(locationTotals).map(([locationId, amount]) => {
+        const location = monthExpenses.find(e => e.location.id === Number(locationId))?.location;
+        if (!location) return null;
+        
+        return {
+          location,
+          amount,
+          percentage: this.calculatePercent(amount, totalExpenses)
+        };
+      }).filter(Boolean) as Array<{
+        location: Location;
+        amount: number;
+        percentage: number;
+      }>;
+      
+      // Split type totals
+      const splitTypeTotals: Record<string, number> = {
+        "50/50": 0,
+        "100%": 0
+      };
+      
+      for (const expense of monthExpenses) {
+        splitTypeTotals[expense.split_type] += Number(expense.amount);
+      }
+      
+      // Date distribution
+      const dateDistribution: Record<string, number> = {};
+      for (const expense of monthExpenses) {
+        const date = new Date(expense.date);
+        const day = date.getDate().toString();
+        
+        if (!dateDistribution[day]) {
+          dateDistribution[day] = 0;
+        }
+        
+        dateDistribution[day] += Number(expense.amount);
+      }
+      
+      // Settlement calculation
+      let settlementAmount = 0;
+      let fromUserId = 0;
+      let toUserId = 0;
+      
+      // Find which user owes money to the other
+      const userIds = Object.keys(userExpenses).map(Number);
+      if (userIds.length >= 2) {
+        const user1Id = userIds[0];
+        const user2Id = userIds[1];
+        
+        const user1Balance = userExpenses[user1Id];
+        const user2Balance = userExpenses[user2Id];
+        
+        if (user1Balance < 0) {
+          // User 1 owes money to User 2
+          fromUserId = user1Id;
+          toUserId = user2Id;
+          settlementAmount = Math.abs(user1Balance);
+        } else if (user2Balance < 0) {
+          // User 2 owes money to User 1
+          fromUserId = user2Id;
+          toUserId = user1Id;
+          settlementAmount = Math.abs(user2Balance);
+        }
+        // If both balances are 0 or positive, no settlement needed
+      }
+      
+      return {
+        month,
+        totalExpenses,
+        userExpenses,
+        categoryTotals: formattedCategoryTotals,
+        locationTotals: formattedLocationTotals,
+        splitTypeTotals,
+        dateDistribution,
+        settlementAmount,
+        settlementDirection: {
+          fromUserId,
+          toUserId
+        }
+      };
+    } catch (error) {
+      console.error(`Error getting month summary for ${month}:`, error);
+      if (this.onStorageOperationError && this.onStorageOperationError('getMonthSummary', error)) {
+        // Return a placeholder summary
+        return {
+          month,
+          totalExpenses: 0,
+          userExpenses: {},
+          categoryTotals: [],
+          locationTotals: [],
+          splitTypeTotals: { "50/50": 0, "100%": 0 },
+          dateDistribution: {},
+          settlementAmount: 0,
+          settlementDirection: {
+            fromUserId: 0,
+            toUserId: 0
+          }
+        };
+      }
+      throw error;
+    }
+  }
+  
+  private calculatePercent(value: number, total: number): number {
+    if (total === 0) {
+      return 0;
+    }
+    return Math.round((value / total) * 100);
+  }
+}
+
+// By default, use in-memory storage
 export const storage = new MemStorage();

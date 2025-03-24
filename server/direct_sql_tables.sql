@@ -33,8 +33,26 @@ CREATE TABLE IF NOT EXISTS expenses (
   paid_by_user_id INTEGER REFERENCES users(id),
   split_type TEXT NOT NULL,
   notes TEXT,
-  month TEXT GENERATED ALWAYS AS (to_char(date, 'YYYY-MM')) STORED
+  month TEXT
 );
+
+-- Create trigger to automatically set month from date
+CREATE OR REPLACE FUNCTION set_expense_month()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.month = to_char(NEW.date, 'YYYY-MM');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Drop trigger if exists
+DROP TRIGGER IF EXISTS set_expense_month_trigger ON expenses;
+
+-- Add trigger to expenses table
+CREATE TRIGGER set_expense_month_trigger
+BEFORE INSERT OR UPDATE ON expenses
+FOR EACH ROW
+EXECUTE FUNCTION set_expense_month();
 
 -- Recurring expenses table
 CREATE TABLE IF NOT EXISTS recurring_expenses (
@@ -44,6 +62,7 @@ CREATE TABLE IF NOT EXISTS recurring_expenses (
   amount DECIMAL(10, 2) NOT NULL,
   frequency TEXT NOT NULL,
   start_date TIMESTAMP NOT NULL,
+  end_date TIMESTAMP,
   next_date TIMESTAMP NOT NULL,
   category_id INTEGER REFERENCES categories(id),
   location_id INTEGER REFERENCES locations(id),
