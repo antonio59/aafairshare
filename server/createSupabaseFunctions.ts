@@ -1,11 +1,17 @@
 import { supabase } from './supabase';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
 import { log } from './vite';
 
 // Access Supabase URL and Key from environment variables directly
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_KEY;
+
+// Get the current file's directory path (ESM compatible)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * This script creates the SQL functions in Supabase

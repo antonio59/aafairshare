@@ -3,6 +3,14 @@ import { SupabaseStorage } from "./supabaseStorage";
 import { MemStorage } from "./storage";
 import { createSupabaseFunctions } from "./createSupabaseFunctions";
 import { log } from "./vite";
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Get the current file's directory path (ESM compatible)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 /**
  * Initialize the Supabase database with default data
@@ -47,9 +55,7 @@ export async function initializeSupabaseDatabase() {
 
 async function createTables() {
   try {
-    // Read the SQL file content
-    const fs = require('fs');
-    const path = require('path');
+    // Read the SQL file content using imported fs and path
     const sqlFilePath = path.resolve(__dirname, 'supabaseMigrations.sql');
     
     if (!fs.existsSync(sqlFilePath)) {
