@@ -112,38 +112,55 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     setIsSubmitting(true);
     
     try {
+      // Convert amount to number for the API
       const expenseData = {
         ...data,
         amount: parseFloat(data.amount),
+        
+        // Ensure date is properly formatted
+        date: data.date instanceof Date ? data.date : new Date(data.date)
       };
+      
+      let response;
       
       if (expense) {
         // Update existing expense
-        await apiRequest('PATCH', `/api/expenses/${expense.id}`, expenseData);
+        response = await apiRequest('PATCH', `/api/expenses/${expense.id}`, expenseData);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update expense');
+        }
+        
         toast({
           title: "Expense updated",
           description: "The expense has been updated successfully.",
         });
       } else {
         // Create new expense
-        await apiRequest('POST', '/api/expenses', expenseData);
+        response = await apiRequest('POST', '/api/expenses', expenseData);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create expense');
+        }
+        
         toast({
           title: "Expense added",
           description: "The expense has been added successfully.",
         });
       }
       
-      // Invalidate queries
+      // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
       queryClient.invalidateQueries({ queryKey: ['/api/summary'] });
       
       // Close the form
       onOpenChange(false);
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error saving expense:", error);
       toast({
         title: "Error",
-        description: "Failed to save expense. Please try again.",
+        description: error.message || "Failed to save expense. Please try again.",
         variant: "destructive"
       });
     } finally {

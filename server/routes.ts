@@ -209,7 +209,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${API_PREFIX}/expenses`, isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertExpenseSchema.parse(req.body);
+      // Handle type conversions before validation
+      const expenseData = {
+        ...req.body,
+        // Convert amount to string if it's a number
+        amount: typeof req.body.amount === 'number' ? req.body.amount.toString() : req.body.amount,
+        // Ensure date is properly parsed if it's a string
+        date: req.body.date instanceof Date ? req.body.date : new Date(req.body.date)
+      };
+      
+      const validatedData = insertExpenseSchema.parse(expenseData);
       const expense = await storage.createExpense(validatedData);
       res.status(201).json(expense);
     } catch (error) {
@@ -220,7 +229,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch(`${API_PREFIX}/expenses/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const validatedData = insertExpenseSchema.partial().parse(req.body);
+      
+      // Handle type conversions before validation
+      const expenseData = { ...req.body };
+      
+      // Handle amount conversion if present
+      if (expenseData.amount !== undefined) {
+        expenseData.amount = typeof expenseData.amount === 'number' 
+          ? expenseData.amount.toString() 
+          : expenseData.amount;
+      }
+      
+      // Handle date conversion if present
+      if (expenseData.date !== undefined) {
+        expenseData.date = expenseData.date instanceof Date 
+          ? expenseData.date 
+          : new Date(expenseData.date);
+      }
+      
+      const validatedData = insertExpenseSchema.partial().parse(expenseData);
       const updatedExpense = await storage.updateExpense(id, validatedData);
       
       if (!updatedExpense) {
