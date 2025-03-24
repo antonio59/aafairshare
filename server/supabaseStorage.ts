@@ -36,79 +36,92 @@ export class SupabaseStorage implements IStorage {
   // Helper function to ensure tables exist and have default data
   private async ensureTablesExist(): Promise<boolean> {
     try {
-      // Try to get users table - if it fails, we'll create it
-      const { error: usersTableError } = await supabase.from('users').select().limit(1);
-      
-      if (usersTableError && usersTableError.code === '42P01') {
-        // Try direct insertion first - if it fails, table doesn't exist
-        console.log("Creating users table and default users...");
-        
+      // Create users table if it doesn't exist
+      try {
+        // First check if users table exists
+        await supabase.from('users').select('id').limit(1);
+        console.log("Users table exists");
+      } catch (error) {
+        // Create users table with correct schema
+        console.log("Creating users table...");
         try {
-          // Add default users
-          const { error: insertError } = await supabase.from('users').insert([
-            { username: 'John', email: 'john@example.com', password: 'password' },
-            { username: 'Sarah', email: 'sarah@example.com', password: 'password' }
-          ]);
+          // Table might not exist, use direct SQL to create it
+          const { data, error } = await supabase.from('_schemas').select('*');
+          console.log("Schema query result:", data ? "has data" : "no data", error ? error.message : "no error");
           
-          if (insertError && insertError.code !== '23505') { // Ignore duplicate errors
-            console.error("Error creating default users:", insertError);
+          // Create tables using Supabase API - this will create the table if it doesn't exist
+          const { error: createError } = await supabase.from('users').insert([
+            { id: 1, username: 'John', email: 'john@example.com', password: 'password' },
+            { id: 2, username: 'Sarah', email: 'sarah@example.com', password: 'password' }
+          ]).select();
+          
+          if (createError) {
+            console.error("Error creating users table:", createError);
+          } else {
+            console.log("Successfully created users table and default users");
           }
-        } catch (error) {
-          console.error("Error creating users:", error);
+        } catch (err) {
+          console.error("Exception creating users table:", err);
         }
       }
       
-      // Check if categories table exists
-      const { error: categoriesTableError } = await supabase.from('categories').select().limit(1);
-      
-      if (categoriesTableError && categoriesTableError.code === '42P01') {
+      // Create categories table if it doesn't exist
+      try {
+        // First check if categories table exists
+        await supabase.from('categories').select('id').limit(1);
+        console.log("Categories table exists");
+      } catch (error) {
         console.log("Creating categories table...");
-        
         try {
-          // Add default categories
-          const { error: insertError } = await supabase.from('categories').insert([
-            { name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
-            { name: 'Rent', color: '#2196F3', icon: 'Home' },
-            { name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
-            { name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
-            { name: 'Transportation', color: '#F44336', icon: 'Car' },
-            { name: 'Dining', color: '#FF5722', icon: 'Utensils' },
-            { name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
-            { name: 'Other', color: '#607D8B', icon: 'Package' }
-          ]);
+          // Create categories table with default data
+          const { error: createError } = await supabase.from('categories').insert([
+            { id: 1, name: 'Groceries', color: '#4CAF50', icon: 'ShoppingCart' },
+            { id: 2, name: 'Rent', color: '#2196F3', icon: 'Home' },
+            { id: 3, name: 'Utilities', color: '#FFC107', icon: 'Lightbulb' },
+            { id: 4, name: 'Entertainment', color: '#9C27B0', icon: 'Film' },
+            { id: 5, name: 'Transportation', color: '#F44336', icon: 'Car' },
+            { id: 6, name: 'Dining', color: '#FF5722', icon: 'Utensils' },
+            { id: 7, name: 'Healthcare', color: '#00BCD4', icon: 'Stethoscope' },
+            { id: 8, name: 'Other', color: '#607D8B', icon: 'Package' }
+          ]).select();
           
-          if (insertError && insertError.code !== '23505') { // Ignore duplicate errors
-            console.error("Error creating default categories:", insertError);
+          if (createError) {
+            console.error("Error creating categories table:", createError);
+          } else {
+            console.log("Successfully created categories table and default categories");
           }
-        } catch (error) {
-          console.error("Error creating categories:", error);
+        } catch (err) {
+          console.error("Exception creating categories table:", err);
         }
       }
       
-      // Check if locations table exists
-      const { error: locationsTableError } = await supabase.from('locations').select().limit(1);
-      
-      if (locationsTableError && locationsTableError.code === '42P01') {
+      // Create locations table if it doesn't exist
+      try {
+        // First check if locations table exists
+        await supabase.from('locations').select('id').limit(1);
+        console.log("Locations table exists");
+      } catch (error) {
         console.log("Creating locations table...");
-        
         try {
-          // Add default locations
-          const { error: insertError } = await supabase.from('locations').insert([
-            { name: 'Supermarket' },
-            { name: 'Restaurant' },
-            { name: 'Online' },
-            { name: 'Cinema' },
-            { name: 'Pharmacy' },
-            { name: 'Gas Station' },
-            { name: 'Home' },
-            { name: 'Other' }
-          ]);
+          // Create locations table with default data
+          const { error: createError } = await supabase.from('locations').insert([
+            { id: 1, name: 'Supermarket' },
+            { id: 2, name: 'Restaurant' },
+            { id: 3, name: 'Online' },
+            { id: 4, name: 'Cinema' },
+            { id: 5, name: 'Pharmacy' },
+            { id: 6, name: 'Gas Station' },
+            { id: 7, name: 'Home' },
+            { id: 8, name: 'Other' }
+          ]).select();
           
-          if (insertError && insertError.code !== '23505') { // Ignore duplicate errors
-            console.error("Error creating default locations:", insertError);
+          if (createError) {
+            console.error("Error creating locations table:", createError);
+          } else {
+            console.log("Successfully created locations table and default locations");
           }
-        } catch (error) {
-          console.error("Error creating locations:", error);
+        } catch (err) {
+          console.error("Exception creating locations table:", err);
         }
       }
       

@@ -3,7 +3,8 @@
 -- Users table
 CREATE TABLE IF NOT EXISTS users (
   id SERIAL PRIMARY KEY,
-  username TEXT NOT NULL,
+  username TEXT NOT NULL UNIQUE,
+  email TEXT NOT NULL UNIQUE,
   password TEXT NOT NULL
 );
 
@@ -63,10 +64,10 @@ CREATE TABLE IF NOT EXISTS settlements (
 );
 
 -- Default data
-INSERT INTO users (username, password) 
+INSERT INTO users (username, email, password) 
 VALUES 
-  ('John', 'password'),
-  ('Sarah', 'password')
+  ('John', 'john@example.com', 'password'),
+  ('Sarah', 'sarah@example.com', 'password')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO categories (name, color, icon) 
