@@ -78,7 +78,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-white border-r border-gray-200">
         <div className="flex flex-col flex-1 overflow-y-auto">
           <div className="flex items-center justify-center h-16 border-b border-gray-200 px-4">
-            <h1 className="text-xl font-bold text-gray-800">ExpenseTogether</h1>
+            <h1 className="text-xl font-bold text-gray-800">AAFairShare</h1>
           </div>
           <nav className="flex-1 px-4 py-4 space-y-1">
             {navigation.map((item) => (
@@ -124,7 +124,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
       {/* Mobile Header */}
       <div className="md:hidden bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="flex items-center justify-between h-16 px-4">
-          <h1 className="text-xl font-bold text-gray-800">ExpenseTogether</h1>
+          <h1 className="text-xl font-bold text-gray-800">AAFairShare</h1>
           <Button 
             variant="ghost" 
             size="icon" 
