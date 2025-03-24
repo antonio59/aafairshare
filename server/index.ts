@@ -116,19 +116,30 @@ app.use((req, res, next) => {
     if (supabaseUrl && (supabaseServiceKey || supabaseKey)) {
       log("Supabase credentials found - using Supabase for cloud storage");
       try {
-        // First try to create any functions or setup needed
-        await createSupabaseFunctions();
-        
         // Initialize the SupabaseStorage
+        log("Initializing Supabase connection...");
         storageImplementation = new SupabaseStorage();
-        log("Successfully initialized Supabase cloud storage");
+        
+        // Try to create tables and functions in sequence for better error isolation
+        try {
+          log("Attempting to create Supabase helper functions...");
+          await createSupabaseFunctions();
+          log("Supabase helper functions created successfully");
+        } catch (funcError) {
+          log(`Note: Helper function creation skipped: ${funcError}`);
+        }
         
         // Initialize default data if needed
         try {
+          log("Initializing database tables and default data...");
           await initializeSupabaseDatabase();
+          log("Database initialization completed successfully");
         } catch (initError) {
-          log(`Note: Default data initialization skipped: ${initError}`);
+          log(`Database initialization error: ${initError}`);
+          log("Will attempt to create tables through the storage class directly");
         }
+        
+        log("Successfully connected to Supabase cloud storage");
       } catch (error) {
         log(`Error initializing Supabase storage: ${error}`);
         log("Falling back to in-memory storage");

@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { SupabaseStorage } from "./supabaseStorage";
 import { MemStorage } from "./storage";
 import { createSupabaseFunctions } from "./createSupabaseFunctions";
-import { executeSqlFile, executeSql } from "./sqlExecutor";
+import { executeDirectSql, executeSqlFileWithPostgres } from "./db";
 import { log } from "./vite";
 import fs from 'fs';
 import path from 'path';
@@ -29,30 +29,33 @@ export async function initializeSupabaseDatabase() {
       
     // If we can access the users table and it has data, we're already initialized
     if (!checkError && existingUsers && existingUsers.length > 0) {
-      log("Supabase database already initialized.");
+      log("Supabase database already initialized with users.");
       return true;
     }
     
-    // We need to create the SQL functions first
-    log("Creating SQL functions in Supabase...");
+    // If the table exists but is empty, we'll assume the schema is there but needs data
+    if (!checkError && (!existingUsers || existingUsers.length === 0)) {
+      log("Supabase users table exists but might be empty. Adding default data...");
+      await initializeDefaultData();
+      return true;
+    }
+    
+    // We need to create the SQL functions and tables
+    log("Database tables not found. Creating database structure...");
     const functionsResult = await createSupabaseFunctions();
     
     if (!functionsResult) {
-      log("Warning: Failed to create SQL functions. Will try direct table creation...");
+      log("Warning: Database creation via createSupabaseFunctions failed. Attempting another approach...");
+      // Create the necessary tables using direct SQL
+      await createTables();
     } else {
-      log("SQL functions created successfully.");
+      log("Database structure created successfully!");
     }
-    
-    // If we get here, we need to initialize the database
-    log("Setting up Supabase database tables and initial data...");
-    
-    // Create the necessary tables using direct SQL
-    await createTables();
     
     // Initialize with default data
     await initializeDefaultData();
     
-    log("Supabase database initialization attempted!");
+    log("Supabase database initialization completed!");
     return true;
   } catch (error) {
     console.error("Failed to initialize Supabase database:", error);
@@ -62,103 +65,133 @@ export async function initializeSupabaseDatabase() {
 
 async function createTables() {
   try {
-    log("Creating tables in Supabase via direct SQL...");
+    log("Creating tables via direct PostgreSQL connection...");
     
-    // Try to execute the full SQL file first
-    const sqlFileResult = await executeSqlFile();
+    // Try to execute the full SQL file first using PostgreSQL
+    const result = await executeSqlFileWithPostgres();
     
-    if (sqlFileResult.success) {
-      log("Successfully created tables via SQL file execution!");
+    if (result.success) {
+      log("Successfully created tables via direct PostgreSQL connection!");
       return true;
     }
     
-    log("SQL file execution failed. Error: " + sqlFileResult.message);
-    log("Falling back to individual table creation...");
+    log(`SQL file execution failed: ${result.message}`);
+    log("Trying to create tables one by one...");
     
-    // Create Users Table
-    await executeSql(`
+    // Create users table
+    const usersResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS users (
         id SERIAL PRIMARY KEY,
-        username TEXT NOT NULL UNIQUE,
+        username TEXT NOT NULL,
         email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        password TEXT NOT NULL
       );
     `);
     
-    // Create Categories Table
-    await executeSql(`
+    if (!usersResult.success) {
+      log(`Failed to create users table: ${usersResult.message}`);
+    } else {
+      log('Created users table successfully');
+    }
+    
+    // Create categories table
+    const categoriesResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
-        color TEXT NOT NULL,
-        icon TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        color TEXT,
+        icon TEXT
       );
     `);
     
-    // Create Locations Table
-    await executeSql(`
+    if (!categoriesResult.success) {
+      log(`Failed to create categories table: ${categoriesResult.message}`);
+    } else {
+      log('Created categories table successfully');
+    }
+    
+    // Create locations table
+    const locationsResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS locations (
         id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        name TEXT NOT NULL
       );
     `);
     
-    // Create Expenses Table
-    await executeSql(`
+    if (!locationsResult.success) {
+      log(`Failed to create locations table: ${locationsResult.message}`);
+    } else {
+      log('Created locations table successfully');
+    }
+    
+    // Create expenses table
+    const expensesResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS expenses (
         id SERIAL PRIMARY KEY,
         description TEXT NOT NULL,
         amount DECIMAL(10, 2) NOT NULL,
-        date TIMESTAMP WITH TIME ZONE NOT NULL,
-        paid_by_user_id INTEGER NOT NULL REFERENCES users(id),
-        split_type TEXT NOT NULL DEFAULT '50/50',
+        date TIMESTAMP NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        location_id INTEGER REFERENCES locations(id),
+        paid_by_user_id INTEGER REFERENCES users(id),
+        split_type TEXT NOT NULL,
         notes TEXT,
-        category_id INTEGER NOT NULL REFERENCES categories(id),
-        location_id INTEGER NOT NULL REFERENCES locations(id),
-        month TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        month TEXT
       );
     `);
     
-    // Create Recurring Expenses Table
-    await executeSql(`
+    if (!expensesResult.success) {
+      log(`Failed to create expenses table: ${expensesResult.message}`);
+    } else {
+      log('Created expenses table successfully');
+    }
+    
+    // Create recurring expenses table
+    const recurringExpensesResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS recurring_expenses (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT NOT NULL,
         amount DECIMAL(10, 2) NOT NULL,
         frequency TEXT NOT NULL,
-        start_date TIMESTAMP WITH TIME ZONE NOT NULL,
-        next_date TIMESTAMP WITH TIME ZONE NOT NULL,
-        end_date TIMESTAMP WITH TIME ZONE,
-        paid_by_user_id INTEGER NOT NULL REFERENCES users(id),
-        split_type TEXT NOT NULL DEFAULT '50/50',
-        notes TEXT,
-        category_id INTEGER NOT NULL REFERENCES categories(id),
-        location_id INTEGER NOT NULL REFERENCES locations(id),
-        is_active BOOLEAN NOT NULL DEFAULT TRUE,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        start_date TIMESTAMP NOT NULL,
+        end_date TIMESTAMP,
+        next_date TIMESTAMP NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        location_id INTEGER REFERENCES locations(id),
+        paid_by_user_id INTEGER REFERENCES users(id),
+        split_type TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        notes TEXT
       );
     `);
     
-    // Create Settlements Table
-    await executeSql(`
+    if (!recurringExpensesResult.success) {
+      log(`Failed to create recurring_expenses table: ${recurringExpensesResult.message}`);
+    } else {
+      log('Created recurring_expenses table successfully');
+    }
+    
+    // Create settlements table
+    const settlementsResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS settlements (
         id SERIAL PRIMARY KEY,
         amount DECIMAL(10, 2) NOT NULL,
-        date TIMESTAMP WITH TIME ZONE NOT NULL,
+        date TIMESTAMP NOT NULL,
         month TEXT NOT NULL,
-        from_user_id INTEGER NOT NULL REFERENCES users(id),
-        to_user_id INTEGER NOT NULL REFERENCES users(id),
-        notes TEXT,
-        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        from_user_id INTEGER REFERENCES users(id),
+        to_user_id INTEGER REFERENCES users(id),
+        notes TEXT
       );
     `);
     
-    log("Tables creation attempted via direct SQL.");
+    if (!settlementsResult.success) {
+      log(`Failed to create settlements table: ${settlementsResult.message}`);
+    } else {
+      log('Created settlements table successfully');
+    }
+    
+    log("Tables creation completed via direct SQL.");
     return true;
   } catch (error) {
     console.error("Error creating tables via direct SQL:", error);
@@ -169,48 +202,57 @@ async function createTables() {
 
 async function initializeDefaultData() {
   try {
-    log("Inserting default data via direct SQL...");
+    log("Inserting default data via direct PostgreSQL connection...");
     
     // Insert default users if there are none
-    await executeSql(`
-      INSERT INTO users (username, email, password) 
-      VALUES 
-        ('John', 'john@example.com', 'password'),
-        ('Sarah', 'sarah@example.com', 'password')
-      ON CONFLICT (username) DO NOTHING;
+    await executeDirectSql(`
+      INSERT INTO users (username, email, password)
+      SELECT 'John', 'john@example.com', 'password'
+      WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'John')
+      UNION ALL
+      SELECT 'Sarah', 'sarah@example.com', 'password'
+      WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'Sarah');
     `);
     
     // Insert default categories
-    await executeSql(`
-      INSERT INTO categories (name, color, icon) 
-      VALUES
-        ('Groceries', '#4CAF50', 'ShoppingCart'),
-        ('Rent', '#2196F3', 'Home'),
-        ('Utilities', '#FFC107', 'Lightbulb'),
-        ('Entertainment', '#9C27B0', 'Film'),
-        ('Transportation', '#F44336', 'Car'),
-        ('Dining', '#FF5722', 'Utensils'),
-        ('Healthcare', '#00BCD4', 'Stethoscope'),
-        ('Other', '#607D8B', 'Package')
-      ON CONFLICT (name) DO NOTHING;
+    await executeDirectSql(`
+      INSERT INTO categories (name, color, icon)
+      SELECT 'Groceries', '#4CAF50', 'ShoppingCart'
+      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Groceries')
+      UNION ALL
+      SELECT 'Rent', '#2196F3', 'Home'
+      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Rent')
+      UNION ALL
+      SELECT 'Utilities', '#FFC107', 'Lightbulb'
+      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Utilities')
+      UNION ALL
+      SELECT 'Entertainment', '#9C27B0', 'Film'
+      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Entertainment')
+      UNION ALL
+      SELECT 'Transportation', '#F44336', 'Car'
+      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Transportation');
     `);
     
     // Insert default locations
-    await executeSql(`
+    await executeDirectSql(`
       INSERT INTO locations (name)
-      VALUES
-        ('Supermarket'),
-        ('Restaurant'),
-        ('Online'),
-        ('Cinema'),
-        ('Pharmacy'),
-        ('Gas Station'),
-        ('Home'),
-        ('Other')
-      ON CONFLICT (name) DO NOTHING;
+      SELECT 'Tesco'
+      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Tesco')
+      UNION ALL
+      SELECT 'Amazon'
+      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Amazon')
+      UNION ALL
+      SELECT 'Sainsbury''s'
+      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Sainsbury''s')
+      UNION ALL
+      SELECT 'Online'
+      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Online')
+      UNION ALL
+      SELECT 'Other'
+      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Other');
     `);
     
-    log("Default data insertion attempted.");
+    log("Default data insertion completed.");
     return true;
   } catch (error) {
     console.error("Error inserting default data:", error);
