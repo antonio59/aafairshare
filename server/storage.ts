@@ -241,7 +241,7 @@ export class MemStorage implements IStorage {
     
     const category = await this.getCategory(expense.category_id);
     const location = await this.getLocation(expense.location_id);
-    const paidByUser = await this.getUser(expense.paid_by);
+    const paidByUser = await this.getUser(expense.paid_by_user_id);
     
     if (!category || !location || !paidByUser) {
       return undefined;
@@ -262,7 +262,7 @@ export class MemStorage implements IStorage {
     for (const expense of expenses) {
       const category = await this.getCategory(expense.category_id);
       const location = await this.getLocation(expense.location_id);
-      const paidByUser = await this.getUser(expense.paid_by);
+      const paidByUser = await this.getUser(expense.paid_by_user_id);
       
       if (category && location && paidByUser) {
         expensesWithDetails.push({
@@ -332,7 +332,7 @@ export class MemStorage implements IStorage {
     
     const category = await this.getCategory(recurringExpense.category_id);
     const location = await this.getLocation(recurringExpense.location_id);
-    const paidByUser = await this.getUser(recurringExpense.paid_by);
+    const paidByUser = await this.getUser(recurringExpense.paid_by_user_id);
     
     if (!category || !location || !paidByUser) {
       return undefined;
@@ -353,7 +353,7 @@ export class MemStorage implements IStorage {
     for (const recurringExpense of recurringExpenses) {
       const category = await this.getCategory(recurringExpense.category_id);
       const location = await this.getLocation(recurringExpense.location_id);
-      const paidByUser = await this.getUser(recurringExpense.paid_by);
+      const paidByUser = await this.getUser(recurringExpense.paid_by_user_id);
       
       if (category && location && paidByUser) {
         recurringExpensesWithDetails.push({
@@ -436,11 +436,12 @@ export class MemStorage implements IStorage {
         const newExpense: InsertExpense = {
           amount: recurringExpense.amount,
           date: nextDate,
-          paid_by: recurringExpense.paid_by,
+          paid_by_user_id: recurringExpense.paid_by_user_id,
           split_type: recurringExpense.split_type,
           notes: recurringExpense.notes ? `${recurringExpense.notes} (Recurring: ${recurringExpense.name})` : `Recurring: ${recurringExpense.name}`,
           category_id: recurringExpense.category_id,
-          location_id: recurringExpense.location_id
+          location_id: recurringExpense.location_id,
+          description: recurringExpense.description
         };
         
         const createdExpense = await this.createExpense(newExpense);
@@ -535,7 +536,7 @@ export class MemStorage implements IStorage {
     }
     
     return settlementsWithUsers.sort((a, b) => {
-      return new Date(b.settled_at).getTime() - new Date(a.settled_at).getTime();
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
     });
   }
 
@@ -571,7 +572,7 @@ export class MemStorage implements IStorage {
     const userExpenses: Record<number, number> = {};
     users.forEach(user => {
       userExpenses[user.id] = expenses
-        .filter(expense => expense.paid_by === user.id)
+        .filter(expense => expense.paid_by_user_id === user.id)
         .reduce((total, expense) => total + Number(expense.amount), 0);
     });
     
