@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 import { log } from './vite';
 
 // Get Supabase credentials from environment
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY || import.meta.env.SUPABASE_KEY;
 
 // Initialize Supabase client
 let supabase: ReturnType<typeof createClient>;

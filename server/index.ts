@@ -96,7 +96,10 @@ app.use((req, res, next) => {
   // Initialize appropriate storage based on available credentials
   let storageImplementation: IStorage;
   
-  if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+  const supabaseUrl = process.env.SUPABASE_URL || import.meta.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_KEY || import.meta.env.SUPABASE_KEY;
+  
+  if (supabaseUrl && supabaseKey) {
     log("Initializing Supabase storage...");
     
     try {
@@ -166,7 +169,7 @@ app.use((req, res, next) => {
       log(`The app is now running and should be accessible via Replit`);
       log(`If you're accessing from outside Replit, use http://0.0.0.0:${port}`);
       
-      if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+      if (supabaseUrl && supabaseKey) {
         log("Data will be stored persistently in Supabase database.");
       } else {
         log("Data will be stored in-memory only (will be lost on restart).");

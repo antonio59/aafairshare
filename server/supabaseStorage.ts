@@ -46,8 +46,8 @@ export class SupabaseStorage implements IStorage {
         try {
           // Add default users
           const { error: insertError } = await supabase.from('users').insert([
-            { username: 'John', password: 'password' },
-            { username: 'Sarah', password: 'password' }
+            { username: 'John', email: 'john@example.com', password: 'password' },
+            { username: 'Sarah', email: 'sarah@example.com', password: 'password' }
           ]);
           
           if (insertError && insertError.code !== '23505') { // Ignore duplicate errors
