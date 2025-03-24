@@ -1,0 +1,167 @@
+import { useState, useRef } from "react";
+import MonthSelector from "@/components/MonthSelector";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useQuery } from "@tanstack/react-query";
+import { MonthSummary } from "@shared/schema";
+import { getCurrentMonth, formatCurrency } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
+import CategoryChart from "@/components/CategoryChart";
+import { useReactToPrint } from "react-to-print";
+import { Bar, Doughnut } from "react-chartjs-2";
+import { Chart, registerables } from "chart.js";
+
+Chart.register(...registerables);
+
+export default function Analytics() {
+  const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
+  const { toast } = useToast();
+  const printRef = useRef(null);
+
+  // Fetch summary data for the month
+  const { 
+    data: summary, 
+    isLoading: summaryLoading,
+    isError: summaryError
+  } = useQuery<MonthSummary>({
+    queryKey: [`/api/summary/${currentMonth}`],
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to load summary data. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const handleMonthChange = (month: string) => {
+    setCurrentMonth(month);
+  };
+
+  const handlePrint = useReactToPrint({
+    content: () => printRef.current,
+    documentTitle: `Expenses Analytics - ${currentMonth}`,
+    onAfterPrint: () => {
+      toast({
+        title: "PDF Generated",
+        description: "The analytics report has been exported as PDF."
+      });
+    }
+  });
+
+  const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
+    if (format === 'pdf') {
+      handlePrint();
+    } else {
+      toast({
+        title: "Export not available",
+        description: "Only PDF export is available for analytics.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  // Prepare user expense comparison data
+  const userExpenseData = {
+    labels: summary?.userExpenses ? Object.keys(summary.userExpenses).map(id => {
+      const user = summary.categoryTotals[0]?.category.id === parseInt(id) 
+        ? "User 1" 
+        : "User 2";
+      return user;
+    }) : [],
+    datasets: [
+      {
+        label: "Expenses Paid",
+        data: summary?.userExpenses ? Object.values(summary.userExpenses) : [],
+        backgroundColor: ["#3B82F6", "#8B5CF6"],
+        borderColor: ["#2563EB", "#7C3AED"],
+        borderWidth: 1
+      }
+    ]
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+      </div>
+      
+      <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
+      
+      <div ref={printRef} className="space-y-6">
+        {/* Total expenses card */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Monthly Expenses Summary</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {summaryLoading ? (
+              <Skeleton className="h-24 w-full" />
+            ) : (
+              <div className="text-center">
+                <p className="text-sm text-gray-500">Total Expenses for Month</p>
+                <p className="text-4xl font-bold text-primary mt-2">
+                  {summary ? formatCurrency(summary.totalExpenses) : "£0.00"}
+                </p>
+                <p className="text-sm text-gray-500 mt-4">
+                  Settlement: {summary ? formatCurrency(summary.settlementAmount) : "£0.00"}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* User comparison chart */}
+        <Card>
+          <CardHeader>
+            <CardTitle>User Expense Comparison</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {summaryLoading ? (
+              <Skeleton className="h-64 w-full" />
+            ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
+              <div className="h-64">
+                <Bar 
+                  data={userExpenseData} 
+                  options={{
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                      legend: {
+                        display: false
+                      },
+                      tooltip: {
+                        callbacks: {
+                          label: function(context) {
+                            return formatCurrency(context.raw as number);
+                          }
+                        }
+                      }
+                    },
+                    scales: {
+                      y: {
+                        beginAtZero: true,
+                        ticks: {
+                          callback: function(value) {
+                            return '£' + value;
+                          }
+                        }
+                      }
+                    }
+                  }} 
+                />
+              </div>
+            ) : (
+              <div className="p-8 text-center">
+                <p className="text-gray-600">No expense data available for this month.</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Category distribution chart */}
+        <CategoryChart summary={summary} isLoading={summaryLoading} />
+      </div>
+    </div>
+  );
+}
