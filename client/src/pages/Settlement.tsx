@@ -57,7 +57,7 @@ export default function Settlement() {
   });
   
   // Show error toast if settlements query fails
-  React.useEffect(() => {
+  useEffect(() => {
     if (settlementsError) {
       toast({
         title: "Error",
