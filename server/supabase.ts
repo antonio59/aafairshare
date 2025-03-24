@@ -35,11 +35,42 @@ if (!supabaseUrl || (!supabaseKey && !supabaseServiceKey)) {
     log('Using regular API key for database operations (limited privileges)');
   }
   
-  // Create the Supabase client with proper options
+  // Create the Supabase client with proper options and request debugging
   supabase = createClient(supabaseUrl, apiKey as string, {
     auth: {
       autoRefreshToken: true,
       persistSession: true
+    },
+    // Log responses for debugging
+    global: { 
+      fetch: (...args) => {
+        // Log the request
+        const url = args[0] as string;
+        console.log(`Supabase API request to: ${url}`);
+        
+        // Make the fetch request
+        return fetch(...args).then((response) => {
+          // Create a clone of the response to read the body
+          const clone = response.clone();
+          
+          // Only log full response for non-OK responses to avoid clutter
+          if (!response.ok) {
+            clone.text().then(body => {
+              try {
+                console.log(`Supabase API error response: ${response.status}`, JSON.parse(body));
+              } catch (e) {
+                console.log(`Supabase API error response: ${response.status}`, body);
+              }
+            }).catch(err => {
+              console.log(`Error reading response body: ${err}`);
+            });
+          } else {
+            console.log(`Supabase API success: ${response.status} ${response.statusText}`);
+          }
+          
+          return response;
+        });
+      }
     }
   });
   

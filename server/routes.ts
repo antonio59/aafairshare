@@ -76,33 +76,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Registration route
   app.post(`${API_PREFIX}/auth/register`, async (req, res) => {
     try {
+      console.log("Registration attempt with data:", JSON.stringify({
+        username: req.body.username,
+        email: req.body.email,
+        password: '******' // Masking password for security
+      }));
+      
       // Validate the user data
       const validatedData = insertUserSchema.parse(req.body);
+      console.log("Data validation passed");
       
       // Check if username already exists
       const existingUsername = await storage.getUserByUsername(validatedData.username);
       if (existingUsername) {
+        console.log("Registration failed: Username already exists");
         return res.status(400).json({ message: "Username already exists" });
       }
+      console.log("Username check passed");
       
       // Check if email already exists
       const existingEmail = await storage.getUserByEmail(validatedData.email);
       if (existingEmail) {
+        console.log("Registration failed: Email already exists");
         return res.status(400).json({ message: "Email already exists" });
       }
+      console.log("Email check passed");
       
       // Create the new user
-      const newUser = await storage.createUser(validatedData);
-      
-      res.status(201).json({
-        message: "User registered successfully",
-        user: {
-          id: newUser.id,
-          username: newUser.username,
-          email: newUser.email
-        }
-      });
+      console.log("Attempting to create user in database...");
+      try {
+        const newUser = await storage.createUser(validatedData);
+        console.log("User created successfully with ID:", newUser.id);
+        
+        res.status(201).json({
+          message: "User registered successfully",
+          user: {
+            id: newUser.id,
+            username: newUser.username,
+            email: newUser.email
+          }
+        });
+      } catch (createError) {
+        console.error("Failed to create user:", createError);
+        throw createError; // Re-throw to be caught by outer catch
+      }
     } catch (error) {
+      console.error("Registration error:", error instanceof Error ? error.message : String(error));
+      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
       handleError(res, error);
     }
   });
