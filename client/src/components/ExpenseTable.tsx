@@ -87,7 +87,52 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
 
   return (
     <>
-      <div className="bg-white rounded-lg shadow-sm border-gray-200 w-full">
+      {/* Mobile Card View */}
+      <div className="sm:hidden">
+        {expenses.map(expense => (
+          <div key={expense.id} className="mb-3 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-3">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-sm font-medium" style={{ color: expense.category.color }}>
+                    {expense.category?.name || 'Uncategorized'}
+                  </p>
+                  <p className="text-xs text-gray-500">{expense.location?.name || 'No location'}</p>
+                </div>
+                <p className="text-sm font-medium">{formatCurrency(Number(expense.amount))}</p>
+              </div>
+              
+              <div className="flex justify-between items-center mt-2">
+                <div className="flex flex-col">
+                  <span className="text-xs text-gray-500">{formatDate(expense.date)}</span>
+                  <span className="text-xs text-gray-500">{expense.paidByUser.username} • {expense.split_type}</span>
+                </div>
+                <div className="flex space-x-2">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => onEdit(expense)}
+                    className="text-gray-500 hover:text-primary h-7 w-7 p-0"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => openDeleteDialog(expense)}
+                    className="text-gray-500 hover:text-red-500 h-7 w-7 p-0"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      
+      {/* Desktop Table View */}
+      <div className="hidden sm:block bg-white rounded-lg shadow-sm border-gray-200 w-full">
         <div className="overflow-x-auto">
           <Table>
             <TableHeader className="bg-gray-50">
@@ -95,47 +140,43 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                 <TableHead className="w-[100px] lg:w-[120px] whitespace-nowrap">Date</TableHead>
                 <TableHead>Category</TableHead>
                 <TableHead className="w-[100px] lg:w-[120px] whitespace-nowrap">Amount</TableHead>
-                <TableHead className="hidden sm:table-cell w-[100px] whitespace-nowrap">Paid By</TableHead>
-                <TableHead className="hidden sm:table-cell w-[80px] whitespace-nowrap">Split</TableHead>
+                <TableHead className="w-[100px] whitespace-nowrap">Paid By</TableHead>
+                <TableHead className="w-[80px] whitespace-nowrap">Split</TableHead>
                 <TableHead className="w-[80px] lg:w-[100px] whitespace-nowrap">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {expenses.map(expense => (
                 <TableRow key={expense.id}>
-                  <TableCell className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">{formatDate(expense.date)}</TableCell>
+                  <TableCell className="text-sm text-gray-600 whitespace-nowrap">{formatDate(expense.date)}</TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      <div className="ml-2 sm:ml-3">
-                        <p className="text-xs sm:text-sm font-medium text-gray-800" style={{ color: expense.category.color }}>{expense.category?.name || 'Uncategorized'}</p>
+                      <div className="ml-3">
+                        <p className="text-sm font-medium text-gray-800" style={{ color: expense.category.color }}>{expense.category?.name || 'Uncategorized'}</p>
                         <p className="text-xs text-gray-500">{expense.location?.name || 'No location'}</p>
-                        <div className="sm:hidden text-xs text-gray-500 flex flex-col">
-                          <span>{expense.paidByUser.username}</span>
-                          <span>{expense.split_type}</span>
-                        </div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-xs sm:text-sm font-medium text-gray-800 whitespace-nowrap">{formatCurrency(Number(expense.amount))}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm text-gray-600">{expense.paidByUser.username}</TableCell>
-                  <TableCell className="hidden sm:table-cell text-sm text-gray-600">{expense.split_type}</TableCell>
+                  <TableCell className="text-sm font-medium text-gray-800 whitespace-nowrap">{formatCurrency(Number(expense.amount))}</TableCell>
+                  <TableCell className="text-sm text-gray-600">{expense.paidByUser.username}</TableCell>
+                  <TableCell className="text-sm text-gray-600">{expense.split_type}</TableCell>
                   <TableCell>
-                    <div className="flex space-x-1 sm:space-x-2">
+                    <div className="flex space-x-2">
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => onEdit(expense)}
-                        className="text-gray-500 hover:text-primary h-7 w-7 sm:h-8 sm:w-8 p-0"
+                        className="text-gray-500 hover:text-primary h-8 w-8 p-0"
                       >
-                        <Pencil className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => openDeleteDialog(expense)}
-                        className="text-gray-500 hover:text-red-500 h-7 w-7 sm:h-8 sm:w-8 p-0"
+                        className="text-gray-500 hover:text-red-500 h-8 w-8 p-0"
                       >
-                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </TableCell>
