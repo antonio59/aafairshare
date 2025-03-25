@@ -31,13 +31,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return next(err);
       }
 
-      if (!user) {
-        return res.status(401).json({ message: info.message || "Invalid credentials" });
+      if (!user || !user.password) {
+        return res.status(401).json({ message: "Invalid credentials" });
       }
 
-      const passwordMatch = await bcrypt.compare(req.body.password, user.password); // Added bcrypt compare
-      if (!passwordMatch) {
-        return res.status(401).json({ message: "Incorrect password" });
+      try {
+        const passwordMatch = await bcrypt.compare(req.body.password, user.password);
+        if (!passwordMatch) {
+          return res.status(401).json({ message: "Incorrect password" });
+        }
+      } catch (error) {
+        console.error('Password comparison error:', error);
+        return res.status(401).json({ message: "Authentication failed" });
       }
 
       req.logIn(user, (loginErr) => {
