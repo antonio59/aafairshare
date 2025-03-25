@@ -38,9 +38,14 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
         description: "The expense has been deleted successfully.",
       });
 
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/summary'] });
+      // Get the month of the deleted expense to invalidate the correct queries
+      const month = expenseToDelete.date 
+        ? new Date(expenseToDelete.date).toISOString().substring(0, 7) 
+        : new Date().toISOString().substring(0, 7);
+      
+      // Invalidate queries with the proper query key patterns
+      queryClient.invalidateQueries({ queryKey: [`/api/expenses?month=${month}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/summary/${month}`] });
     } catch (error) {
       toast({
         title: "Error",

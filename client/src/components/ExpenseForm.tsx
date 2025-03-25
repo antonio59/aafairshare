@@ -166,8 +166,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       }
 
       // Invalidate queries to refresh data
-      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/summary'] });
+      // Use proper query key patterns matching the ones in Dashboard/Expenses component
+      queryClient.invalidateQueries({ queryKey: [`/api/expenses?month=${format(data.date, 'yyyy-MM')}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/summary/${format(data.date, 'yyyy-MM')}`] });
 
       // Close the form
       onOpenChange(false);
