@@ -82,15 +82,22 @@ export function Combobox({
     )
   }, [items, searchQuery])
 
+  // Check if we have an exact match
+  const exactMatch = React.useMemo(() => {
+    if (!searchQuery) return null;
+    return items.find(
+      (item) => item.label.toLowerCase() === searchQuery.toLowerCase()
+    );
+  }, [items, searchQuery]);
+  
+  // Only show create new when there's no exact match
   const showCreateNew = React.useMemo(() => {
     return (
       onCreateNew && 
       searchQuery && 
-      !items.some(
-        (item) => item.label.toLowerCase() === searchQuery.toLowerCase()
-      )
+      !exactMatch
     )
-  }, [items, onCreateNew, searchQuery])
+  }, [exactMatch, onCreateNew, searchQuery])
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

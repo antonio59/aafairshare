@@ -141,7 +141,7 @@ export default function RecurringExpenseForm({
       amount: recurringExpense.amount.toString(),
       frequency: recurringExpense.frequency,
       start_date: new Date(recurringExpense.start_date),
-      end_date: null, // end_date doesn't exist in the database schema
+      end_date: recurringExpense.end_date ? new Date(recurringExpense.end_date) : null,
       next_date: new Date(recurringExpense.next_date),
       paid_by_user_id: recurringExpense.paid_by_user_id,
       split_type: recurringExpense.split_type,
@@ -152,12 +152,12 @@ export default function RecurringExpenseForm({
       description: "",
       amount: "",
       frequency: "monthly",
-      start_date: new Date(),
+      start_date: new Date(), // Make sure we always have a start_date by default
       end_date: null,
-      next_date: new Date(),
+      next_date: new Date(new Date().setMonth(new Date().getMonth() + 1)), // Default to next month
       paid_by_user_id: authData?.user?.id || 1,
       split_type: "50/50",
-      category_id: categories?.[0]?.id || 0,
+      category_id: categories?.[0]?.id || 0, 
       location_id: locations?.[0]?.id || 0,
       is_active: true,
     }
