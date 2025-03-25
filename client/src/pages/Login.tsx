@@ -34,7 +34,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -101,12 +101,19 @@ export default function Login() {
     try {
       const result = await apiRequest('/api/auth/login', 'POST', data);
       
+      // Invalidate the auth status query to force a refresh of authentication state
+      // This is critical to ensure the protected routes recognize the new session
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
+      
       toast({
         title: "Success",
         description: "Login successful",
       });
 
-      setLocation('/');
+      // Wait a brief moment for the session to be fully established
+      setTimeout(() => {
+        setLocation('/');
+      }, 100);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -125,6 +132,9 @@ export default function Login() {
         email: data.email,
         newPassword: data.newPassword
       });
+
+      // Also invalidate auth status after password reset
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
 
       toast({
         title: "Success",

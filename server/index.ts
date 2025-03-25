@@ -9,19 +9,30 @@ import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { storage, IStorage } from "./storage"; 
 import { db, initializeDatabase } from "./db";
+import MemoryStore from 'memorystore';
 
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Session setup
+// Create memory store for sessions
+const MemoryStoreSession = MemoryStore(session);
+const store = new MemoryStoreSession({
+  checkPeriod: 86400000 // prune expired entries every 24h
+});
+
+// Enhanced session setup
 app.use(session({
   secret: 'expense-app-secret',
   resave: false,
   saveUninitialized: false,
+  store: store,
   cookie: { 
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 1000 * 60 * 60 * 24 // 1 day
+    maxAge: 1000 * 60 * 60 * 24, // 1 day
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax' // Allow cookies to be sent with cross-site requests (but only for navigation)
   }
 }));
 

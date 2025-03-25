@@ -8,7 +8,6 @@ import Dashboard from "@/pages/Dashboard";
 import Analytics from "@/pages/Analytics";
 import Settlement from "@/pages/Settlement";
 import Settings from "@/pages/Settings";
-import RecurringExpenses from "@/pages/RecurringExpenses";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import MainLayout from "@/components/layouts/MainLayout";
@@ -26,14 +25,25 @@ interface AuthStatusResponse {
 // Protected route component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
-  const { data: authData, isLoading, isError } = useQuery<AuthStatusResponse>({
+  
+  // Enhanced authentication check with staleTime: 0 to always refetch
+  // This ensures we're always getting fresh auth data
+  const { data: authData, isLoading, isError, refetch } = useQuery<AuthStatusResponse>({
     queryKey: ['/api/auth/status'],
-    retry: 1, // Retry once in case of network issues
+    retry: 2, // Retry twice in case of network issues
     retryDelay: 1000, // Wait 1 second before retrying
+    staleTime: 0, // Always consider data stale to force refetch
+    refetchOnWindowFocus: true, // Refetch when window regains focus
   });
+
+  // Refetch auth status on component mount
+  useEffect(() => {
+    refetch();
+  }, [refetch]);
 
   useEffect(() => {
     if (!isLoading && (!authData || !authData.isAuthenticated)) {
+      console.log('ProtectedRoute: Not authenticated, redirecting to login');
       setLocation('/login');
     }
   }, [authData, isLoading, setLocation]);
@@ -52,6 +62,7 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   // Handle authentication errors
   if (isError || !authData || !authData.isAuthenticated) {
+    console.log('ProtectedRoute: Authentication check failed:', { isError, authData });
     return null; // The useEffect will redirect to login
   }
 
