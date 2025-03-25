@@ -15,7 +15,7 @@ export class Storage {
   // User operations
   async getUser(id: number): Promise<User | undefined> {
     const result = await pool.query(
-      'SELECT id, username, email, password FROM users WHERE id = $1',
+      'SELECT id, username, email FROM users WHERE id = $1',
       [id]
     );
     return result.rows[0];
