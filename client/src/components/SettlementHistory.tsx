@@ -79,7 +79,7 @@ export default function SettlementHistory({ settlements, isLoading = false }: Se
               {settlements.map((settlement) => (
                 <TableRow key={settlement.id}>
                   <TableCell className="text-sm text-gray-600">
-                    {format(new Date(settlement.settled_at), "MMM d, yyyy")}
+                    {format(new Date(settlement.date), "MMM d, yyyy")}
                   </TableCell>
                   <TableCell className="text-sm text-gray-600">
                     {format(new Date(settlement.month + "-01"), "MMMM yyyy")}
