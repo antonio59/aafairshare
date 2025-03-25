@@ -24,41 +24,41 @@ async function setupDatabase() {
   try {
     // Dynamically import the necessary modules
     try {
-      const dbModule = await import('./server/db.js');
+      const dbModule = await import('./server/db.ts');
       executeSqlFileWithPostgres = dbModule.executeSqlFileWithPostgres;
-      
+
       const initSupabaseModule = await import('./server/initSupabase.js');
       initializeSupabaseDatabase = initSupabaseModule.initializeSupabaseDatabase;
-      
+
       const viteModule = await import('./server/vite.js');
       log = viteModule.log;
     } catch (importError) {
       console.error('Error importing modules:', importError);
       log = tempLog; // Fall back to our temporary log function
     }
-    
+
     log('Starting database setup...');
-    
+
     // First try the direct PostgreSQL approach
     log('Attempting to create tables via direct PostgreSQL...');
     const postgresResult = await executeSqlFileWithPostgres();
-    
+
     if (postgresResult.success) {
       log('✅ Successfully created tables via direct PostgreSQL!');
       return;
     }
-    
+
     log(`PostgreSQL direct execution failed: ${postgresResult.message}`);
     log('Trying Supabase initialization...');
-    
+
     // Try Supabase initialization
     const supabaseResult = await initializeSupabaseDatabase();
-    
+
     if (supabaseResult) {
       log('✅ Successfully initialized Supabase database!');
       return;
     }
-    
+
     log('Failed to initialize database. Check credentials and permissions.');
   } catch (error) {
     console.error('Error setting up database:', error);
