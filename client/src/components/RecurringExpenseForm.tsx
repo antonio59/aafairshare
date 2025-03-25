@@ -255,13 +255,10 @@ export default function RecurringExpenseForm({
       // Build the data object with all required fields
       const recurringExpenseData = {
         ...data,
-        name: recurringExpense?.name || `${data.frequency} - ${FREQUENCY_OPTIONS.find(f => f.value === data.frequency)?.label || 'Recurring'} expense`,
         amount: parseFloat(data.amount),
         start_date: startDate,
         next_date: nextDate,
         end_date: endDate,
-        // Keep notes field since it's in the database but we don't show it in UI
-        notes: recurringExpense?.notes || '',
       };
       
       // Log the final data we're sending to the server
