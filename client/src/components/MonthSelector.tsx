@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Download, FileText } from "lucide-react";
+import { Download, FileText, ChevronLeft, ChevronRight } from "lucide-react";
 import useMonthNavigation from "@/hooks/useMonthNavigation";
 import { useEffect } from "react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
@@ -40,7 +40,8 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
           onClick={previousMonth}
           className="mr-1 sm:mr-2 h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-gray-100"
         >
-          Previous
+          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="sr-only">Previous</span>
         </Button>
         <h2 className="text-base sm:text-xl font-semibold text-gray-800">{formattedMonth}</h2>
         <Button 
@@ -49,7 +50,8 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
           onClick={nextMonth}
           className="ml-1 sm:ml-2 h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-gray-100"
         >
-          Next
+          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+          <span className="sr-only">Next</span>
         </Button>
       </div>
 
@@ -82,7 +84,8 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-gray-100">
-                  {/*Removed Download icon*/}
+                  <Download className="h-4 w-4" />
+                  <span className="sr-only">Export</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

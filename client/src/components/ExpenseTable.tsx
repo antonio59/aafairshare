@@ -7,6 +7,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Pencil, Trash } from "lucide-react";
 import { ExpenseWithDetails } from "@shared/schema";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useState } from "react";
@@ -113,7 +114,8 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                     onClick={() => onEdit(expense)}
                     className="text-gray-500 hover:text-primary h-7 w-7 p-0"
                   >
-                    Edit
+                    <Pencil className="h-4 w-4" />
+                    <span className="sr-only">Edit</span>
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -121,7 +123,8 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                     onClick={() => openDeleteDialog(expense)}
                     className="text-gray-500 hover:text-red-500 h-7 w-7 p-0"
                   >
-                    Delete
+                    <Trash className="h-4 w-4" />
+                    <span className="sr-only">Delete</span>
                   </Button>
                 </div>
               </div>
@@ -167,7 +170,8 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                         onClick={() => onEdit(expense)}
                         className="text-gray-500 hover:text-primary h-8 w-8 p-0"
                       >
-                        Edit
+                        <Pencil className="h-4 w-4" />
+                        <span className="sr-only">Edit</span>
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -175,7 +179,8 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                         onClick={() => openDeleteDialog(expense)}
                         className="text-gray-500 hover:text-red-500 h-8 w-8 p-0"
                       >
-                        Delete
+                        <Trash className="h-4 w-4" />
+                        <span className="sr-only">Delete</span>
                       </Button>
                     </div>
                   </TableCell>
