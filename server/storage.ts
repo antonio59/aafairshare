@@ -247,19 +247,144 @@ export class Storage {
   }
 
   async createRecurringExpense(recurringExpense: InsertRecurringExpense): Promise<RecurringExpenseWithDetails> {
+    // Ensure start_date is present - this is critical for the insertion to work
+    if (!recurringExpense.start_date) {
+      throw new Error("Start date is required for recurring expenses");
+    }
+    
+    console.log("Creating recurring expense with data:", JSON.stringify(recurringExpense, null, 2));
+    
     const result = await pool.query(
-      `INSERT INTO recurring_expenses (name, amount, next_date, paid_by_user_id, split_type, notes, frequency, is_active, category_id, location_id, description, end_date) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-      [recurringExpense.name, recurringExpense.amount, recurringExpense.next_date, recurringExpense.paid_by_user_id, recurringExpense.split_type || "50/50", recurringExpense.notes || null, recurringExpense.frequency, recurringExpense.is_active ?? true, recurringExpense.category_id, recurringExpense.location_id, recurringExpense.description, recurringExpense.end_date || null]
+      `INSERT INTO recurring_expenses (name, amount, next_date, paid_by_user_id, split_type, notes, frequency, is_active, category_id, location_id, description, end_date, start_date) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [
+        recurringExpense.name, 
+        recurringExpense.amount, 
+        recurringExpense.next_date, 
+        recurringExpense.paid_by_user_id, 
+        recurringExpense.split_type || "50/50", 
+        recurringExpense.notes || null, 
+        recurringExpense.frequency, 
+        recurringExpense.is_active ?? true, 
+        recurringExpense.category_id, 
+        recurringExpense.location_id, 
+        recurringExpense.description, 
+        recurringExpense.end_date || null,
+        recurringExpense.start_date // Add the start_date to the query
+      ]
     );
     return this.getRecurringExpense(result.rows[0].id) as RecurringExpenseWithDetails;
   }
 
   async updateRecurringExpense(id: number, updatedRecurringExpense: Partial<InsertRecurringExpense>): Promise<RecurringExpenseWithDetails | undefined> {
-    const result = await pool.query(
-      `UPDATE recurring_expenses SET name = $1, amount = $2, next_date = $3, paid_by_user_id = $4, split_type = $5, notes = $6, frequency = $7, is_active = $8, category_id = $9, location_id = $10, description = $11, end_date = $12 WHERE id = $13 RETURNING *`,
-      [updatedRecurringExpense.name, updatedRecurringExpense.amount, updatedRecurringExpense.next_date, updatedRecurringExpense.paid_by_user_id, updatedRecurringExpense.split_type, updatedRecurringExpense.notes, updatedRecurringExpense.frequency, updatedRecurringExpense.is_active, updatedRecurringExpense.category_id, updatedRecurringExpense.location_id, updatedRecurringExpense.description, updatedRecurringExpense.end_date, id]
-    );
+    console.log("Updating recurring expense with data:", JSON.stringify(updatedRecurringExpense, null, 2));
+    
+    // If we're updating just a few fields, use a different approach to prevent setting other fields to null
+    if (Object.keys(updatedRecurringExpense).length <= 3) {
+      // Build the SET clause dynamically based on the fields that are present
+      const setClauses = [];
+      const values = [];
+      let paramCounter = 1;
+      
+      // Check each possible field and add it to the SET clause if it's defined
+      if (updatedRecurringExpense.name !== undefined) {
+        setClauses.push(`name = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.name);
+      }
+      if (updatedRecurringExpense.amount !== undefined) {
+        setClauses.push(`amount = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.amount);
+      }
+      if (updatedRecurringExpense.next_date !== undefined) {
+        setClauses.push(`next_date = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.next_date);
+      }
+      if (updatedRecurringExpense.paid_by_user_id !== undefined) {
+        setClauses.push(`paid_by_user_id = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.paid_by_user_id);
+      }
+      if (updatedRecurringExpense.split_type !== undefined) {
+        setClauses.push(`split_type = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.split_type);
+      }
+      if (updatedRecurringExpense.notes !== undefined) {
+        setClauses.push(`notes = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.notes);
+      }
+      if (updatedRecurringExpense.frequency !== undefined) {
+        setClauses.push(`frequency = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.frequency);
+      }
+      if (updatedRecurringExpense.is_active !== undefined) {
+        setClauses.push(`is_active = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.is_active);
+      }
+      if (updatedRecurringExpense.category_id !== undefined) {
+        setClauses.push(`category_id = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.category_id);
+      }
+      if (updatedRecurringExpense.location_id !== undefined) {
+        setClauses.push(`location_id = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.location_id);
+      }
+      if (updatedRecurringExpense.description !== undefined) {
+        setClauses.push(`description = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.description);
+      }
+      if (updatedRecurringExpense.end_date !== undefined) {
+        setClauses.push(`end_date = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.end_date);
+      }
+      if (updatedRecurringExpense.start_date !== undefined) {
+        setClauses.push(`start_date = $${paramCounter++}`);
+        values.push(updatedRecurringExpense.start_date);
+      }
+      
+      // Only proceed if we have fields to update
+      if (setClauses.length > 0) {
+        // Add the ID as the last parameter
+        values.push(id);
+        
+        const query = `UPDATE recurring_expenses SET ${setClauses.join(', ')} WHERE id = $${paramCounter} RETURNING *`;
+        const result = await pool.query(query, values);
+      }
+    } else {
+      // Full update approach - be careful as this can set fields to null if they're not provided
+      const result = await pool.query(
+        `UPDATE recurring_expenses SET 
+          name = $1, 
+          amount = $2, 
+          next_date = $3, 
+          paid_by_user_id = $4, 
+          split_type = $5, 
+          notes = $6, 
+          frequency = $7, 
+          is_active = $8, 
+          category_id = $9, 
+          location_id = $10, 
+          description = $11, 
+          end_date = $12,
+          start_date = $13
+         WHERE id = $14 RETURNING *`,
+        [
+          updatedRecurringExpense.name, 
+          updatedRecurringExpense.amount, 
+          updatedRecurringExpense.next_date, 
+          updatedRecurringExpense.paid_by_user_id, 
+          updatedRecurringExpense.split_type, 
+          updatedRecurringExpense.notes, 
+          updatedRecurringExpense.frequency, 
+          updatedRecurringExpense.is_active, 
+          updatedRecurringExpense.category_id, 
+          updatedRecurringExpense.location_id, 
+          updatedRecurringExpense.description, 
+          updatedRecurringExpense.end_date,
+          updatedRecurringExpense.start_date,
+          id
+        ]
+      );
+    }
+    
     return this.getRecurringExpense(id);
   }
 
