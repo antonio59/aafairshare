@@ -136,7 +136,6 @@ export default function RecurringExpenseForm({
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: recurringExpense ? {
-      name: recurringExpense.name,
       description: recurringExpense.description || "",
       amount: recurringExpense.amount.toString(),
       frequency: recurringExpense.frequency,
@@ -145,12 +144,10 @@ export default function RecurringExpenseForm({
       next_date: new Date(recurringExpense.next_date),
       paid_by_user_id: recurringExpense.paid_by_user_id,
       split_type: recurringExpense.split_type,
-      notes: recurringExpense.notes || "",
       category_id: recurringExpense.category_id,
       location_id: recurringExpense.location_id,
       is_active: recurringExpense.is_active,
     } : {
-      name: "",
       description: "",
       amount: "",
       frequency: "monthly",
@@ -159,7 +156,6 @@ export default function RecurringExpenseForm({
       next_date: new Date(),
       paid_by_user_id: authData?.user?.id || 1,
       split_type: "50/50",
-      notes: "",
       category_id: categories?.[0]?.id || 0,
       location_id: locations?.[0]?.id || 0,
       is_active: true,
@@ -194,8 +190,10 @@ export default function RecurringExpenseForm({
       }
 
       // Convert amount to number for the API
+      // We need to add the name field as it's required in the database schema but not in our UI
       const recurringExpenseData = {
         ...data,
+        name: recurringExpense?.name || `${data.frequency} - ${FREQUENCY_OPTIONS.find(f => f.value === data.frequency)?.label || 'Recurring'} expense`,
         amount: parseFloat(data.amount),
         start_date: data.start_date instanceof Date ? data.start_date : new Date(data.start_date),
         next_date: data.next_date instanceof Date ? data.next_date : new Date(data.next_date),
@@ -272,20 +270,6 @@ export default function RecurringExpenseForm({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Rent" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -598,19 +582,7 @@ export default function RecurringExpenseForm({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Any additional notes" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+
 
             <FormField
               control={form.control}

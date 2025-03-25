@@ -57,6 +57,26 @@ export function Combobox({
   const filteredItems = React.useMemo(() => {
     if (!searchQuery) return items
     const lowerSearchQuery = searchQuery.toLowerCase()
+    
+    // First look for an exact match
+    const exactMatches = items.filter((item) => 
+      item.label.toLowerCase() === lowerSearchQuery
+    )
+    
+    if (exactMatches.length > 0) {
+      return exactMatches
+    }
+    
+    // Then look for a starting-with match 
+    const startingMatches = items.filter((item) => 
+      item.label.toLowerCase().startsWith(lowerSearchQuery)
+    )
+    
+    if (startingMatches.length > 0) {
+      return startingMatches
+    }
+    
+    // Finally fall back to includes match
     return items.filter((item) => 
       item.label.toLowerCase().includes(lowerSearchQuery)
     )
