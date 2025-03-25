@@ -4,6 +4,7 @@ import { storage, IStorage } from "./storage";
 import { z } from "zod";
 import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema, insertRecurringExpenseSchema, insertUserSchema } from "@shared/schema";
 import passport from "passport";
+const bcrypt = require('bcrypt'); // Added bcrypt import
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes prefix
@@ -14,7 +15,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     console.error("API Error:", error);
     res.status(500).json({ message: error.message || "An error occurred" });
   };
-  
+
   // Authentication middleware to protect routes
   const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
     if (req.isAuthenticated()) {
@@ -22,23 +23,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     res.status(401).json({ message: "Unauthorized. Please log in." });
   };
-  
+
   // Authentication routes
   app.post(`${API_PREFIX}/auth/login`, (req, res, next) => {
-    passport.authenticate('local', (err: Error, user: any, info: any) => {
+    passport.authenticate('local', async (err: Error, user: any, info: any) => { //async added
       if (err) {
         return next(err);
       }
-      
+
       if (!user) {
         return res.status(401).json({ message: info.message || "Invalid credentials" });
       }
-      
+
+      const passwordMatch = await bcrypt.compare(req.body.password, user.password); // Added bcrypt compare
+      if (!passwordMatch) {
+        return res.status(401).json({ message: "Incorrect password" });
+      }
+
       req.logIn(user, (loginErr) => {
         if (loginErr) {
           return next(loginErr);
         }
-        
+
         return res.status(200).json({
           message: "Login successful",
           user: {
@@ -49,7 +55,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     })(req, res, next);
   });
-  
+
   app.post(`${API_PREFIX}/auth/logout`, (req, res) => {
     req.logout((err) => {
       if (err) {
@@ -58,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({ message: "Logout successful" });
     });
   });
-  
+
   app.get(`${API_PREFIX}/auth/status`, (req, res) => {
     if (req.isAuthenticated()) {
       return res.status(200).json({
@@ -72,42 +78,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     res.status(200).json({ isAuthenticated: false });
   });
-  
+
   // Registration route
   app.post(`${API_PREFIX}/auth/register`, async (req, res) => {
     try {
-      console.log("Registration attempt with data:", JSON.stringify({
-        username: req.body.username,
-        email: req.body.email,
-        password: '******' // Masking password for security
-      }));
-      
       // Validate the user data
       const validatedData = insertUserSchema.parse(req.body);
-      console.log("Data validation passed");
-      
+
       // Check if username already exists
       const existingUsername = await storage.getUserByUsername(validatedData.username);
       if (existingUsername) {
-        console.log("Registration failed: Username already exists");
         return res.status(400).json({ message: "Username already exists" });
       }
-      console.log("Username check passed");
-      
+
       // Check if email already exists
       const existingEmail = await storage.getUserByEmail(validatedData.email);
       if (existingEmail) {
-        console.log("Registration failed: Email already exists");
         return res.status(400).json({ message: "Email already exists" });
       }
-      console.log("Email check passed");
-      
+
+      // Hash the password before creating the user
+      const hashedPassword = await bcrypt.hash(validatedData.password, 10); // Hash password with salt rounds 10
+      const updatedValidatedData = {...validatedData, password: hashedPassword}; // Update with hashed password
+
       // Create the new user
-      console.log("Attempting to create user in database...");
       try {
-        const newUser = await storage.createUser(validatedData);
-        console.log("User created successfully with ID:", newUser.id);
-        
+        const newUser = await storage.createUser(updatedValidatedData); // Use updated data with hashed password
+
         res.status(201).json({
           message: "User registered successfully",
           user: {
@@ -118,7 +115,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (createError) {
         console.error("Failed to create user:", createError);
-        throw createError; // Re-throw to be caught by outer catch
+        throw createError; 
       }
     } catch (error) {
       console.error("Registration error:", error instanceof Error ? error.message : String(error));
@@ -152,11 +149,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const validatedData = insertCategorySchema.partial().parse(req.body);
       const updatedCategory = await storage.updateCategory(id, validatedData);
-      
+
       if (!updatedCategory) {
         return res.status(404).json({ message: "Category not found" });
       }
-      
+
       res.json(updatedCategory);
     } catch (error) {
       handleError(res, error);
@@ -167,11 +164,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteCategory(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Category not found" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       handleError(res, error);
@@ -203,11 +200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const validatedData = insertLocationSchema.partial().parse(req.body);
       const updatedLocation = await storage.updateLocation(id, validatedData);
-      
+
       if (!updatedLocation) {
         return res.status(404).json({ message: "Location not found" });
       }
-      
+
       res.json(updatedLocation);
     } catch (error) {
       handleError(res, error);
@@ -218,11 +215,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteLocation(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Location not found" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       handleError(res, error);
@@ -234,13 +231,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const month = req.query.month as string;
       let expenses;
-      
+
       if (month) {
         expenses = await storage.getExpensesByMonth(month);
       } else {
         expenses = await storage.getAllExpenses();
       }
-      
+
       res.json(expenses);
     } catch (error) {
       handleError(res, error);
@@ -251,11 +248,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const expense = await storage.getExpense(id);
-      
+
       if (!expense) {
         return res.status(404).json({ message: "Expense not found" });
       }
-      
+
       res.json(expense);
     } catch (error) {
       handleError(res, error);
@@ -272,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Ensure date is properly parsed if it's a string
         date: req.body.date instanceof Date ? req.body.date : new Date(req.body.date)
       };
-      
+
       const validatedData = insertExpenseSchema.parse(expenseData);
       const expense = await storage.createExpense(validatedData);
       res.status(201).json(expense);
@@ -284,31 +281,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch(`${API_PREFIX}/expenses/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
+
       // Handle type conversions before validation
       const expenseData = { ...req.body };
-      
+
       // Handle amount conversion if present
       if (expenseData.amount !== undefined) {
         expenseData.amount = typeof expenseData.amount === 'number' 
           ? expenseData.amount.toString() 
           : expenseData.amount;
       }
-      
+
       // Handle date conversion if present
       if (expenseData.date !== undefined) {
         expenseData.date = expenseData.date instanceof Date 
           ? expenseData.date 
           : new Date(expenseData.date);
       }
-      
+
       const validatedData = insertExpenseSchema.partial().parse(expenseData);
       const updatedExpense = await storage.updateExpense(id, validatedData);
-      
+
       if (!updatedExpense) {
         return res.status(404).json({ message: "Expense not found" });
       }
-      
+
       res.json(updatedExpense);
     } catch (error) {
       handleError(res, error);
@@ -319,11 +316,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteExpense(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Expense not found" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       handleError(res, error);
@@ -335,13 +332,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const month = req.query.month as string;
       let settlements;
-      
+
       if (month) {
         settlements = await storage.getSettlementsByMonth(month);
       } else {
         settlements = await storage.getAllSettlements();
       }
-      
+
       res.json(settlements);
     } catch (error) {
       handleError(res, error);
@@ -374,13 +371,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const activeOnly = req.query.active === 'true';
       let recurringExpenses;
-      
+
       if (activeOnly) {
         recurringExpenses = await storage.getActiveRecurringExpenses();
       } else {
         recurringExpenses = await storage.getAllRecurringExpenses();
       }
-      
+
       res.json(recurringExpenses);
     } catch (error) {
       handleError(res, error);
@@ -391,11 +388,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const recurringExpense = await storage.getRecurringExpense(id);
-      
+
       if (!recurringExpense) {
         return res.status(404).json({ message: "Recurring expense not found" });
       }
-      
+
       res.json(recurringExpense);
     } catch (error) {
       handleError(res, error);
@@ -414,7 +411,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         next_date: req.body.next_date instanceof Date ? req.body.next_date : new Date(req.body.next_date),
         end_date: req.body.end_date ? (req.body.end_date instanceof Date ? req.body.end_date : new Date(req.body.end_date)) : null,
       };
-      
+
       const validatedData = insertRecurringExpenseSchema.parse(recurringExpenseData);
       const recurringExpense = await storage.createRecurringExpense(validatedData);
       res.status(201).json(recurringExpense);
@@ -426,30 +423,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.patch(`${API_PREFIX}/recurring-expenses/:id`, isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      
+
       // Handle type conversions before validation
       const recurringExpenseData = { ...req.body };
-      
+
       // Handle amount conversion if present
       if (recurringExpenseData.amount !== undefined) {
         recurringExpenseData.amount = typeof recurringExpenseData.amount === 'number' 
           ? recurringExpenseData.amount.toString() 
           : recurringExpenseData.amount;
       }
-      
+
       // Handle date conversions if present
       if (recurringExpenseData.start_date !== undefined) {
         recurringExpenseData.start_date = recurringExpenseData.start_date instanceof Date 
           ? recurringExpenseData.start_date 
           : new Date(recurringExpenseData.start_date);
       }
-      
+
       if (recurringExpenseData.next_date !== undefined) {
         recurringExpenseData.next_date = recurringExpenseData.next_date instanceof Date 
           ? recurringExpenseData.next_date 
           : new Date(recurringExpenseData.next_date);
       }
-      
+
       if (recurringExpenseData.end_date !== undefined) {
         recurringExpenseData.end_date = recurringExpenseData.end_date 
           ? (recurringExpenseData.end_date instanceof Date 
@@ -457,14 +454,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
             : new Date(recurringExpenseData.end_date))
           : null;
       }
-      
+
       const validatedData = insertRecurringExpenseSchema.partial().parse(recurringExpenseData);
       const updatedRecurringExpense = await storage.updateRecurringExpense(id, validatedData);
-      
+
       if (!updatedRecurringExpense) {
         return res.status(404).json({ message: "Recurring expense not found" });
       }
-      
+
       res.json(updatedRecurringExpense);
     } catch (error) {
       handleError(res, error);
@@ -475,11 +472,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteRecurringExpense(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Recurring expense not found" });
       }
-      
+
       res.status(204).send();
     } catch (error) {
       handleError(res, error);
