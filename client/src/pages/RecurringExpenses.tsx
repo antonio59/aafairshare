@@ -53,16 +53,16 @@ export default function RecurringExpenses() {
     try {
       const response = await apiRequest("POST", "/api/process-recurring-expenses");
       const result = await response.json();
-      
+
       // Invalidate both recurring expenses and expenses queries
       queryClient.invalidateQueries({
         queryKey: ["/api/recurring-expenses"],
       });
-      
+
       queryClient.invalidateQueries({
         queryKey: ["/api/expenses"],
       });
-      
+
       // Show success message
       toast({
         title: "Recurring expenses processed",
