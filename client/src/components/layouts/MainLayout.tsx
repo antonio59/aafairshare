@@ -36,9 +36,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   const navigation = [
     { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Recurring', href: '/recurring-expenses', icon: RepeatIcon },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Settlement', href: '/settlement', icon: PiggyBank },
+    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
     { name: 'Settings', href: '/settings', icon: Settings },
   ];
   

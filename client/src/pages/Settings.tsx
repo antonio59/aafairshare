@@ -1,15 +1,17 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Edit2Icon, Trash2Icon } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { Category, Location } from "@shared/schema";
+import { PlusIcon, Edit2Icon, Trash2Icon, Plus, RefreshCw } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Category, Location, RecurringExpenseWithDetails } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import CategoryForm from "@/components/CategoryForm";
 import LocationForm from "@/components/LocationForm";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import RecurringExpenseTable from "@/components/RecurringExpenseTable";
+import RecurringExpenseForm from "@/components/RecurringExpenseForm";
+import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,14 +24,73 @@ import {
 } from "@/components/ui/alert-dialog";
 import * as LucideIcons from "lucide-react";
 
+// RecurringExpensesContent component
+const RecurringExpensesContent = () => {
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedRecurringExpense, setSelectedRecurringExpense] = useState<RecurringExpenseWithDetails | undefined>(undefined);
+  const { toast } = useToast();
+  
+  // Fetch recurring expenses
+  const { data: recurringExpenses = [], isLoading } = useQuery<RecurringExpenseWithDetails[]>({
+    queryKey: ["/api/recurring-expenses"],
+    queryFn: getQueryFn({ on401: "throw" }),
+  });
+  
+  // Handle editing a recurring expense
+  const handleEditRecurringExpense = (recurringExpense: RecurringExpenseWithDetails) => {
+    setSelectedRecurringExpense(recurringExpense);
+    setFormOpen(true);
+  };
+  
+  // Reset form and selected recurring expense when form closes
+  const handleFormOpenChange = (open: boolean) => {
+    setFormOpen(open);
+    if (!open) {
+      setSelectedRecurringExpense(undefined);
+    }
+  };
+  
+  // Handle recurring expense deletion
+  const handleRecurringExpenseDeleted = () => {
+    queryClient.invalidateQueries({
+      queryKey: ["/api/recurring-expenses"],
+    });
+    toast({
+      title: "Recurring expense deleted",
+      description: "The recurring expense has been removed",
+    });
+  };
+  
+  return (
+    <div>
+      <RecurringExpenseTable
+        recurringExpenses={recurringExpenses}
+        onEdit={handleEditRecurringExpense}
+        onDeleted={handleRecurringExpenseDeleted}
+        isLoading={isLoading}
+      />
+      
+      <RecurringExpenseForm
+        open={formOpen}
+        onOpenChange={handleFormOpenChange}
+        recurringExpense={selectedRecurringExpense}
+      />
+    </div>
+  );
+};
+
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("categories");
   const [isCategoryFormOpen, setCategoryFormOpen] = useState(false);
   const [isLocationFormOpen, setLocationFormOpen] = useState(false);
+  const [isRecurringExpenseFormOpen, setRecurringExpenseFormOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | undefined>(undefined);
   const [selectedLocation, setSelectedLocation] = useState<Location | undefined>(undefined);
+  const [selectedRecurringExpense, setSelectedRecurringExpense] = useState<RecurringExpenseWithDetails | undefined>(undefined);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<{ type: 'category' | 'location', id: number } | null>(null);
+  const [processingExpenses, setProcessingExpenses] = useState(false);
+  const localQueryClient = useQueryClient();
   const { toast } = useToast();
 
   // Fetch categories
@@ -88,6 +149,39 @@ export default function Settings() {
     setItemToDelete({ type, id });
     setDeleteDialogOpen(true);
   };
+  
+  // Process recurring expenses
+  const handleProcessRecurringExpenses = async () => {
+    setProcessingExpenses(true);
+    try {
+      const response = await apiRequest("POST", "/api/process-recurring-expenses");
+      const result = await response.json();
+      
+      // Invalidate both recurring expenses and expenses queries
+      localQueryClient.invalidateQueries({
+        queryKey: ["/api/recurring-expenses"],
+      });
+      
+      localQueryClient.invalidateQueries({
+        queryKey: ["/api/expenses"],
+      });
+      
+      // Show success message
+      toast({
+        title: "Recurring expenses processed",
+        description: `${result.expenses.length} new expense(s) created`,
+      });
+    } catch (error) {
+      console.error("Error processing recurring expenses:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process recurring expenses",
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingExpenses(false);
+    }
+  };
 
   const handleDelete = async () => {
     if (!itemToDelete) return;
@@ -130,6 +224,7 @@ export default function Settings() {
         <TabsList className="mb-6">
           <TabsTrigger value="categories">Categories</TabsTrigger>
           <TabsTrigger value="locations">Locations</TabsTrigger>
+          <TabsTrigger value="recurring">Recurring Expenses</TabsTrigger>
         </TabsList>
         
         {/* Categories Tab */}
@@ -261,6 +356,37 @@ export default function Settings() {
             </CardContent>
           </Card>
         </TabsContent>
+        
+        {/* Recurring Expenses Tab */}
+        <TabsContent value="recurring">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Recurring Expenses</CardTitle>
+                <CardDescription>
+                  Manage expenses that repeat automatically
+                </CardDescription>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  onClick={handleProcessRecurringExpenses}
+                  variant="outline"
+                  disabled={processingExpenses}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  {processingExpenses ? "Processing..." : "Process Now"}
+                </Button>
+                <Button onClick={() => setRecurringExpenseFormOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Recurring
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <RecurringExpensesContent />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
       
       {/* Category Form */}
@@ -275,6 +401,13 @@ export default function Settings() {
         open={isLocationFormOpen} 
         onOpenChange={setLocationFormOpen} 
         location={selectedLocation} 
+      />
+      
+      {/* RecurringExpense Form */}
+      <RecurringExpenseForm
+        open={isRecurringExpenseFormOpen}
+        onOpenChange={setRecurringExpenseFormOpen}
+        recurringExpense={selectedRecurringExpense}
       />
       
       {/* Delete Confirmation Dialog */}
