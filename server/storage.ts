@@ -410,9 +410,20 @@ export class Storage {
       userExpenses[user.id] = 0;
     });
 
-    // Sum expenses by who paid
+    // Sum expenses accounting for split types
     expenses.forEach(expense => {
-      userExpenses[expense.paid_by_user_id] += expense.amount;
+      if (expense.split_type === "50/50") {
+        userExpenses[expense.paid_by_user_id] += expense.amount;
+      } else if (expense.split_type === "100%") {
+        // For 100% splits, the amount is attributed to the user who didn't pay
+        const otherUserId = Object.keys(userExpenses)
+          .map(Number)
+          .find(id => id !== expense.paid_by_user_id);
+        if (otherUserId) {
+          userExpenses[expense.paid_by_user_id] += 0; // They paid but don't owe
+          userExpenses[otherUserId] += expense.amount; // They owe the full amount
+        }
+      }
     });
 
     // Calculate category totals
