@@ -469,13 +469,25 @@ export class Storage {
     });
 
     // Calculate settlement amounts for the month
-    let userIds = Object.keys(userExpenses).map(Number);
-    let user1Id = userIds[0];
-    let user2Id = userIds[1];
+    let userIds = Object.keys(userExpenses).map(Number).filter(id => userExpenses[id] !== undefined);
+    
+    if (userIds.length !== 2) {
+      return {
+        month,
+        totalExpenses,
+        userExpenses,
+        categoryTotals,
+        locationTotals,
+        splitTypeTotals,
+        dateDistribution,
+        settlementAmount: 0,
+        settlementDirection: { fromUserId: 0, toUserId: 0 }
+      };
+    }
 
-    // Calculate the amount paid by each user
-    const user1Paid = userExpenses[user1Id] || 0;
-    const user2Paid = userExpenses[user2Id] || 0;
+    let [user1Id, user2Id] = userIds;
+    const user1Paid = userExpenses[user1Id];
+    const user2Paid = userExpenses[user2Id];
 
     // Calculate what each user should have paid (50% of total)
     const eachShouldPay = totalExpenses / 2;
