@@ -7,13 +7,14 @@ import ExpenseForm from "@/components/ExpenseForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, PoundSterling, Users, WalletCards, BarChart3 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { ExpenseWithDetails, MonthSummary } from "@shared/schema";
+import { ExpenseWithDetails, MonthSummary, User } from "@shared/schema";
 import { formatCurrency, getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Link } from "wouter";
 import { exportExpenses } from "@/lib/exportUtils";
 import * as LucideIcons from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
@@ -51,6 +52,16 @@ export default function Dashboard() {
   } = useQuery<ExpenseWithDetails[]>({
     queryKey: [`/api/expenses?month=${currentMonth}`],
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1
+  });
+
+  // Fetch all users
+  const {
+    data: allUsers = [],
+    isLoading: usersLoading
+  } = useQuery({
+    queryKey: ['/api/users'],
+    staleTime: 1000 * 60 * 30, // 30 minutes
     retry: 1
   });
   
@@ -95,22 +106,16 @@ export default function Dashboard() {
     }
   };
 
-  // Find users from expenses or summary
+  // Find users from summary
   const userIds = summary?.userExpenses ? Object.keys(summary.userExpenses).map(Number) : [];
-  const user1 = userIds.length > 0 ? userIds[0].toString() : "1";
-  const user2 = userIds.length > 1 ? userIds[1].toString() : "2";
+  const user1Id = userIds.length > 0 ? userIds[0] : 0;
+  const user2Id = userIds.length > 1 ? userIds[1] : 0;
 
-  // Get all unique users from expenses
-  const uniqueUsers = expenses
-    ? [...new Set(expenses.map(e => e.paidByUser.id))]
-        .map(id => expenses.find(e => e.paidByUser.id === id)?.paidByUser)
-        .filter(Boolean)
-    : [];
-
-  // Get user names from the uniqueUsers array
-  const user1Obj = uniqueUsers.find(u => u?.id.toString() === user1);
-  const user2Obj = uniqueUsers.find(u => u?.id.toString() === user2);
+  // Find user objects from the allUsers array
+  const user1Obj = allUsers.find(u => u.id === user1Id);
+  const user2Obj = allUsers.find(u => u.id === user2Id);
   
+  // Use the username from the user object, or a fallback if not found
   const user1Name = user1Obj?.username || "User 1";
   const user2Name = user2Obj?.username || "User 2";
 
@@ -181,10 +186,7 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Category Distribution */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
-        <CategoryChart summary={summary} isLoading={summaryLoading} />
-      </div>
+      {/* Category Distribution removed as it's already in Analytics page */}
 
       {/* Add New Expense Button */}
       <Button 
