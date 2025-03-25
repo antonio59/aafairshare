@@ -125,10 +125,17 @@ export class Storage {
   async getExpense(id: number): Promise<ExpenseWithDetails | undefined> {
     const result = await pool.query(
       `SELECT 
-        e.*, 
-        c.*, 
-        l.*, 
-        u.* 
+        e.*,
+        c.id AS category_id,
+        c.name AS category_name,
+        c.icon,
+        c.color,
+        l.id AS location_id,
+        l.name AS location_name,
+        u.id AS user_id,
+        u.username,
+        u.email,
+        u.password
        FROM expenses e
        JOIN categories c ON e.category_id = c.id
        JOIN locations l ON e.location_id = l.id
@@ -137,31 +144,55 @@ export class Storage {
       [id]
     );
     const row = result.rows[0];
-    return row ? { ...row, category: {id: row.category_id, name: row.name, icon: row.icon, color: row.color}, location: {id: row.location_id, name: row.name}, paidByUser: {id: row.paid_by_user_id, username: row.username, email: row.email, password: row.password}} : undefined;
+    return row ? { 
+      ...row, 
+      category: {id: row.category_id, name: row.category_name, icon: row.icon, color: row.color}, 
+      location: {id: row.location_id, name: row.location_name}, 
+      paidByUser: {id: row.user_id, username: row.username, email: row.email, password: row.password}
+    } : undefined;
   }
 
   async getAllExpenses(): Promise<ExpenseWithDetails[]> {
     const result = await pool.query(
       `SELECT 
-        e.*, 
-        c.*, 
-        l.*, 
-        u.* 
+        e.*,
+        c.id AS category_id,
+        c.name AS category_name,
+        c.icon,
+        c.color,
+        l.id AS location_id,
+        l.name AS location_name,
+        u.id AS user_id,
+        u.username,
+        u.email,
+        u.password
        FROM expenses e
        JOIN categories c ON e.category_id = c.id
        JOIN locations l ON e.location_id = l.id
        JOIN users u ON e.paid_by_user_id = u.id`
     );
-    return result.rows.map(row => ({ ...row, category: {id: row.category_id, name: row.name, icon: row.icon, color: row.color}, location: {id: row.location_id, name: row.name}, paidByUser: {id: row.paid_by_user_id, username: row.username, email: row.email, password: row.password}}));
+    return result.rows.map(row => ({ 
+      ...row, 
+      category: {id: row.category_id, name: row.category_name, icon: row.icon, color: row.color}, 
+      location: {id: row.location_id, name: row.location_name}, 
+      paidByUser: {id: row.user_id, username: row.username, email: row.email, password: row.password}
+    }));
   }
 
   async getExpensesByMonth(month: string): Promise<ExpenseWithDetails[]> {
       const result = await pool.query(
         `SELECT 
-          e.*, 
-          c.*, 
-          l.*, 
-          u.* 
+          e.*,
+          c.id AS category_id,
+          c.name AS category_name,
+          c.icon,
+          c.color,
+          l.id AS location_id,
+          l.name AS location_name,
+          u.id AS user_id,
+          u.username,
+          u.email,
+          u.password
          FROM expenses e
          JOIN categories c ON e.category_id = c.id
          JOIN locations l ON e.location_id = l.id
@@ -169,7 +200,12 @@ export class Storage {
          WHERE DATE_TRUNC('month', e.date) = DATE_TRUNC('month', $1::timestamp)`,
         [`${month}-01`] // Add day to make it a valid date
       );
-      return result.rows.map(row => ({ ...row, category: {id: row.category_id, name: row.name, icon: row.icon, color: row.color}, location: {id: row.location_id, name: row.name}, paidByUser: {id: row.paid_by_user_id, username: row.username, email: row.email, password: row.password}}));
+      return result.rows.map(row => ({ 
+        ...row, 
+        category: {id: row.category_id, name: row.category_name, icon: row.icon, color: row.color}, 
+        location: {id: row.location_id, name: row.location_name}, 
+        paidByUser: {id: row.user_id, username: row.username, email: row.email, password: row.password}
+      }));
   }
 
   async createExpense(expense: InsertExpense): Promise<ExpenseWithDetails> {
