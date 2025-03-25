@@ -83,7 +83,7 @@ export class Storage {
 
   async deleteCategory(id: number): Promise<boolean> {
     const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
 
@@ -119,7 +119,7 @@ export class Storage {
 
   async deleteLocation(id: number): Promise<boolean> {
     const result = await pool.query('DELETE FROM locations WHERE id = $1', [id]);
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Expense operations
@@ -179,7 +179,11 @@ export class Storage {
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
       [expense.amount, expense.date, expense.paid_by_user_id, expense.split_type || "50/50", expense.category_id, expense.location_id, expense.description, expense.month || null]
     );
-    return this.getExpense(result.rows[0].id) as ExpenseWithDetails;
+    const createdExpense = await this.getExpense(result.rows[0].id);
+    if (!createdExpense) {
+      throw new Error("Failed to retrieve created expense");
+    }
+    return createdExpense;
   }
 
   async updateExpense(id: number, expense: Partial<InsertExpense>): Promise<ExpenseWithDetails | undefined> {
@@ -193,7 +197,7 @@ export class Storage {
 
   async deleteExpense(id: number): Promise<boolean> {
     const result = await pool.query('DELETE FROM expenses WHERE id = $1', [id]);
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Recurring Expense operations
@@ -271,7 +275,11 @@ export class Storage {
         recurringExpense.start_date // Add the start_date to the query
       ]
     );
-    return this.getRecurringExpense(result.rows[0].id) as RecurringExpenseWithDetails;
+    const createdRecurringExpense = await this.getRecurringExpense(result.rows[0].id);
+    if (!createdRecurringExpense) {
+      throw new Error("Failed to retrieve created recurring expense");
+    }
+    return createdRecurringExpense;
   }
 
   async updateRecurringExpense(id: number, updatedRecurringExpense: Partial<InsertRecurringExpense>): Promise<RecurringExpenseWithDetails | undefined> {
