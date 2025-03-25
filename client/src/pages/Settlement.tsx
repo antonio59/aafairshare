@@ -114,6 +114,16 @@ export default function Settlement() {
         });
         return;
       }
+      
+      // Check if summary data exists
+      if (!summary) {
+        toast({
+          title: "Error",
+          description: "Summary data is not available. Please try again.",
+          variant: "destructive"
+        });
+        return;
+      }
 
       const settlementData = {
         month: currentMonth,
@@ -266,7 +276,7 @@ export default function Settlement() {
                   </Button>
                 )}
 
-                {isSettled && (
+                {isSettled && settlements && settlements.length > 0 && (
                   <div className="flex items-center justify-between bg-green-50 text-green-600 p-3 rounded-md">
                     <p className="text-sm font-medium">This month has been settled!</p>
                     <Button onClick={() => handleUnsettlement(settlements[0].id)} variant="ghost" size="icon" className="text-red-600 hover:bg-red-100">
