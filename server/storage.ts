@@ -31,7 +31,7 @@ export class Storage {
 
   async getUserByEmail(email: string): Promise<User | undefined> {
     const result = await pool.query(
-      'SELECT id, username, email, password FROM users WHERE email = $1',
+      'SELECT id, username, email, password FROM users WHERE LOWER(email) = LOWER($1)',
       [email]
     );
     return result.rows[0];
