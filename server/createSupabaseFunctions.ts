@@ -7,9 +7,9 @@ import { log } from './vite';
 import { executeDirectSql, executeSqlFileWithPostgres } from './db';
 
 // Access Supabase URL and Keys from environment variables directly
-const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
-const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || (import.meta.env.SUPABASE_SERVICE_KEY as string);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
 // Prefer using the service key for admin operations if available
 const apiKey = supabaseServiceKey || supabaseKey;
 

@@ -36,15 +36,15 @@ app.use(passport.session());
 passport.use(new LocalStrategy(async (username, password, done) => {
   try {
     const user = await storage.getUserByUsername(username);
-    
+
     if (!user) {
       return done(null, false, { message: "Incorrect username" });
     }
-    
+
     if (user.password !== password) {
       return done(null, false, { message: "Incorrect password" });
     }
-    
+
     return done(null, user);
   } catch (error) {
     return done(error);
@@ -100,27 +100,27 @@ app.use((req, res, next) => {
 (async () => {
   // Initialize appropriate storage based on available credentials
   let storageImplementation: IStorage;
-  
+
   try {
     // First try to use Supabase as requested by the user
-    const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
-    const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY || (import.meta.env.SUPABASE_SERVICE_KEY as string);
-    
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_KEY;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
+
     log("Checking Supabase credentials and database access...");
     console.log("SUPABASE_URL exists:", !!supabaseUrl);
     console.log("SUPABASE_KEY exists:", !!supabaseKey);
     console.log("SUPABASE_SERVICE_KEY exists:", !!supabaseServiceKey);
     console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
-    
+
     // Require Supabase credentials - don't fall back to in-memory
     if (!supabaseUrl || (!supabaseServiceKey && !supabaseKey)) {
       log("ERROR: Missing Supabase credentials. The application requires Supabase for storage.");
       throw new Error("Missing required Supabase credentials");
     }
-    
+
     log("Supabase credentials found - using Supabase for cloud storage");
-    
+
     // Create database schema first using direct PostgreSQL connection
     log("Creating database schema using direct PostgreSQL connection...");
     const sqlResult = await executeSqlFileWithPostgres();
@@ -130,11 +130,11 @@ app.use((req, res, next) => {
       log(`Warning: SQL setup encountered an issue: ${sqlResult.message}`);
       log("Will continue with Supabase API for data access");
     }
-    
+
     // Initialize the SupabaseStorage after creating schema
     log("Initializing Supabase connection...");
     storageImplementation = new SupabaseStorage();
-    
+
     // Attempt to run any additional initialization
     try {
       log("Initializing database tables and default data...");
@@ -144,16 +144,16 @@ app.use((req, res, next) => {
       log(`Database initialization via API encountered an issue: ${initError}`);
       log("Database access will continue to use direct SQL when needed");
     }
-    
+
     log("Successfully connected to Supabase cloud storage");
   } catch (error) {
     log(`CRITICAL ERROR: Failed to initialize database: ${error}`);
     throw error; // Don't continue without database
   }
-  
+
   // Set the global storage to use the initialized implementation
   storage = storageImplementation;
-  
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -177,7 +177,7 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = 5000;
-  
+
   // Enhanced logging for server start
   const startServer = () => {
     server.listen({
@@ -187,11 +187,11 @@ app.use((req, res, next) => {
     }, () => {
       log(`Server is running and accessible at http://0.0.0.0:${port}`);
       log(`Local access URL: http://localhost:${port}`);
-      
+
       // Simplify logging for Replit environment
       log(`The app is now running and should be accessible via Replit`);
       log(`If you're accessing from outside Replit, use http://0.0.0.0:${port}`);
-      
+
       // Show appropriate storage message
       if (storageImplementation instanceof SupabaseStorage) {
         log("Data will be stored persistently in Supabase cloud.");
@@ -211,6 +211,6 @@ app.use((req, res, next) => {
       }
     });
   };
-  
+
   startServer();
 })();
