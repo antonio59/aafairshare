@@ -74,20 +74,25 @@ export default function Settings() {
     if (!itemToDelete) return;
 
     try {
-      await apiRequest("DELETE", `/api/${itemToDelete.type}s/${itemToDelete.id}`);
+      const response = await apiRequest("DELETE", `/api/${itemToDelete.type}s/${itemToDelete.id}`);
 
-      localQueryClient.invalidateQueries({
-        queryKey: [`/api/${itemToDelete.type}s`],
-      });
+      if (response.ok) {
+        localQueryClient.invalidateQueries({
+          queryKey: [`/api/${itemToDelete.type}s`],
+        });
 
-      toast({
-        title: "Success",
-        description: `${itemToDelete.type} deleted successfully`,
-      });
+        toast({
+          title: "Success",
+          description: `${itemToDelete.type} deleted successfully`,
+        });
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.message);
+      }
     } catch (error: any) {
       toast({
-        title: "Error",
-        description: error.response?.data?.message || `Failed to delete ${itemToDelete.type}`,
+        title: "Cannot Delete",
+        description: error.message || `This ${itemToDelete.type} is currently in use by expenses and cannot be deleted`,
         variant: "destructive",
       });
     }

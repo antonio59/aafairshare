@@ -133,7 +133,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message?.includes('in use')) {
+        return res.status(400).json({ message: error.message });
+      }
       handleError(res, error);
     }
   });
@@ -184,7 +187,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.status(204).send();
-    } catch (error) {
+    } catch (error: any) {
+      if (error.message?.includes('in use')) {
+        return res.status(400).json({ message: error.message });
+      }
       handleError(res, error);
     }
   });
