@@ -4,7 +4,7 @@ import SummaryCard from "@/components/SummaryCard";
 import SettlementHistory from "@/components/SettlementHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Users, Check, CalendarClock } from "lucide-react";
+import { DollarSign, Users, Check, CalendarClock, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { MonthSummary, Settlement as SettlementType, SettlementWithUsers, User, ExpenseWithDetails } from "@shared/schema";
 import { getCurrentMonth, formatCurrency, getPreviousMonth } from "@/lib/utils";
@@ -79,29 +79,50 @@ export default function Settlement() {
     setCurrentMonth(month);
   };
 
-  const handleSettlement = async () => {
-    if (!currentMonth) {
+  const handleUnsettlement = async (settlementId: number) => {
+    try {
+      const response = await apiRequest(`/api/settlements/${settlementId}`, 'DELETE');
+      if (!response.ok) {
+        throw new Error('Failed to delete settlement');
+      }
+
+      toast({
+        title: "Settlement removed",
+        description: "The settlement has been removed successfully."
+      });
+
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: [`/api/settlements?month=${currentMonth}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
+    } catch (error) {
       toast({
         title: "Error",
-        description: "Month must be selected before creating a settlement",
+        description: error instanceof Error ? error.message : "Failed to remove settlement",
         variant: "destructive"
       });
-      return;
     }
+  };
 
-    if (!summary) return;
-
+  const handleSettlement = async () => {
     try {
+      // Check if already settled to prevent duplication
+      if (isSettled) {
+        toast({
+          title: "Already settled",
+          description: "This month has already been settled",
+          variant: "destructive"
+        });
+        return;
+      }
+
       const settlementData = {
-        month: currentMonth, // YYYY-MM format
+        month: currentMonth,
         amount: summary.settlementAmount.toString(),
         date: new Date().toISOString(),
         from_user_id: summary.settlementDirection.fromUserId,
         to_user_id: summary.settlementDirection.toUserId,
         notes: `Settlement for ${currentMonth}`,
       };
-
-      console.log('Settlement data:', settlementData);
 
       const response = await apiRequest('/api/settlements', 'POST', settlementData);
 
@@ -246,8 +267,11 @@ export default function Settlement() {
                 )}
 
                 {isSettled && (
-                  <div className="bg-green-50 text-green-600 p-3 rounded-md text-center text-sm font-medium">
-                    This month has been settled!
+                  <div className="flex items-center justify-between bg-green-50 text-green-600 p-3 rounded-md">
+                    <p className="text-sm font-medium">This month has been settled!</p>
+                    <Button onClick={() => handleUnsettlement(settlements[0].id)} variant="ghost" size="icon" className="text-red-600 hover:bg-red-100">
+                      <X className="h-4 w-4"/>
+                    </Button>
                   </div>
                 )}
               </>
@@ -294,6 +318,7 @@ export default function Settlement() {
       <SettlementHistory 
         settlements={settlements || []} 
         isLoading={settlementsLoading} 
+        onUnsettle={handleUnsettlement}
       />
 
       {/* Confirm settlement dialog */}

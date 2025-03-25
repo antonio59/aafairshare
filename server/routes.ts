@@ -310,6 +310,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${API_PREFIX}/settlements`, isAuthenticated, async (req, res) => {
     try {
+      // Check if settlement already exists for this month
+      const existingSettlements = await storage.getSettlementsByMonth(req.body.month);
+      if (existingSettlements.length > 0) {
+        return res.status(400).json({ message: "Settlement already exists for this month" });
+      }
+
       // Handle type conversions before validation
       const settlementData = {
         ...req.body,
@@ -322,6 +328,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = insertSettlementSchema.parse(settlementData);
       const settlement = await storage.createSettlement(validatedData);
       res.status(201).json(settlement);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
+
+  app.delete(`${API_PREFIX}/settlements/:id`, isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteSettlement(id);
+
+      if (!success) {
+        return res.status(404).json({ message: "Settlement not found" });
+      }
+
+      res.status(204).send();
     } catch (error) {
       handleError(res, error);
     }

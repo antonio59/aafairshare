@@ -93,6 +93,15 @@ export default function SettlementHistory({ settlements, isLoading = false }: Se
                   <TableCell className="text-sm font-medium text-gray-800 text-right">
                     {formatCurrency(Number(settlement.amount))}
                   </TableCell>
+                  <TableCell>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onUnsettlement(settlement.id)}
+                    >
+                      Unsettle
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

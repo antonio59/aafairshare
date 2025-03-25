@@ -308,6 +308,11 @@ export class Storage {
     return createdSettlement;
   }
 
+  async deleteSettlement(id: number): Promise<boolean> {
+    const result = await pool.query('DELETE FROM settlements WHERE id = $1', [id]);
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
   // Summary operations
   async getMonthSummary(month: string): Promise<MonthSummary> {
     const expenses = await this.getExpensesByMonth(month);
