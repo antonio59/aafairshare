@@ -111,13 +111,19 @@ export default function Dashboard() {
   const user1Id = userIds.length > 0 ? userIds[0] : 0;
   const user2Id = userIds.length > 1 ? userIds[1] : 0;
 
-  // Find user objects from the allUsers array
-  const user1Obj = allUsers.find(u => u.id === user1Id);
-  const user2Obj = allUsers.find(u => u.id === user2Id);
+  // Find user objects from the users array (safely handling unknown data type)
+  const user1Obj = Array.isArray(allUsers) ? 
+    allUsers.find((u: any) => u.id === user1Id) : null;
+  const user2Obj = Array.isArray(allUsers) ? 
+    allUsers.find((u: any) => u.id === user2Id) : null;
   
   // Use the username from the user object, or a fallback if not found
   const user1Name = user1Obj?.username || "User 1";
   const user2Name = user2Obj?.username || "User 2";
+
+  // Convert IDs to strings for use in JSX
+  const user1IdStr = user1Id.toString();
+  const user2IdStr = user2Id.toString();
 
   return (
     <div className="space-y-6 px-2 sm:px-4 pb-20">
@@ -144,18 +150,18 @@ export default function Dashboard() {
             />
             <SummaryCard 
               title={`${user1Name} Paid`} 
-              value={summary && summary.userExpenses[Number(user1)] ? formatCurrency(summary.userExpenses[Number(user1)]) : "£0.00"} 
+              value={summary && summary.userExpenses[user1Id] ? formatCurrency(summary.userExpenses[user1Id]) : "£0.00"} 
               icon={Users} 
               variant="user1" 
             />
             <SummaryCard 
               title={`${user2Name} Paid`} 
-              value={summary && summary.userExpenses[Number(user2)] ? formatCurrency(summary.userExpenses[Number(user2)]) : "£0.00"} 
+              value={summary && summary.userExpenses[user2Id] ? formatCurrency(summary.userExpenses[user2Id]) : "£0.00"} 
               icon={Users} 
               variant="user2" 
             />
             <SummaryCard 
-              title={summary && summary.settlementDirection.fromUserId === Number(user1) 
+              title={summary && summary.settlementDirection.fromUserId === user1Id 
                 ? `${user1Name} Owes ${user2Name}` 
                 : `${user2Name} Owes ${user1Name}`} 
               value={summary ? formatCurrency(summary.settlementAmount) : "£0.00"} 
