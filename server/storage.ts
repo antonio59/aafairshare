@@ -167,8 +167,8 @@ export class Storage {
          JOIN categories c ON e.category_id = c.id
          JOIN locations l ON e.location_id = l.id
          JOIN users u ON e.paid_by_user_id = u.id
-         WHERE DATE_TRUNC('month', e.date) = DATE_TRUNC('month', $1::date)`,
-        [month]
+         WHERE DATE_TRUNC('month', e.date) = DATE_TRUNC('month', $1::timestamp)`,
+        [`${month}-01`] // Add day to make it a valid date
       );
       return result.rows.map(row => ({ ...row, category: {id: row.category_id, name: row.name, icon: row.icon, color: row.color}, location: {id: row.location_id, name: row.name}, paidByUser: {id: row.paid_by_user_id, username: row.username, email: row.email, password: row.password}}));
   }
