@@ -1,4 +1,5 @@
-import { Pool } from 'pg';
+import pg from 'pg';
+const { Pool } = pg;
 import { 
   User, InsertUser, Category, InsertCategory, 
   Location, InsertLocation, Expense, InsertExpense,
