@@ -329,6 +329,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Trend Analysis route
+  app.get(`${API_PREFIX}/trends`, isAuthenticated, async (req, res) => {
+    try {
+      const monthsCount = req.query.months ? parseInt(req.query.months as string) : 6;
+      const trendData = await storage.getTrendData(monthsCount);
+      res.json(trendData);
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
 
   // Users route - just to get all users
   app.get(`${API_PREFIX}/users`, isAuthenticated, async (req, res) => {

@@ -135,3 +135,11 @@ export type MonthSummary = {
     toUserId: number;
   };
 };
+
+// Type for trend analysis data
+export type TrendData = {
+  months: string[];
+  totalsByMonth: number[];
+  categoriesData: Record<string, number[]>;
+  locationsData: Record<string, number[]>;
+};

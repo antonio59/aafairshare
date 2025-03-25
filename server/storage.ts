@@ -454,6 +454,68 @@ export class Storage {
     };
   }
 
+  // Trend Analysis - Get data for multiple months to display trends
+  async getTrendData(monthsCount: number = 6): Promise<TrendData> {
+    const today = new Date();
+    const months: string[] = [];
+    const totalsByMonth: number[] = [];
+    const categoriesData: Record<string, number[]> = {};
+    const locationsData: Record<string, number[]> = {};
+    
+    // Generate the last N months (including current)
+    for (let i = 0; i < monthsCount; i++) {
+      const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      months.unshift(monthStr); // Add to beginning to keep chronological order
+    }
+    
+    // Get all categories and locations
+    const allCategories = await this.getAllCategories();
+    const allLocations = await this.getAllLocations();
+    
+    // Initialize data structures
+    allCategories.forEach(category => {
+      categoriesData[category.name] = Array(months.length).fill(0);
+    });
+    
+    allLocations.forEach(location => {
+      locationsData[location.name] = Array(months.length).fill(0);
+    });
+    
+    // Fetch data for each month
+    for (let i = 0; i < months.length; i++) {
+      const month = months[i];
+      const expenses = await this.getExpensesByMonth(month);
+      
+      // Calculate total for month
+      const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
+      totalsByMonth[i] = total;
+      
+      // Calculate totals by category
+      expenses.forEach(expense => {
+        const categoryName = expense.category.name;
+        if (categoriesData[categoryName]) {
+          categoriesData[categoryName][i] += Number(expense.amount);
+        }
+      });
+      
+      // Calculate totals by location
+      expenses.forEach(expense => {
+        const locationName = expense.location.name;
+        if (locationsData[locationName]) {
+          locationsData[locationName][i] += Number(expense.amount);
+        }
+      });
+    }
+    
+    return {
+      months,
+      totalsByMonth,
+      categoriesData,
+      locationsData
+    };
+  }
+
   private calculatePercent(value: number, total: number): number {
     return Math.round((value / total) * 100);
   }
