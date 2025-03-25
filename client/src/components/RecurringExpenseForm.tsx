@@ -192,15 +192,13 @@ export default function RecurringExpenseForm({
 
       // Convert amount to number for the API
       // We need to add the name field as it's required in the database schema but not in our UI
-      // Remove end_date since it doesn't exist in the database schema
-      const { end_date, ...dataWithoutEndDate } = data;
       const recurringExpenseData = {
-        ...dataWithoutEndDate,
+        ...data,
         name: recurringExpense?.name || `${data.frequency} - ${FREQUENCY_OPTIONS.find(f => f.value === data.frequency)?.label || 'Recurring'} expense`,
         amount: parseFloat(data.amount),
         start_date: data.start_date instanceof Date ? data.start_date : new Date(data.start_date),
         next_date: data.next_date instanceof Date ? data.next_date : new Date(data.next_date),
-        // end_date is not sent to server as it doesn't exist in the database
+        end_date: data.end_date instanceof Date ? data.end_date : (data.end_date ? new Date(data.end_date) : null),
       };
 
       if (recurringExpense) {
@@ -327,134 +325,167 @@ export default function RecurringExpenseForm({
               <FormField
                 control={form.control}
                 name="start_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Start Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const [open, setOpen] = useState(false);
+                  
+                  const handleSelect = (date: Date | undefined) => {
+                    field.onChange(date);
+                    // Auto-close the popover when a date is selected
+                    setOpen(false);
+                  };
+                  
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Start Date</FormLabel>
+                      <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={handleSelect}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="next_date"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Next Date</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={field.onChange}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const [open, setOpen] = useState(false);
+                  
+                  const handleSelect = (date: Date | undefined) => {
+                    field.onChange(date);
+                    // Auto-close the popover when a date is selected
+                    setOpen(false);
+                  };
+                  
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel>Next Date</FormLabel>
+                      <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant={"outline"}
+                              className={cn(
+                                "w-full pl-3 text-left font-normal",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value ? (
+                                format(field.value, "PPP")
+                              ) : (
+                                <span>Pick a date</span>
+                              )}
+                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={handleSelect}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
             <FormField
               control={form.control}
               name="end_date"
-              render={({ field }) => (
-                <FormItem className="flex flex-col">
-                  <FormLabel>End Date (Optional)</FormLabel>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>No end date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value || undefined}
-                        onSelect={field.onChange}
-                        disabled={(date) =>
-                          date < startDate
-                        }
-                        initialFocus
-                      />
-                      <div className="p-3 border-t border-border">
-                        <Button
-                          variant="ghost"
-                          className="w-full justify-center"
-                          onClick={() => form.setValue("end_date", null)}
-                        >
-                          Clear end date
-                        </Button>
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                  <FormDescription>
-                    If set, the recurring expense will stop after this date
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const [open, setOpen] = useState(false);
+                
+                const handleSelect = (date: Date | undefined) => {
+                  field.onChange(date);
+                  // Auto-close the popover when a date is selected
+                  setOpen(false);
+                };
+                
+                return (
+                  <FormItem className="flex flex-col">
+                    <FormLabel>End Date (Optional)</FormLabel>
+                    <Popover open={open} onOpenChange={setOpen}>
+                      <PopoverTrigger asChild>
+                        <FormControl>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full pl-3 text-left font-normal",
+                              !field.value && "text-muted-foreground"
+                            )}
+                          >
+                            {field.value ? (
+                              format(field.value, "PPP")
+                            ) : (
+                              <span>No end date</span>
+                            )}
+                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          </Button>
+                        </FormControl>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={field.value || undefined}
+                          onSelect={handleSelect}
+                          disabled={(date) =>
+                            date < startDate
+                          }
+                          initialFocus
+                        />
+                        <div className="p-3 border-t border-border">
+                          <Button
+                            variant="ghost"
+                            className="w-full justify-center"
+                            onClick={() => {
+                              form.setValue("end_date", null);
+                              setOpen(false);
+                            }}
+                          >
+                            Clear end date
+                          </Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                    <FormDescription>
+                      If set, the recurring expense will stop after this date
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             
             <div className="grid grid-cols-2 gap-4">

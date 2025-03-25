@@ -120,7 +120,7 @@ export const recurringExpenses = pgTable("recurring_expenses", {
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   frequency: text("frequency").notNull(), // 'monthly', 'weekly', etc
   start_date: timestamp("start_date").notNull(),
-  // Note: end_date doesn't exist in the actual database table
+  end_date: timestamp("end_date"), // Column now exists in the database
   next_date: timestamp("next_date").notNull(),
   paid_by_user_id: integer("paid_by_user_id").notNull(), // reference to user ID
   split_type: text("split_type").notNull().default("50/50"),
@@ -136,7 +136,7 @@ export const insertRecurringExpenseSchema = createInsertSchema(recurringExpenses
   amount: true,
   frequency: true,
   start_date: true,
-  // end_date: true, // Removed as it doesn't exist in the database
+  end_date: true, // Re-added as the column now exists in the database
   next_date: true,
   paid_by_user_id: true,
   split_type: true,
