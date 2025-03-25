@@ -400,7 +400,7 @@ export class Storage {
     const expenses = await this.getExpensesByMonth(month);
 
     // Calculate total expenses
-    const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalExpenses = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
 
     // Get user expenses and summarize by user
     const users = await this.getAllUsers();
@@ -414,7 +414,7 @@ export class Storage {
     // Sum expenses accounting for split types
     expenses.forEach(expense => {
       if (expense.split_type === "50/50") {
-        userExpenses[expense.paid_by_user_id] += expense.amount;
+        userExpenses[expense.paid_by_user_id] += Number(expense.amount);
       } else if (expense.split_type === "100%") {
         // For 100% splits, the amount is attributed to the user who didn't pay
         const otherUserId = Object.keys(userExpenses)
@@ -422,7 +422,7 @@ export class Storage {
           .find(id => id !== expense.paid_by_user_id);
         if (otherUserId) {
           userExpenses[expense.paid_by_user_id] += 0; // They paid but don't owe
-          userExpenses[otherUserId] += expense.amount; // They owe the full amount
+          userExpenses[otherUserId] += Number(expense.amount); // They owe the full amount
         }
       }
     });
@@ -433,7 +433,7 @@ export class Storage {
 
     categories.forEach(category => {
       const categoryExpenses = expenses.filter(expense => expense.category_id === category.id);
-      const amount = categoryExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const amount = categoryExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
       if (amount > 0) {
         const percentage = this.calculatePercent(amount, totalExpenses);
         categoryTotals.push({ category, amount, percentage });
@@ -449,7 +449,7 @@ export class Storage {
 
     locations.forEach(location => {
       const locationExpenses = expenses.filter(expense => expense.location_id === location.id);
-      const amount = locationExpenses.reduce((sum, expense) => sum + expense.amount, 0);
+      const amount = locationExpenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
       if (amount > 0) {
         const percentage = this.calculatePercent(amount, totalExpenses);
         locationTotals.push({ location, amount, percentage });
@@ -467,7 +467,7 @@ export class Storage {
 
     expenses.forEach(expense => {
       const splitType = expense.split_type || "50/50";
-      splitTypeTotals[splitType] = (splitTypeTotals[splitType] || 0) + expense.amount;
+      splitTypeTotals[splitType] = (splitTypeTotals[splitType] || 0) + Number(expense.amount);
     });
 
     // Calculate date distribution (expenses per day)

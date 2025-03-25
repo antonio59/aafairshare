@@ -5,7 +5,7 @@ import ExpenseTable from "@/components/ExpenseTable";
 import CategoryChart from "@/components/CategoryChart";
 import ExpenseForm from "@/components/ExpenseForm";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, DollarSign, Users, WalletCards, BarChart3 } from "lucide-react";
+import { PlusIcon, PoundSterling, Users, WalletCards, BarChart3 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { ExpenseWithDetails, MonthSummary } from "@shared/schema";
 import { formatCurrency, getCurrentMonth } from "@/lib/utils";
@@ -129,7 +129,7 @@ export default function Dashboard() {
             <SummaryCard 
               title="Total Expenses" 
               value={summary ? formatCurrency(summary.totalExpenses) : "£0.00"} 
-              icon={DollarSign} 
+              icon={PoundSterling} 
               variant="total" 
             />
             <SummaryCard 
