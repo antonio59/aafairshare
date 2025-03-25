@@ -88,10 +88,19 @@ export default function Settlement() {
         amount: summary.settlementAmount.toString(), // Convert to string for schema validation
         date: new Date().toISOString(), // Using 'date' field instead of 'settled_at' and converting to ISO string
         from_user_id: summary.settlementDirection.fromUserId,
-        to_user_id: summary.settlementDirection.toUserId
+        to_user_id: summary.settlementDirection.toUserId,
+        notes: `Settlement for ${currentMonth}`
       };
-
-      await apiRequest('/api/settlements', 'POST', settlementData);
+      
+      console.log('Settlement data:', settlementData);
+      
+      const response = await apiRequest('/api/settlements', 'POST', settlementData);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Settlement error:', errorData);
+        throw new Error(errorData.message || 'Failed to record settlement');
+      }
 
       toast({
         title: "Settlement recorded",
@@ -100,10 +109,12 @@ export default function Settlement() {
 
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: [`/api/settlements?month=${currentMonth}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
     } catch (error) {
+      console.error('Settlement error:', error);
       toast({
         title: "Error",
-        description: "Failed to record settlement. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to record settlement. Please try again.",
         variant: "destructive"
       });
     } finally {
