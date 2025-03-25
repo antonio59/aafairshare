@@ -87,12 +87,24 @@ export default function Dashboard() {
     setIsExpenseFormOpen(true);
   };
 
+  // Fetch settlements for the month
+  const { 
+    data: settlements = [], 
+    isLoading: settlementsLoading 
+  } = useQuery({
+    queryKey: [`/api/settlements?month=${currentMonth}`],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1
+  });
+
   const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
     if (expenses && expenses.length > 0) {
       exportExpenses({
         format,
         month: currentMonth,
-        expenses
+        expenses,
+        settlements, // Add settlements data
+        summary      // Add summary data
       });
     } else {
       toast({
