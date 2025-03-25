@@ -78,7 +78,7 @@ export default function Login() {
     
     try {
       // Use the apiRequest function which already handles error checking
-      await apiRequest('POST', '/api/auth/login', data);
+      await apiRequest('/api/auth/login', 'POST', data);
       
       // Invalidate auth status cache so it will refetch and show as logged in
       await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
