@@ -101,19 +101,8 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                   <TableCell className="text-xs sm:text-sm text-gray-600 whitespace-nowrap">{formatDate(expense.date)}</TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      <div 
-                        className="h-6 w-6 sm:h-8 sm:w-8 rounded-md flex items-center justify-center"
-                        style={{
-                          backgroundColor: `${expense.category.color}20`,
-                          color: expense.category.color
-                        }}
-                      >
-                        <svg className="h-3 w-3 sm:h-4 sm:w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 004 0z" />
-                        </svg>
-                      </div>
                       <div className="ml-2 sm:ml-3">
-                        <p className="text-xs sm:text-sm font-medium text-gray-800">{expense.category?.name || 'Uncategorized'}</p>
+                        <p className="text-xs sm:text-sm font-medium text-gray-800" style={{ color: expense.category.color }}>{expense.category?.name || 'Uncategorized'}</p>
                         <p className="text-xs text-gray-500">{expense.location?.name || 'No location'}</p>
                         <div className="sm:hidden text-xs text-gray-500 flex flex-col">
                           <span>{expense.paidByUser.username}</span>
