@@ -26,7 +26,7 @@ export default function Settlement() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
-  
+
   // Fetch users
   const {
     data: users = [],
@@ -63,7 +63,7 @@ export default function Settlement() {
   } = useQuery<SettlementWithUsers[]>({
     queryKey: [`/api/settlements?month=${currentMonth}`]
   });
-  
+
   // Show error toast if settlements query fails
   useEffect(() => {
     if (settlementsError) {
@@ -80,6 +80,15 @@ export default function Settlement() {
   };
 
   const handleSettlement = async () => {
+    if (!currentMonth) {
+      toast({
+        title: "Error",
+        description: "Month must be selected before creating a settlement",
+        variant: "destructive"
+      });
+      return;
+    }
+
     if (!summary) return;
 
     try {
@@ -91,11 +100,11 @@ export default function Settlement() {
         to_user_id: summary.settlementDirection.toUserId,
         notes: `Settlement for ${currentMonth}`,
       };
-      
+
       console.log('Settlement data:', settlementData);
-      
+
       const response = await apiRequest('/api/settlements', 'POST', settlementData);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('Settlement error:', errorData);
@@ -140,14 +149,14 @@ export default function Settlement() {
   const fromUserName = summary?.settlementDirection.fromUserId 
     ? getUserName(summary.settlementDirection.fromUserId) 
     : "User A";
-    
+
   const toUserName = summary?.settlementDirection.toUserId 
     ? getUserName(summary.settlementDirection.toUserId) 
     : "User B";
 
   // Check if a settlement exists for this month
   const isSettled = settlements && settlements.length > 0;
-  
+
   // Get previous month's expenses
   const {
     data: previousMonthExpenses = []
@@ -155,7 +164,7 @@ export default function Settlement() {
     queryKey: [`/api/expenses?month=${previousMonth}`],
     enabled: !!previousMonth
   });
-  
+
   // Calculate unsettled months - only show warning if there are actual expenses
   const previousMonthIsSettled = previousMonthSettlements && previousMonthSettlements.length > 0;
   const hasPreviousMonthExpenses = previousMonthExpenses && previousMonthExpenses.length > 0;
@@ -166,9 +175,9 @@ export default function Settlement() {
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Settlement</h1>
       </div>
-      
+
       <MonthSelector onMonthChange={handleMonthChange} />
-      
+
       {/* Unsettled months card */}
       {unsettledMonths > 0 && (
         <Card className="bg-amber-50 border-amber-200 mt-4">
@@ -219,7 +228,7 @@ export default function Settlement() {
                     {summary ? formatCurrency(summary.settlementAmount) : "£0.00"}
                   </p>
                 </div>
-                
+
                 {!isSettled && summary && summary.settlementAmount > 0 && (
                   <Button 
                     className="w-full"
@@ -229,7 +238,7 @@ export default function Settlement() {
                     Mark as Settled
                   </Button>
                 )}
-                
+
                 {isSettled && (
                   <div className="bg-green-50 text-green-600 p-3 rounded-md text-center text-sm font-medium">
                     This month has been settled!
@@ -239,7 +248,7 @@ export default function Settlement() {
             )}
           </CardContent>
         </Card>
-        
+
         {/* User summaries */}
         <div className="space-y-4">
           {summaryLoading ? (
@@ -252,7 +261,7 @@ export default function Settlement() {
               const userId = parseInt(userIdStr, 10);
               const username = getUserName(userId);
               const isFirstUser = userId === (users[0]?.id || 0);
-              
+
               return (
                 <div key={userId} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                   <div className="flex items-center">
@@ -274,13 +283,13 @@ export default function Settlement() {
           )}
         </div>
       </div>
-      
+
       {/* Settlement history */}
       <SettlementHistory 
         settlements={settlements || []} 
         isLoading={settlementsLoading} 
       />
-      
+
       {/* Confirm settlement dialog */}
       <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <AlertDialogContent>
