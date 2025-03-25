@@ -175,17 +175,17 @@ export class Storage {
 
   async createExpense(expense: InsertExpense): Promise<ExpenseWithDetails> {
     const result = await pool.query(
-      `INSERT INTO expenses (amount, date, paid_by_user_id, split_type, notes, category_id, location_id, description, month) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *`,
-      [expense.amount, expense.date, expense.paid_by_user_id, expense.split_type || "50/50", expense.notes || null, expense.category_id, expense.location_id, expense.description, expense.month || null]
+      `INSERT INTO expenses (amount, date, paid_by_user_id, split_type, category_id, location_id, description, month) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
+      [expense.amount, expense.date, expense.paid_by_user_id, expense.split_type || "50/50", expense.category_id, expense.location_id, expense.description, expense.month || null]
     );
     return this.getExpense(result.rows[0].id) as ExpenseWithDetails;
   }
 
   async updateExpense(id: number, expense: Partial<InsertExpense>): Promise<ExpenseWithDetails | undefined> {
     const result = await pool.query(
-      `UPDATE expenses SET amount = $1, date = $2, paid_by_user_id = $3, split_type = $4, notes = $5, category_id = $6, location_id = $7, description = $8, month = $9 WHERE id = $10 RETURNING *`,
-      [expense.amount, expense.date, expense.paid_by_user_id, expense.split_type, expense.notes, expense.category_id, expense.location_id, expense.description, expense.month, id]
+      `UPDATE expenses SET amount = $1, date = $2, paid_by_user_id = $3, split_type = $4, category_id = $5, location_id = $6, description = $7, month = $8 WHERE id = $9 RETURNING *`,
+      [expense.amount, expense.date, expense.paid_by_user_id, expense.split_type, expense.category_id, expense.location_id, expense.description, expense.month, id]
     );
     return this.getExpense(id);
   }
@@ -285,10 +285,11 @@ export class Storage {
           date: nextDate,
           paid_by_user_id: recurringExpense.paid_by_user_id,
           split_type: recurringExpense.split_type,
-          notes: recurringExpense.notes ? `${recurringExpense.notes} (Recurring: ${recurringExpense.name})` : `Recurring: ${recurringExpense.name}`,
           category_id: recurringExpense.category_id,
           location_id: recurringExpense.location_id,
-          description: recurringExpense.description
+          description: recurringExpense.notes ? 
+            `${recurringExpense.description} (Recurring: ${recurringExpense.name} - ${recurringExpense.notes})` : 
+            `${recurringExpense.description} (Recurring: ${recurringExpense.name})`
         };
 
         const createdExpense = await this.createExpense(newExpense);
