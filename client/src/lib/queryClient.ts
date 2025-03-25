@@ -20,6 +20,13 @@ export async function apiRequest<T = any>(
   });
 
   await throwIfResNotOk(res);
+  
+  // For 204 No Content responses (commonly used in DELETE operations), 
+  // don't try to parse the response as JSON as there's no body
+  if (res.status === 204) {
+    return {} as T;
+  }
+  
   return await res.json() as T;
 }
 
@@ -38,6 +45,12 @@ export const getQueryFn: <T>(options: {
     }
 
     await throwIfResNotOk(res);
+    
+    // For 204 No Content responses, don't try to parse the response as JSON
+    if (res.status === 204) {
+      return {} as T;
+    }
+    
     return await res.json();
   };
 
