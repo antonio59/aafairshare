@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface SettlementHistoryProps {
   settlements: SettlementWithUsers[];
   isLoading?: boolean;
+  onUnsettlement?: (id: number) => void;
 }
 
 export default function SettlementHistory({ settlements, isLoading = false }: SettlementHistoryProps) {
@@ -65,7 +66,42 @@ export default function SettlementHistory({ settlements, isLoading = false }: Se
         <CardTitle>Settlement History</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div className="space-y-4 sm:hidden">
+          {settlements.map((settlement) => (
+            <div key={settlement.id} className="bg-white p-4 rounded-lg border">
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <p className="text-sm text-gray-500">Date</p>
+                  <p className="text-sm font-medium">{format(new Date(settlement.date), "MMM d, yyyy")}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">Month</p>
+                  <p className="text-sm font-medium">{format(new Date(settlement.month + "-01"), "MMMM yyyy")}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">From</p>
+                  <p className="text-sm font-medium">{settlement.fromUser.username}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">To</p>
+                  <p className="text-sm font-medium">{settlement.toUser.username}</p>
+                </div>
+                <div className="col-span-2">
+                  <p className="text-sm text-gray-500">Amount</p>
+                  <p className="text-sm font-medium">{formatCurrency(Number(settlement.amount))}</p>
+                </div>
+                {onUnsettlement && (
+                  <div className="col-span-2 mt-2">
+                    <Button variant="ghost" size="sm" onClick={() => onUnsettlement(settlement.id)} className="w-full">
+                      Unsettle
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="hidden sm:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -74,6 +110,7 @@ export default function SettlementHistory({ settlements, isLoading = false }: Se
                 <TableHead>From</TableHead>
                 <TableHead>To</TableHead>
                 <TableHead className="text-right">Amount</TableHead>
+                {onUnsettlement && <TableHead />}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -94,7 +131,8 @@ export default function SettlementHistory({ settlements, isLoading = false }: Se
                   <TableCell className="text-sm font-medium text-gray-800 text-right">
                     {formatCurrency(Number(settlement.amount))}
                   </TableCell>
-                  <TableCell>
+                  {onUnsettlement && (
+                    <TableCell>
                     <Button
                       variant="ghost"
                       size="sm"
