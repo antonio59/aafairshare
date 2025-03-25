@@ -66,6 +66,81 @@ export async function initializeSupabaseDatabase() {
 async function createTables() {
   try {
     log("Creating tables via direct SQL...");
+    
+    // Create all tables in a single transaction
+    const createTablesSQL = `
+      BEGIN;
+      
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        color TEXT,
+        icon TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS locations (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS expenses (
+        id SERIAL PRIMARY KEY,
+        description TEXT NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        date TIMESTAMP NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        location_id INTEGER REFERENCES locations(id),
+        paid_by_user_id INTEGER REFERENCES users(id),
+        split_type TEXT NOT NULL,
+        notes TEXT,
+        month TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS recurring_expenses (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        frequency TEXT NOT NULL,
+        start_date TIMESTAMP NOT NULL,
+        end_date TIMESTAMP,
+        next_date TIMESTAMP NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        location_id INTEGER REFERENCES locations(id),
+        paid_by_user_id INTEGER REFERENCES users(id),
+        split_type TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        notes TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS settlements (
+        id SERIAL PRIMARY KEY,
+        amount DECIMAL(10, 2) NOT NULL,
+        date TIMESTAMP NOT NULL,
+        month TEXT NOT NULL,
+        from_user_id INTEGER REFERENCES users(id),
+        to_user_id INTEGER REFERENCES users(id),
+        notes TEXT
+      );
+      
+      COMMIT;
+    `;
+
+    const result = await executeDirectSql(createTablesSQL);
+    if (!result.success) {
+      log(`Failed to create tables: ${result.message}`);
+      return false;
+    }
+    
+    log("Tables created successfully");
+    return true;
 
     // Create users table
     await executeDirectSql(`

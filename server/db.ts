@@ -11,27 +11,24 @@ const connectionString = process.env.DATABASE_URL;
 // Function to execute SQL directly using service role key
 export async function executeDirectSql(sql: string) {
   try {
-    const { data, error } = await supabase.rpc('exec_sql', { sql });
-    
-    if (error) {
-      // If RPC doesn't exist, try direct REST API
-      const result = await fetch(`${supabase.supabaseUrl}/rest/v1/rpc/exec_sql`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.supabaseKey}`,
-          'apikey': supabase.supabaseKey
-        },
-        body: JSON.stringify({ sql })
-      });
+    const result = await fetch(`${supabase.supabaseUrl}/rest/v1/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabase.supabaseServiceKey}`,
+        'apikey': supabase.supabaseServiceKey,
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ query: sql })
+    });
 
-      if (!result.ok) {
-        console.error("SQL execution error:", await result.text());
-        return { success: false, message: `Failed to execute SQL: ${sql}` };
-      }
+    if (!result.ok) {
+      const errorText = await result.text();
+      console.error("SQL execution error:", errorText);
+      return { success: false, message: `Failed to execute SQL: ${errorText}` };
     }
-    
-    return { success: true, data };
+
+    return { success: true };
   } catch (error) {
     console.error("SQL execution exception:", error);
     return { success: false, message: error instanceof Error ? error.message : String(error) };
