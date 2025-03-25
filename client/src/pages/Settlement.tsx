@@ -61,7 +61,7 @@ export default function Settlement() {
     isLoading: settlementsLoading,
     isError: settlementsError
   } = useQuery<SettlementWithUsers[]>({
-    queryKey: [`/api/settlements?month=${currentMonth}`]
+    queryKey: ['/api/settlements', currentMonth]
   });
 
   // Show error toast if settlements query fails
@@ -92,7 +92,8 @@ export default function Settlement() {
       });
 
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: [`/api/settlements?month=${currentMonth}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/settlements', currentMonth] });
+      queryClient.invalidateQueries({ queryKey: ['/api/settlements'] }); // Invalidate all settlements queries
       queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
     } catch (error) {
       toast({
@@ -154,7 +155,8 @@ export default function Settlement() {
       });
 
       // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: [`/api/settlements?month=${currentMonth}`] });
+      queryClient.invalidateQueries({ queryKey: ['/api/settlements', currentMonth] });
+      queryClient.invalidateQueries({ queryKey: ['/api/settlements'] }); // Invalidate all settlements queries
       queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
     } catch (error) {
       console.error('Settlement error:', error);
@@ -173,7 +175,7 @@ export default function Settlement() {
   const {
     data: previousMonthSettlements = []
   } = useQuery<SettlementWithUsers[]>({
-    queryKey: [`/api/settlements?month=${previousMonth}`],
+    queryKey: ['/api/settlements', previousMonth],
     enabled: !!currentMonth
   });
 
