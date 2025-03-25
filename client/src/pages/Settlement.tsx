@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { DollarSign, Users, Check, CalendarClock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { MonthSummary, Settlement as SettlementType, SettlementWithUsers, User } from "@shared/schema";
+import { MonthSummary, Settlement as SettlementType, SettlementWithUsers, User, ExpenseWithDetails } from "@shared/schema";
 import { getCurrentMonth, formatCurrency, getPreviousMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -137,9 +137,18 @@ export default function Settlement() {
   // Check if a settlement exists for this month
   const isSettled = settlements && settlements.length > 0;
   
-  // Calculate unsettled months
+  // Get previous month's expenses
+  const {
+    data: previousMonthExpenses = []
+  } = useQuery<ExpenseWithDetails[]>({
+    queryKey: [`/api/expenses?month=${previousMonth}`],
+    enabled: !!previousMonth
+  });
+  
+  // Calculate unsettled months - only show warning if there are actual expenses
   const previousMonthIsSettled = previousMonthSettlements && previousMonthSettlements.length > 0;
-  const unsettledMonths = !previousMonthIsSettled ? 1 : 0;
+  const hasPreviousMonthExpenses = previousMonthExpenses && previousMonthExpenses.length > 0;
+  const unsettledMonths = (!previousMonthIsSettled && hasPreviousMonthExpenses) ? 1 : 0;
 
   return (
     <div className="space-y-6">

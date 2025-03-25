@@ -123,7 +123,20 @@ export default function Dashboard() {
   const user2IdStr = user2Id.toString();
 
   return (
-    <div className="space-y-6 px-2 sm:px-4 pb-20">
+    <div className="space-y-6 px-2 sm:px-4 pb-24">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        
+        {/* Add New Expense Button for larger screens */}
+        <Button 
+          onClick={handleAddExpense}
+          className="hidden sm:flex items-center"
+        >
+          <PlusIcon className="h-4 w-4 mr-2" />
+          Add Expense
+        </Button>
+      </div>
+      
       <div className="mb-4">
         <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
       </div>
@@ -170,11 +183,22 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Expenses Table */}
+      {/* Expenses Table with Add Button for Mobile */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-3 py-4 sm:px-6 sm:py-5 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-medium text-gray-800">Expenses</h3>
+            
+            {/* Add New Expense Button for small screens - inside the table header */}
+            <Button 
+              onClick={handleAddExpense}
+              size="sm"
+              variant="outline"
+              className="sm:hidden"
+            >
+              <PlusIcon className="h-4 w-4 mr-1" />
+              Add
+            </Button>
           </div>
         </div>
         <div className="overflow-x-auto">
@@ -186,14 +210,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Category Distribution removed as it's already in Analytics page */}
-
-      {/* Add New Expense Button */}
+      {/* Floating Add New Expense Button for mid-size screens */}
       <Button 
         onClick={handleAddExpense}
-        className="fixed bottom-16 right-4 sm:bottom-8 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors p-0 z-10"
+        className="fixed bottom-20 right-4 md:bottom-8 md:right-6 h-12 w-12 rounded-full bg-primary text-white shadow-lg flex sm:hidden md:flex items-center justify-center hover:bg-blue-600 transition-colors p-0 z-10"
       >
-        <PlusIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+        <PlusIcon className="h-5 w-5" />
       </Button>
 
       {/* Expense Form */}
