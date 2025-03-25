@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -30,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 
@@ -46,9 +48,11 @@ const FREQUENCY_OPTIONS = [
 // Define form schema with validation
 const formSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
-  amount: z.string().refine((val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0, {
-    message: "Amount must be a positive number",
-  }),
+  description: z.string().optional().or(z.literal("")),
+  amount: z.string().min(1, "Amount is required").refine(
+    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
+    { message: "Amount must be a positive number" }
+  ),
   frequency: z.string().min(1, "Frequency is required"),
   start_date: z.date({
     required_error: "Start date is required",
@@ -57,8 +61,8 @@ const formSchema = z.object({
   next_date: z.date({
     required_error: "Next date is required",
   }),
-  paid_by: z.number({
-    required_error: "Paid by is required",
+  paid_by_user_id: z.number({
+    required_error: "Paid by user is required",
   }),
   split_type: z.string().default("50/50"),
   notes: z.string().optional(),
