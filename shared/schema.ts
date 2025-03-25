@@ -115,8 +115,6 @@ export type SettlementWithUsers = Settlement & {
 // Recurring Expenses table
 export const recurringExpenses = pgTable("recurring_expenses", {
   id: serial("id").primaryKey(),
-  // Keep name as not null for now, but we'll populate it automatically in the code
-  name: text("name").notNull().default(""),
   description: text("description").default(""),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   frequency: text("frequency").notNull(), // 'monthly', 'weekly', etc
@@ -125,24 +123,20 @@ export const recurringExpenses = pgTable("recurring_expenses", {
   next_date: timestamp("next_date").notNull(),
   paid_by_user_id: integer("paid_by_user_id").notNull(), // reference to user ID
   split_type: text("split_type").notNull().default("50/50"),
-  // Keep notes field but it should be optional
-  notes: text("notes").default(""),
   category_id: integer("category_id").notNull(), // reference to category ID
   location_id: integer("location_id").notNull(), // reference to location ID
   is_active: boolean("is_active").notNull().default(true),
 });
 
 export const insertRecurringExpenseSchema = createInsertSchema(recurringExpenses).pick({
-  name: true,
   description: true,
   amount: true,
   frequency: true,
   start_date: true,
-  end_date: true, // Re-added as the column now exists in the database
+  end_date: true,
   next_date: true,
   paid_by_user_id: true,
   split_type: true,
-  notes: true,
   category_id: true,
   location_id: true,
   is_active: true,

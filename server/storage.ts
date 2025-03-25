@@ -255,20 +255,18 @@ export class Storage {
     console.log("Creating recurring expense with data:", JSON.stringify(recurringExpense, null, 2));
     
     const result = await pool.query(
-      `INSERT INTO recurring_expenses (name, amount, next_date, paid_by_user_id, split_type, notes, frequency, is_active, category_id, location_id, description, end_date, start_date) 
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      `INSERT INTO recurring_expenses (amount, next_date, paid_by_user_id, split_type, frequency, is_active, category_id, location_id, description, end_date, start_date) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) RETURNING *`,
       [
-        recurringExpense.name, 
         recurringExpense.amount, 
         recurringExpense.next_date, 
         recurringExpense.paid_by_user_id, 
         recurringExpense.split_type || "50/50", 
-        recurringExpense.notes || null, 
         recurringExpense.frequency, 
         recurringExpense.is_active ?? true, 
         recurringExpense.category_id, 
         recurringExpense.location_id, 
-        recurringExpense.description, 
+        recurringExpense.description || "", 
         recurringExpense.end_date || null,
         recurringExpense.start_date // Add the start_date to the query
       ]
@@ -287,10 +285,6 @@ export class Storage {
       let paramCounter = 1;
       
       // Check each possible field and add it to the SET clause if it's defined
-      if (updatedRecurringExpense.name !== undefined) {
-        setClauses.push(`name = $${paramCounter++}`);
-        values.push(updatedRecurringExpense.name);
-      }
       if (updatedRecurringExpense.amount !== undefined) {
         setClauses.push(`amount = $${paramCounter++}`);
         values.push(updatedRecurringExpense.amount);
@@ -306,10 +300,6 @@ export class Storage {
       if (updatedRecurringExpense.split_type !== undefined) {
         setClauses.push(`split_type = $${paramCounter++}`);
         values.push(updatedRecurringExpense.split_type);
-      }
-      if (updatedRecurringExpense.notes !== undefined) {
-        setClauses.push(`notes = $${paramCounter++}`);
-        values.push(updatedRecurringExpense.notes);
       }
       if (updatedRecurringExpense.frequency !== undefined) {
         setClauses.push(`frequency = $${paramCounter++}`);
@@ -352,27 +342,23 @@ export class Storage {
       // Full update approach - be careful as this can set fields to null if they're not provided
       const result = await pool.query(
         `UPDATE recurring_expenses SET 
-          name = $1, 
-          amount = $2, 
-          next_date = $3, 
-          paid_by_user_id = $4, 
-          split_type = $5, 
-          notes = $6, 
-          frequency = $7, 
-          is_active = $8, 
-          category_id = $9, 
-          location_id = $10, 
-          description = $11, 
-          end_date = $12,
-          start_date = $13
-         WHERE id = $14 RETURNING *`,
+          amount = $1, 
+          next_date = $2, 
+          paid_by_user_id = $3, 
+          split_type = $4, 
+          frequency = $5, 
+          is_active = $6, 
+          category_id = $7, 
+          location_id = $8, 
+          description = $9, 
+          end_date = $10,
+          start_date = $11
+         WHERE id = $12 RETURNING *`,
         [
-          updatedRecurringExpense.name, 
           updatedRecurringExpense.amount, 
           updatedRecurringExpense.next_date, 
           updatedRecurringExpense.paid_by_user_id, 
           updatedRecurringExpense.split_type, 
-          updatedRecurringExpense.notes, 
           updatedRecurringExpense.frequency, 
           updatedRecurringExpense.is_active, 
           updatedRecurringExpense.category_id, 
@@ -412,9 +398,7 @@ export class Storage {
           split_type: recurringExpense.split_type,
           category_id: recurringExpense.category_id,
           location_id: recurringExpense.location_id,
-          description: recurringExpense.notes ? 
-            `${recurringExpense.description} (Recurring: ${recurringExpense.name} - ${recurringExpense.notes})` : 
-            `${recurringExpense.description} (Recurring: ${recurringExpense.name})`
+          description: `${recurringExpense.description} (Recurring: ${recurringExpense.frequency})`
         };
 
         const createdExpense = await this.createExpense(newExpense);
