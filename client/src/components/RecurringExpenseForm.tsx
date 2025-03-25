@@ -47,7 +47,6 @@ const FREQUENCY_OPTIONS = [
 
 // Define form schema with validation
 const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
   description: z.string().optional().or(z.literal("")),
   amount: z.string().min(1, "Amount is required").refine(
     (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
@@ -65,7 +64,6 @@ const formSchema = z.object({
     required_error: "Paid by user is required",
   }),
   split_type: z.string().default("50/50"),
-  notes: z.string().optional(),
   category_id: z.number({
     required_error: "Category is required",
   }),
