@@ -11,14 +11,30 @@ const connectionString = process.env.DATABASE_URL;
 // Function to execute SQL directly using service role key
 export async function executeDirectSql(sql: string) {
   try {
-    const { data, error } = await supabase.rpc('exec_sql', { query: sql });
+    const { data, error } = await supabase.from('_backend').select('*').filter('id', 'eq', 1);
     
-    if (error) {
-      console.error("SQL execution error:", error);
-      return { success: false, message: error.message };
+    // If error about table not existing, create it first
+    if (error && error.code === '42P01') {
+      const { error: createError } = await supabase
+        .auth.admin.queryDb(sql);
+      
+      if (createError) {
+        console.error("SQL execution error:", createError);
+        return { success: false, message: createError.message };
+      }
+      return { success: true };
     }
     
-    return { success: true, data };
+    // Execute the actual query
+    const { error: queryError } = await supabase
+      .auth.admin.queryDb(sql);
+    
+    if (queryError) {
+      console.error("SQL execution error:", queryError);
+      return { success: false, message: queryError.message };
+    }
+    
+    return { success: true };
   } catch (error) {
     console.error("SQL execution exception:", error);
     return { success: false, message: error instanceof Error ? error.message : String(error) };
