@@ -2,7 +2,7 @@ import { supabase } from "./supabase";
 import { SupabaseStorage } from "./supabaseStorage";
 import { MemStorage } from "./storage";
 import { createSupabaseFunctions } from "./createSupabaseFunctions";
-import { db } from "./db";
+import { executeDirectSql } from "./db";
 import { log } from "./vite";
 import fs from 'fs';
 import path from 'path';
