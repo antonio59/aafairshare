@@ -167,16 +167,8 @@ export default function Login() {
             </form>
           </Form>
         </CardContent>
-        <CardFooter>
-          <Button 
-            variant="outline" 
-            className="w-full" 
-            onClick={() => setLocation('/register')}
-            disabled={isLoading || isCheckingAuth}
-          >
-            Don't have an account? Register
-          </Button>
-        </CardFooter>
+        {/* Register button removed as per requirement */}
+        <CardFooter></CardFooter>
       </Card>
     </div>
   );

@@ -69,7 +69,17 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Switch>
         <Route path="/login" component={Login} />
-        <Route path="/register" component={Register} />
+        {/* Registration route disabled as per requirement */}
+        <Route path="/register">
+          {() => {
+            // Redirect any attempts to access register page to login
+            const [, setLocation] = useLocation();
+            useEffect(() => {
+              setLocation('/login');
+            }, []);
+            return null;
+          }}
+        </Route>
         <Route path="/">
           {() => <ProtectedRoute component={Dashboard} />}
         </Route>

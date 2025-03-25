@@ -79,49 +79,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(200).json({ isAuthenticated: false });
   });
 
-  // Registration route
-  app.post(`${API_PREFIX}/auth/register`, async (req, res) => {
-    try {
-      // Validate the user data
-      const validatedData = insertUserSchema.parse(req.body);
-
-      // Check if username already exists
-      const existingUsername = await storage.getUserByUsername(validatedData.username);
-      if (existingUsername) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      // Check if email already exists
-      const existingEmail = await storage.getUserByEmail(validatedData.email);
-      if (existingEmail) {
-        return res.status(400).json({ message: "Email already exists" });
-      }
-
-      // Hash the password before creating the user
-      const hashedPassword = await bcrypt.hash(validatedData.password, 10); // Hash password with salt rounds 10
-      const updatedValidatedData = {...validatedData, password: hashedPassword}; // Update with hashed password
-
-      // Create the new user
-      try {
-        const newUser = await storage.createUser(updatedValidatedData); // Use updated data with hashed password
-
-        res.status(201).json({
-          message: "User registered successfully",
-          user: {
-            id: newUser.id,
-            username: newUser.username,
-            email: newUser.email
-          }
-        });
-      } catch (createError) {
-        console.error("Failed to create user:", createError);
-        throw createError; 
-      }
-    } catch (error) {
-      console.error("Registration error:", error instanceof Error ? error.message : String(error));
-      console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
-      handleError(res, error);
-    }
+  // Registration route - Disabled for closed application
+  app.post(`${API_PREFIX}/auth/register`, (req, res) => {
+    // Return 403 Forbidden to indicate registration is not allowed
+    return res.status(403).json({ 
+      message: "Registration is disabled. This is a closed application." 
+    });
   });
 
   // Categories routes
