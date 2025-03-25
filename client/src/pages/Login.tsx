@@ -122,18 +122,19 @@ export default function Login() {
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Username</FormLabel>
+                    <FormLabel>Email</FormLabel>
                     <FormControl>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <User className="h-5 w-5 text-gray-400" />
+                          <Mail className="h-5 w-5 text-gray-400" />
                         </div>
                         <Input
                           className="pl-10"
-                          placeholder="Enter your username"
+                          type="email"
+                          placeholder="Enter your email"
                           {...field}
                           disabled={isLoading || isCheckingAuth}
                         />

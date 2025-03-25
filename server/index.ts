@@ -36,11 +36,14 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Configure passport local strategy
-passport.use(new LocalStrategy(async (username, password, done) => {
+passport.use(new LocalStrategy({
+  usernameField: 'email',
+  passwordField: 'password'
+}, async (email, password, done) => {
   try {
-    const user = await storage.getUserByUsername(username);
+    const user = await storage.getUserByEmail(email);
     if (!user) {
-      return done(null, false, { message: "Incorrect username" });
+      return done(null, false, { message: "Incorrect email" });
     }
 
     // Use bcrypt to compare passwords
