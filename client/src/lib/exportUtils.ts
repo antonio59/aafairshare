@@ -3,6 +3,7 @@ import { ExpenseWithDetails, SettlementWithUsers, MonthSummary } from '@shared/s
 import { formatCurrency, formatDate, formatMonthYear } from './utils';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import { USERS } from './constants';
 
 type ExportFormat = 'csv' | 'xlsx' | 'pdf';
@@ -149,7 +150,7 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
       }
 
       // Add expenses table with proper formatting
-      (doc as any).autoTable({
+      autoTable(doc, {
         head: [['Date', 'Category', 'Location', 'Amount', 'Paid By', 'Split', 'Description']],
         body: [
           ...expenses.map(expense => [
@@ -193,7 +194,7 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
       });
 
       // Get the last Y position after expenses table
-      const finalY = (doc as any).lastAutoTable.finalY || 150;
+      const finalY = doc.lastAutoTable.finalY || 150;
 
       // Add user expense breakdown if summary is available
       if (summary) {
@@ -206,7 +207,7 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
         doc.setFontSize(14);
         doc.text('Expense Summary', 14, finalY + 15);
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           head: [['User', 'Amount', 'Percentage']],
           body: [
             [user1.name, formatCurrency(user1Expenses), `${Math.round((user1Expenses / summary.totalExpenses) * 100)}%`],
@@ -224,12 +225,12 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
       // Add settlement information if available
       if (settlements.length > 0) {
         // Get the current Y position
-        const summaryY = (doc as any).lastAutoTable.finalY || finalY + 40;
+        const summaryY = doc.lastAutoTable.finalY || finalY + 40;
 
         doc.setFontSize(14);
         doc.text('Settlement History', 14, summaryY + 15);
 
-        (doc as any).autoTable({
+        autoTable(doc, {
           head: [['Date', 'Month', 'From', 'To', 'Amount']],
           body: settlements.map(settlement => [
             formatDate(settlement.date),
