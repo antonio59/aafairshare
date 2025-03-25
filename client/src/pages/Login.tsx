@@ -34,6 +34,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { apiRequest } from "@/lib/queryClient";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -98,18 +99,8 @@ export default function Login() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Login failed');
-      }
-
+      const result = await apiRequest('/api/auth/login', 'POST', data);
+      
       toast({
         title: "Success",
         description: "Login successful",
@@ -130,20 +121,10 @@ export default function Login() {
   const handleResetPassword = async (data: ResetPasswordData) => {
     setIsResettingPassword(true);
     try {
-      const response = await fetch('/api/auth/reset-password', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: data.email,
-          newPassword: data.newPassword
-        }),
+      await apiRequest('/api/auth/reset-password', 'POST', {
+        email: data.email,
+        newPassword: data.newPassword
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Password reset failed');
-      }
 
       toast({
         title: "Success",
