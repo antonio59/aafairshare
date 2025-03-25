@@ -392,13 +392,14 @@ export class Storage {
     const today = new Date();
     const activeRecurringExpenses = await this.getActiveRecurringExpenses();
     const createdExpenses: ExpenseWithDetails[] = [];
+    console.log("Processing recurring expenses:", activeRecurringExpenses);
 
     for (const recurringExpense of activeRecurringExpenses) {
       const startDate = new Date(recurringExpense.start_date);
       let currentDate = new Date(recurringExpense.next_date);
 
-      // Process multiple occurrences if needed
-      while (startDate <= today && currentDate <= today) {
+      // Check if expense should be processed based on start date and frequency
+      if (startDate <= today) {
         // Create a new expense based on the recurring expense
         const newExpense: InsertExpense = {
           amount: recurringExpense.amount,

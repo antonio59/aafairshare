@@ -110,19 +110,6 @@ app.use((req, res, next) => {
     // Process recurring expenses at startup
     try {
       log("Processing recurring expenses...");
-      
-      // Log active recurring expenses
-      const activeRecurringExpenses = await storage.getActiveRecurringExpenses();
-      log(`Found ${activeRecurringExpenses.length} active recurring expenses to process`);
-      
-      if (activeRecurringExpenses.length > 0) {
-        // Log details of recurring expenses
-        activeRecurringExpenses.forEach(expense => {
-          log(`Recurring expense: ${expense.description} - ${expense.amount} - Next date: ${expense.next_date}`);
-        });
-      }
-      
-      // Process recurring expenses
       const createdExpenses = await storage.processRecurringExpenses();
       
       if (createdExpenses.length > 0) {
