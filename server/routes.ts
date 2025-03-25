@@ -330,7 +330,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Convert date string to Date object
         date: req.body.date ? new Date(req.body.date) : undefined
       };
-      
+
       const validatedData = insertSettlementSchema.parse(settlementData);
       const settlement = await storage.createSettlement(validatedData);
       res.status(201).json(settlement);

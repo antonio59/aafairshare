@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import * as LucideIcons from "lucide-react";
+//import * as LucideIcons from "lucide-react"; // Removed import of LucideIcons
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -117,7 +117,7 @@ export default function Settings() {
                 </CardDescription>
               </div>
               <Button onClick={() => setCategoryFormOpen(true)}>
-                <PlusIcon className="mr-2 h-4 w-4" />
+                <PlusIcon className="mr-2 h-4 w-4" /> {/* PlusIcon remains, as per the original code and not mentioned in removal request */}
                 Add Category
               </Button>
             </CardHeader>
@@ -130,48 +130,35 @@ export default function Settings() {
                 </div>
               ) : categories && categories.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {categories.map((category) => {
-                    const IconComponent = (LucideIcons as any)[category.icon];
-                    return (
-                      <Card key={category.id}>
-                        <CardContent className="flex items-center justify-between p-4">
-                          <div className="flex items-center space-x-4">
-                            {IconComponent && (
-                              <div
-                                className="p-2 rounded"
-                                style={{ backgroundColor: category.color + "20" }}
-                              >
-                                <IconComponent
-                                  style={{ color: category.color }}
-                                  className="h-4 w-4"
-                                />
-                              </div>
-                            )}
-                            <span>{category.name}</span>
-                          </div>
-                          <div className="flex space-x-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedCategory(category);
-                                setCategoryFormOpen(true);
-                              }}
-                            >
-                              <Edit2Icon className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => openDeleteDialog('category', category.id)}
-                            >
-                              <Trash2Icon className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    );
-                  })}
+                  {categories.map((category) => (
+                    <Card key={category.id}>
+                      <CardContent className="flex items-center justify-between p-4">
+                        <div className="flex items-center space-x-4">
+                          {/* Removed IconComponent and related code */}
+                          <span>{category.name}</span>
+                        </div>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setSelectedCategory(category);
+                              setCategoryFormOpen(true);
+                            }}
+                          >
+                            <Edit2Icon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openDeleteDialog('category', category.id)}
+                          >
+                            <Trash2Icon className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : (
                 <div className="p-4 text-center">
@@ -192,7 +179,7 @@ export default function Settings() {
                 </CardDescription>
               </div>
               <Button onClick={() => setLocationFormOpen(true)}>
-                <PlusIcon className="mr-2 h-4 w-4" />
+                <PlusIcon className="mr-2 h-4 w-4" /> {/* PlusIcon remains, as per the original code and not mentioned in removal request */}
                 Add Location
               </Button>
             </CardHeader>
