@@ -8,7 +8,7 @@ import { storage as memStorage, MemStorage, IStorage } from "./storage";
 import { SupabaseStorage } from "./supabaseStorage";
 import { initializeSupabaseDatabase } from "./initSupabase";
 import { createSupabaseFunctions } from "./createSupabaseFunctions";
-import { executeSqlFileWithPostgres } from "./db";
+import { db } from "./db";
 
 const app = express();
 app.use(express.json());
