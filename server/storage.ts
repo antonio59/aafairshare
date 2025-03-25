@@ -384,7 +384,7 @@ export class Storage {
 
   async deleteRecurringExpense(id: number): Promise<boolean> {
     const result = await pool.query('DELETE FROM recurring_expenses WHERE id = $1', [id]);
-    return result.rowCount > 0;
+    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Function to process recurring expenses and create actual expenses from them
@@ -527,7 +527,11 @@ export class Storage {
       `INSERT INTO settlements (from_user_id, to_user_id, amount, date) VALUES ($1, $2, $3, $4) RETURNING *`,
       [settlement.from_user_id, settlement.to_user_id, settlement.amount, settlement.date]
     );
-    return this.getSettlement(result.rows[0].id) as SettlementWithUsers;
+    const createdSettlement = await this.getSettlement(result.rows[0].id);
+    if (!createdSettlement) {
+      throw new Error("Failed to retrieve created settlement");
+    }
+    return createdSettlement;
   }
 
   // Summary operations
