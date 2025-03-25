@@ -48,8 +48,10 @@ passport.use(new LocalStrategy({
       return done(null, false, { message: "Incorrect password" });
     }
 
-    return done(null, user);
+    const { password: _, ...userWithoutPassword } = user;
+    return done(null, userWithoutPassword);
   } catch (error) {
+    console.error('Auth error:', error);
     return done(error);
   }
 }));
