@@ -252,13 +252,19 @@ export default function RecurringExpenseForm({
         nextDate = new Date(new Date().setMonth(new Date().getMonth() + 1));
       }
       
-      // Build the data object with all required fields
+      // Ensure dates are properly formatted for the PostgreSQL database
+      // This converts to ISO format which is compatible with PostgreSQL
+      const formattedStartDate = startDate.toISOString();
+      const formattedNextDate = nextDate.toISOString();
+      const formattedEndDate = endDate ? endDate.toISOString() : null;
+      
+      // Build the data object with all required fields and properly formatted dates
       const recurringExpenseData = {
         ...data,
         amount: parseFloat(data.amount),
-        start_date: startDate,
-        next_date: nextDate,
-        end_date: endDate,
+        start_date: formattedStartDate,
+        next_date: formattedNextDate,
+        end_date: formattedEndDate,
       };
       
       // Log the final data we're sending to the server
