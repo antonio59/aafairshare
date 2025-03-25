@@ -83,14 +83,14 @@ export class Storage {
   async deleteCategory(id: number): Promise<boolean> {
     // Start a transaction
     await pool.query('BEGIN');
-    
+
     try {
       // Check if category exists
       const categoryCheck = await pool.query(
         'SELECT id FROM categories WHERE id = $1',
         [id]
       );
-      
+
       if (categoryCheck.rows.length === 0) {
         await pool.query('ROLLBACK');
         return false;
@@ -110,7 +110,7 @@ export class Storage {
       // Delete the category
       const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
       await pool.query('COMMIT');
-      
+
       return result.rowCount > 0;
     } catch (error) {
       await pool.query('ROLLBACK');
@@ -153,13 +153,13 @@ export class Storage {
     try {
       // Start a transaction
       await pool.query('BEGIN');
-      
+
       // Check if location exists
       const locationCheck = await pool.query(
         'SELECT id FROM locations WHERE id = $1',
         [id]
       );
-      
+
       if (locationCheck.rows.length === 0) {
         await pool.query('ROLLBACK');
         return false;
@@ -179,7 +179,7 @@ export class Storage {
       // Delete the location
       const result = await pool.query('DELETE FROM locations WHERE id = $1', [id]);
       await pool.query('COMMIT');
-      
+
       return result.rowCount > 0;
     } catch (error) {
       await pool.query('ROLLBACK');
@@ -404,17 +404,17 @@ export class Storage {
         // For 100% splits, the other user owes the full amount
         // This means the paying user's contribution should count toward the total,
         // but the other user is responsible for the entire expense amount
-        
+
         // First, get the other user's ID
         const otherUserId = Object.keys(userExpenses)
           .map(Number)
           .find(id => id !== expense.paid_by_user_id);
-          
+
         if (otherUserId) {
           // The paying user paid, but the other user owes 100%
           // So we credit the paying user's expenses (they paid but don't owe)
           userExpenses[expense.paid_by_user_id] += Number(expense.amount);
-          
+
           // We don't need to add anything to the other user's expenses,
           // as the settlement calculation will reflect that they owe the full amount
         }
@@ -542,36 +542,36 @@ export class Storage {
     const totalsByMonth: number[] = [];
     const categoriesData: Record<string, number[]> = {};
     const locationsData: Record<string, number[]> = {};
-    
+
     // Generate the last N months (including current)
     for (let i = 0; i < monthsCount; i++) {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
       const monthStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
       months.unshift(monthStr); // Add to beginning to keep chronological order
     }
-    
+
     // Get all categories and locations
     const allCategories = await this.getAllCategories();
     const allLocations = await this.getAllLocations();
-    
+
     // Initialize data structures
     allCategories.forEach(category => {
       categoriesData[category.name] = Array(months.length).fill(0);
     });
-    
+
     allLocations.forEach(location => {
       locationsData[location.name] = Array(months.length).fill(0);
     });
-    
+
     // Fetch data for each month
     for (let i = 0; i < months.length; i++) {
       const month = months[i];
       const expenses = await this.getExpensesByMonth(month);
-      
+
       // Calculate total for month
       const total = expenses.reduce((sum, expense) => sum + Number(expense.amount), 0);
       totalsByMonth[i] = total;
-      
+
       // Calculate totals by category
       expenses.forEach(expense => {
         const categoryName = expense.category.name;
@@ -579,7 +579,7 @@ export class Storage {
           categoriesData[categoryName][i] += Number(expense.amount);
         }
       });
-      
+
       // Calculate totals by location
       expenses.forEach(expense => {
         const locationName = expense.location.name;
@@ -588,7 +588,7 @@ export class Storage {
         }
       });
     }
-    
+
     return {
       months,
       totalsByMonth,

@@ -24,13 +24,11 @@ export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
   color: text("color").notNull(),
-  icon: text("icon"),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
   color: true,
-  icon: true,
 });
 
 export type InsertCategory = z.infer<typeof insertCategorySchema>;

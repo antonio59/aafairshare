@@ -41,7 +41,7 @@ type FormData = z.infer<typeof formSchema>;
 export default function CategoryForm({ open, onOpenChange, category }: CategoryFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
+
   // Form setup
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -68,7 +68,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    
+
     try {
       if (category) {
         // Update existing category
@@ -85,10 +85,10 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
           description: "The category has been added successfully."
         });
       }
-      
+
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-      
+
       // Close the form
       onOpenChange(false);
       form.reset();
@@ -109,7 +109,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
         <DialogHeader>
           <DialogTitle>{category ? "Edit Category" : "Add New Category"}</DialogTitle>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -125,7 +125,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="color"
@@ -153,7 +153,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button 
                 type="button" 
