@@ -56,6 +56,7 @@ const formSchema = z.object({
   start_date: z.date({
     required_error: "Start date is required",
   }),
+  // We'll keep the end_date for UI purposes, but won't send it to the server
   end_date: z.date().nullable().optional(),
   next_date: z.date({
     required_error: "Next date is required",
@@ -140,7 +141,7 @@ export default function RecurringExpenseForm({
       amount: recurringExpense.amount.toString(),
       frequency: recurringExpense.frequency,
       start_date: new Date(recurringExpense.start_date),
-      end_date: recurringExpense.end_date ? new Date(recurringExpense.end_date) : null,
+      end_date: null, // end_date doesn't exist in the database schema
       next_date: new Date(recurringExpense.next_date),
       paid_by_user_id: recurringExpense.paid_by_user_id,
       split_type: recurringExpense.split_type,
@@ -191,13 +192,15 @@ export default function RecurringExpenseForm({
 
       // Convert amount to number for the API
       // We need to add the name field as it's required in the database schema but not in our UI
+      // Remove end_date since it doesn't exist in the database schema
+      const { end_date, ...dataWithoutEndDate } = data;
       const recurringExpenseData = {
-        ...data,
+        ...dataWithoutEndDate,
         name: recurringExpense?.name || `${data.frequency} - ${FREQUENCY_OPTIONS.find(f => f.value === data.frequency)?.label || 'Recurring'} expense`,
         amount: parseFloat(data.amount),
         start_date: data.start_date instanceof Date ? data.start_date : new Date(data.start_date),
         next_date: data.next_date instanceof Date ? data.next_date : new Date(data.next_date),
-        end_date: data.end_date instanceof Date ? data.end_date : (data.end_date ? new Date(data.end_date) : null),
+        // end_date is not sent to server as it doesn't exist in the database
       };
 
       if (recurringExpense) {
