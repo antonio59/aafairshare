@@ -4,7 +4,7 @@ import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
-import { storage as memStorage, MemStorage, IStorage } from "./storage"; 
+import { storage, IStorage } from "./storage"; 
 import { db, executeSqlFileWithPostgres, initializeDatabase } from "./db";
 
 const app = express();
@@ -95,36 +95,15 @@ app.use((req, res, next) => {
 });
 
 (async () => {
-  // Initialize appropriate storage based on available credentials
-  let storageImplementation: IStorage;
-
   try {
-    log("Creating database schema using direct PostgreSQL connection...");
-    const sqlResult = await executeSqlFileWithPostgres();
-    if (sqlResult.success) {
-      log("Successfully created database objects via direct SQL execution");
-    } else {
-      log(`Warning: SQL setup encountered an issue: ${sqlResult.message}`);
-      log("Will continue with database API for data access");
-    }
-
-    // Initialize the SupabaseStorage after creating schema
     log("Initializing database connection...");
-    storageImplementation = new MemStorage();
-
-
     // Initialize database
     await initializeDatabase();
     log("Database initialization completed successfully");
-
-    log("Successfully connected to database.");
   } catch (error) {
     log(`CRITICAL ERROR: Failed to initialize database: ${error}`);
     throw error; // Don't continue without database
   }
-
-  // Set the global storage to use the initialized implementation
-  storage = storageImplementation;
 
   const server = await registerRoutes(app);
 
