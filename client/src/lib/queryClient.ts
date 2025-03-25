@@ -24,7 +24,7 @@ export async function apiRequest<T = any>(
   // For 204 No Content responses (commonly used in DELETE operations), 
   // don't try to parse the response as JSON as there's no body
   if (res.status === 204) {
-    return {} as T;
+    return ({} as any);
   }
   
   return await res.json() as T;
@@ -48,7 +48,8 @@ export const getQueryFn: <T>(options: {
     
     // For 204 No Content responses, don't try to parse the response as JSON
     if (res.status === 204) {
-      return {} as T;
+      // Return empty object cast to the generic type
+      return ({} as any);
     }
     
     return await res.json();

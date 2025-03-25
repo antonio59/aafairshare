@@ -127,13 +127,23 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         throw new Error("You must be logged in to save an expense");
       }
 
-      // Convert amount to number for the API and use current user ID
+      // Convert amount to number for the API and determine the correct paying user
+      const currentUserId = authData.user.id;
+      
+      // For "100% Other User" split type, find the other user's ID
+      // User IDs in USERS array are 7 (Antonio) and 8 (Andres)
+      const otherUserId = currentUserId === 7 ? 8 : 7;
+      
+      // Set paid_by_user_id based on split type
+      // If split type is "100%", the other user pays
+      // For all other split types, the current user pays
+      const paid_by_user_id = data.split_type === "100%" ? otherUserId : currentUserId;
+      
       const expenseData = {
         ...data,
         amount: parseFloat(data.amount),
         date: data.date instanceof Date ? data.date : new Date(data.date),
-        // Always use the current logged in user
-        paid_by_user_id: authData.user.id
+        paid_by_user_id
       };
 
       if (expense) {
@@ -156,8 +166,19 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
       // Invalidate queries to refresh data
       // Use proper query key patterns matching the ones in Dashboard/Expenses component
-      queryClient.invalidateQueries({ queryKey: [`/api/expenses?month=${format(data.date, 'yyyy-MM')}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/summary/${format(data.date, 'yyyy-MM')}`] });
+      const month = format(data.date, 'yyyy-MM');
+      
+      // Invalidate specific queries for the month
+      queryClient.invalidateQueries({ queryKey: [`/api/expenses?month=${month}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/summary/${month}`] });
+      
+      // Also invalidate the general expenses endpoint to ensure all views refresh
+      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/summary'] });
+      
+      // Force an immediate refetch to update the UI
+      queryClient.refetchQueries({ queryKey: [`/api/expenses?month=${month}`] });
+      queryClient.refetchQueries({ queryKey: [`/api/summary/${month}`] });
 
       // Close the form
       onOpenChange(false);
