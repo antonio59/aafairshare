@@ -4,11 +4,12 @@ import ExpenseTable from "@/components/ExpenseTable";
 import ExpenseForm from "@/components/ExpenseForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, QueryKey } from "@tanstack/react-query";
 import { ExpenseWithDetails } from "@shared/schema";
 import { getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { exportExpenses } from "@/lib/exportUtils";
+import { apiRequest } from "@/lib/queryClient";
 
 export default function Expenses() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
@@ -18,17 +19,23 @@ export default function Expenses() {
 
   // Fetch expenses for the month
   const { 
-    data: expenses, 
+    data: expenses = [], 
     isLoading: expensesLoading,
     isError: expensesError
-  } = useQuery<ExpenseWithDetails[]>({
-    queryKey: [`/api/expenses?month=${currentMonth}`],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to load expenses data. Please try again.",
-        variant: "destructive"
-      });
+  } = useQuery({
+    queryKey: [`/api/expenses?month=${currentMonth}`] as QueryKey,
+    queryFn: async () => {
+      try {
+        const data = await apiRequest<ExpenseWithDetails[]>(`/api/expenses?month=${currentMonth}`);
+        return data || [];
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to load expenses data. Please try again.",
+          variant: "destructive"
+        });
+        return [];
+      }
     }
   });
 
@@ -51,7 +58,7 @@ export default function Expenses() {
       exportExpenses({
         format,
         month: currentMonth,
-        expenses
+        expenses: expenses
       });
     } else {
       toast({

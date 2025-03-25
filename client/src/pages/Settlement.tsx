@@ -151,8 +151,8 @@ export default function Settlement() {
   const unsettledMonths = (!previousMonthIsSettled && hasPreviousMonthExpenses) ? 1 : 0;
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="space-y-6 px-2 sm:px-4 pb-24">
+      <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Settlement</h1>
       </div>
       
@@ -160,11 +160,11 @@ export default function Settlement() {
       
       {/* Unsettled months card */}
       {unsettledMonths > 0 && (
-        <Card className="bg-amber-50 border-amber-200">
+        <Card className="bg-amber-50 border-amber-200 mt-4">
           <CardContent className="pt-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="p-2 rounded-full bg-amber-100">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-start sm:items-center">
+                <div className="p-2 rounded-full bg-amber-100 flex-shrink-0">
                   <CalendarClock className="h-5 w-5 text-amber-600" />
                 </div>
                 <div className="ml-3">
@@ -179,10 +179,10 @@ export default function Settlement() {
               <Button
                 variant="outline"
                 size="sm"
-                className="border-amber-200 text-amber-700 hover:bg-amber-100"
+                className="border-amber-200 text-amber-700 hover:bg-amber-100 w-full sm:w-auto"
                 onClick={() => handleMonthChange(previousMonth)}
               >
-                View
+                View Previous Month
               </Button>
             </div>
           </CardContent>
