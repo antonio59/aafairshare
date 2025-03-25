@@ -298,8 +298,8 @@ export class Storage {
 
   async createSettlement(settlement: InsertSettlement): Promise<SettlementWithUsers> {
     const result = await pool.query(
-      `INSERT INTO settlements (from_user_id, to_user_id, amount, date) VALUES ($1, $2, $3, $4) RETURNING *`,
-      [settlement.from_user_id, settlement.to_user_id, settlement.amount, settlement.date]
+      `INSERT INTO settlements (from_user_id, to_user_id, amount, date, month) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+      [settlement.from_user_id, settlement.to_user_id, settlement.amount, settlement.date, settlement.month]
     );
     const createdSettlement = await this.getSettlement(result.rows[0].id);
     if (!createdSettlement) {
