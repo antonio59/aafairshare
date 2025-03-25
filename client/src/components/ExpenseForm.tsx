@@ -43,20 +43,20 @@ type FormData = z.infer<typeof formSchema>;
 export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  
+
   // Queries
   const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>({
     queryKey: ['/api/categories'],
   });
-  
+
   const { data: locations, isLoading: locationsLoading } = useQuery<Location[]>({
     queryKey: ['/api/locations'],
   });
-  
+
   const { data: users, isLoading: usersLoading } = useQuery<User[]>({
     queryKey: ['/api/users'],
   });
-  
+
   // Create new location mutation
   const createLocationMutation = useMutation({
     mutationFn: async (locationName: string): Promise<Location> => {
@@ -65,12 +65,12 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       return response.json();
     },
     onSuccess: (newLocation) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      queryClient.invalidateQueries({ queryKey: ['locations'] });
       // Set the form value to the newly created location
       form.setValue('location_id', newLocation.id);
     },
   });
-  
+
   // Form setup
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -112,19 +112,19 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-    
+
     try {
       // Convert amount to number for the API
       const expenseData = {
         ...data,
         amount: parseFloat(data.amount),
-        
+
         // Ensure date is properly formatted
         date: data.date instanceof Date ? data.date : new Date(data.date)
       };
-      
+
       let response;
-      
+
       if (expense) {
         // Update existing expense
         response = await apiRequest('PATCH', `/api/expenses/${expense.id}`, expenseData);
@@ -132,7 +132,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to update expense');
         }
-        
+
         toast({
           title: "Expense updated",
           description: "The expense has been updated successfully.",
@@ -144,17 +144,17 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
           const errorData = await response.json();
           throw new Error(errorData.message || 'Failed to create expense');
         }
-        
+
         toast({
           title: "Expense added",
           description: "The expense has been added successfully.",
         });
       }
-      
+
       // Invalidate queries to refresh data
       queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
       queryClient.invalidateQueries({ queryKey: ['/api/summary'] });
-      
+
       // Close the form
       onOpenChange(false);
       form.reset();
@@ -181,7 +181,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
               : "Enter expense details using the form below."}
           </p>
         </DialogHeader>
-        
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -202,7 +202,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="category_id"
@@ -235,7 +235,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="location_id"
@@ -245,17 +245,17 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   value: location.id.toString(),
                   label: location.name
                 })) || [];
-                
+
                 // Find the selected location
                 const selectedLocation = locations?.find(loc => loc.id === field.value);
-                
+
                 // Handle creation of a new location
                 const handleCreateLocation = async (locationName: string) => {
                   try {
                     const newLocation = await createLocationMutation.mutateAsync(locationName);
                     // Update the form field with the new location ID
                     field.onChange(newLocation.id);
-                    
+
                     toast({
                       title: "Location added",
                       description: `"${locationName}" has been added to locations.`,
@@ -268,7 +268,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                     });
                   }
                 };
-                
+
                 return (
                   <FormItem>
                     <FormLabel>Location</FormLabel>
@@ -295,7 +295,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 );
               }}
             />
-            
+
             <FormField
               control={form.control}
               name="paid_by"
@@ -328,7 +328,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="split_type"
@@ -356,7 +356,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="date"
@@ -395,7 +395,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 </FormItem>
               )}
             />
-            
+
             <FormField
               control={form.control}
               name="notes"
@@ -417,7 +417,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 </FormItem>
               )}
             />
-            
+
             <DialogFooter>
               <Button 
                 type="button" 
