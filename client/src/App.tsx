@@ -5,7 +5,6 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import Dashboard from "@/pages/Dashboard";
-import Expenses from "@/pages/Expenses";
 import Analytics from "@/pages/Analytics";
 import Settlement from "@/pages/Settlement";
 import Settings from "@/pages/Settings";
@@ -82,9 +81,6 @@ function App() {
         </Route>
         <Route path="/">
           {() => <ProtectedRoute component={Dashboard} />}
-        </Route>
-        <Route path="/expenses">
-          {() => <ProtectedRoute component={Expenses} />}
         </Route>
         <Route path="/analytics">
           {() => <ProtectedRoute component={Analytics} />}

@@ -2,18 +2,15 @@ import React, { useState, useEffect } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import SummaryCard from "@/components/SummaryCard";
 import ExpenseTable from "@/components/ExpenseTable";
-import CategoryChart from "@/components/CategoryChart";
 import ExpenseForm from "@/components/ExpenseForm";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PoundSterling, Users, WalletCards, BarChart3 } from "lucide-react";
+import { PlusIcon, PoundSterling, Users, WalletCards } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { ExpenseWithDetails, MonthSummary, User } from "@shared/schema";
+import { ExpenseWithDetails, MonthSummary } from "@shared/schema";
 import { formatCurrency, getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Link } from "wouter";
 import { exportExpenses } from "@/lib/exportUtils";
-import * as LucideIcons from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 
 export default function Dashboard() {
@@ -173,19 +170,16 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Recent Expenses */}
+      {/* Expenses Table */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-3 py-4 sm:px-6 sm:py-5 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-medium text-gray-800">Recent Expenses</h3>
-            <Link href="/expenses" className="text-xs sm:text-sm font-medium text-primary hover:text-blue-700">
-              View all
-            </Link>
+            <h3 className="text-base sm:text-lg font-medium text-gray-800">Expenses</h3>
           </div>
         </div>
         <div className="overflow-x-auto">
           <ExpenseTable 
-            expenses={expenses?.slice(0, 5) || []} 
+            expenses={expenses || []} 
             onEdit={handleEditExpense} 
             isLoading={expensesLoading} 
           />
