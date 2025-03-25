@@ -84,10 +84,10 @@ export default function Settings() {
         title: "Success",
         description: `${itemToDelete.type} deleted successfully`,
       });
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to delete ${itemToDelete.type}`,
+        description: error.response?.data?.message || `Failed to delete ${itemToDelete.type}`,
         variant: "destructive",
       });
     }
