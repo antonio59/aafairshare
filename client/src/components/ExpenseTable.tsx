@@ -31,7 +31,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
     if (!expenseToDelete) return;
 
     try {
-      await apiRequest('DELETE', `/api/expenses/${expenseToDelete.id}`);
+      await apiRequest(`/api/expenses/${expenseToDelete.id}`, 'DELETE');
 
       toast({
         title: "Expense deleted",

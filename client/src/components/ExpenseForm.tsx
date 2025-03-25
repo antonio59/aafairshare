@@ -74,8 +74,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const createLocationMutation = useMutation({
     mutationFn: async (locationName: string): Promise<Location> => {
       const newLocation: InsertLocation = { name: locationName };
-      const response = await apiRequest('POST', '/api/locations', newLocation);
-      return response.json();
+      return await apiRequest<Location>('/api/locations', 'POST', newLocation);
     },
     onSuccess: (newLocation) => {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
@@ -137,28 +136,18 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         paid_by_user_id: authData.user.id
       };
 
-      let response;
-
       if (expense) {
         // Update existing expense
-        response = await apiRequest('PATCH', `/api/expenses/${expense.id}`, expenseData);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to update expense');
-        }
-
+        await apiRequest(`/api/expenses/${expense.id}`, 'PATCH', expenseData);
+        
         toast({
           title: "Expense updated",
           description: "The expense has been updated successfully.",
         });
       } else {
         // Create new expense
-        response = await apiRequest('POST', '/api/expenses', expenseData);
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create expense');
-        }
-
+        await apiRequest('/api/expenses', 'POST', expenseData);
+        
         toast({
           title: "Expense added",
           description: "The expense has been added successfully.",
