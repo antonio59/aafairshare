@@ -50,6 +50,14 @@ export class Storage {
     return result.rows;
   }
 
+  async updateUserPassword(userId: number, hashedPassword: string): Promise<boolean> {
+    const result = await pool.query(
+      'UPDATE users SET password = $1 WHERE id = $2 RETURNING id',
+      [hashedPassword, userId]
+    );
+    return result.rowCount !== null && result.rowCount > 0;
+  }
+
   // Category operations
   async getCategory(id: number): Promise<Category | undefined> {
     const result = await pool.query(
@@ -111,7 +119,7 @@ export class Storage {
       const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
       await pool.query('COMMIT');
 
-      return result.rowCount > 0;
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       await pool.query('ROLLBACK');
       throw error;
@@ -180,7 +188,7 @@ export class Storage {
       const result = await pool.query('DELETE FROM locations WHERE id = $1', [id]);
       await pool.query('COMMIT');
 
-      return result.rowCount > 0;
+      return result.rowCount !== null && result.rowCount > 0;
     } catch (error) {
       await pool.query('ROLLBACK');
       throw error;

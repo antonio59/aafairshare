@@ -24,17 +24,38 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { LockKeyhole, Mail, CreditCard, DollarSign } from "lucide-react";
+import { LockKeyhole, Mail, CreditCard, DollarSign, KeyRound } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
+const resetPasswordSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  newPassword: z.string().min(6, "Password must be at least 6 characters"),
+  confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+});
+
 type FormData = z.infer<typeof formSchema>;
+type ResetPasswordData = z.infer<typeof resetPasswordSchema>;
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [resetDialogOpen, setResetDialogOpen] = useState(false);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
@@ -62,6 +83,15 @@ export default function Login() {
     defaultValues: {
       email: "",
       password: "",
+    },
+  });
+
+  const resetPasswordForm = useForm<ResetPasswordData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      email: "",
+      newPassword: "",
+      confirmPassword: ""
     },
   });
 
@@ -94,6 +124,47 @@ export default function Login() {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleResetPassword = async (data: ResetPasswordData) => {
+    setIsResettingPassword(true);
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: data.email,
+          newPassword: data.newPassword
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Password reset failed');
+      }
+
+      toast({
+        title: "Success",
+        description: "Password has been reset. You can now login with your new password.",
+      });
+      
+      // Close the dialog and reset form values
+      setResetDialogOpen(false);
+      resetPasswordForm.reset();
+      
+      // Update login form with email so user can login right away
+      form.setValue("email", data.email);
+      form.setValue("password", "");
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Password reset failed",
+        variant: "destructive",
+      });
+    } finally {
+      setIsResettingPassword(false);
     }
   };
 
@@ -180,8 +251,71 @@ export default function Login() {
             </Form>
           </CardContent>
           
-          <CardFooter className="pb-6">
-            {/* Footer space maintained for consistent sizing */}
+          <CardFooter className="pb-6 flex justify-center">
+            <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="link" className="text-sm text-gray-500 hover:text-primary">
+                  <KeyRound className="h-4 w-4 mr-1" />
+                  Forgot password?
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Reset Password</DialogTitle>
+                  <DialogDescription>
+                    Enter your email and new password to reset your account password.
+                  </DialogDescription>
+                </DialogHeader>
+                <Form {...resetPasswordForm}>
+                  <form onSubmit={resetPasswordForm.handleSubmit(handleResetPassword)} className="space-y-4">
+                    <FormField
+                      control={resetPasswordForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter your email" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={resetPasswordForm.control}
+                      name="newPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>New Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Enter new password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={resetPasswordForm.control}
+                      name="confirmPassword"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Confirm Password</FormLabel>
+                          <FormControl>
+                            <Input type="password" placeholder="Confirm new password" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <DialogFooter>
+                      <Button type="submit" disabled={isResettingPassword}>
+                        {isResettingPassword ? "Resetting..." : "Reset Password"}
+                      </Button>
+                    </DialogFooter>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </CardFooter>
         </Card>
         
