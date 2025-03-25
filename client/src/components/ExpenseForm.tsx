@@ -64,8 +64,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       const response = await apiRequest('POST', '/api/locations', newLocation);
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: (newLocation) => {
       queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      // Set the form value to the newly created location
+      form.setValue('location_id', newLocation.id);
     },
   });
   
