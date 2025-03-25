@@ -7,6 +7,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { RotateCcw } from "lucide-react";
 import { 
   Table, 
   TableBody, 
@@ -94,6 +95,7 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
                 {onUnsettlement && (
                   <div className="col-span-2 mt-2">
                     <Button variant="ghost" size="sm" onClick={() => onUnsettlement(settlement.id)} className="w-full">
+                      <RotateCcw className="h-4 w-4 mr-2" />
                       Unsettle
                     </Button>
                   </div>
@@ -139,6 +141,7 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
                         size="sm"
                         onClick={() => onUnsettlement(settlement.id)}
                       >
+                        <RotateCcw className="h-4 w-4 mr-2" />
                         Unsettle
                       </Button>
                     </TableCell>
