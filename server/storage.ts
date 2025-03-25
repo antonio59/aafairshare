@@ -96,7 +96,7 @@ export class Storage {
   }
 
   async getAllLocations(): Promise<Location[]> {
-    const result = await pool.query('SELECT * FROM locations');
+    const result = await pool.query('SELECT * FROM locations ORDER BY name ASC');
     return result.rows;
   }
 
