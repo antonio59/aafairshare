@@ -1,6 +1,6 @@
 export const USERS = [
-  { id: 1, name: "John" },
-  { id: 2, name: "Sarah" }
+  { id: 7, name: "Antonio" },
+  { id: 8, name: "Andres" }
 ];
 
 export const SPLIT_TYPES = [
