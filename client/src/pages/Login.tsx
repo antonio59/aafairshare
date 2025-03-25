@@ -24,7 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { LockKeyhole, Mail, CreditCard, DollarSign, KeyRound } from "lucide-react";
+import { LockKeyhole, Mail, CreditCard, PoundSterling, KeyRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -165,7 +165,7 @@ export default function Login() {
         <div className="mb-8 text-center">
           <div className="flex justify-center mb-4">
             <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <DollarSign className="h-8 w-8 text-primary" />
+              <PoundSterling className="h-8 w-8 text-primary" />
             </div>
           </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">AAFairShare</h1>
