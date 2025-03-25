@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, Pencil, Trash, Plus } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Category, Location } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -116,6 +116,7 @@ export default function Settings() {
                 </CardDescription>
               </div>
               <Button onClick={() => setCategoryFormOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
                 Add Category
               </Button>
             </CardHeader>
@@ -142,15 +143,19 @@ export default function Settings() {
                               setSelectedCategory(category);
                               setCategoryFormOpen(true);
                             }}
+                            className="h-8 w-8 text-gray-500 hover:text-primary"
                           >
-                            {/* Removed Icon */}
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openDeleteDialog('category', category.id)}
+                            className="h-8 w-8 text-gray-500 hover:text-red-500"
                           >
-                            {/* Removed Icon */}
+                            <Trash className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
                           </Button>
                         </div>
                       </CardContent>
@@ -176,6 +181,7 @@ export default function Settings() {
                 </CardDescription>
               </div>
               <Button onClick={() => setLocationFormOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
                 Add Location
               </Button>
             </CardHeader>
@@ -200,15 +206,19 @@ export default function Settings() {
                               setSelectedLocation(location);
                               setLocationFormOpen(true);
                             }}
+                            className="h-8 w-8 text-gray-500 hover:text-primary"
                           >
-                            {/* Removed Icon */}
+                            <Pencil className="h-4 w-4" />
+                            <span className="sr-only">Edit</span>
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openDeleteDialog('location', location.id)}
+                            className="h-8 w-8 text-gray-500 hover:text-red-500"
                           >
-                            {/* Removed Icon */}
+                            <Trash className="h-4 w-4" />
+                            <span className="sr-only">Delete</span>
                           </Button>
                         </div>
                       </CardContent>
