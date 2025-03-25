@@ -2,13 +2,12 @@ import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { insertExpenseSchema, insertLocationSchema } from "@shared/schema";
+import { insertExpenseSchema } from "@shared/schema";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Calendar } from "@/components/ui/calendar";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,7 +16,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Category, ExpenseWithDetails, Location, User, InsertLocation } from "@shared/schema";
+import { Category, ExpenseWithDetails, Location, InsertLocation } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { SPLIT_TYPES } from "@/lib/constants";
 
@@ -35,21 +34,20 @@ interface AuthStatusResponse {
   };
 }
 
-// Extend the insertExpenseSchema for the form, but omit fields that are handled automatically
-const formSchema = insertExpenseSchema
-  .omit({ 
-    paid_by_user_id: true, // We'll get this from the current user
-    notes: true // We removed the notes field as requested
-  })
-  .extend({
-    date: z.date({
-      required_error: "Please select a date",
-    }),
-    amount: z.string().min(1, "Amount is required").refine(
-      (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
-      { message: "Amount must be a positive number" }
-    ),
-  });
+// Create a modified schema that excludes fields we handle automatically
+const formSchema = z.object({
+  description: z.string().min(1, "Description is required"),
+  amount: z.string().min(1, "Amount is required").refine(
+    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
+    { message: "Amount must be a positive number" }
+  ),
+  date: z.date({
+    required_error: "Please select a date",
+  }),
+  split_type: z.string(),
+  category_id: z.number(),
+  location_id: z.number(),
+});
 
 type FormData = z.infer<typeof formSchema>;
 
@@ -66,8 +64,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     queryKey: ['/api/locations'],
   });
 
-  const { data: users, isLoading: usersLoading } = useQuery<User[]>({
-    queryKey: ['/api/users'],
+  // Get current user data
+  const { data: authData } = useQuery<AuthStatusResponse>({
+    queryKey: ['/api/auth/status'],
   });
 
   // Create new location mutation
@@ -78,7 +77,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       return response.json();
     },
     onSuccess: (newLocation) => {
-      queryClient.invalidateQueries({ queryKey: ['locations'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
       // Set the form value to the newly created location
       form.setValue('location_id', newLocation.id);
     },
@@ -97,7 +96,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     },
   });
 
-  // Update form when expense changes
+  // Update form when expense or dependencies change
   useEffect(() => {
     if (expense) {
       form.reset({
@@ -120,11 +119,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
   }, [expense, form, categories, locations]);
 
-  // Get current user data
-  const { data: authData } = useQuery<AuthStatusResponse>({
-    queryKey: ['/api/auth/status'],
-  });
-
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
 
@@ -137,10 +131,11 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       const expenseData = {
         ...data,
         amount: parseFloat(data.amount),
-        // Ensure date is properly formatted
         date: data.date instanceof Date ? data.date : new Date(data.date),
-        // Always use the current logged-in user's ID
-        paid_by_user_id: authData.user.id
+        // Always use the current logged in user
+        paid_by_user_id: authData.user.id,
+        // Set notes to null as we removed the field from the form
+        notes: null
       };
 
       let response;
@@ -280,9 +275,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   label: location.name
                 })) || [];
 
-                // Find the selected location
-                const selectedLocation = locations?.find(loc => loc.id === field.value);
-
                 // Handle creation of a new location
                 const handleCreateLocation = async (locationName: string) => {
                   try {
@@ -329,8 +321,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 );
               }}
             />
-
-
 
             <FormField
               control={form.control}
@@ -398,8 +388,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 </FormItem>
               )}
             />
-
-
 
             <DialogFooter>
               <Button 
