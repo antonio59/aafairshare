@@ -36,7 +36,8 @@ interface AuthStatusResponse {
 
 // Create a modified schema that excludes fields we handle automatically
 const formSchema = z.object({
-  description: z.string().min(1, "Description is required"),
+  // Description is now optional (not required)
+  description: z.string().optional().or(z.literal("")),
   amount: z.string().min(1, "Amount is required").refine(
     (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
     { message: "Amount must be a positive number" }
@@ -87,7 +88,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      description: expense ? expense.description : "",
+      description: expense?.description || "",
       amount: expense ? String(Number(expense.amount)) : "",
       date: expense ? new Date(expense.date) : new Date(),
       split_type: expense ? expense.split_type : "50/50",
@@ -100,7 +101,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   useEffect(() => {
     if (expense) {
       form.reset({
-        description: expense.description,
+        description: expense.description || "",
         amount: String(Number(expense.amount)),
         date: new Date(expense.date),
         split_type: expense.split_type,
@@ -133,9 +134,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
         amount: parseFloat(data.amount),
         date: data.date instanceof Date ? data.date : new Date(data.date),
         // Always use the current logged in user
-        paid_by_user_id: authData.user.id,
-        // Set notes to null as we removed the field from the form
-        notes: null
+        paid_by_user_id: authData.user.id
       };
 
       let response;
@@ -199,20 +198,6 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="What was this expense for?" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
             <FormField
               control={form.control}
               name="amount"
@@ -384,6 +369,20 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                       />
                     </PopoverContent>
                   </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="What was this expense for?" />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

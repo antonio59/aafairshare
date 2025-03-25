@@ -52,12 +52,11 @@ export type Location = typeof locations.$inferSelect;
 // Expenses table
 export const expenses = pgTable("expenses", {
   id: serial("id").primaryKey(),
-  description: text("description").notNull(),
+  description: text("description"),
   amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
   date: timestamp("date").notNull(),
   paid_by_user_id: integer("paid_by_user_id").notNull(), // reference to user ID
   split_type: text("split_type").notNull().default("50/50"),
-  notes: text("notes"),
   category_id: integer("category_id").notNull(), // reference to category ID
   location_id: integer("location_id").notNull(), // reference to location ID
   month: text("month"), // YYYY-MM format, auto-populated by trigger
@@ -69,7 +68,6 @@ export const insertExpenseSchema = createInsertSchema(expenses).pick({
   date: true,
   paid_by_user_id: true,
   split_type: true,
-  notes: true,
   category_id: true,
   location_id: true,
   month: true,
