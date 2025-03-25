@@ -75,9 +75,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      description: expense ? expense.description : "",
       amount: expense ? String(Number(expense.amount)) : "",
       date: expense ? new Date(expense.date) : new Date(),
-      paid_by: expense ? expense.paid_by : 1,
+      paid_by_user_id: expense ? expense.paid_by_user_id : 1,
       split_type: expense ? expense.split_type : "50/50",
       notes: expense?.notes || "",
       category_id: expense ? expense.category_id : 1,
@@ -89,9 +90,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
   useEffect(() => {
     if (expense) {
       form.reset({
+        description: expense.description,
         amount: String(Number(expense.amount)),
         date: new Date(expense.date),
-        paid_by: expense.paid_by,
+        paid_by_user_id: expense.paid_by_user_id,
         split_type: expense.split_type,
         notes: expense.notes || "",
         category_id: expense.category_id,
@@ -99,9 +101,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       });
     } else {
       form.reset({
+        description: "",
         amount: "",
         date: new Date(),
-        paid_by: users?.[0]?.id || 1,
+        paid_by_user_id: users?.[0]?.id || 1,
         split_type: "50/50",
         notes: "",
         category_id: categories?.[0]?.id || 1,
