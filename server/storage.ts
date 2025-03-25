@@ -81,10 +81,10 @@ export class Storage {
   }
 
   async deleteCategory(id: number): Promise<boolean> {
+    // Start a transaction
+    await pool.query('BEGIN');
+    
     try {
-      // Start a transaction
-      await pool.query('BEGIN');
-      
       // Check if category exists
       const categoryCheck = await pool.query(
         'SELECT id FROM categories WHERE id = $1',
