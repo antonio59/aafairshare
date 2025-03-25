@@ -402,7 +402,7 @@ export class Storage {
         // Create a new expense based on the recurring expense
         const newExpense: InsertExpense = {
           amount: recurringExpense.amount,
-          date: nextDate,
+          date: currentDate,
           paid_by_user_id: recurringExpense.paid_by_user_id,
           split_type: recurringExpense.split_type,
           category_id: recurringExpense.category_id,
