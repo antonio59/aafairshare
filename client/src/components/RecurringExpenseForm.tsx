@@ -192,13 +192,27 @@ export default function RecurringExpenseForm({
 
       // Convert amount to number for the API
       // We need to add the name field as it's required in the database schema but not in our UI
+      // Make sure we have all required fields
+      // Current issue is that start_date is somehow coming as null
+      if (!data.start_date) {
+        throw new Error("Start date is required");
+      }
+      
+      // Ensure dates are properly formatted
+      const start_date = data.start_date instanceof Date ? data.start_date : new Date(data.start_date);
+      const next_date = data.next_date instanceof Date ? data.next_date : new Date(data.next_date);
+      const end_date = data.end_date instanceof Date ? data.end_date : (data.end_date ? new Date(data.end_date) : null);
+      
+      // Build the data object with all required fields
       const recurringExpenseData = {
         ...data,
         name: recurringExpense?.name || `${data.frequency} - ${FREQUENCY_OPTIONS.find(f => f.value === data.frequency)?.label || 'Recurring'} expense`,
         amount: parseFloat(data.amount),
-        start_date: data.start_date instanceof Date ? data.start_date : new Date(data.start_date),
-        next_date: data.next_date instanceof Date ? data.next_date : new Date(data.next_date),
-        end_date: data.end_date instanceof Date ? data.end_date : (data.end_date ? new Date(data.end_date) : null),
+        start_date,
+        next_date,
+        end_date,
+        // Keep notes field since it's in the database but we don't show it in UI
+        notes: recurringExpense?.notes || '',
       };
 
       if (recurringExpense) {

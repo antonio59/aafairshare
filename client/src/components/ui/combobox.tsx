@@ -99,6 +99,32 @@ export function Combobox({
     )
   }, [exactMatch, onCreateNew, searchQuery])
 
+  // Handle blur event on input to auto-select exact match
+  const handleBlur = () => {
+    if (exactMatch && searchQuery) {
+      onSelect(exactMatch.value);
+      setSearchQuery("");
+    }
+  };
+
+  // Handle keyboard submission
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // If Enter is pressed and we have an exact match, select it
+    if (e.key === 'Enter' && exactMatch) {
+      e.preventDefault();
+      onSelect(exactMatch.value);
+      setOpen(false);
+      setSearchQuery("");
+    }
+    // If Enter is pressed and we have a create new option, create it
+    else if (e.key === 'Enter' && showCreateNew && onCreateNew) {
+      e.preventDefault();
+      onCreateNew(searchQuery);
+      setOpen(false);
+      setSearchQuery("");
+    }
+  };
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -114,34 +140,58 @@ export function Combobox({
         </Button>
       </PopoverTrigger>
       <PopoverContent className="p-0" align="start">
-        <Command>
+        <Command shouldFilter={false}>
           <CommandInput 
             placeholder={`Search ${placeholder.toLowerCase()}...`} 
             value={searchQuery}
             onValueChange={setSearchQuery}
+            onBlur={handleBlur}
+            onKeyDown={handleKeyDown}
           />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
             <CommandGroup>
-              {filteredItems.map((item) => (
-                <CommandItem
-                  key={item.value}
-                  value={item.value}
-                  onSelect={() => {
-                    onSelect(item.value)
-                    setOpen(false)
-                    setSearchQuery("")
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "mr-2 h-4 w-4",
-                      value === item.value ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                  {item.label}
-                </CommandItem>
-              ))}
+              {filteredItems.length > 0 ? (
+                filteredItems.map((item) => (
+                  <CommandItem
+                    key={item.value}
+                    value={item.value}
+                    onSelect={() => {
+                      onSelect(item.value)
+                      setOpen(false)
+                      setSearchQuery("")
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === item.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {item.label}
+                  </CommandItem>
+                ))
+              ) : searchQuery ? null : (
+                items.map((item) => (
+                  <CommandItem
+                    key={item.value}
+                    value={item.value}
+                    onSelect={() => {
+                      onSelect(item.value)
+                      setOpen(false)
+                      setSearchQuery("")
+                    }}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === item.value ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    {item.label}
+                  </CommandItem>
+                ))
+              )}
             </CommandGroup>
             
             {showCreateNew && (
