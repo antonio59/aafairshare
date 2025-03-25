@@ -210,15 +210,15 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
         autoTable(doc, {
           head: [['User', 'Amount', 'Percentage']],
           body: [
-            [user1.name, formatCurrency(user1Expenses), `${Math.round((user1Expenses / summary.totalExpenses) * 100)}%`],
-            [user2.name, formatCurrency(user2Expenses), `${Math.round((user2Expenses / summary.totalExpenses) * 100)}%`],
+            [user1.name, formatCurrency(user1Expenses), '50%'],
+            [user2.name, formatCurrency(user2Expenses), '50%'],
             ['Total', formatCurrency(summary.totalExpenses), '100%']
           ],
           startY: finalY + 20,
           theme: 'grid',
           styles: { fontSize: 8 },
           headStyles: { fillColor: [59, 130, 246] },
-          footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
+          footStyles: { fontStyle: 'bold', fillColor: [255, 255, 255] }
         });
       }
 
