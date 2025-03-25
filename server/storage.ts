@@ -81,18 +81,41 @@ export class Storage {
   }
 
   async deleteCategory(id: number): Promise<boolean> {
-    // Check if category is in use
-    const usageCheck = await pool.query(
-      'SELECT COUNT(*) as count FROM expenses WHERE category_id = $1',
-      [id]
-    );
-    
-    if (Number(usageCheck.rows[0].count) > 0) {
-      throw new Error('Cannot delete category that is in use by expenses');
-    }
+    try {
+      // Start a transaction
+      await pool.query('BEGIN');
+      
+      // Check if category exists
+      const categoryCheck = await pool.query(
+        'SELECT id FROM categories WHERE id = $1',
+        [id]
+      );
+      
+      if (categoryCheck.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        return false;
+      }
 
-    const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
-    return result.rowCount !== null && result.rowCount > 0;
+      // Check if category is in use
+      const usageCheck = await pool.query(
+        'SELECT COUNT(*) as count FROM expenses WHERE category_id = $1',
+        [id]
+      );
+
+      if (parseInt(usageCheck.rows[0].count) > 0) {
+        await pool.query('ROLLBACK');
+        throw new Error('Cannot delete category that is in use by expenses');
+      }
+
+      // Delete the category
+      const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
+      await pool.query('COMMIT');
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      throw error;
+    }
   }
 
 
@@ -127,18 +150,41 @@ export class Storage {
   }
 
   async deleteLocation(id: number): Promise<boolean> {
-    // Check if location is in use
-    const usageCheck = await pool.query(
-      'SELECT COUNT(*) FROM expenses WHERE location_id = $1',
-      [id]
-    );
-    
-    if (parseInt(usageCheck.rows[0].count) > 0) {
-      throw new Error('Cannot delete location that is in use by expenses');
+    try {
+      // Start a transaction
+      await pool.query('BEGIN');
+      
+      // Check if location exists
+      const locationCheck = await pool.query(
+        'SELECT id FROM locations WHERE id = $1',
+        [id]
+      );
+      
+      if (locationCheck.rows.length === 0) {
+        await pool.query('ROLLBACK');
+        return false;
+      }
+
+      // Check if location is in use
+      const usageCheck = await pool.query(
+        'SELECT COUNT(*) as count FROM expenses WHERE location_id = $1',
+        [id]
+      );
+
+      if (parseInt(usageCheck.rows[0].count) > 0) {
+        await pool.query('ROLLBACK');
+        throw new Error('Cannot delete location that is in use by expenses');
+      }
+
+      // Delete the location
+      const result = await pool.query('DELETE FROM locations WHERE id = $1', [id]);
+      await pool.query('COMMIT');
+      
+      return result.rowCount > 0;
+    } catch (error) {
+      await pool.query('ROLLBACK');
+      throw error;
     }
-    
-    const result = await pool.query('DELETE FROM locations WHERE id = $1', [id]);
-    return result.rowCount !== null && result.rowCount > 0;
   }
 
   // Expense operations
