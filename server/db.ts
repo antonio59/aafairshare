@@ -24,7 +24,6 @@ export async function executeDirectSql(sql: string) {
     return { success: false, message: error instanceof Error ? error.message : String(error) };
   }
 }
-</old_str>
 
 // Function to execute SQL file with Postgres
 export async function executeSqlFileWithPostgres() {
