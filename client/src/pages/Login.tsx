@@ -77,31 +77,23 @@ export default function Login() {
     setIsLoading(true);
     
     try {
-      const response = await apiRequest('POST', '/api/auth/login', data);
+      // Use the apiRequest function which already handles error checking
+      await apiRequest('POST', '/api/auth/login', data);
       
-      if (response.ok) {
-        // Invalidate auth status cache so it will refetch and show as logged in
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
-        
-        toast({
-          title: "Login successful",
-          description: "You have been logged in successfully.",
-        });
-        
-        // Force navigation to dashboard
-        window.location.href = '/';
-      } else {
-        const errorData = await response.json();
-        toast({
-          title: "Login failed",
-          description: errorData.message || "Invalid username or password",
-          variant: "destructive",
-        });
-      }
+      // Invalidate auth status cache so it will refetch and show as logged in
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
+      
+      toast({
+        title: "Login successful",
+        description: "You have been logged in successfully.",
+      });
+      
+      // Use wouter's setLocation for smoother navigation instead of window.location
+      setLocation('/');
     } catch (error) {
       toast({
         title: "Login failed",
-        description: "An error occurred during login. Please try again.",
+        description: error instanceof Error ? error.message : "Invalid email or password",
         variant: "destructive",
       });
     } finally {
@@ -175,10 +167,7 @@ export default function Login() {
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4">
-          <p className="px-8 text-center text-sm text-gray-500">
-            By logging in, you agree to our terms of service and privacy policy.
-          </p>
+        <CardFooter>
           <Button 
             variant="outline" 
             className="w-full" 

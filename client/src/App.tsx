@@ -27,9 +27,10 @@ interface AuthStatusResponse {
 // Protected route component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
-  const { data: authData, isLoading } = useQuery<AuthStatusResponse>({
+  const { data: authData, isLoading, isError } = useQuery<AuthStatusResponse>({
     queryKey: ['/api/auth/status'],
-    retry: false,
+    retry: 1, // Retry once in case of network issues
+    retryDelay: 1000, // Wait 1 second before retrying
   });
 
   useEffect(() => {
@@ -38,15 +39,21 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     }
   }, [authData, isLoading, setLocation]);
 
-  if (isLoading || !authData || !authData.isAuthenticated) {
+  // Show loading state when checking authentication
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center">
-          <h2 className="text-lg font-medium mb-2">Loading...</h2>
-          <p className="text-gray-500">Please wait while we verify your authentication.</p>
+        <div className="text-center space-y-4">
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <h2 className="text-lg font-medium">Verifying your session...</h2>
         </div>
       </div>
     );
+  }
+
+  // Handle authentication errors
+  if (isError || !authData || !authData.isAuthenticated) {
+    return null; // The useEffect will redirect to login
   }
 
   return (
