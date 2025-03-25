@@ -477,7 +477,7 @@ export class Storage {
       const date = new Date(expense.date);
       const day = date.getDate();
       const dateKey = String(day);
-      dateDistribution[dateKey] = (dateDistribution[dateKey] || 0) + expense.amount;
+      dateDistribution[dateKey] = (dateDistribution[dateKey] || 0) + Number(expense.amount);
     });
 
     // Calculate settlement amounts for the month

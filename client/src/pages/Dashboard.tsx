@@ -95,28 +95,33 @@ export default function Dashboard() {
     }
   };
 
-  // Find users
-  const user1 = summary?.userExpenses && Object.keys(summary.userExpenses).length > 0 
-    ? Object.keys(summary.userExpenses)[0] 
-    : "1";
-  const user2 = summary?.userExpenses && Object.keys(summary.userExpenses).length > 1 
-    ? Object.keys(summary.userExpenses)[1] 
-    : "2";
+  // Find users from expenses or summary
+  const userIds = summary?.userExpenses ? Object.keys(summary.userExpenses).map(Number) : [];
+  const user1 = userIds.length > 0 ? userIds[0].toString() : "1";
+  const user2 = userIds.length > 1 ? userIds[1].toString() : "2";
 
-  // Get the user1 and user2 names
-  const user1Name = expenses && expenses.length > 0 && expenses[0].paidByUser.id.toString() === user1
-    ? expenses[0].paidByUser.username
-    : "User 1";
-  const user2Name = expenses && expenses.length > 0 && expenses.find(e => e.paidByUser.id.toString() === user2)?.paidByUser.username
-    ? expenses.find(e => e.paidByUser.id.toString() === user2)?.paidByUser.username
-    : "User 2";
+  // Get all unique users from expenses
+  const uniqueUsers = expenses
+    ? [...new Set(expenses.map(e => e.paidByUser.id))]
+        .map(id => expenses.find(e => e.paidByUser.id === id)?.paidByUser)
+        .filter(Boolean)
+    : [];
+
+  // Get user names from the uniqueUsers array
+  const user1Obj = uniqueUsers.find(u => u?.id.toString() === user1);
+  const user2Obj = uniqueUsers.find(u => u?.id.toString() === user2);
+  
+  const user1Name = user1Obj?.username || "User 1";
+  const user2Name = user2Obj?.username || "User 2";
 
   return (
-    <div className="space-y-6">
-      <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
+    <div className="space-y-6 px-2 sm:px-4 pb-20">
+      <div className="mb-4">
+        <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
+      </div>
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {summaryLoading ? (
           <>
             <Skeleton className="h-24 w-full" />
@@ -158,31 +163,35 @@ export default function Dashboard() {
       </div>
 
       {/* Recent Expenses */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="px-4 py-5 sm:px-6 border-b border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-3 py-4 sm:px-6 sm:py-5 border-b border-gray-200">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-medium text-gray-800">Recent Expenses</h3>
-            <Link href="/expenses" className="text-sm font-medium text-primary hover:text-blue-700">
+            <h3 className="text-base sm:text-lg font-medium text-gray-800">Recent Expenses</h3>
+            <Link href="/expenses" className="text-xs sm:text-sm font-medium text-primary hover:text-blue-700">
               View all
             </Link>
           </div>
         </div>
-        <ExpenseTable 
-          expenses={expenses?.slice(0, 5) || []} 
-          onEdit={handleEditExpense} 
-          isLoading={expensesLoading} 
-        />
+        <div className="overflow-x-auto">
+          <ExpenseTable 
+            expenses={expenses?.slice(0, 5) || []} 
+            onEdit={handleEditExpense} 
+            isLoading={expensesLoading} 
+          />
+        </div>
       </div>
 
       {/* Category Distribution */}
-      <CategoryChart summary={summary} isLoading={summaryLoading} />
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 sm:p-4">
+        <CategoryChart summary={summary} isLoading={summaryLoading} />
+      </div>
 
       {/* Add New Expense Button */}
       <Button 
         onClick={handleAddExpense}
-        className="fixed bottom-20 right-6 md:bottom-8 h-14 w-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors p-0"
+        className="fixed bottom-16 right-4 sm:bottom-8 sm:right-6 h-12 w-12 sm:h-14 sm:w-14 rounded-full bg-primary text-white shadow-lg flex items-center justify-center hover:bg-blue-600 transition-colors p-0 z-10"
       >
-        <PlusIcon className="h-6 w-6" />
+        <PlusIcon className="h-5 w-5 sm:h-6 sm:w-6" />
       </Button>
 
       {/* Expense Form */}
