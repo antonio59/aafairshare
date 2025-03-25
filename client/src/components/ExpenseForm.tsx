@@ -78,11 +78,11 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       description: expense ? expense.description : "",
       amount: expense ? String(Number(expense.amount)) : "",
       date: expense ? new Date(expense.date) : new Date(),
-      paid_by_user_id: expense ? expense.paid_by_user_id : 1,
+      paid_by_user_id: expense ? expense.paid_by_user_id : users?.[0]?.id || 1,
       split_type: expense ? expense.split_type : "50/50",
       notes: expense?.notes || "",
-      category_id: expense ? expense.category_id : 1,
-      location_id: expense ? expense.location_id : 1,
+      category_id: expense ? expense.category_id : categories?.[0]?.id || 1,
+      location_id: expense ? expense.location_id : locations?.[0]?.id || 1,
     },
   });
 
@@ -187,6 +187,20 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="What was this expense for?" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
             <FormField
               control={form.control}
               name="amount"
@@ -301,7 +315,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
 
             <FormField
               control={form.control}
-              name="paid_by"
+              name="paid_by_user_id"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Paid By</FormLabel>
