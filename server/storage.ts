@@ -332,15 +332,25 @@ export class Storage {
     // Sum expenses accounting for split types
     expenses.forEach(expense => {
       if (expense.split_type === "50/50") {
+        // For 50/50 splits, add the full amount to the paying user's expenses
         userExpenses[expense.paid_by_user_id] += Number(expense.amount);
       } else if (expense.split_type === "100%") {
-        // For 100% splits, the amount is attributed to the user who didn't pay
+        // For 100% splits, the other user owes the full amount
+        // This means the paying user's contribution should count toward the total,
+        // but the other user is responsible for the entire expense amount
+        
+        // First, get the other user's ID
         const otherUserId = Object.keys(userExpenses)
           .map(Number)
           .find(id => id !== expense.paid_by_user_id);
+          
         if (otherUserId) {
-          userExpenses[expense.paid_by_user_id] += 0; // They paid but don't owe
-          userExpenses[otherUserId] += Number(expense.amount); // They owe the full amount
+          // The paying user paid, but the other user owes 100%
+          // So we credit the paying user's expenses (they paid but don't owe)
+          userExpenses[expense.paid_by_user_id] += Number(expense.amount);
+          
+          // We don't need to add anything to the other user's expenses,
+          // as the settlement calculation will reflect that they owe the full amount
         }
       }
     });
