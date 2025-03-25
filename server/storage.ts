@@ -311,9 +311,13 @@ export class Storage {
   async getSettlement(id: number): Promise<SettlementWithUsers | undefined> {
     const result = await pool.query(
       `SELECT 
-        s.*, 
-        fu.*, 
-        tu.* 
+        s.*,
+        fu.id AS from_user_id,
+        fu.username AS from_username,
+        fu.email AS from_email,
+        tu.id AS to_user_id,
+        tu.username AS to_username,
+        tu.email AS to_email
        FROM settlements s
        JOIN users fu ON s.from_user_id = fu.id
        JOIN users tu ON s.to_user_id = tu.id
@@ -321,20 +325,52 @@ export class Storage {
       [id]
     );
     const row = result.rows[0];
-    return row ? { ...row, fromUser: {id: row.from_user_id, username: row.username, email: row.email, password: row.password}, toUser: {id: row.to_user_id, username: row.username, email: row.email, password: row.password}} : undefined;
+    return row ? { 
+      ...row, 
+      fromUser: {
+        id: row.from_user_id, 
+        username: row.from_username, 
+        email: row.from_email, 
+        password: '' // We don't need to expose password
+      }, 
+      toUser: {
+        id: row.to_user_id, 
+        username: row.to_username, 
+        email: row.to_email, 
+        password: '' // We don't need to expose password
+      }
+    } : undefined;
   }
 
   async getAllSettlements(): Promise<SettlementWithUsers[]> {
     const result = await pool.query(
       `SELECT 
-        s.*, 
-        fu.*, 
-        tu.* 
+        s.*,
+        fu.id AS from_user_id,
+        fu.username AS from_username,
+        fu.email AS from_email,
+        tu.id AS to_user_id,
+        tu.username AS to_username,
+        tu.email AS to_email
        FROM settlements s
        JOIN users fu ON s.from_user_id = fu.id
        JOIN users tu ON s.to_user_id = tu.id`
     );
-    return result.rows.map(row => ({ ...row, fromUser: {id: row.from_user_id, username: row.username, email: row.email, password: row.password}, toUser: {id: row.to_user_id, username: row.username, email: row.email, password: row.password}}));
+    return result.rows.map(row => ({ 
+      ...row, 
+      fromUser: {
+        id: row.from_user_id, 
+        username: row.from_username, 
+        email: row.from_email, 
+        password: '' // We don't need to expose password
+      }, 
+      toUser: {
+        id: row.to_user_id, 
+        username: row.to_username, 
+        email: row.to_email, 
+        password: '' // We don't need to expose password
+      }
+    }));
   }
 
   async getSettlementsByMonth(month: string): Promise<SettlementWithUsers[]> {
