@@ -30,7 +30,7 @@ import { LockKeyhole, User } from "lucide-react";
 
 // Form schema for validation
 const formSchema = z.object({
-  username: z.string().min(1, "Username is required"),
+  email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
 });
 
@@ -67,7 +67,7 @@ export default function Login() {
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      username: "",
+      email: "",
       password: "",
     },
   });
