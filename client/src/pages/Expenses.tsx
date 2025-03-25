@@ -5,7 +5,7 @@ import ExpenseForm from "@/components/ExpenseForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon } from "lucide-react";
 import { useQuery, QueryKey } from "@tanstack/react-query";
-import { ExpenseWithDetails } from "@shared/schema";
+import { ExpenseWithDetails, MonthSummary, SettlementWithUsers } from "@shared/schema";
 import { getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { exportExpenses } from "@/lib/exportUtils";
@@ -52,12 +52,34 @@ export default function Expenses() {
     setIsExpenseFormOpen(true);
   };
 
+  // Fetch summary data for the month
+  const { 
+    data: summary,
+    isLoading: summaryLoading
+  } = useQuery<MonthSummary>({
+    queryKey: [`/api/summary/${currentMonth}`],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1
+  });
+
+  // Fetch settlements for the month
+  const { 
+    data: settlements = [] as SettlementWithUsers[], 
+    isLoading: settlementsLoading 
+  } = useQuery<SettlementWithUsers[]>({
+    queryKey: [`/api/settlements?month=${currentMonth}`],
+    staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 1
+  });
+
   const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
     if (expenses && expenses.length > 0) {
       exportExpenses({
         format,
         month: currentMonth,
-        expenses: expenses
+        expenses,
+        settlements,
+        summary
       });
     } else {
       toast({

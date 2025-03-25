@@ -6,7 +6,7 @@ import ExpenseForm from "@/components/ExpenseForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, PoundSterling, Users, WalletCards } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { ExpenseWithDetails, MonthSummary } from "@shared/schema";
+import { ExpenseWithDetails, MonthSummary, SettlementWithUsers } from "@shared/schema";
 import { formatCurrency, getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -89,9 +89,9 @@ export default function Dashboard() {
 
   // Fetch settlements for the month
   const { 
-    data: settlements = [], 
+    data: settlements = [] as SettlementWithUsers[], 
     isLoading: settlementsLoading 
-  } = useQuery({
+  } = useQuery<SettlementWithUsers[]>({
     queryKey: [`/api/settlements?month=${currentMonth}`],
     staleTime: 1000 * 60 * 5, // 5 minutes
     retry: 1
