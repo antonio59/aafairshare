@@ -5,10 +5,7 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { storage as memStorage, MemStorage, IStorage } from "./storage"; 
-import { SupabaseStorage } from "./supabaseStorage";
-import { initializeSupabaseDatabase } from "./initSupabase";
-import { createSupabaseFunctions } from "./createSupabaseFunctions";
-import { db, executeSqlFileWithPostgres } from "./db";
+import { db, executeSqlFileWithPostgres, initializeDatabase } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -102,50 +99,25 @@ app.use((req, res, next) => {
   let storageImplementation: IStorage;
 
   try {
-    // First try to use Supabase as requested by the user
-    const supabaseUrl = process.env.SUPABASE_URL;
-    const supabaseKey = process.env.SUPABASE_KEY;
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_KEY;
-
-    log("Checking Supabase credentials and database access...");
-    console.log("SUPABASE_URL exists:", !!supabaseUrl);
-    console.log("SUPABASE_KEY exists:", !!supabaseKey);
-    console.log("SUPABASE_SERVICE_KEY exists:", !!supabaseServiceKey);
-    console.log("DATABASE_URL exists:", !!process.env.DATABASE_URL);
-
-    // Require Supabase credentials - don't fall back to in-memory
-    if (!supabaseUrl || (!supabaseServiceKey && !supabaseKey)) {
-      log("ERROR: Missing Supabase credentials. The application requires Supabase for storage.");
-      throw new Error("Missing required Supabase credentials");
-    }
-
-    log("Supabase credentials found - using Supabase for cloud storage");
-
-    // Create database schema first using direct PostgreSQL connection
     log("Creating database schema using direct PostgreSQL connection...");
     const sqlResult = await executeSqlFileWithPostgres();
     if (sqlResult.success) {
       log("Successfully created database objects via direct SQL execution");
     } else {
       log(`Warning: SQL setup encountered an issue: ${sqlResult.message}`);
-      log("Will continue with Supabase API for data access");
+      log("Will continue with database API for data access");
     }
 
     // Initialize the SupabaseStorage after creating schema
-    log("Initializing Supabase connection...");
-    storageImplementation = new SupabaseStorage();
+    log("Initializing database connection...");
+    storageImplementation = new MemStorage();
 
-    // Attempt to run any additional initialization
-    try {
-      log("Initializing database tables and default data...");
-      await initializeSupabaseDatabase();
-      log("Database initialization completed successfully");
-    } catch (initError) {
-      log(`Database initialization via API encountered an issue: ${initError}`);
-      log("Database access will continue to use direct SQL when needed");
-    }
 
-    log("Successfully connected to Supabase cloud storage");
+    // Initialize database
+    await initializeDatabase();
+    log("Database initialization completed successfully");
+
+    log("Successfully connected to database.");
   } catch (error) {
     log(`CRITICAL ERROR: Failed to initialize database: ${error}`);
     throw error; // Don't continue without database
@@ -194,21 +166,8 @@ app.use((req, res, next) => {
       log(`If you're accessing from outside Replit, use http://0.0.0.0:${port}`);
 
       // Show appropriate storage message
-      if (storageImplementation instanceof SupabaseStorage) {
-        log("Data will be stored persistently in Supabase cloud.");
-        // Check environment variables directly
-        if (process.env.SUPABASE_SERVICE_KEY) {
-          log("Using service key with admin privileges for database operations.");
-        } else {
-          log("Using regular API key for database operations.");
-        }
-      } else {
+      if (storageImplementation instanceof MemStorage) {
         log("Data will be stored in-memory only (will be lost on restart).");
-        // Check environment variables directly
-        if (process.env.SUPABASE_URL && (process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_KEY)) {
-          log("Note: Supabase connection failed, falling back to in-memory storage.");
-          log("WARNING: This is not recommended for production use.");
-        }
       }
     }).on('error', (err) => {
         if (err.code === 'EADDRINUSE') {
@@ -219,7 +178,7 @@ app.use((req, res, next) => {
         }
       });
     };
-    
+
     startWithPort(port);
   };
 
