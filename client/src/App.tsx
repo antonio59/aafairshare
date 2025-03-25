@@ -91,9 +91,6 @@ function App() {
         <Route path="/settings">
           {() => <ProtectedRoute component={Settings} />}
         </Route>
-        <Route path="/recurring-expenses">
-          {() => <ProtectedRoute component={RecurringExpenses} />}
-        </Route>
         <Route>
           {() => <ProtectedRoute component={NotFound} />}
         </Route>
