@@ -24,7 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { LockKeyhole, Mail } from "lucide-react";
+import { LockKeyhole, Mail, CreditCard, DollarSign } from "lucide-react";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -98,17 +98,29 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5 p-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">AAFairShare</h1>
-          <p className="text-gray-500">Welcome back! Please sign in to continue.</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
+      <div className="w-full max-w-md">
+        <div className="mb-8 text-center">
+          <div className="flex justify-center mb-4">
+            <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
+              <DollarSign className="h-8 w-8 text-primary" />
+            </div>
+          </div>
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">AAFairShare</h1>
+          <p className="text-gray-500 text-lg">Track, split, and settle expenses effortlessly</p>
         </div>
         
-        <Card className="border-2">
-          <CardContent className="pt-6 pb-8 px-8">
+        <Card className="border shadow-lg">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
+            <CardDescription className="text-center">
+              Sign in to continue managing shared expenses
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent className="pt-4">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
                 <FormField
                   control={form.control}
                   name="email"
@@ -121,7 +133,7 @@ export default function Login() {
                             <Mail className="h-5 w-5 text-gray-400" />
                           </div>
                           <Input
-                            className="pl-10 h-11"
+                            className="pl-10 h-11 bg-gray-50/50"
                             type="email"
                             placeholder="Enter your email"
                             {...field}
@@ -145,7 +157,7 @@ export default function Login() {
                             <LockKeyhole className="h-5 w-5 text-gray-400" />
                           </div>
                           <Input
-                            className="pl-10 h-11"
+                            className="pl-10 h-11 bg-gray-50/50"
                             type="password"
                             placeholder="Enter your password"
                             {...field}
@@ -159,7 +171,7 @@ export default function Login() {
                 />
                 <Button 
                   type="submit" 
-                  className="w-full h-11 text-base font-medium" 
+                  className="w-full h-12 text-base font-semibold mt-2" 
                   disabled={isLoading || isCheckingAuth}
                 >
                   {isLoading ? "Signing in..." : isCheckingAuth ? "Checking..." : "Sign in"}
@@ -167,7 +179,30 @@ export default function Login() {
               </form>
             </Form>
           </CardContent>
+          
+          <CardFooter className="flex flex-col space-y-4 pt-2 pb-6">
+            <div className="w-full flex justify-center">
+              <Button 
+                variant="link" 
+                className="text-sm text-primary"
+                onClick={() => setLocation('/register')}
+              >
+                Don't have an account? Sign up
+              </Button>
+            </div>
+            
+            <div className="text-center text-xs text-gray-400 px-6">
+              By signing in, you agree to our terms of service and privacy policy.
+            </div>
+          </CardFooter>
         </Card>
+        
+        <div className="mt-8 text-center text-sm text-gray-500">
+          <div className="flex space-x-2 justify-center">
+            <CreditCard className="h-4 w-4" />
+            <span>Securely manage shared finances with ease</span>
+          </div>
+        </div>
       </div>
     </div>
   );
