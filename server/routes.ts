@@ -81,6 +81,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
       message: "Registration is disabled. This is a closed application." 
     });
   });
+  
+  // Password reset route
+  app.post(`${API_PREFIX}/auth/reset-password`, async (req, res) => {
+    try {
+      const { email, newPassword } = req.body;
+      
+      if (!email || !newPassword) {
+        return res.status(400).json({ message: "Email and new password are required" });
+      }
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Hash the new password
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+      
+      // Update the user's password in the database
+      await storage.updateUserPassword(user.id, hashedPassword);
+      
+      return res.status(200).json({ message: "Password reset successful" });
+    } catch (error) {
+      handleError(res, error);
+    }
+  });
 
   // Categories routes
   app.get(`${API_PREFIX}/categories`, isAuthenticated, async (req, res) => {
