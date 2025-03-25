@@ -8,22 +8,23 @@ import * as schema from '../shared/schema';
 // Get the connection string from environment variable
 const connectionString = process.env.DATABASE_URL;
 
-// Function to execute SQL directly
+// Function to execute SQL directly using service role key
 export async function executeDirectSql(sql: string) {
   try {
-    const { data, error } = await supabase.rpc('exec_sql', {
-      sql_query: sql
-    });
+    const { data, error } = await supabase.from('_backend').rpc('query', { q: sql });
     
     if (error) {
+      console.error("SQL execution error:", error);
       return { success: false, message: error.message };
     }
     
     return { success: true, data };
   } catch (error) {
-    return { success: false, message: error.message };
+    console.error("SQL execution exception:", error);
+    return { success: false, message: error instanceof Error ? error.message : String(error) };
   }
 }
+</old_str>
 
 // Function to execute SQL file with Postgres
 export async function executeSqlFileWithPostgres() {

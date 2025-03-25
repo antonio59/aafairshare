@@ -67,32 +67,88 @@ async function createTables() {
   try {
     log("Creating tables via direct SQL...");
 
-    // Read and execute the SQL file directly
-    const sqlFilePath = path.resolve(__dirname, 'direct_sql_tables.sql');
-    const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
+    // Create users table
+    await executeDirectSql(`
+      CREATE TABLE IF NOT EXISTS users (
+        id SERIAL PRIMARY KEY,
+        username TEXT NOT NULL,
+        email TEXT NOT NULL UNIQUE,
+        password TEXT NOT NULL
+      );
+    `);
+    log("Created users table");
 
-    // Execute each statement separately
-    const statements = sqlContent.split(';')
-      .map(stmt => stmt.trim())
-      .filter(stmt => stmt.length > 0);
+    // Create categories table
+    await executeDirectSql(`
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        color TEXT,
+        icon TEXT
+      );
+    `);
+    log("Created categories table");
 
-    for (const statement of statements) {
-      try {
-        const { data, error } = await supabase.rpc('exec_sql', {
-          sql_query: statement
-        });
+    // Create locations table
+    await executeDirectSql(`
+      CREATE TABLE IF NOT EXISTS locations (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL
+      );
+    `);
+    log("Created locations table");
 
-        if (error) {
-          log(`Warning executing statement: ${error.message}`);
-        } else {
-          log(`Successfully executed SQL statement`);
-        }
-      } catch (stmtError) {
-        log(`Error executing statement: ${stmtError.message}`);
-      }
-    }
+    // Create expenses table
+    await executeDirectSql(`
+      CREATE TABLE IF NOT EXISTS expenses (
+        id SERIAL PRIMARY KEY,
+        description TEXT NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        date TIMESTAMP NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        location_id INTEGER REFERENCES locations(id),
+        paid_by_user_id INTEGER REFERENCES users(id),
+        split_type TEXT NOT NULL,
+        notes TEXT,
+        month TEXT
+      );
+    `);
+    log("Created expenses table");
 
-    log("Completed SQL execution");
+    // Create recurring expenses table
+    await executeDirectSql(`
+      CREATE TABLE IF NOT EXISTS recurring_expenses (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        frequency TEXT NOT NULL,
+        start_date TIMESTAMP NOT NULL,
+        end_date TIMESTAMP,
+        next_date TIMESTAMP NOT NULL,
+        category_id INTEGER REFERENCES categories(id),
+        location_id INTEGER REFERENCES locations(id),
+        paid_by_user_id INTEGER REFERENCES users(id),
+        split_type TEXT NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        notes TEXT
+      );
+    `);
+    log("Created recurring expenses table");
+
+    // Create settlements table
+    await executeDirectSql(`
+      CREATE TABLE IF NOT EXISTS settlements (
+        id SERIAL PRIMARY KEY,
+        amount DECIMAL(10, 2) NOT NULL,
+        date TIMESTAMP NOT NULL,
+        month TEXT NOT NULL,
+        from_user_id INTEGER REFERENCES users(id),
+        to_user_id INTEGER REFERENCES users(id),
+        notes TEXT
+      );
+    `);
+    log("Created settlements table");
 
     // Create users table
     const usersResult = await executeDirectSql(`
