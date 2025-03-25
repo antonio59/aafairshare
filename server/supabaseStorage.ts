@@ -20,8 +20,8 @@ import { IStorage } from "./storage";
 import { supabase } from "./supabase";
 
 // Get Supabase credentials from environment
-const supabaseUrl = process.env.SUPABASE_URL || (import.meta.env.SUPABASE_URL as string);
-const supabaseKey = process.env.SUPABASE_KEY || (import.meta.env.SUPABASE_KEY as string);
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
 
 export class SupabaseStorage implements IStorage {
   onStorageOperationError?: (operation: string, error: any) => boolean;

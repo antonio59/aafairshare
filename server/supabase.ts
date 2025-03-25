@@ -25,16 +25,16 @@ if (!supabaseUrl || (!supabaseKey && !supabaseServiceKey)) {
 } else {
   // Prefer service key for admin operations if available
   const apiKey = supabaseServiceKey || supabaseKey;
-  
+
   log('Initializing Supabase client with provided credentials.');
   console.log(`Using Supabase URL pattern: ${supabaseUrl?.substring(0, 8)}...`);
-  
+
   if (supabaseServiceKey) {
     log('Using service role key for database operations (admin privileges)');
   } else {
     log('Using regular API key for database operations (limited privileges)');
   }
-  
+
   // Create the Supabase client with proper options and request debugging
   supabase = createClient(supabaseUrl, apiKey as string, {
     auth: {
@@ -47,12 +47,12 @@ if (!supabaseUrl || (!supabaseKey && !supabaseServiceKey)) {
         // Log the request
         const url = args[0] as string;
         console.log(`Supabase API request to: ${url}`);
-        
+
         // Make the fetch request
         return fetch(...args).then((response) => {
           // Create a clone of the response to read the body
           const clone = response.clone();
-          
+
           // Only log full response for non-OK responses to avoid clutter
           if (!response.ok) {
             clone.text().then(body => {
@@ -67,13 +67,13 @@ if (!supabaseUrl || (!supabaseKey && !supabaseServiceKey)) {
           } else {
             console.log(`Supabase API success: ${response.status} ${response.statusText}`);
           }
-          
+
           return response;
         });
       }
     }
   });
-  
+
   // Verify the connection by making a simple query
   const checkConnection = async () => {
     try {
@@ -87,7 +87,7 @@ if (!supabaseUrl || (!supabaseKey && !supabaseServiceKey)) {
       console.error('Exception while checking Supabase connection:', err);
     }
   };
-  
+
   // Execute the connection check
   checkConnection();
 }
