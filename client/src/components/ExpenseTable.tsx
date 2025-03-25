@@ -29,15 +29,15 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
 
   const handleDelete = async () => {
     if (!expenseToDelete) return;
-    
+
     try {
       await apiRequest('DELETE', `/api/expenses/${expenseToDelete.id}`);
-      
+
       toast({
         title: "Expense deleted",
         description: "The expense has been deleted successfully.",
       });
-      
+
       // Invalidate queries
       queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
       queryClient.invalidateQueries({ queryKey: ['/api/summary'] });
@@ -109,12 +109,12 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                         }}
                       >
                         <svg className="h-3 w-3 sm:h-4 sm:w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 004 0z" />
                         </svg>
                       </div>
                       <div className="ml-2 sm:ml-3">
                         <p className="text-xs sm:text-sm font-medium text-gray-800">{expense.category.name}</p>
-                        <p className="text-xs text-gray-500 hidden sm:block">{expense.location.name}</p>
+                        <p className="text-xs text-gray-500">{expense.location.name}</p>
                         <div className="sm:hidden text-xs text-gray-500 flex flex-col">
                           <span>{expense.paidByUser.username}</span>
                           <span>{expense.split_type}</span>
