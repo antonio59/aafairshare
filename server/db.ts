@@ -11,7 +11,7 @@ const connectionString = process.env.DATABASE_URL;
 // Function to execute SQL directly using service role key
 export async function executeDirectSql(sql: string) {
   try {
-    const { data, error } = await supabase.from('_backend').rpc('query', { q: sql });
+    const { data, error } = await supabase.auth.admin.executeRawQuery(sql);
     
     if (error) {
       console.error("SQL execution error:", error);
