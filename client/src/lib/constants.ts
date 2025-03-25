@@ -26,18 +26,4 @@ export const CATEGORY_COLORS = [
   "#84CC16"  // lime
 ];
 
-export const CATEGORY_ICONS = [
-  "ShoppingCart", // groceries
-  "Home", // utilities
-  "Film", // entertainment
-  "Utensils", // dining
-  "Car", // transport
-  "CreditCard", // shopping
-  "Landmark", // housing
-  "Heart", // health
-  "Shirt", // clothing
-  "GraduationCap", // education
-  "Gift", // gifts
-  "Plane", // travel
-  "Smartphone", // technology
-];
+// Category icons have been removed as requested

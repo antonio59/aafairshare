@@ -23,13 +23,11 @@ export type User = typeof users.$inferSelect;
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  icon: text("icon").notNull(),
   color: text("color").notNull(),
 });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
-  icon: true,
   color: true,
 });
 

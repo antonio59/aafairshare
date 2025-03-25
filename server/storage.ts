@@ -60,22 +60,22 @@ export class Storage {
   }
 
   async getAllCategories(): Promise<Category[]> {
-    const result = await pool.query('SELECT * FROM categories');
+    const result = await pool.query('SELECT * FROM categories ORDER BY name ASC');
     return result.rows;
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
     const result = await pool.query(
-      'INSERT INTO categories (name, icon, color) VALUES ($1, $2, $3) RETURNING *',
-      [category.name, category.icon, category.color]
+      'INSERT INTO categories (name, color) VALUES ($1, $2) RETURNING *',
+      [category.name, category.color]
     );
     return result.rows[0];
   }
 
   async updateCategory(id: number, updatedCategory: Partial<InsertCategory>): Promise<Category | undefined> {
     const result = await pool.query(
-      'UPDATE categories SET name = $1, icon = $2, color = $3 WHERE id = $4 RETURNING *',
-      [updatedCategory.name, updatedCategory.icon, updatedCategory.color, id]
+      'UPDATE categories SET name = $1, color = $2 WHERE id = $3 RETURNING *',
+      [updatedCategory.name, updatedCategory.color, id]
     );
     return result.rows[0];
   }
@@ -128,7 +128,6 @@ export class Storage {
         e.*,
         c.id AS category_id,
         c.name AS category_name,
-        c.icon,
         c.color,
         l.id AS location_id,
         l.name AS location_name,
@@ -146,7 +145,7 @@ export class Storage {
     const row = result.rows[0];
     return row ? { 
       ...row, 
-      category: {id: row.category_id, name: row.category_name, icon: row.icon, color: row.color}, 
+      category: {id: row.category_id, name: row.category_name, color: row.color}, 
       location: {id: row.location_id, name: row.location_name}, 
       paidByUser: {id: row.user_id, username: row.username, email: row.email, password: row.password}
     } : undefined;
@@ -158,7 +157,6 @@ export class Storage {
         e.*,
         c.id AS category_id,
         c.name AS category_name,
-        c.icon,
         c.color,
         l.id AS location_id,
         l.name AS location_name,
@@ -173,7 +171,7 @@ export class Storage {
     );
     return result.rows.map(row => ({ 
       ...row, 
-      category: {id: row.category_id, name: row.category_name, icon: row.icon, color: row.color}, 
+      category: {id: row.category_id, name: row.category_name, color: row.color}, 
       location: {id: row.location_id, name: row.location_name}, 
       paidByUser: {id: row.user_id, username: row.username, email: row.email, password: row.password}
     }));
@@ -185,7 +183,6 @@ export class Storage {
           e.*,
           c.id AS category_id,
           c.name AS category_name,
-          c.icon,
           c.color,
           l.id AS location_id,
           l.name AS location_name,
@@ -202,7 +199,7 @@ export class Storage {
       );
       return result.rows.map(row => ({ 
         ...row, 
-        category: {id: row.category_id, name: row.category_name, icon: row.icon, color: row.color}, 
+        category: {id: row.category_id, name: row.category_name, color: row.color}, 
         location: {id: row.location_id, name: row.location_name}, 
         paidByUser: {id: row.user_id, username: row.username, email: row.email, password: row.password}
       }));

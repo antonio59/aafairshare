@@ -22,8 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { CATEGORY_COLORS, CATEGORY_ICONS } from "@/lib/constants";
-import * as LucideIcons from "lucide-react";
+import { CATEGORY_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
 interface CategoryFormProps {
@@ -33,8 +32,7 @@ interface CategoryFormProps {
 }
 
 const formSchema = insertCategorySchema.extend({
-  // Ensure icon and color are selected
-  icon: z.string().min(1, "Please select an icon"),
+  // Ensure color is selected
   color: z.string().min(1, "Please select a color")
 });
 
@@ -44,18 +42,11 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   
-  // Get icons from Lucide
-  const iconComponents = CATEGORY_ICONS.map(iconName => ({
-    name: iconName,
-    component: (LucideIcons as any)[iconName]
-  })).filter(icon => icon.component);
-  
   // Form setup
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: category?.name || "",
-      icon: category?.icon || CATEGORY_ICONS[0],
       color: category?.color || CATEGORY_COLORS[0]
     }
   });
@@ -65,13 +56,11 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
     if (category) {
       form.reset({
         name: category.name,
-        icon: category.icon,
         color: category.color
       });
     } else {
       form.reset({
         name: "",
-        icon: CATEGORY_ICONS[0],
         color: CATEGORY_COLORS[0]
       });
     }
@@ -131,35 +120,6 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
                   <FormLabel>Name</FormLabel>
                   <FormControl>
                     <Input {...field} placeholder="Category name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="icon"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Icon</FormLabel>
-                  <FormControl>
-                    <div className="grid grid-cols-6 gap-2">
-                      {iconComponents.map(({ name, component: Icon }) => (
-                        <Button
-                          key={name}
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            "h-10 w-10 p-0", 
-                            field.value === name && "ring-2 ring-primary border-primary"
-                          )}
-                          onClick={() => field.onChange(name)}
-                        >
-                          <Icon className="h-5 w-5" />
-                        </Button>
-                      ))}
-                    </div>
                   </FormControl>
                   <FormMessage />
                 </FormItem>
