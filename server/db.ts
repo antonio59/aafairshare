@@ -11,15 +11,16 @@ const connectionString = process.env.DATABASE_URL;
 // Function to execute SQL directly using service role key
 export async function executeDirectSql(sql: string) {
   try {
-    const result = await fetch(`${supabase.supabaseUrl}/rest/v1/`, {
+    const result = await fetch(`${supabase.supabaseUrl}/rest/v1/rpc/exec`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabase.supabaseServiceKey}`,
-        'apikey': supabase.supabaseServiceKey,
-        'Prefer': 'return=minimal'
+        'Authorization': `Bearer ${process.env.SUPABASE_SERVICE_KEY}`,
+        'apikey': process.env.SUPABASE_SERVICE_KEY
       },
-      body: JSON.stringify({ query: sql })
+      body: JSON.stringify({
+        command: sql
+      })
     });
 
     if (!result.ok) {
