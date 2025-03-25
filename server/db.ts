@@ -61,14 +61,14 @@ export async function initializeDatabase() {
 
     // Insert default data
     await pool.query(`
-      INSERT INTO categories (name, color, icon)
-      SELECT 'Groceries', '#4CAF50', 'ShoppingCart'
+      INSERT INTO categories (name, color)
+      SELECT 'Groceries', '#4CAF50'
       WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Groceries')
       UNION ALL
-      SELECT 'Rent', '#2196F3', 'Home'
+      SELECT 'Rent', '#2196F3'
       WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Rent')
       UNION ALL
-      SELECT 'Utilities', '#FFC107', 'Lightbulb'
+      SELECT 'Utilities', '#FFC107'
       WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Utilities');
 
       INSERT INTO locations (name)
