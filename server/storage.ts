@@ -81,6 +81,16 @@ export class Storage {
   }
 
   async deleteCategory(id: number): Promise<boolean> {
+    // Check if category is in use
+    const usageCheck = await pool.query(
+      'SELECT COUNT(*) FROM expenses WHERE category_id = $1',
+      [id]
+    );
+    
+    if (parseInt(usageCheck.rows[0].count) > 0) {
+      throw new Error('Cannot delete category that is in use by expenses');
+    }
+
     const result = await pool.query('DELETE FROM categories WHERE id = $1', [id]);
     return result.rowCount !== null && result.rowCount > 0;
   }
@@ -117,6 +127,16 @@ export class Storage {
   }
 
   async deleteLocation(id: number): Promise<boolean> {
+    // Check if location is in use
+    const usageCheck = await pool.query(
+      'SELECT COUNT(*) FROM expenses WHERE location_id = $1',
+      [id]
+    );
+    
+    if (parseInt(usageCheck.rows[0].count) > 0) {
+      throw new Error('Cannot delete location that is in use by expenses');
+    }
+    
     const result = await pool.query('DELETE FROM locations WHERE id = $1', [id]);
     return result.rowCount !== null && result.rowCount > 0;
   }
