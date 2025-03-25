@@ -85,50 +85,67 @@ interface RecurringExpenseFormProps {
 // Define FormData type
 type FormData = z.infer<typeof formSchema>;
 
+interface AuthStatusResponse {
+  isAuthenticated: boolean;
+  user?: {
+    id: number;
+    username: string;
+  };
+}
+
 export default function RecurringExpenseForm({ 
   open, 
   onOpenChange, 
   recurringExpense 
 }: RecurringExpenseFormProps) {
-  // State for categories and locations
-  const [categories, setCategories] = useState<any[]>([]);
-  const [locations, setLocations] = useState<any[]>([]);
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [locationName, setLocationName] = useState("");
+  
+  // Queries
+  const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
 
-  // Fetch categories and locations
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const categoriesResponse = await apiRequest("GET", "/api/categories");
-        const locationsResponse = await apiRequest("GET", "/api/locations");
-        
-        const categoriesData = await categoriesResponse.json();
-        const locationsData = await locationsResponse.json();
-        
-        setCategories(categoriesData);
-        setLocations(locationsData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      }
-    };
+  const { data: locations, isLoading: locationsLoading } = useQuery<Location[]>({
+    queryKey: ['/api/locations'],
+  });
 
-    if (open) {
-      fetchData();
-    }
-  }, [open]);
+  // Get current user data
+  const { data: authData } = useQuery<AuthStatusResponse>({
+    queryKey: ['/api/auth/status'],
+  });
+
+  // Create new location mutation
+  const createLocationMutation = useMutation({
+    mutationFn: async (locationName: string): Promise<Location> => {
+      const newLocation: InsertLocation = { name: locationName };
+      const response = await apiRequest('POST', '/api/locations', newLocation);
+      return response.json();
+    },
+    onSuccess: (newLocation) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
+      // Set the form value to the newly created location
+      form.setValue('location_id', newLocation.id);
+      
+      toast({
+        title: "Location added",
+        description: `New location has been added successfully.`,
+      });
+    },
+  });
 
   // Initialize form with recurring expense data or defaults
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: recurringExpense ? {
       name: recurringExpense.name,
+      description: recurringExpense.description || "",
       amount: recurringExpense.amount.toString(),
       frequency: recurringExpense.frequency,
       start_date: new Date(recurringExpense.start_date),
       end_date: recurringExpense.end_date ? new Date(recurringExpense.end_date) : null,
       next_date: new Date(recurringExpense.next_date),
-      paid_by: recurringExpense.paid_by,
+      paid_by_user_id: recurringExpense.paid_by_user_id,
       split_type: recurringExpense.split_type,
       notes: recurringExpense.notes || "",
       category_id: recurringExpense.category_id,
@@ -136,16 +153,17 @@ export default function RecurringExpenseForm({
       is_active: recurringExpense.is_active,
     } : {
       name: "",
+      description: "",
       amount: "",
       frequency: "monthly",
       start_date: new Date(),
       end_date: null,
       next_date: new Date(),
-      paid_by: 1, // Default to first user
+      paid_by_user_id: authData?.user?.id || 1,
       split_type: "50/50",
       notes: "",
-      category_id: 0,
-      location_id: 0,
+      category_id: categories?.[0]?.id || 0,
+      location_id: locations?.[0]?.id || 0,
       is_active: true,
     }
   });
@@ -154,8 +172,15 @@ export default function RecurringExpenseForm({
   const startDate = form.watch("start_date");
   const frequency = form.watch("frequency");
 
+  // Update form when auth data changes
   useEffect(() => {
-    // Only set next_date equal to start_date when creating a new recurring expense
+    if (authData?.user && !recurringExpense) {
+      form.setValue('paid_by_user_id', authData.user.id);
+    }
+  }, [authData, form, recurringExpense]);
+
+  // Update next_date when start_date changes (only for new expenses)
+  useEffect(() => {
     if (!recurringExpense) {
       form.setValue("next_date", startDate);
     }
@@ -164,35 +189,55 @@ export default function RecurringExpenseForm({
   // Handle form submission
   const onSubmit = async (data: FormData) => {
     setIsSubmitting(true);
-
-    // If location_id is 0 and locationName is provided, create a new location
-    if (data.location_id === 0 && locationName) {
-      try {
-        const locationResponse = await apiRequest("POST", "/api/locations", { name: locationName });
-        const newLocation = await locationResponse.json();
-        data.location_id = newLocation.id;
-      } catch (error) {
-        console.error("Error creating location:", error);
-        setIsSubmitting(false);
-        return;
-      }
-    }
-
+    
     try {
+      if (!authData?.isAuthenticated || !authData?.user) {
+        throw new Error("You must be logged in to save a recurring expense");
+      }
+
+      // Convert amount to number for the API
+      const recurringExpenseData = {
+        ...data,
+        amount: parseFloat(data.amount),
+        start_date: data.start_date instanceof Date ? data.start_date : new Date(data.start_date),
+        next_date: data.next_date instanceof Date ? data.next_date : new Date(data.next_date),
+        end_date: data.end_date instanceof Date ? data.end_date : (data.end_date ? new Date(data.end_date) : null),
+      };
+
       if (recurringExpense) {
         // Update existing recurring expense
-        await apiRequest(
+        const response = await apiRequest(
           "PATCH", 
           `/api/recurring-expenses/${recurringExpense.id}`, 
-          data
+          recurringExpenseData
         );
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to update recurring expense');
+        }
+        
+        toast({
+          title: "Recurring expense updated",
+          description: "The recurring expense has been updated successfully.",
+        });
       } else {
         // Create new recurring expense
-        await apiRequest(
+        const response = await apiRequest(
           "POST", 
           "/api/recurring-expenses", 
-          data
+          recurringExpenseData
         );
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create recurring expense');
+        }
+        
+        toast({
+          title: "Recurring expense added",
+          description: "The recurring expense has been added successfully.",
+        });
       }
 
       // Invalidate queries
@@ -203,8 +248,13 @@ export default function RecurringExpenseForm({
       // Close the form and reset
       onOpenChange(false);
       form.reset();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving recurring expense:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to save recurring expense. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -245,9 +295,14 @@ export default function RecurringExpenseForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Amount (£)</FormLabel>
-                    <FormControl>
-                      <Input placeholder="100.00" type="number" step="0.01" {...field} />
-                    </FormControl>
+                    <div className="relative">
+                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <span className="text-gray-500 sm:text-sm">£</span>
+                      </div>
+                      <FormControl>
+                        <Input {...field} type="number" step="0.01" placeholder="0.00" className="pl-7" />
+                      </FormControl>
+                    </div>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -259,52 +314,24 @@ export default function RecurringExpenseForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Frequency</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value
-                              ? FREQUENCY_OPTIONS.find(
-                                  (option) => option.value === field.value
-                                )?.label
-                              : "Select frequency"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandGroup>
-                            {FREQUENCY_OPTIONS.map((option) => (
-                              <CommandItem
-                                key={option.value}
-                                value={option.value}
-                                onSelect={() => {
-                                  form.setValue("frequency", option.value);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    option.value === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {option.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      defaultValue={field.value}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select frequency" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {FREQUENCY_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -342,9 +369,6 @@ export default function RecurringExpenseForm({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
                           initialFocus
                         />
                       </PopoverContent>
@@ -384,9 +408,6 @@ export default function RecurringExpenseForm({
                           mode="single"
                           selected={field.value}
                           onSelect={field.onChange}
-                          disabled={(date) =>
-                            date < new Date("1900-01-01")
-                          }
                           initialFocus
                         />
                       </PopoverContent>
@@ -450,118 +471,7 @@ export default function RecurringExpenseForm({
                 </FormItem>
               )}
             />
-
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="paid_by"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Paid By</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value
-                              ? USERS.find((user) => user.id === field.value)
-                                  ?.name
-                              : "Select user"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandGroup>
-                            {USERS.map((user) => (
-                              <CommandItem
-                                key={user.id}
-                                value={user.name}
-                                onSelect={() => {
-                                  form.setValue("paid_by", user.id);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    user.id === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {user.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="split_type"
-                render={({ field }) => (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Split Type</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? SPLIT_TYPES.find(t => t.value === field.value)?.label : "Select split type"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandGroup>
-                            {SPLIT_TYPES.map((type) => (
-                              <CommandItem
-                                key={type.value}
-                                value={type.value}
-                                onSelect={() => {
-                                  form.setValue("split_type", type.value);
-                                }}
-                              >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    type.value === field.value
-                                      ? "opacity-100"
-                                      : "opacity-0"
-                                  )}
-                                />
-                                {type.label}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+            
             <div className="grid grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -569,50 +479,28 @@ export default function RecurringExpenseForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category</FormLabel>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className={cn(
-                              "w-full justify-between",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value && categories.length > 0
-                              ? categories.find(
-                                  (category) => category.id === field.value
-                                )?.name || "Select category"
-                              : "Select category"}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[200px] p-0">
-                        <Command>
-                          <CommandGroup>
-                            {categories.map((category) => (
-                              <CommandItem
-                                key={category.id}
-                                value={category.name.toString()}
-                                onSelect={() => {
-                                  form.setValue("category_id", category.id);
-                                }}
-                              >
-                                <div
-                                  className="mr-2 h-4 w-4 rounded-full"
-                                  style={{
-                                    backgroundColor: category.color,
-                                  }}
-                                />
-                                <span className="ml-1">{category.name}</span>
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
+                    <Select 
+                      onValueChange={(value) => field.onChange(parseInt(value))} 
+                      defaultValue={field.value?.toString()}
+                      value={field.value?.toString()}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {categoriesLoading ? (
+                          <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                        ) : (
+                          categories?.map((category) => (
+                            <SelectItem key={category.id} value={category.id.toString()}>
+                              {category.name}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -621,51 +509,110 @@ export default function RecurringExpenseForm({
               <FormField
                 control={form.control}
                 name="location_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <Combobox
-                      items={[
-                        ...locations.map((loc) => ({
-                          value: loc.id.toString(),
-                          label: loc.name,
-                        })),
-                        { value: "0", label: "Add new location..." },
-                      ]}
-                      value={field.value.toString()}
-                      onSelect={(value) => {
-                        const numValue = parseInt(value);
-                        form.setValue("location_id", numValue);
-                        if (numValue === 0) {
-                          setLocationName("");
-                        }
-                      }}
-                      onCreateNew={(value) => {
-                        setLocationName(value);
-                      }}
-                      createNewLabel="Create location"
-                      placeholder="Select location"
-                      emptyMessage="No locations found"
-                    />
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Convert locations array to combobox items
+                  const locationItems: ComboboxItem[] = locations?.map(location => ({
+                    value: location.id.toString(),
+                    label: location.name
+                  })) || [];
+
+                  // Handle creation of a new location
+                  const handleCreateLocation = async (locationName: string) => {
+                    try {
+                      await createLocationMutation.mutateAsync(locationName);
+                    } catch (error) {
+                      toast({
+                        title: "Error",
+                        description: "Failed to create new location.",
+                        variant: "destructive"
+                      });
+                    }
+                  };
+
+                  return (
+                    <FormItem>
+                      <FormLabel>Location</FormLabel>
+                      <FormControl>
+                        {locationsLoading ? (
+                          <Button variant="outline" disabled className="w-full justify-start">
+                            Loading locations...
+                          </Button>
+                        ) : (
+                          <Combobox
+                            items={locationItems}
+                            value={field.value?.toString()}
+                            onSelect={(value) => field.onChange(parseInt(value))}
+                            onCreateNew={handleCreateLocation}
+                            placeholder="Select or add a location"
+                            createNewLabel="Add new location"
+                            emptyMessage="No locations found. Type to add a new one."
+                            disabled={isSubmitting}
+                          />
+                        )}
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
-            {form.getValues("location_id") === 0 && (
-              <FormItem>
-                <FormLabel>New Location Name</FormLabel>
-                <FormControl>
-                  <Input
-                    placeholder="Enter new location name"
-                    value={locationName}
-                    onChange={(e) => setLocationName(e.target.value)}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            <FormField
+              control={form.control}
+              name="split_type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Split Type</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                    value={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select split type" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {SPLIT_TYPES.map((type) => (
+                        <SelectItem key={type.value} value={type.value}>
+                          {type.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Describe the expense" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes (Optional)</FormLabel>
+                  <FormControl>
+                    <Input {...field} placeholder="Any additional notes" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
@@ -675,7 +622,7 @@ export default function RecurringExpenseForm({
                   <div className="space-y-0.5">
                     <FormLabel className="text-base">Active Status</FormLabel>
                     <FormDescription>
-                      Enable or disable this recurring expense
+                      Toggle to activate or deactivate this recurring expense
                     </FormDescription>
                   </div>
                   <FormControl>
@@ -688,44 +635,19 @@ export default function RecurringExpenseForm({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes (Optional)</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="Add any additional notes here..."
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  onOpenChange(false);
-                  form.reset();
-                }}
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => onOpenChange(false)}
                 disabled={isSubmitting}
               >
                 Cancel
               </Button>
               <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting
-                  ? "Saving..."
-                  : recurringExpense
-                  ? "Update"
-                  : "Create"}
+                {isSubmitting ? "Saving..." : recurringExpense ? "Update Expense" : "Save Expense"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </Form>
       </DialogContent>
