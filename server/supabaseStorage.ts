@@ -115,29 +115,33 @@ export class SupabaseStorage implements IStorage {
         const { data: locationsData, error: locationsError } = await supabase.from('locations').select('id').limit(1);
         
         if (locationsError && locationsError.code === '42P01') {
-          // Table doesn't exist - create it via direct insert
-          console.log("Locations table doesn't exist. Attempting to create it via direct insert...");
+          // Table doesn't exist - create it via direct SQL
+          console.log("Locations table doesn't exist. Creating via direct SQL...");
           
-          // Try inserting a test location which will create the table with appropriate columns
-          const { data: createData, error: createError } = await supabase.from('locations').insert({
-            name: 'Supermarket'
-          }).select();
+          const createTableResult = await executeDirectSql(`
+            CREATE TABLE IF NOT EXISTS locations (
+              id SERIAL PRIMARY KEY,
+              name TEXT NOT NULL
+            );
+          `);
           
-          if (createError) {
-            console.error("Failed to create locations table via insert:", createError);
+          if (!createTableResult.success) {
+            console.error("Failed to create locations table:", createTableResult.message);
           } else {
-            console.log("Locations table created successfully via insert");
+            console.log("Locations table created successfully");
             
-            // Now add other default locations
-            const { error: insertError } = await supabase.from('locations').insert([
-              { name: 'Restaurant' },
-              { name: 'Online' },
-              { name: 'Cinema' },
-              { name: 'Pharmacy' },
-              { name: 'Gas Station' },
-              { name: 'Home' },
-              { name: 'Other' }
-            ]);
+            // Now add default locations using direct SQL
+            const insertResult = await executeDirectSql(`
+              INSERT INTO locations (name) VALUES
+                ('Supermarket'),
+                ('Restaurant'),
+                ('Online'),
+                ('Cinema'),
+                ('Pharmacy'),
+                ('Gas Station'),
+                ('Home'),
+                ('Other');
+            `);
             
             if (insertError) {
               console.error("Error adding additional locations:", insertError);
