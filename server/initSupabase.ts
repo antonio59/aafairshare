@@ -19,31 +19,31 @@ const __dirname = dirname(__filename);
  */
 export async function initializeSupabaseDatabase() {
   log("Initializing Supabase database...");
-  
+
   try {
     // First check if the database is already initialized by checking for users table
     const { data: existingUsers, error: checkError } = await supabase
       .from('users')
       .select('count')
       .limit(1);
-      
+
     // If we can access the users table and it has data, we're already initialized
     if (!checkError && existingUsers && existingUsers.length > 0) {
       log("Supabase database already initialized with users.");
       return true;
     }
-    
+
     // If the table exists but is empty, we'll assume the schema is there but needs data
     if (!checkError && (!existingUsers || existingUsers.length === 0)) {
       log("Supabase users table exists but might be empty. Adding default data...");
       await initializeDefaultData();
       return true;
     }
-    
+
     // We need to create the SQL functions and tables
     log("Database tables not found. Creating database structure...");
     const functionsResult = await createSupabaseFunctions();
-    
+
     if (!functionsResult) {
       log("Warning: Database creation via createSupabaseFunctions failed. Attempting another approach...");
       // Create the necessary tables using direct SQL
@@ -51,10 +51,10 @@ export async function initializeSupabaseDatabase() {
     } else {
       log("Database structure created successfully!");
     }
-    
+
     // Initialize with default data
     await initializeDefaultData();
-    
+
     log("Supabase database initialization completed!");
     return true;
   } catch (error) {
@@ -66,22 +66,22 @@ export async function initializeSupabaseDatabase() {
 async function createTables() {
   try {
     log("Creating tables via direct SQL...");
-    
+
     // Read and execute the SQL file directly
     const sqlFilePath = path.resolve(__dirname, 'direct_sql_tables.sql');
     const sqlContent = fs.readFileSync(sqlFilePath, 'utf8');
-    
+
     // Execute each statement separately
     const statements = sqlContent.split(';')
       .map(stmt => stmt.trim())
       .filter(stmt => stmt.length > 0);
-    
+
     for (const statement of statements) {
       try {
         const { data, error } = await supabase.rpc('exec_sql', {
           sql_query: statement
         });
-        
+
         if (error) {
           log(`Warning executing statement: ${error.message}`);
         } else {
@@ -91,9 +91,9 @@ async function createTables() {
         log(`Error executing statement: ${stmtError.message}`);
       }
     }
-    
+
     log("Completed SQL execution");
-    
+
     // Create users table
     const usersResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS users (
@@ -103,13 +103,13 @@ async function createTables() {
         password TEXT NOT NULL
       );
     `);
-    
+
     if (!usersResult.success) {
       log(`Failed to create users table: ${usersResult.message}`);
     } else {
       log('Created users table successfully');
     }
-    
+
     // Create categories table
     const categoriesResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS categories (
@@ -119,27 +119,46 @@ async function createTables() {
         icon TEXT
       );
     `);
-    
+
     if (!categoriesResult.success) {
       log(`Failed to create categories table: ${categoriesResult.message}`);
     } else {
       log('Created categories table successfully');
     }
-    
-    // Create locations table
-    const locationsResult = await executeDirectSql(`
+
+    // Create locations table using SQL
+    const createTableResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS locations (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL
       );
     `);
-    
-    if (!locationsResult.success) {
-      log(`Failed to create locations table: ${locationsResult.message}`);
+
+    if (!createTableResult.success) {
+      console.error("Failed to create locations table:", createTableResult.message);
     } else {
-      log('Created locations table successfully');
+      console.log("Locations table created successfully");
+
+      // Now insert default locations
+      const { error: insertError } = await supabase.from('locations').insert([
+        { name: 'Supermarket' },
+        { name: 'Restaurant' },
+        { name: 'Online' },
+        { name: 'Cinema' },
+        { name: 'Pharmacy' },
+        { name: 'Gas Station' },
+        { name: 'Home' },
+        { name: 'Other' }
+      ]);
+
+      if (insertError) {
+        console.error("Error adding default locations:", insertError);
+      } else {
+        console.log("Added default locations successfully");
+      }
     }
-    
+
+
     // Create expenses table
     const expensesResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS expenses (
@@ -155,13 +174,13 @@ async function createTables() {
         month TEXT
       );
     `);
-    
+
     if (!expensesResult.success) {
       log(`Failed to create expenses table: ${expensesResult.message}`);
     } else {
       log('Created expenses table successfully');
     }
-    
+
     // Create recurring expenses table
     const recurringExpensesResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS recurring_expenses (
@@ -181,13 +200,13 @@ async function createTables() {
         notes TEXT
       );
     `);
-    
+
     if (!recurringExpensesResult.success) {
       log(`Failed to create recurring_expenses table: ${recurringExpensesResult.message}`);
     } else {
       log('Created recurring_expenses table successfully');
     }
-    
+
     // Create settlements table
     const settlementsResult = await executeDirectSql(`
       CREATE TABLE IF NOT EXISTS settlements (
@@ -200,13 +219,13 @@ async function createTables() {
         notes TEXT
       );
     `);
-    
+
     if (!settlementsResult.success) {
       log(`Failed to create settlements table: ${settlementsResult.message}`);
     } else {
       log('Created settlements table successfully');
     }
-    
+
     log("Tables creation completed via direct SQL.");
     return true;
   } catch (error) {
@@ -219,7 +238,7 @@ async function createTables() {
 async function initializeDefaultData() {
   try {
     log("Inserting default data via direct PostgreSQL connection...");
-    
+
     // Insert default users if there are none
     await executeDirectSql(`
       INSERT INTO users (username, email, password)
@@ -229,7 +248,7 @@ async function initializeDefaultData() {
       SELECT 'Sarah', 'sarah@example.com', 'password'
       WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'Sarah');
     `);
-    
+
     // Insert default categories
     await executeDirectSql(`
       INSERT INTO categories (name, color, icon)
@@ -248,7 +267,7 @@ async function initializeDefaultData() {
       SELECT 'Transportation', '#F44336', 'Car'
       WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Transportation');
     `);
-    
+
     // Insert default locations
     await executeDirectSql(`
       INSERT INTO locations (name)
@@ -267,7 +286,7 @@ async function initializeDefaultData() {
       SELECT 'Other'
       WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Other');
     `);
-    
+
     log("Default data insertion completed.");
     return true;
   } catch (error) {
