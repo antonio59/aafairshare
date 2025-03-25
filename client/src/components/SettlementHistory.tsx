@@ -133,14 +133,15 @@ export default function SettlementHistory({ settlements, isLoading = false }: Se
                   </TableCell>
                   {onUnsettlement && (
                     <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onUnsettlement(settlement.id)}
-                    >
-                      Unsettle
-                    </Button>
-                  </TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => onUnsettlement(settlement.id)}
+                      >
+                        Unsettle
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))}
             </TableBody>
