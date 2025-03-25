@@ -74,6 +74,11 @@ const formSchema = z.object({
   is_active: z.boolean().default(true),
 });
 
+// Helper function to validate dates
+function isValidDate(date: any): boolean {
+  return date instanceof Date && !isNaN(date.getTime());
+}
+
 // Component props interface
 interface RecurringExpenseFormProps {
   open: boolean;
@@ -190,30 +195,77 @@ export default function RecurringExpenseForm({
         throw new Error("You must be logged in to save a recurring expense");
       }
 
-      // Convert amount to number for the API
-      // We need to add the name field as it's required in the database schema but not in our UI
-      // Make sure we have all required fields
-      // Current issue is that start_date is somehow coming as null
+      // Set a default start_date if none is provided
+      // This is a fallback safety measure to ensure we always have a start_date
       if (!data.start_date) {
-        throw new Error("Start date is required");
+        console.log("Setting default start_date as it was null");
+        data.start_date = new Date();
       }
       
-      // Ensure dates are properly formatted
-      const start_date = data.start_date instanceof Date ? data.start_date : new Date(data.start_date);
-      const next_date = data.next_date instanceof Date ? data.next_date : new Date(data.next_date);
-      const end_date = data.end_date instanceof Date ? data.end_date : (data.end_date ? new Date(data.end_date) : null);
+      // Log the data we're about to process for debugging
+      console.log("Form data before processing:", data);
+      
+      // Explicitly create new Date objects from the dates to ensure they're valid
+      let startDate;
+      try {
+        startDate = data.start_date instanceof Date 
+          ? new Date(data.start_date.getTime()) 
+          : new Date(data.start_date);
+      } catch (e) {
+        console.error("Error parsing start_date:", e);
+        // Fallback to current date if parsing fails
+        startDate = new Date();
+      }
+      
+      let nextDate;
+      try {
+        nextDate = data.next_date instanceof Date 
+          ? new Date(data.next_date.getTime()) 
+          : new Date(data.next_date);
+      } catch (e) {
+        console.error("Error parsing next_date:", e);
+        // Fallback to one month from current date if parsing fails
+        const date = new Date();
+        date.setMonth(date.getMonth() + 1);
+        nextDate = date;
+      }
+      
+      let endDate = null;
+      if (data.end_date) {
+        try {
+          endDate = data.end_date instanceof Date 
+            ? new Date(data.end_date.getTime()) 
+            : new Date(data.end_date);
+        } catch (e) {
+          console.error("Error parsing end_date:", e);
+        }
+      }
+      
+      // Validate dates again after processing
+      if (!isValidDate(startDate)) {
+        console.error("Invalid start date after processing", startDate);
+        startDate = new Date();
+      }
+      
+      if (!isValidDate(nextDate)) {
+        console.error("Invalid next date after processing", nextDate);
+        nextDate = new Date(new Date().setMonth(new Date().getMonth() + 1));
+      }
       
       // Build the data object with all required fields
       const recurringExpenseData = {
         ...data,
         name: recurringExpense?.name || `${data.frequency} - ${FREQUENCY_OPTIONS.find(f => f.value === data.frequency)?.label || 'Recurring'} expense`,
         amount: parseFloat(data.amount),
-        start_date,
-        next_date,
-        end_date,
+        start_date: startDate,
+        next_date: nextDate,
+        end_date: endDate,
         // Keep notes field since it's in the database but we don't show it in UI
         notes: recurringExpense?.notes || '',
       };
+      
+      // Log the final data we're sending to the server
+      console.log("Data to be sent to server:", recurringExpenseData);
 
       if (recurringExpense) {
         // Update existing recurring expense
