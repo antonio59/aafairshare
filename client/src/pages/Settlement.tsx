@@ -4,10 +4,10 @@ import SummaryCard from "@/components/SummaryCard";
 import SettlementHistory from "@/components/SettlementHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Users, Check } from "lucide-react";
+import { DollarSign, Users, Check, CalendarClock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { MonthSummary, Settlement as SettlementType, SettlementWithUsers } from "@shared/schema";
-import { getCurrentMonth, formatCurrency } from "@/lib/utils";
+import { MonthSummary, Settlement as SettlementType, SettlementWithUsers, User } from "@shared/schema";
+import { getCurrentMonth, formatCurrency, getPreviousMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -26,6 +26,14 @@ export default function Settlement() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  
+  // Fetch users
+  const {
+    data: users = [],
+    isLoading: usersLoading
+  } = useQuery<User[]>({
+    queryKey: ['/api/users']
+  });
 
   // Fetch summary data for the month
   const { 
@@ -103,12 +111,35 @@ export default function Settlement() {
     }
   };
 
-  // Find users
-  const fromUserName = summary?.settlementDirection.fromUserId ? `User ${summary.settlementDirection.fromUserId}` : "User A";
-  const toUserName = summary?.settlementDirection.toUserId ? `User ${summary.settlementDirection.toUserId}` : "User B";
+  // Get data for the previous month to help calculate unsettled months
+  const previousMonth = getPreviousMonth(currentMonth);
+  const {
+    data: previousMonthSettlements = []
+  } = useQuery<SettlementWithUsers[]>({
+    queryKey: [`/api/settlements?month=${previousMonth}`],
+    enabled: !!currentMonth
+  });
+
+  // Find user names based on IDs
+  const getUserName = (userId: number): string => {
+    const user = users.find(u => u.id === userId);
+    return user ? user.username : `User ${userId}`;
+  };
+
+  const fromUserName = summary?.settlementDirection.fromUserId 
+    ? getUserName(summary.settlementDirection.fromUserId) 
+    : "User A";
+    
+  const toUserName = summary?.settlementDirection.toUserId 
+    ? getUserName(summary.settlementDirection.toUserId) 
+    : "User B";
 
   // Check if a settlement exists for this month
   const isSettled = settlements && settlements.length > 0;
+  
+  // Calculate unsettled months
+  const previousMonthIsSettled = previousMonthSettlements && previousMonthSettlements.length > 0;
+  const unsettledMonths = !previousMonthIsSettled ? 1 : 0;
 
   return (
     <div className="space-y-6">
@@ -118,6 +149,37 @@ export default function Settlement() {
       
       <MonthSelector onMonthChange={handleMonthChange} />
       
+      {/* Unsettled months card */}
+      {unsettledMonths > 0 && (
+        <Card className="bg-amber-50 border-amber-200">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="p-2 rounded-full bg-amber-100">
+                  <CalendarClock className="h-5 w-5 text-amber-600" />
+                </div>
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-amber-800">
+                    Unsettled Month
+                  </h3>
+                  <p className="text-sm text-amber-600 mt-1">
+                    The previous month hasn't been settled yet
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-amber-200 text-amber-700 hover:bg-amber-100"
+                onClick={() => handleMonthChange(previousMonth)}
+              >
+                View
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Current settlement card */}
         <Card>
@@ -166,23 +228,29 @@ export default function Settlement() {
               <Skeleton className="h-20 w-full" />
             </>
           ) : (
-            Object.entries(summary?.userExpenses || {}).map(([userId, amount]) => (
-              <div key={userId} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                <div className="flex items-center">
-                  <div className={`p-2 rounded-md ${userId === "1" ? "bg-emerald-100 text-secondary" : "bg-purple-100 text-accent"}`}>
-                    <Users className="h-6 w-6" />
-                  </div>
-                  <div className="ml-3">
-                    <p className="text-sm font-medium text-gray-500">
-                      {userId === "1" ? "User 1" : "User 2"} Paid
-                    </p>
-                    <p className="text-xl font-semibold text-gray-800">
-                      {formatCurrency(amount)}
-                    </p>
+            Object.entries(summary?.userExpenses || {}).map(([userIdStr, amount]) => {
+              const userId = parseInt(userIdStr, 10);
+              const username = getUserName(userId);
+              const isFirstUser = userId === (users[0]?.id || 0);
+              
+              return (
+                <div key={userId} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                  <div className="flex items-center">
+                    <div className={`p-2 rounded-md ${isFirstUser ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600"}`}>
+                      <Users className="h-6 w-6" />
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-500">
+                        {username} Paid
+                      </p>
+                      <p className="text-xl font-semibold text-gray-800">
+                        {formatCurrency(amount)}
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
