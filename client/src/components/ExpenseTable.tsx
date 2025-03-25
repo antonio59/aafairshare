@@ -6,7 +6,6 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ExpenseWithDetails } from "@shared/schema";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -42,7 +41,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
       const month = expenseToDelete.date 
         ? new Date(expenseToDelete.date).toISOString().substring(0, 7) 
         : new Date().toISOString().substring(0, 7);
-      
+
       // Invalidate queries with the proper query key patterns
       queryClient.invalidateQueries({ queryKey: [`/api/expenses?month=${month}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/summary/${month}`] });
@@ -101,7 +100,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                 </div>
                 <p className="text-sm font-medium">{formatCurrency(Number(expense.amount))}</p>
               </div>
-              
+
               <div className="flex justify-between items-center mt-2">
                 <div className="flex flex-col">
                   <span className="text-xs text-gray-500">{formatDate(expense.date)}</span>
@@ -114,7 +113,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                     onClick={() => onEdit(expense)}
                     className="text-gray-500 hover:text-primary h-7 w-7 p-0"
                   >
-                    <Pencil className="h-3 w-3" />
+                    Edit
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -122,7 +121,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                     onClick={() => openDeleteDialog(expense)}
                     className="text-gray-500 hover:text-red-500 h-7 w-7 p-0"
                   >
-                    <Trash2 className="h-3 w-3" />
+                    Delete
                   </Button>
                 </div>
               </div>
@@ -130,7 +129,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
           </div>
         ))}
       </div>
-      
+
       {/* Desktop Table View */}
       <div className="hidden sm:block bg-white rounded-lg shadow-sm border-gray-200 w-full">
         <div className="overflow-x-auto">
@@ -168,7 +167,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                         onClick={() => onEdit(expense)}
                         className="text-gray-500 hover:text-primary h-8 w-8 p-0"
                       >
-                        <Pencil className="h-4 w-4" />
+                        Edit
                       </Button>
                       <Button 
                         variant="ghost" 
@@ -176,7 +175,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                         onClick={() => openDeleteDialog(expense)}
                         className="text-gray-500 hover:text-red-500 h-8 w-8 p-0"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        Delete
                       </Button>
                     </div>
                   </TableCell>

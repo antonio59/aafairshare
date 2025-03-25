@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Edit2Icon, Trash2Icon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon } from "lucide-react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Category, Location } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -20,7 +20,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-//import * as LucideIcons from "lucide-react"; // Removed import of LucideIcons
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -117,7 +116,6 @@ export default function Settings() {
                 </CardDescription>
               </div>
               <Button onClick={() => setCategoryFormOpen(true)}>
-                <PlusIcon className="mr-2 h-4 w-4" /> {/* PlusIcon remains, as per the original code and not mentioned in removal request */}
                 Add Category
               </Button>
             </CardHeader>
@@ -134,7 +132,6 @@ export default function Settings() {
                     <Card key={category.id}>
                       <CardContent className="flex items-center justify-between p-4">
                         <div className="flex items-center space-x-4">
-                          {/* Removed IconComponent and related code */}
                           <span>{category.name}</span>
                         </div>
                         <div className="flex space-x-2">
@@ -146,14 +143,14 @@ export default function Settings() {
                               setCategoryFormOpen(true);
                             }}
                           >
-                            <Edit2Icon className="h-4 w-4" />
+                            {/* Removed Icon */}
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openDeleteDialog('category', category.id)}
                           >
-                            <Trash2Icon className="h-4 w-4" />
+                            {/* Removed Icon */}
                           </Button>
                         </div>
                       </CardContent>
@@ -179,7 +176,6 @@ export default function Settings() {
                 </CardDescription>
               </div>
               <Button onClick={() => setLocationFormOpen(true)}>
-                <PlusIcon className="mr-2 h-4 w-4" /> {/* PlusIcon remains, as per the original code and not mentioned in removal request */}
                 Add Location
               </Button>
             </CardHeader>
@@ -205,14 +201,14 @@ export default function Settings() {
                               setLocationFormOpen(true);
                             }}
                           >
-                            <Edit2Icon className="h-4 w-4" />
+                            {/* Removed Icon */}
                           </Button>
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openDeleteDialog('location', location.id)}
                           >
-                            <Trash2Icon className="h-4 w-4" />
+                            {/* Removed Icon */}
                           </Button>
                         </div>
                       </CardContent>
