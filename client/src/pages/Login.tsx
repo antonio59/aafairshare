@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react";
-import { useLocation } from "wouter";
-import { z } from "zod";
-import { Mail } from "lucide-react";
+
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { apiRequest } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+import * as z from "zod";
+import { useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { useToast } from "@/components/ui/use-toast";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -25,10 +24,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { LockKeyhole, User } from "lucide-react";
+import { LockKeyhole, Mail } from "lucide-react";
 
-// Form schema for validation
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
@@ -41,7 +38,6 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
 
-  // Define auth response type
   interface AuthStatusResponse {
     isAuthenticated: boolean;
     user?: {
@@ -50,20 +46,17 @@ export default function Login() {
     };
   }
 
-  // Check if user is already authenticated
   const { data: authData, isLoading: isCheckingAuth } = useQuery<AuthStatusResponse>({
     queryKey: ['/api/auth/status'],
     retry: false,
   });
 
-  // Redirect to dashboard if already logged in
   useEffect(() => {
     if (authData && authData.isAuthenticated) {
       setLocation('/');
     }
   }, [authData, setLocation]);
 
-  // Initialize form
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -72,28 +65,31 @@ export default function Login() {
     },
   });
 
-  // Handle form submission
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
-    
     try {
-      // Use the apiRequest function which already handles error checking
-      await apiRequest('/api/auth/login', 'POST', data);
-      
-      // Invalidate auth status cache so it will refetch and show as logged in
-      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
-      
-      toast({
-        title: "Login successful",
-        description: "You have been logged in successfully.",
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
-      
-      // Use wouter's setLocation for smoother navigation instead of window.location
-      setLocation('/');
-    } catch (error) {
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || 'Login failed');
+      }
+
       toast({
-        title: "Login failed",
-        description: error instanceof Error ? error.message : "Invalid email or password",
+        title: "Success",
+        description: "Login successful",
+      });
+
+      setLocation('/');
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Login failed",
         variant: "destructive",
       });
     } finally {
@@ -102,74 +98,77 @@ export default function Login() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gray-50">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center">AAFairShare</CardTitle>
-          <CardDescription className="text-center">
-            Log in to manage your shared expenses
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Mail className="h-5 w-5 text-gray-400" />
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 to-secondary/5 p-4">
+      <div className="w-full max-w-md space-y-8">
+        <div className="text-center space-y-2">
+          <h1 className="text-4xl font-bold tracking-tight text-gray-900">AAFairShare</h1>
+          <p className="text-gray-500">Welcome back! Please sign in to continue.</p>
+        </div>
+        
+        <Card className="border-2">
+          <CardContent className="pt-6 pb-8 px-8">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Email</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <Mail className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <Input
+                            className="pl-10 h-11"
+                            type="email"
+                            placeholder="Enter your email"
+                            {...field}
+                            disabled={isLoading || isCheckingAuth}
+                          />
                         </div>
-                        <Input
-                          className="pl-10"
-                          type="email"
-                          placeholder="Enter your email"
-                          {...field}
-                          disabled={isLoading || isCheckingAuth}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <LockKeyhole className="h-5 w-5 text-gray-400" />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="password"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Password</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <LockKeyhole className="h-5 w-5 text-gray-400" />
+                          </div>
+                          <Input
+                            className="pl-10 h-11"
+                            type="password"
+                            placeholder="Enter your password"
+                            {...field}
+                            disabled={isLoading || isCheckingAuth}
+                          />
                         </div>
-                        <Input
-                          className="pl-10"
-                          type="password"
-                          placeholder="Enter your password"
-                          {...field}
-                          disabled={isLoading || isCheckingAuth}
-                        />
-                      </div>
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <Button type="submit" className="w-full" disabled={isLoading || isCheckingAuth}>
-                {isLoading ? "Logging in..." : isCheckingAuth ? "Checking..." : "Log in"}
-              </Button>
-            </form>
-          </Form>
-        </CardContent>
-        {/* Register button removed as per requirement */}
-        <CardFooter></CardFooter>
-      </Card>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button 
+                  type="submit" 
+                  className="w-full h-11 text-base font-medium" 
+                  disabled={isLoading || isCheckingAuth}
+                >
+                  {isLoading ? "Signing in..." : isCheckingAuth ? "Checking..." : "Sign in"}
+                </Button>
+              </form>
+            </Form>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
