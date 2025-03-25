@@ -1,7 +1,7 @@
 
-import { Storage } from "./storage";
-
+import bcrypt from "bcrypt";
 import express, { type Request, Response, NextFunction } from "express";
+import { Storage } from "./storage";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import session from "express-session";
@@ -25,8 +25,7 @@ app.use(session({
   }
 }));
 
-// Initialize storage with the Storage instance from storage.ts
-const storage = new Storage();
+// Use the storage instance exported from storage.ts
 
 // Passport configuration
 app.use(passport.initialize());
