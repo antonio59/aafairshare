@@ -8,7 +8,7 @@ import session from "express-session";
 import passport from "passport";
 import { Strategy as LocalStrategy } from "passport-local";
 import { storage, IStorage } from "./storage"; 
-import { db, executeSqlFileWithPostgres, initializeDatabase } from "./db";
+import { db, initializeDatabase } from "./db";
 
 const app = express();
 app.use(express.json());
