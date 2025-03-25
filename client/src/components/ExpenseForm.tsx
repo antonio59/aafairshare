@@ -130,14 +130,14 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
       // Convert amount to number for the API and determine the correct paying user
       const currentUserId = authData.user.id;
       
-      // For "100% Other User" split type, find the other user's ID
+      // Find the other user's ID for proper split calculation
       // User IDs in USERS array are 7 (Antonio) and 8 (Andres)
       const otherUserId = currentUserId === 7 ? 8 : 7;
       
-      // Set paid_by_user_id based on split type
-      // If split type is "100%", the other user pays
-      // For all other split types, the current user pays
-      const paid_by_user_id = data.split_type === "100%" ? otherUserId : currentUserId;
+      // Set paid_by_user_id - always the current user regardless of split type
+      // The split_type now only determines how the expense amount is distributed
+      // but the expense is always paid by the user who records it
+      const paid_by_user_id = currentUserId;
       
       const expenseData = {
         ...data,
