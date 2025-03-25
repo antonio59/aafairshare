@@ -4,7 +4,7 @@ import { storage, IStorage } from "./storage";
 import { z } from "zod";
 import { insertCategorySchema, insertExpenseSchema, insertLocationSchema, insertSettlementSchema, insertRecurringExpenseSchema, insertUserSchema } from "@shared/schema";
 import passport from "passport";
-const bcrypt = require('bcrypt'); // Added bcrypt import
+import bcrypt from 'bcrypt';
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // API routes prefix
