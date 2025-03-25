@@ -86,7 +86,7 @@ export default function Settlement() {
       const settlementData = {
         month: currentMonth,
         amount: summary.settlementAmount.toString(), // Convert to string for schema validation
-        date: new Date(), // Using 'date' field instead of 'settled_at'
+        date: new Date().toISOString(), // Using 'date' field instead of 'settled_at' and converting to ISO string
         from_user_id: summary.settlementDirection.fromUserId,
         to_user_id: summary.settlementDirection.toUserId
       };

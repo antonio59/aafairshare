@@ -310,7 +310,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post(`${API_PREFIX}/settlements`, isAuthenticated, async (req, res) => {
     try {
-      const validatedData = insertSettlementSchema.parse(req.body);
+      // Handle type conversions before validation
+      const settlementData = {
+        ...req.body,
+        // Convert amount to string if it's a number
+        amount: typeof req.body.amount === 'number' ? req.body.amount.toString() : req.body.amount,
+        // Convert date string to Date object
+        date: req.body.date ? new Date(req.body.date) : undefined
+      };
+      
+      const validatedData = insertSettlementSchema.parse(settlementData);
       const settlement = await storage.createSettlement(validatedData);
       res.status(201).json(settlement);
     } catch (error) {
