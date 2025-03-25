@@ -79,13 +79,6 @@ export async function initializeDatabase() {
 
     // Insert default data
     await pool.query(`
-      INSERT INTO users (username, email, password)
-      SELECT 'John', 'john@example.com', 'password'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'John')
-      UNION ALL
-      SELECT 'Sarah', 'sarah@example.com', 'password'
-      WHERE NOT EXISTS (SELECT 1 FROM users WHERE username = 'Sarah');
-
       INSERT INTO categories (name, color, icon)
       SELECT 'Groceries', '#4CAF50', 'ShoppingCart'
       WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Groceries')
