@@ -49,23 +49,6 @@ export async function initializeDatabase() {
         month TEXT
       );
 
-      CREATE TABLE IF NOT EXISTS recurring_expenses (
-        id SERIAL PRIMARY KEY,
-        name TEXT NOT NULL,
-        description TEXT NOT NULL,
-        amount DECIMAL(10, 2) NOT NULL,
-        frequency TEXT NOT NULL,
-        start_date TIMESTAMP NOT NULL,
-        end_date TIMESTAMP,
-        next_date TIMESTAMP NOT NULL,
-        category_id INTEGER REFERENCES categories(id),
-        location_id INTEGER REFERENCES locations(id),
-        paid_by_user_id INTEGER REFERENCES users(id),
-        split_type TEXT NOT NULL,
-        is_active BOOLEAN DEFAULT TRUE,
-        notes TEXT
-      );
-
       CREATE TABLE IF NOT EXISTS settlements (
         id SERIAL PRIMARY KEY,
         amount DECIMAL(10, 2) NOT NULL,

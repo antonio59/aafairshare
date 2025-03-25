@@ -19,22 +19,21 @@ export default function Expenses() {
 
   // Fetch expenses for the month
   const { 
-    data: expenses = [], 
+    data: expenses = [] as ExpenseWithDetails[], 
     isLoading: expensesLoading,
     isError: expensesError
   } = useQuery({
     queryKey: [`/api/expenses?month=${currentMonth}`] as QueryKey,
     queryFn: async () => {
       try {
-        const data = await apiRequest<ExpenseWithDetails[]>(`/api/expenses?month=${currentMonth}`);
-        return data || [];
+        return await apiRequest<ExpenseWithDetails[]>(`/api/expenses?month=${currentMonth}`);
       } catch (error) {
         toast({
           title: "Error",
           description: "Failed to load expenses data. Please try again.",
           variant: "destructive"
         });
-        return [];
+        return [] as ExpenseWithDetails[];
       }
     }
   });
