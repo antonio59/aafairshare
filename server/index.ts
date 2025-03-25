@@ -1,3 +1,6 @@
+
+import { Storage } from "./storage";
+
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -22,14 +25,8 @@ app.use(session({
   }
 }));
 
-// Create a global storage variable that will be properly initialized later
-let storage: IStorage;
-
-// Initialize storage
-storage = {
-  ...db,
-  // Add all the storage methods
-};
+// Initialize storage with the Storage instance from storage.ts
+const storage = new Storage();
 
 // Passport configuration
 app.use(passport.initialize());
