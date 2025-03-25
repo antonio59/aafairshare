@@ -105,6 +105,20 @@ app.use((req, res, next) => {
     log("Initializing database connection...");
     // Initialize database
     await initializeDatabase();
+    log("Database initialized successfully");
+    
+    // Process recurring expenses at startup
+    try {
+      log("Processing recurring expenses...");
+      const createdExpenses = await storage.processRecurringExpenses();
+      if (createdExpenses.length > 0) {
+        log(`Created ${createdExpenses.length} new expenses from recurring expenses`);
+      } else {
+        log("No new expenses were created from recurring expenses");
+      }
+    } catch (error) {
+      log(`Error processing recurring expenses: ${error}`);
+    }
     log("Database initialization completed successfully");
   } catch (error) {
     log(`CRITICAL ERROR: Failed to initialize database: ${error}`);
