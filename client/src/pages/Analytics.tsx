@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { MonthSummary } from "@shared/schema";
+import { MonthSummary, User } from "@shared/schema";
 import { getCurrentMonth, formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,6 +26,14 @@ export default function Analytics() {
     isError: summaryError
   } = useQuery<MonthSummary>({
     queryKey: [`/api/summary/${currentMonth}`]
+  });
+  
+  // Fetch users for displaying proper names
+  const { 
+    data: users = [],
+    isLoading: usersLoading
+  } = useQuery<User[]>({
+    queryKey: ['/api/users']
   });
 
   // Show error toast if query fails
@@ -109,13 +117,17 @@ export default function Analytics() {
     }
   };
 
+  // Helper function to get username by ID
+  const getUsernameById = (userId: number): string => {
+    const user = users.find(u => u.id === userId);
+    return user ? user.username : `User ${userId}`;
+  };
+
   // Prepare user expense comparison data
   const userExpenseData = {
     labels: summary?.userExpenses ? Object.keys(summary.userExpenses).map(id => {
-      const user = summary.categoryTotals[0]?.category.id === parseInt(id) 
-        ? "User 1" 
-        : "User 2";
-      return user;
+      const userId = parseInt(id);
+      return getUsernameById(userId);
     }) : [],
     datasets: [
       {
