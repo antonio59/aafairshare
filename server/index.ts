@@ -25,6 +25,12 @@ app.use(session({
 // Create a global storage variable that will be properly initialized later
 let storage: IStorage;
 
+// Initialize storage
+storage = {
+  ...db,
+  // Add all the storage methods
+};
+
 // Passport configuration
 app.use(passport.initialize());
 app.use(passport.session());
@@ -33,12 +39,13 @@ app.use(passport.session());
 passport.use(new LocalStrategy(async (username, password, done) => {
   try {
     const user = await storage.getUserByUsername(username);
-
     if (!user) {
       return done(null, false, { message: "Incorrect username" });
     }
 
-    if (user.password !== password) {
+    // Use bcrypt to compare passwords
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
       return done(null, false, { message: "Incorrect password" });
     }
 
