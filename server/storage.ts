@@ -4,7 +4,7 @@ import {
   User, InsertUser, Category, InsertCategory, 
   Location, InsertLocation, Expense, InsertExpense,
   ExpenseWithDetails, Settlement, InsertSettlement,
-  SettlementWithUsers, MonthSummary
+  SettlementWithUsers, MonthSummary, TrendData
 } from '@shared/schema';
 
 const pool = new Pool({

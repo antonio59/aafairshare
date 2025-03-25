@@ -2,13 +2,14 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
-import { MonthSummary, User } from "@shared/schema";
+import { MonthSummary, User, TrendData } from "@shared/schema";
 import { getCurrentMonth, formatCurrency } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import CategoryChart from "@/components/CategoryChart";
 import LocationChart from "@/components/LocationChart";
 import SplitTypeChart from "@/components/SplitTypeChart";
+import TrendChart from "@/components/TrendChart";
 import { Bar, Doughnut } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
 
@@ -35,6 +36,16 @@ export default function Analytics() {
   } = useQuery<User[]>({
     queryKey: ['/api/users']
   });
+  
+  // Fetch trend data for the charts
+  const {
+    data: trendData,
+    isLoading: trendLoading,
+    isError: trendError
+  } = useQuery<TrendData>({
+    queryKey: ['/api/trends'],
+    staleTime: 1000 * 60 * 15 // 15 minutes
+  });
 
   // Show error toast if query fails
   useEffect(() => {
@@ -45,7 +56,15 @@ export default function Analytics() {
         variant: "destructive"
       });
     }
-  }, [summaryError, toast]);
+    
+    if (trendError) {
+      toast({
+        title: "Error",
+        description: "Failed to load trend data. Some charts may not be available.",
+        variant: "destructive"
+      });
+    }
+  }, [summaryError, trendError, toast]);
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
@@ -227,6 +246,9 @@ export default function Analytics() {
         
         {/* Split type chart */}
         <SplitTypeChart summary={summary} isLoading={summaryLoading} />
+        
+        {/* Trends over time chart */}
+        <TrendChart trendData={trendData} isLoading={trendLoading} />
       </div>
     </div>
   );
