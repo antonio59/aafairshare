@@ -114,7 +114,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                       </div>
                       <div className="ml-2 sm:ml-3">
                         <p className="text-xs sm:text-sm font-medium text-gray-800">{expense.category?.name || 'Uncategorized'}</p>
-                        <p className="text-xs text-gray-500">{expense.location_name || 'No location'}</p>
+                        <p className="text-xs text-gray-500">{expense.location?.name || 'No location'}</p>
                         <div className="sm:hidden text-xs text-gray-500 flex flex-col">
                           <span>{expense.paidByUser.username}</span>
                           <span>{expense.split_type}</span>
