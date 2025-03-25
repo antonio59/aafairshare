@@ -7,16 +7,11 @@ import path from 'path';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Import server modules using dynamic import
-const serverDir = path.join(__dirname, 'server');
-
 // Custom log function while we wait for the real one to load
 function tempLog(message) {
   console.log(`[DATABASE SETUP] ${message}`);
 }
 
-// We'll load these dynamically
-let executeSqlFileWithPostgres;
 let initializeSupabaseDatabase;
 let log;
 
@@ -24,10 +19,7 @@ async function setupDatabase() {
   try {
     // Dynamically import the necessary modules
     try {
-      const dbModule = await import('./server/db.ts');
-      executeSqlFileWithPostgres = dbModule.executeSqlFileWithPostgres;
-
-      const initSupabaseModule = await import('./server/initSupabase.js');
+      const initSupabaseModule = await import('./dist/server/initSupabase.js');
       initializeSupabaseDatabase = initSupabaseModule.initializeSupabaseDatabase;
 
       const viteModule = await import('./server/vite.js');
@@ -39,19 +31,7 @@ async function setupDatabase() {
 
     log('Starting database setup...');
 
-    // First try the direct PostgreSQL approach
-    log('Attempting to create tables via direct PostgreSQL...');
-    const postgresResult = await executeSqlFileWithPostgres();
-
-    if (postgresResult.success) {
-      log('✅ Successfully created tables via direct PostgreSQL!');
-      return;
-    }
-
-    log(`PostgreSQL direct execution failed: ${postgresResult.message}`);
-    log('Trying Supabase initialization...');
-
-    // Try Supabase initialization
+    // Initialize Supabase database
     const supabaseResult = await initializeSupabaseDatabase();
 
     if (supabaseResult) {
