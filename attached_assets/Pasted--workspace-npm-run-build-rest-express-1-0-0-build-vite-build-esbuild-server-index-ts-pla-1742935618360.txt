@@ -1,0 +1,150 @@
+~/workspace$ npm run build
+
+> rest-express@1.0.0 build
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+
+vite v5.4.14 building for production...
+✓ 76 modules transformed.
+x Build failed in 6.83s
+error during build:
+[vite:esbuild] Transform failed with 15 errors:
+/home/runner/workspace/client/src/components/ui/toast.tsx:135:6: ERROR: The symbol "ToastProvider" has already been declared
+/home/runner/workspace/client/src/components/ui/toast.tsx:137:6: ERROR: The symbol "ToastViewport" has already been declared
+/home/runner/workspace/client/src/components/ui/toast.tsx:152:6: ERROR: The symbol "toastVariants" has already been declared
+/home/runner/workspace/client/src/components/ui/toast.tsx:168:6: ERROR: The symbol "Toast" has already been declared
+/home/runner/workspace/client/src/components/ui/toast.tsx:183:6: ERROR: The symbol "ToastAction" has already been declared
+...
+file: /home/runner/workspace/client/src/components/ui/toast.tsx:135:6
+
+The symbol "ToastProvider" has already been declared
+133|  import { cn } from "@/lib/utils"
+134|  
+135|  const ToastProvider = ToastPrimitives.Provider
+   |        ^
+136|  
+137|  const ToastViewport = React.forwardRef<
+
+The symbol "ToastViewport" has already been declared
+135|  const ToastProvider = ToastPrimitives.Provider
+136|  
+137|  const ToastViewport = React.forwardRef<
+   |        ^
+138|    React.ElementRef<typeof ToastPrimitives.Viewport>,
+139|    React.ComponentPropsWithoutRef<typeof ToastPrimitives.Viewport>
+
+The symbol "toastVariants" has already been declared
+150|  ToastViewport.displayName = ToastPrimitives.Viewport.displayName
+151|  
+152|  const toastVariants = cva(
+   |        ^
+153|    "group pointer-events-auto relative flex w-full items-center justify-between space-x-4 overflow-hidden rounded-md border p-6 pr-8 shadow-lg transition-all data-[swipe=cancel]:translate-x-0 data-[swipe=end]:translate-x-[var(--radix-toast-swipe-end-x)] data-[swipe=move]:translate-x-[var(--radix-toast-swipe-move-x)] data-[swipe=move]:transition-none data-[state=open]:animate-in data-[state=closed]:animate-out data-[swipe=end]:animate-out data-[state=closed]:fade-out-80 data-[state=closed]:slide-out-to-right-full data-[state=open]:slide-in-from-top-full data-[state=open]:sm:slide-in-from-bottom-full",
+154|    {
+
+The symbol "Toast" has already been declared
+166|  )
+167|  
+168|  const Toast = React.forwardRef<
+   |        ^
+169|    React.ElementRef<typeof ToastPrimitives.Root>,
+170|    React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
+
+The symbol "ToastAction" has already been declared
+181|  Toast.displayName = ToastPrimitives.Root.displayName
+182|  
+183|  const ToastAction = React.forwardRef<
+   |        ^
+184|    React.ElementRef<typeof ToastPrimitives.Action>,
+185|    React.ComponentPropsWithoutRef<typeof ToastPrimitives.Action>
+
+The symbol "ToastClose" has already been declared
+196|  ToastAction.displayName = ToastPrimitives.Action.displayName
+197|  
+198|  const ToastClose = React.forwardRef<
+   |        ^
+199|    React.ElementRef<typeof ToastPrimitives.Close>,
+200|    React.ComponentPropsWithoutRef<typeof ToastPrimitives.Close>
+
+The symbol "ToastTitle" has already been declared
+214|  ToastClose.displayName = ToastPrimitives.Close.displayName
+215|  
+216|  const ToastTitle = React.forwardRef<
+   |        ^
+217|    React.ElementRef<typeof ToastPrimitives.Title>,
+218|    React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
+
+The symbol "ToastDescription" has already been declared
+226|  ToastTitle.displayName = ToastPrimitives.Title.displayName
+227|  
+228|  const ToastDescription = React.forwardRef<
+   |        ^
+229|    React.ElementRef<typeof ToastPrimitives.Description>,
+230|    React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
+
+Multiple exports with the same name "ToastProvider"
+245|    type ToastProps,
+246|    type ToastActionElement,
+247|    ToastProvider,
+   |    ^
+248|    ToastViewport,
+249|    Toast,
+
+Multiple exports with the same name "ToastViewport"
+246|    type ToastActionElement,
+247|    ToastProvider,
+248|    ToastViewport,
+   |    ^
+249|    Toast,
+250|    ToastTitle,
+
+Multiple exports with the same name "Toast"
+247|    ToastProvider,
+248|    ToastViewport,
+249|    Toast,
+   |    ^
+250|    ToastTitle,
+251|    ToastDescription,
+
+Multiple exports with the same name "ToastTitle"
+248|    ToastViewport,
+249|    Toast,
+250|    ToastTitle,
+   |    ^
+251|    ToastDescription,
+252|    ToastClose,
+
+Multiple exports with the same name "ToastDescription"
+249|    Toast,
+250|    ToastTitle,
+251|    ToastDescription,
+   |    ^
+252|    ToastClose,
+253|    ToastAction,
+
+Multiple exports with the same name "ToastClose"
+250|    ToastTitle,
+251|    ToastDescription,
+252|    ToastClose,
+   |    ^
+253|    ToastAction,
+254|  }
+
+Multiple exports with the same name "ToastAction"
+251|    ToastDescription,
+252|    ToastClose,
+253|    ToastAction,
+   |    ^
+254|  }
+255|  
+
+    at failureErrorWithLog (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:1472:15)
+    at /home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:755:50
+    at responseCallbacks.<computed> (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:622:9)
+    at handleIncomingPacket (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:677:12)
+    at Socket.readFromStdout (/home/runner/workspace/node_modules/vite/node_modules/esbuild/lib/main.js:600:7)
+    at Socket.emit (node:events:518:28)
+    at addChunk (node:internal/streams/readable:561:12)
+    at readableAddChunkPushByteMode (node:internal/streams/readable:512:3)
+    at Readable.push (node:internal/streams/readable:392:5)
+    at Pipe.onStreamRead (node:internal/stream_base_commons:191:23)
+ Environment updated. Reloading shell...
+~/workspace$ 
