@@ -180,20 +180,8 @@ export default function Login() {
             </Form>
           </CardContent>
           
-          <CardFooter className="flex flex-col space-y-4 pt-2 pb-6">
-            <div className="w-full flex justify-center">
-              <Button 
-                variant="link" 
-                className="text-sm text-primary"
-                onClick={() => setLocation('/register')}
-              >
-                Don't have an account? Sign up
-              </Button>
-            </div>
-            
-            <div className="text-center text-xs text-gray-400 px-6">
-              By signing in, you agree to our terms of service and privacy policy.
-            </div>
+          <CardFooter className="pb-6">
+            {/* Footer space maintained for consistent sizing */}
           </CardFooter>
         </Card>
         

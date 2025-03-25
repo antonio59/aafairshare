@@ -44,10 +44,21 @@ passport.use(new LocalStrategy({
       return done(null, false, { message: "Incorrect email" });
     }
 
-    console.log(`User found: ${user.username}, login successful`);
+    console.log(`User found: ${user.username}, checking password...`);
     
-    // For now, we'll skip the password check to get login working
-    // We can refine this later
+    // Use bcrypt to compare passwords
+    if (!user.password) {
+      console.log('User has no password');
+      return done(null, false, { message: "Invalid credentials" });
+    }
+    
+    const isMatch = await bcrypt.compare(password, user.password);
+    console.log(`Password match result: ${isMatch}`);
+    
+    if (!isMatch) {
+      return done(null, false, { message: "Invalid credentials" });
+    }
+
     const { password: _, ...userWithoutPassword } = user;
     return done(null, userWithoutPassword);
   } catch (error) {
