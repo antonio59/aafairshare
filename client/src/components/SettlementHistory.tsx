@@ -25,7 +25,8 @@ interface SettlementHistoryProps {
   onUnsettlement?: (id: number) => void;
 }
 
-export default function SettlementHistory({ settlements, isLoading = false }: SettlementHistoryProps) {
+export default function SettlementHistory(props: SettlementHistoryProps) {
+  const { settlements, isLoading = false, onUnsettlement } = props;
   // Display loading state
   if (isLoading) {
     return (
