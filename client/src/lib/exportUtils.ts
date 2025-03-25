@@ -1,7 +1,7 @@
 import { utils, writeFile } from 'xlsx';
 import { ExpenseWithDetails, SettlementWithUsers, MonthSummary } from '@shared/schema';
 import { formatCurrency, formatDate, formatMonthYear } from './utils';
-import { jsPDF } from 'jspdf';
+import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { USERS } from './constants';
 
@@ -131,8 +131,9 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
 
     writeFile(workbook, `${fileName}.${format}`);
   } else if (format === 'pdf') {
+    let doc: jsPDF;
     try {
-      const doc = new jsPDF();
+      doc = new jsPDF();
 
       // Add title and header info
       doc.setFontSize(16);
@@ -248,11 +249,6 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
       doc.save(`${fileName}.pdf`);
     } catch (err) {
       console.error("PDF generation error:", err);
-      // Check if jsPDF is properly initialized
-      if (!doc) {
-        throw new Error("PDF initialization failed. Please try again.");
-      }
-      // Handle specific error cases
       if (err instanceof Error) {
         if (err.message.includes('undefined')) {
           throw new Error("Missing data for PDF generation. Please check your data and try again.");
