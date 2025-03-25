@@ -27,8 +27,7 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS categories (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
-        color TEXT,
-        icon TEXT
+        color TEXT NOT NULL
       );
 
       CREATE TABLE IF NOT EXISTS locations (
