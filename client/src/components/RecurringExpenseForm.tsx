@@ -501,10 +501,35 @@ export default function RecurringExpenseForm({
                     label: location.name
                   })) || [];
 
+                  // Find the currently selected location name for display
+                  const selectedLocation = locations?.find(loc => loc.id === field.value)?.name;
+
                   // Handle creation of a new location
                   const handleCreateLocation = async (locationName: string) => {
                     try {
-                      await createLocationMutation.mutateAsync(locationName);
+                      // Check if we already have this location (case insensitive match)
+                      const existingLocation = locations?.find(
+                        loc => loc.name.toLowerCase() === locationName.toLowerCase()
+                      );
+                      
+                      if (existingLocation) {
+                        // If the location already exists, just use it
+                        field.onChange(existingLocation.id);
+                        toast({
+                          title: "Location selected",
+                          description: `"${existingLocation.name}" has been selected.`,
+                        });
+                        return;
+                      }
+                      
+                      // Otherwise create a new location
+                      const newLocation = await createLocationMutation.mutateAsync(locationName);
+                      field.onChange(newLocation.id);
+                      
+                      toast({
+                        title: "Location added",
+                        description: `"${locationName}" has been added to locations.`,
+                      });
                     } catch (error) {
                       toast({
                         title: "Error",

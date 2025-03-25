@@ -260,11 +260,29 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   label: location.name
                 })) || [];
 
+                // Find the currently selected location name for display
+                const selectedLocation = locations?.find(loc => loc.id === field.value)?.name;
+
                 // Handle creation of a new location
                 const handleCreateLocation = async (locationName: string) => {
                   try {
+                    // Check if we already have this location (case insensitive match)
+                    const existingLocation = locations?.find(
+                      loc => loc.name.toLowerCase() === locationName.toLowerCase()
+                    );
+                    
+                    if (existingLocation) {
+                      // If the location already exists, just use it
+                      field.onChange(existingLocation.id);
+                      toast({
+                        title: "Location selected",
+                        description: `"${existingLocation.name}" has been selected.`,
+                      });
+                      return;
+                    }
+                    
+                    // Otherwise create a new location
                     const newLocation = await createLocationMutation.mutateAsync(locationName);
-                    // Update the form field with the new location ID
                     field.onChange(newLocation.id);
 
                     toast({
