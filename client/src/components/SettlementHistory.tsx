@@ -7,7 +7,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RotateCcw } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { 
   Table, 
   TableBody, 
@@ -93,10 +93,15 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
                   <p className="text-sm font-medium">{formatCurrency(Number(settlement.amount))}</p>
                 </div>
                 {onUnsettlement && (
-                  <div className="col-span-2 mt-2">
-                    <Button variant="ghost" size="sm" onClick={() => onUnsettlement(settlement.id)} className="w-full">
-                      <RotateCcw className="h-4 w-4 mr-2" />
-                      Unsettle
+                  <div className="col-span-2 mt-2 flex justify-end">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => onUnsettlement(settlement.id)} 
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Settlement
                     </Button>
                   </div>
                 )}
@@ -135,14 +140,15 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
                     {formatCurrency(Number(settlement.amount))}
                   </TableCell>
                   {onUnsettlement && (
-                    <TableCell>
+                    <TableCell className="text-right">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => onUnsettlement(settlement.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
-                        <RotateCcw className="h-4 w-4 mr-2" />
-                        Unsettle
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
                       </Button>
                     </TableCell>
                   )}

@@ -318,7 +318,7 @@ export default function Settlement() {
       <SettlementHistory 
         settlements={settlements || []} 
         isLoading={settlementsLoading} 
-        onUnsettle={handleUnsettlement}
+        onUnsettlement={handleUnsettlement}
       />
 
       {/* Confirm settlement dialog */}
