@@ -46,7 +46,7 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   const handleLogout = async () => {
     try {
-      const response = await apiRequest('POST', '/api/auth/logout');
+      const response = await apiRequest('/api/auth/logout', 'POST');
       
       if (response.ok) {
         toast({
