@@ -18,7 +18,7 @@ interface ExportOptions {
 export const exportExpenses = ({ format, month, expenses, settlements = [], summary }: ExportOptions) => {
   // Calculate the total amount of expenses
   const totalAmount = expenses.reduce((total, expense) => total + Number(expense.amount), 0);
-  
+
   // Format expenses for display
   const formattedExpenses = expenses.map(expense => ({
     'Date': formatDate(expense.date),
@@ -29,7 +29,7 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
     'Split': expense.split_type,
     'Description': expense.description || ''
   }));
-  
+
   // Add a total row
   const totalRow = {
     'Date': '',
@@ -40,7 +40,7 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
     'Split': '',
     'Description': ''
   };
-  
+
   // Format settlements data if available
   const formattedSettlements = settlements.map(settlement => ({
     'Date': formatDate(settlement.date),
@@ -49,21 +49,21 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
     'To': settlement.toUser.username,
     'Amount': formatCurrency(Number(settlement.amount))
   }));
-  
+
   // Get properly formatted settlement status using user names
   let settlementStatus = "No settlement information available";
-  
+
   if (summary && summary.settlementAmount > 0) {
     const fromUserId = summary.settlementDirection.fromUserId;
     const toUserId = summary.settlementDirection.toUserId;
-    
+
     // Get user names from the user IDs
     const fromUser = USERS.find(user => user.id === fromUserId);
     const toUser = USERS.find(user => user.id === toUserId);
-    
+
     const fromUserName = fromUser?.name || `User ${fromUserId}`;
     const toUserName = toUser?.name || `User ${toUserId}`;
-    
+
     settlementStatus = `${fromUserName} owes ${formatCurrency(summary.settlementAmount)} to ${toUserName}`;
   } else if (summary) {
     settlementStatus = "No settlements needed";
@@ -75,7 +75,7 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
     // Create expenses worksheet with total
     const expensesWithTotal = [...formattedExpenses, totalRow];
     const worksheet = utils.json_to_sheet(expensesWithTotal);
-    
+
     // Adjust column widths
     const columnWidths = [
       { wch: 12 }, // Date
@@ -87,15 +87,15 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
       { wch: 30 }  // Description
     ];
     worksheet['!cols'] = columnWidths;
-    
+
     // Create workbook
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, worksheet, 'Expenses');
-    
+
     // Add settlements sheet if there are any
     if (settlements.length > 0) {
       const settlementSheet = utils.json_to_sheet(formattedSettlements);
-      
+
       // Adjust column widths for settlements
       const settlementColumnWidths = [
         { wch: 12 }, // Date
@@ -105,48 +105,48 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
         { wch: 10 }  // Amount
       ];
       settlementSheet['!cols'] = settlementColumnWidths;
-      
+
       utils.book_append_sheet(workbook, settlementSheet, 'Settlements');
     }
-    
+
     // Add summary information sheet
     if (summary) {
       // Create a more detailed summary sheet with user expense info
       const user1 = USERS[0];
       const user2 = USERS[1];
-      
+
       const user1Expenses = summary.userExpenses[user1.id] || 0;
       const user2Expenses = summary.userExpenses[user2.id] || 0;
-      
+
       const summaryData = [
         { 'Item': 'Total Expenses', 'Value': formatCurrency(summary.totalExpenses) },
         { 'Item': `${user1.name} Paid`, 'Value': formatCurrency(user1Expenses) },
         { 'Item': `${user2.name} Paid`, 'Value': formatCurrency(user2Expenses) },
         { 'Item': 'Settlement Status', 'Value': settlementStatus }
       ];
-      
+
       const summarySheet = utils.json_to_sheet(summaryData);
       utils.book_append_sheet(workbook, summarySheet, 'Summary');
     }
-    
+
     writeFile(workbook, `${fileName}.${format}`);
   } else if (format === 'pdf') {
     try {
       const doc = new jsPDF();
-      
+
       // Add title and header info
       doc.setFontSize(16);
       doc.text(`Expenses for ${formatMonthYear(month)}`, 14, 15);
-      
+
       doc.setFontSize(10);
       doc.text(`Generated: ${formatDate(new Date())}`, 14, 22);
-      
+
       // Add settlement status if available
       if (summary) {
         doc.setFontSize(10);
         doc.text(`Settlement Status: ${settlementStatus}`, 14, 28);
       }
-      
+
       // Add expenses table with proper formatting
       (doc as any).autoTable({
         head: [['Date', 'Category', 'Location', 'Amount', 'Paid By', 'Split', 'Description']],
@@ -190,21 +190,21 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
         foot: [['', '', 'TOTAL', formatCurrency(totalAmount), '', '', '']],
         footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
       });
-      
+
       // Get the last Y position after expenses table
       const finalY = (doc as any).lastAutoTable.finalY || 150;
-      
+
       // Add user expense breakdown if summary is available
       if (summary) {
         const user1 = USERS[0];
         const user2 = USERS[1];
-        
+
         const user1Expenses = summary.userExpenses[user1.id] || 0;
         const user2Expenses = summary.userExpenses[user2.id] || 0;
-        
+
         doc.setFontSize(14);
         doc.text('Expense Summary', 14, finalY + 15);
-        
+
         (doc as any).autoTable({
           head: [['User', 'Amount', 'Percentage']],
           body: [
@@ -219,15 +219,15 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
           footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
         });
       }
-      
+
       // Add settlement information if available
       if (settlements.length > 0) {
         // Get the current Y position
         const summaryY = (doc as any).lastAutoTable.finalY || finalY + 40;
-        
+
         doc.setFontSize(14);
         doc.text('Settlement History', 14, summaryY + 15);
-        
+
         (doc as any).autoTable({
           head: [['Date', 'Month', 'From', 'To', 'Amount']],
           body: settlements.map(settlement => [
@@ -243,12 +243,23 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
           headStyles: { fillColor: [59, 130, 246] }
         });
       }
-      
+
       // Save the PDF file
       doc.save(`${fileName}.pdf`);
     } catch (err) {
       console.error("PDF generation error:", err);
-      throw new Error("Failed to generate PDF. Please try again.");
+      // Check if jsPDF is properly initialized
+      if (!doc) {
+        throw new Error("PDF initialization failed. Please try again.");
+      }
+      // Handle specific error cases
+      if (err instanceof Error) {
+        if (err.message.includes('undefined')) {
+          throw new Error("Missing data for PDF generation. Please check your data and try again.");
+        }
+        throw new Error(err.message || "Failed to generate PDF. Please try again.");
+      }
+      throw new Error("An unexpected error occurred while generating PDF.");
     }
   }
 };
