@@ -91,7 +91,7 @@ export default function Settlement() {
         to_user_id: summary.settlementDirection.toUserId
       };
 
-      await apiRequest('POST', '/api/settlements', settlementData);
+      await apiRequest('/api/settlements', 'POST', settlementData);
 
       toast({
         title: "Settlement recorded",

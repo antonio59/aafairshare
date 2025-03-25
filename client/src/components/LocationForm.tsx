@@ -59,14 +59,14 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
     try {
       if (location) {
         // Update existing location
-        await apiRequest('PATCH', `/api/locations/${location.id}`, data);
+        await apiRequest(`/api/locations/${location.id}`, 'PATCH', data);
         toast({
           title: "Location updated",
           description: "The location has been updated successfully."
         });
       } else {
         // Create new location
-        await apiRequest('POST', '/api/locations', data);
+        await apiRequest('/api/locations', 'POST', data);
         toast({
           title: "Location added",
           description: "The location has been added successfully."

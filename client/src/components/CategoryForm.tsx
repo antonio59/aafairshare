@@ -72,14 +72,14 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
     try {
       if (category) {
         // Update existing category
-        await apiRequest('PATCH', `/api/categories/${category.id}`, data);
+        await apiRequest(`/api/categories/${category.id}`, 'PATCH', data);
         toast({
           title: "Category updated",
           description: "The category has been updated successfully."
         });
       } else {
         // Create new category
-        await apiRequest('POST', '/api/categories', data);
+        await apiRequest('/api/categories', 'POST', data);
         toast({
           title: "Category added",
           description: "The category has been added successfully."
