@@ -3,13 +3,12 @@ import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { Check, ChevronsUpDown, CalendarIcon } from "lucide-react";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -19,19 +18,20 @@ import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Switch } from "@/components/ui/switch";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandGroup, CommandItem } from "@/components/ui/command";
-import { Textarea } from "@/components/ui/textarea";
-import { Combobox } from "@/components/ui/combobox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Combobox, ComboboxItem } from "@/components/ui/combobox";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { USERS, SPLIT_TYPES } from "@/lib/constants";
-import type { RecurringExpenseWithDetails } from "@shared/schema";
+import { SPLIT_TYPES } from "@/lib/constants";
+import type { RecurringExpenseWithDetails, InsertLocation, Category, Location } from "@shared/schema";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
 
 // Define frequency options
 const FREQUENCY_OPTIONS = [
