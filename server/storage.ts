@@ -83,11 +83,11 @@ export class Storage {
   async deleteCategory(id: number): Promise<boolean> {
     // Check if category is in use
     const usageCheck = await pool.query(
-      'SELECT COUNT(*) FROM expenses WHERE category_id = $1',
+      'SELECT COUNT(*) as count FROM expenses WHERE category_id = $1',
       [id]
     );
     
-    if (parseInt(usageCheck.rows[0].count) > 0) {
+    if (Number(usageCheck.rows[0].count) > 0) {
       throw new Error('Cannot delete category that is in use by expenses');
     }
 
