@@ -106,9 +106,15 @@ export default function Settlement() {
       const response = await apiRequest('/api/settlements', 'POST', settlementData);
 
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('Settlement error:', errorData);
-        throw new Error(errorData.message || 'Failed to record settlement');
+        const errorText = await response.text();
+        let errorMessage = 'Failed to record settlement';
+        try {
+          const errorData = JSON.parse(errorText);
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error('Error parsing error response:', errorText);
+        }
+        throw new Error(errorMessage);
       }
 
       toast({
