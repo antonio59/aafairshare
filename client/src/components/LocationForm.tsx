@@ -3,13 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Location, insertLocationSchema } from "@shared/schema";
 import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from "@/components/ui/dialog";
-import { 
   Form, 
   FormControl, 
   FormField, 
@@ -21,6 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 
 interface LocationFormProps {
   open: boolean;
@@ -90,45 +84,53 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
     }
   };
 
+  // Create footer buttons
+  const formFooter = (
+    <>
+      <Button 
+        type="button" 
+        variant="outline" 
+        onClick={() => onOpenChange(false)}
+        disabled={isSubmitting}
+        className="w-full sm:w-auto"
+      >
+        Cancel
+      </Button>
+      <Button 
+        type="submit" 
+        disabled={isSubmitting}
+        className="w-full sm:w-auto"
+        form="location-form"
+      >
+        {isSubmitting ? "Saving..." : location ? "Update Location" : "Save Location"}
+      </Button>
+    </>
+  );
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{location ? "Edit Location" : "Add New Location"}</DialogTitle>
-        </DialogHeader>
-        
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input {...field} placeholder="Location name" />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : location ? "Update Location" : "Save Location"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={location ? "Edit Location" : "Add New Location"}
+      footer={formFooter}
+    >
+      <Form {...form}>
+        <form id="location-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Name</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Location name" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </form>
+      </Form>
+    </ResponsiveDialog>
   );
 }
