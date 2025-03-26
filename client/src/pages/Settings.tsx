@@ -34,35 +34,39 @@ export default function Settings() {
 
   // Fetch categories
   const { 
-    data: categories, 
+    data: categories = [] as Category[],  // Explicitly type the default array
     isLoading: categoriesLoading,
     isError: categoriesError
   } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to load categories. Please try again.",
-        variant: "destructive"
-      });
-    }
+    queryKey: ['/api/categories']
   });
+
+  // Show toast on error
+  if (categoriesError) {
+    toast({
+      title: "Error",
+      description: "Failed to load categories. Please try again.",
+      variant: "destructive"
+    });
+  }
 
   // Fetch locations
   const {
-    data: locations,
+    data: locations = [] as Location[],  // Explicitly type the default array
     isLoading: locationsLoading,
     isError: locationsError
   } = useQuery<Location[]>({
-    queryKey: ['/api/locations'],
-    onError: () => {
-      toast({
-        title: "Error",
-        description: "Failed to load locations. Please try again.",
-        variant: "destructive"
-      });
-    }
+    queryKey: ['/api/locations']
   });
+
+  // Show toast on error
+  if (locationsError) {
+    toast({
+      title: "Error",
+      description: "Failed to load locations. Please try again.",
+      variant: "destructive"
+    });
+  }
 
   const openDeleteDialog = (type: 'category' | 'location', id: number) => {
     setItemToDelete({ type, id });
@@ -73,21 +77,18 @@ export default function Settings() {
     if (!itemToDelete) return;
 
     try {
-      const response = await apiRequest("DELETE", `/api/${itemToDelete.type}s/${itemToDelete.id}`);
+      // Use the correct plural form for categories
+      const endpoint = itemToDelete.type === 'category' ? 'categories' : `${itemToDelete.type}s`;
+      const response = await apiRequest("DELETE", `/api/${endpoint}/${itemToDelete.id}`);
 
-      if (response.ok) {
-        localQueryClient.invalidateQueries({
-          queryKey: [`/api/${itemToDelete.type}s`],
-        });
+      localQueryClient.invalidateQueries({
+        queryKey: [`/api/${endpoint}`],
+      });
 
-        toast({
-          title: "Success",
-          description: `${itemToDelete.type} deleted successfully`,
-        });
-      } else {
-        const errorData = await response.json();
-        throw new Error(errorData.message);
-      }
+      toast({
+        title: "Success",
+        description: `${itemToDelete.type} deleted successfully`,
+      });
     } catch (error: any) {
       toast({
         title: "Cannot Delete",
