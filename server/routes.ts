@@ -74,18 +74,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
+  // Enhanced auth status endpoint with detailed diagnostic information
   app.get(`${API_PREFIX}/auth/status`, (req, res) => {
-    if (req.isAuthenticated()) {
+    console.log("Auth status check - Headers:", req.headers);
+    console.log("Auth status check - Session ID:", req.sessionID);
+    console.log("Auth status check - User:", req.user);
+    console.log("Auth status check - Is authenticated:", req.isAuthenticated());
+    console.log("Auth status check - Session:", req.session);
+    
+    if (req.isAuthenticated() && req.user) {
+      console.log("User is authenticated, returning user data");
       return res.status(200).json({
         isAuthenticated: true,
         user: {
           id: (req.user as any).id,
           username: (req.user as any).username,
           email: (req.user as any).email
-        }
+        },
+        sessionID: req.sessionID
       });
     }
-    res.status(200).json({ isAuthenticated: false });
+    
+    // If we have a sessionID but no authenticated user, log this anomaly
+    if (req.sessionID && !req.isAuthenticated()) {
+      console.log("WARNING: Session exists but user is not authenticated");
+    }
+    
+    res.status(200).json({ 
+      isAuthenticated: false,
+      sessionID: req.sessionID || null,
+      sessionExists: !!req.session,
+      // Debug info to help diagnose issues
+      debug: {
+        hasUser: !!req.user,
+        cookiesReceived: !!req.headers.cookie
+      }
+    });
   });
 
   // Registration route - Disabled for closed application

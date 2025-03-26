@@ -96,74 +96,126 @@ export default function Login() {
     },
   });
 
+  // UPDATED EMERGENCY DIRECT LOGIN FUNCTION
+  // This completely bypasses the normal React Query flow to help debug session issues
+  // Using simple XMLHttpRequest for maximum compatibility
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
+      // Clear any existing console
+      console.clear();
+      console.log("%c=== EMERGENCY DIRECT LOGIN ATTEMPT ===", "color:red; font-size:16px; font-weight:bold");
       console.log("Attempting login with:", { email: data.email });
 
-      // Enhanced login procedure with diagnostics
-      const loginUrl = '/api/auth/login';
-      console.log(`Making fetch request to ${loginUrl} with credentials: include`);
+      console.log("STEP 1: Check cookies before login");
+      console.log(`Current document.cookie (length only for security): ${document.cookie.length}`);
       
-      // Use direct fetch for diagnostic reasons
-      const loginResponse = await fetch(loginUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify(data),
-        credentials: 'include',
-        mode: 'cors',
-        cache: 'no-cache'
+      // Using XMLHttpRequest for Login - most basic browser API
+      console.log("STEP 2: Send login request via XMLHttpRequest");
+      
+      const loginPromise = new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/api/auth/login", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        xhr.withCredentials = true;
+        
+        xhr.onload = function() {
+          try {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              console.log(`Login request succeeded with status ${xhr.status}`);
+              console.log(`Response headers: ${xhr.getAllResponseHeaders()}`);
+              
+              const response = JSON.parse(xhr.responseText);
+              console.log("Login response data:", response);
+              resolve(response);
+            } else {
+              console.error(`Login failed with status ${xhr.status}`);
+              reject(new Error(`Login failed with status ${xhr.status}: ${xhr.responseText}`));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        };
+        
+        xhr.onerror = function() {
+          console.error("Network error during login");
+          reject(new Error("Network error during login"));
+        };
+        
+        const requestBody = JSON.stringify(data);
+        console.log(`Sending request with body: ${requestBody}`);
+        xhr.send(requestBody);
       });
       
-      console.log("Login fetch response status:", loginResponse.status);
-      console.log("Login response headers:", 
-        [...loginResponse.headers.entries()].reduce((obj, [key, val]) => ({...obj, [key]: val}), {})
-      );
+      await loginPromise;
       
-      if (!loginResponse.ok) {
-        throw new Error(`Login failed with status: ${loginResponse.status}`);
-      }
+      console.log("STEP 3: Check cookies after login");
+      console.log(`document.cookie after login (length only): ${document.cookie.length}`);
       
-      const result = await loginResponse.json();
-      console.log("Login response data:", result);
+      // Force delay to ensure cookie is set
+      console.log("Waiting 1 second before checking auth status...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // Clear and invalidate auth queries to force refresh
-      queryClient.removeQueries({ queryKey: ['/api/auth/status'] });
-      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
-      
-      // Check authentication status to verify session
-      console.log("Verifying authentication status...");
-      const checkResponse = await fetch('/api/auth/status', {
-        credentials: 'include',
-        cache: 'no-cache',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
+      console.log("STEP 4: Verify auth status with XMLHttpRequest");
+      const verifyPromise = new Promise<any>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open("GET", "/api/auth/status", true);
+        xhr.setRequestHeader("X-Requested-With", "XMLHttpRequest");
+        xhr.withCredentials = true;
+        
+        xhr.onload = function() {
+          try {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              console.log(`Auth status request succeeded with status ${xhr.status}`);
+              const response = JSON.parse(xhr.responseText);
+              console.log("Auth status response:", response);
+              resolve(response);
+            } else {
+              console.error(`Auth status check failed with status ${xhr.status}`);
+              reject(new Error(`Auth check failed: ${xhr.responseText}`));
+            }
+          } catch (error) {
+            reject(error);
+          }
+        };
+        
+        xhr.onerror = function() {
+          console.error("Network error during auth check");
+          reject(new Error("Network error during auth check"));
+        };
+        
+        xhr.send();
       });
       
-      const authStatus = await checkResponse.json();
-      console.log("Auth status after login:", authStatus);
+      const authStatus = await verifyPromise;
       
-      if (!authStatus.isAuthenticated) {
-        console.warn("Login succeeded but session verification failed!");
-        // We'll still proceed and hope for the best
-      }
-      
-      toast({
-        title: "Success",
-        description: "Login successful - redirecting to dashboard",
-      });
-
-      // Wait longer to ensure session is fully established
-      setTimeout(() => {
-        // Force full page reload to ensure fresh state
+      if (authStatus.isAuthenticated) {
+        console.log("%c=== LOGIN SUCCESSFUL ===", "color:green; font-size:16px; font-weight:bold");
+        console.log(`Logged in as: ${authStatus.user?.username} (ID: ${authStatus.user?.id})`);
+        
+        toast({
+          title: "Success",
+          description: "Login successful! Redirecting to dashboard...",
+        });
+        
+        console.log("STEP 5: Redirect to dashboard");
+        // Force full page reload to dashboard
         window.location.href = '/';
-      }, 500);
+      } else {
+        console.error("%c=== AUTH VERIFICATION FAILED ===", "color:red; font-size:16px; font-weight:bold");
+        console.log("Login succeeded but session verification failed!");
+        
+        toast({
+          title: "Authentication Error",
+          description: "Login succeeded but session wasn't established. Please contact support.",
+          variant: "destructive",
+        });
+      }
     } catch (error: any) {
+      console.error("%c=== LOGIN FAILED ===", "color:red; font-size:16px; font-weight:bold");
       console.error("Login error:", error);
+      
       toast({
         title: "Login Error",
         description: error.message || "Authentication failed. Please try again.",
