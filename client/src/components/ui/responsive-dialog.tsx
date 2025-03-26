@@ -43,18 +43,26 @@ export function ResponsiveDialog({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent
           side="bottom"
-          className={cn("pb-safe pt-safe max-h-[85vh] overflow-y-auto", className)}
+          className={cn(
+            "pb-safe pt-safe max-h-[90vh] rounded-t-xl border-t border-border",
+            "overflow-y-auto flex flex-col",
+            className
+          )}
         >
-          <SheetHeader className="text-left mb-4">
-            <SheetTitle>{title}</SheetTitle>
+          <SheetHeader className="text-left mb-4 px-1">
+            <SheetTitle className="text-xl">{title}</SheetTitle>
             {description && (
               <p className="text-sm text-muted-foreground">{description}</p>
             )}
           </SheetHeader>
-          <div className="space-y-4 flex-1 overflow-y-auto">
+          <div className="space-y-5 flex-1 overflow-y-auto px-1">
             {children}
           </div>
-          {footer && <SheetFooter className="mt-6 flex-col">{footer}</SheetFooter>}
+          {footer && (
+            <SheetFooter className="mt-6 flex-col space-y-2 sticky bottom-0 pb-2 pt-2 bg-card border-t border-border">
+              {footer}
+            </SheetFooter>
+          )}
         </SheetContent>
       </Sheet>
     );
@@ -63,15 +71,15 @@ export function ResponsiveDialog({
   // For desktop, use Dialog which appears in the center
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={cn("sm:max-w-[425px]", className)}>
+      <DialogContent className={cn("sm:max-w-[480px]", className)}>
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-xl">{title}</DialogTitle>
           {description && (
             <p className="text-sm text-muted-foreground">{description}</p>
           )}
         </DialogHeader>
-        <div className="space-y-4">{children}</div>
-        {footer && <DialogFooter>{footer}</DialogFooter>}
+        <div className="space-y-5 py-2">{children}</div>
+        {footer && <DialogFooter className="py-2">{footer}</DialogFooter>}
       </DialogContent>
     </Dialog>
   );

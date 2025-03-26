@@ -7,7 +7,71 @@
     @apply border-border;
   }
 
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
-    @apply font-sans antialiased bg-background text-foreground;
+    @apply font-sans antialiased bg-background text-foreground min-h-screen;
+    @apply touch-manipulation; /* Better touch experience */
+  }
+
+  input, textarea, button, select {
+    @apply text-base; /* Ensures text is at least 16px for mobile forms */
+    font-size: 16px; /* Prevents iOS zoom on focus */
+  }
+
+  /* Safe areas for modern mobile browsers */
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@layer components {
+  /* Mobile-optimized touch targets */
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px]; /* Minimum Apple recommended touch target size */
+  }
+
+  /* Mobile-first containers with better spacing */
+  .mobile-container {
+    @apply px-3 sm:px-4 md:px-6 w-full mx-auto;
+  }
+  
+  /* Sticky footer handling for forms */
+  .form-container {
+    @apply flex flex-col space-y-4;
+  }
+  
+  .form-footer {
+    @apply sticky bottom-0 bg-card py-3 border-t border-border mt-auto;
+  }
+}
+
+/* Dark mode improvements */
+.dark .form-control:focus-within {
+  @apply ring-offset-background;
+}
+
+/* Improved mobile form styles */
+@media (max-width: 640px) {
+  .mobile-full {
+    @apply w-full;
+  }
+  
+  .mobile-stack {
+    @apply flex-col;
+  }
+  
+  .mobile-pad {
+    @apply px-3 py-2;
   }
 }
