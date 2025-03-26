@@ -132,21 +132,22 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between", className)}
+          className={cn("w-full justify-between h-11 text-base", className)}
           disabled={disabled}
         >
           {selectedItem ? selectedItem.label : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0" align="start">
-        <Command shouldFilter={false}>
+      <PopoverContent className="p-0 w-full min-w-[260px] sm:w-[350px]" align="start">
+        <Command shouldFilter={false} className="w-full">
           <CommandInput 
             placeholder={`Search ${placeholder.toLowerCase()}...`} 
             value={searchQuery}
             onValueChange={setSearchQuery}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
+            className="h-11 text-base py-2.5"
           />
           <CommandList>
             <CommandEmpty>{emptyMessage}</CommandEmpty>
@@ -161,10 +162,11 @@ export function Combobox({
                       setOpen(false)
                       setSearchQuery("")
                     }}
+                    className="text-base py-2.5"
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
+                        "mr-2 h-5 w-5",
                         value === item.value ? "opacity-100" : "opacity-0"
                       )}
                     />
@@ -181,10 +183,11 @@ export function Combobox({
                       setOpen(false)
                       setSearchQuery("")
                     }}
+                    className="text-base py-2.5"
                   >
                     <Check
                       className={cn(
-                        "mr-2 h-4 w-4",
+                        "mr-2 h-5 w-5",
                         value === item.value ? "opacity-100" : "opacity-0"
                       )}
                     />
@@ -206,8 +209,9 @@ export function Combobox({
                         setSearchQuery("")
                       }
                     }}
+                    className="text-base py-2.5"
                   >
-                    <Plus className="mr-2 h-4 w-4" />
+                    <Plus className="mr-2 h-5 w-5" />
                     {createNewLabel}: <span className="font-medium">{searchQuery}</span>
                   </CommandItem>
                 </CommandGroup>
