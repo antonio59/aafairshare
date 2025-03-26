@@ -41,8 +41,15 @@ export const getQueryFn: <T>(options: {
     
     // If we have additional query parameters in the key, add them to the URL
     if (queryKey.length > 1 && queryKey[1]) {
-      url += url.includes('?') ? '&' : '?';
-      url += `month=${queryKey[1]}`;
+      // Check if it's the settlements endpoint with month parameter
+      if (url === '/api/settlements' && typeof queryKey[1] === 'string') {
+        url += `?month=${queryKey[1]}`;
+      } 
+      // For other endpoints, just append the month parameter
+      else if (typeof queryKey[1] === 'string' && !url.includes(queryKey[1])) {
+        url += url.includes('?') ? '&' : '?';
+        url += `month=${queryKey[1]}`;
+      }
     }
     
     const res = await fetch(url, {

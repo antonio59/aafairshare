@@ -57,9 +57,10 @@ export default function Settlement() {
 
   // Fetch settlements for the month
   const {
-    data: settlements,
+    data: settlements = [],
     isLoading: settlementsLoading,
-    isError: settlementsError
+    isError: settlementsError,
+    refetch: refetchSettlements
   } = useQuery<SettlementWithUsers[]>({
     queryKey: ['/api/settlements', currentMonth]
   });
@@ -81,17 +82,18 @@ export default function Settlement() {
 
   const handleUnsettlement = async (settlementId: number) => {
     try {
-      const response = await apiRequest(`/api/settlements/${settlementId}`, 'DELETE');
-      if (!response.ok) {
-        throw new Error('Failed to delete settlement');
-      }
+      // Use apiRequest directly as it handles errors appropriately
+      await apiRequest(`/api/settlements/${settlementId}`, 'DELETE');
 
       toast({
         title: "Settlement removed",
         description: "The settlement has been removed successfully."
       });
 
-      // Invalidate queries
+      // Directly refetch settlements data to ensure immediate UI update
+      await refetchSettlements();
+      
+      // Additionally invalidate queries to ensure consistent state
       queryClient.invalidateQueries({ queryKey: ['/api/settlements', currentMonth] });
       queryClient.invalidateQueries({ queryKey: ['/api/settlements'] }); // Invalidate all settlements queries
       queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
@@ -135,26 +137,18 @@ export default function Settlement() {
         notes: `Settlement for ${currentMonth}`,
       };
 
-      const response = await apiRequest('/api/settlements', 'POST', settlementData);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        let errorMessage = 'Failed to record settlement';
-        try {
-          const errorData = JSON.parse(errorText);
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error('Error parsing error response:', errorText);
-        }
-        throw new Error(errorMessage);
-      }
+      // Use apiRequest directly as it handles errors and returns the parsed JSON
+      await apiRequest('/api/settlements', 'POST', settlementData);
 
       toast({
         title: "Settlement recorded",
         description: "The settlement has been recorded successfully."
       });
 
-      // Invalidate queries
+      // Directly refetch settlements data to ensure immediate UI update
+      await refetchSettlements();
+      
+      // Additionally invalidate queries to ensure consistent state
       queryClient.invalidateQueries({ queryKey: ['/api/settlements', currentMonth] });
       queryClient.invalidateQueries({ queryKey: ['/api/settlements'] }); // Invalidate all settlements queries
       queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
