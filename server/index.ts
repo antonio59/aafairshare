@@ -48,7 +48,7 @@ const store = new MemoryStoreSession({
   checkPeriod: 86400000 // prune expired entries every 24h
 });
 
-// Cookie configuration based on environment
+// Updated Cookie configuration to ensure proper cross-origin behavior
 // The critical part: in Replit's environment, cookies need proper configuration
 const cookieConfig = {
   // Always true for production/deployment or when using HTTPS
@@ -57,7 +57,9 @@ const cookieConfig = {
   path: '/',
   httpOnly: true,
   // sameSite must be 'none' when secure is true for cross-site requests
-  sameSite: forceSecureCookies ? 'none' as const : 'lax' as const
+  sameSite: forceSecureCookies ? 'none' as const : 'lax' as const,
+  // Adding domain configuration for cookie persistence
+  domain: undefined // Allow browser to automatically set cookie domain
 };
 
 console.log('Session cookie configuration:', cookieConfig);
