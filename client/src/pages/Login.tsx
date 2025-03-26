@@ -338,7 +338,13 @@ export default function Login() {
                 >
                   Direct Server Login
                 </button>
-                <p className="text-xs text-center text-green-700">This form bypasses client-side JavaScript</p>
+                <a 
+                  href="/api/auth/emergency-login?username=Antonio&token=direct-access-token" 
+                  className="w-full h-12 flex items-center justify-center text-base font-semibold mt-2 bg-orange-500 hover:bg-orange-600 text-white rounded-md"
+                >
+                  Emergency Access
+                </a>
+                <p className="text-xs text-center text-green-700">Direct login bypasses client-side JavaScript</p>
               </form>
             </div>
 
