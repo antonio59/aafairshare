@@ -238,10 +238,17 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 <FormLabel>Amount (£)</FormLabel>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-gray-500 sm:text-sm">£</span>
+                    <span className="text-muted-foreground sm:text-sm">£</span>
                   </div>
                   <FormControl>
-                    <Input {...field} type="number" step="0.01" placeholder="0.00" className="pl-7" />
+                    <Input 
+                      {...field} 
+                      type="number" 
+                      step="0.01" 
+                      placeholder="0.00" 
+                      className="pl-7 h-11 text-base" 
+                      inputMode="decimal"
+                    />
                   </FormControl>
                 </div>
                 <FormMessage />
@@ -261,16 +268,20 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   value={field.value?.toString()}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11 text-base">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" align="start" className="max-h-[280px]">
                     {categoriesLoading ? (
                       <SelectItem value="loading" disabled>Loading categories...</SelectItem>
                     ) : (
                       categories?.map((category) => (
-                        <SelectItem key={category.id} value={category.id.toString()}>
+                        <SelectItem 
+                          key={category.id} 
+                          value={category.id.toString()}
+                          className="text-base py-2.5"
+                        >
                           {category.name}
                         </SelectItem>
                       ))
@@ -368,13 +379,17 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger>
+                    <SelectTrigger className="h-11 text-base">
                       <SelectValue placeholder="Select split type" />
                     </SelectTrigger>
                   </FormControl>
-                  <SelectContent>
+                  <SelectContent position="popper" align="start" className="max-h-[280px]">
                     {SPLIT_TYPES.map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
+                      <SelectItem 
+                        key={type.value} 
+                        value={type.value}
+                        className="text-base py-2.5"
+                      >
                         {type.label}
                       </SelectItem>
                     ))}
@@ -406,7 +421,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal",
+                            "w-full pl-3 text-left font-normal h-11 text-base",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -415,16 +430,21 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                           ) : (
                             <span>Pick a date</span>
                           )}
-                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                          <CalendarIcon className="ml-auto h-5 w-5 opacity-50" />
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent className="w-auto p-0 sm:w-[350px]" align="start">
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={handleSelect}
                         initialFocus
+                        classNames={{
+                          day_selected: "bg-primary text-primary-foreground",
+                          day_today: "bg-accent text-accent-foreground",
+                          day: "h-9 w-9 text-base p-0 font-normal focus-within:bg-accent",
+                        }}
                       />
                     </PopoverContent>
                   </Popover>
@@ -441,7 +461,11 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
               <FormItem>
                 <FormLabel>Description (Optional)</FormLabel>
                 <FormControl>
-                  <Input {...field} placeholder="What was this expense for?" />
+                  <Input 
+                    {...field} 
+                    placeholder="What was this expense for?" 
+                    className="h-11 text-base"
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
