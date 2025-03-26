@@ -28,6 +28,16 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const [isManuallyAuthenticated, setIsManuallyAuthenticated] = useState(false);
   const [manualAuthUser, setManualAuthUser] = useState<any>(null);
   
+  // Regular authentication via React Query - ALWAYS declare this regardless of token
+  const { data: authData, isLoading } = useQuery<AuthStatusResponse>({
+    queryKey: ['/api/auth/status'],
+    retry: 2,
+    retryDelay: 1000,
+    staleTime: 0,
+    refetchInterval: 30000,
+    refetchOnWindowFocus: true,
+  });
+  
   // Extract URL parameters
   const queryParams = new URLSearchParams(window.location.search);
   const emergencyToken = queryParams.get('token');
@@ -66,25 +76,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     }
   }, [emergencyToken]);
   
-  // If emergency token authentication is successful, skip normal auth check
-  if (isManuallyAuthenticated && manualAuthUser) {
-    return (
-      <MainLayout>
-        <Component />
-      </MainLayout>
-    );
-  }
-  
-  // Regular authentication via React Query
-  const { data: authData, isLoading } = useQuery<AuthStatusResponse>({
-    queryKey: ['/api/auth/status'],
-    retry: 2,
-    retryDelay: 1000,
-    staleTime: 0,
-    refetchInterval: 30000,
-    refetchOnWindowFocus: true,
-  });
-  
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && (!authData || !authData.isAuthenticated) && !isManuallyAuthenticated) {
@@ -93,56 +84,71 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     }
   }, [authData, isLoading, setLocation, isManuallyAuthenticated]);
 
-  // Show loading state
-  if (isLoading && !isManuallyAuthenticated) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center space-y-4">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <h2 className="text-lg font-medium">Verifying your session...</h2>
-          <p className="text-sm text-gray-500">Please wait, checking authentication status</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Handle authentication errors (when not using emergency token)
-  if (!isManuallyAuthenticated && (!authData || !authData.isAuthenticated)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="text-center space-y-4">
-          <div className="p-3 bg-red-100 text-red-800 rounded-full inline-flex">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-            </svg>
-          </div>
-          <h2 className="text-lg font-medium">Authentication Required</h2>
-          <p className="text-sm text-gray-500">Your session has expired or you're not logged in</p>
-          <div className="space-y-2 mt-4">
-            <button 
-              onClick={() => setLocation('/login')} 
-              className="px-4 py-2 bg-primary text-white rounded-md block w-full"
-            >
-              Go to Login
-            </button>
-            <a 
-              href="/api/auth/emergency-login?username=Antonio&token=direct-access-token" 
-              className="px-4 py-2 bg-green-600 text-white rounded-md block w-full text-center"
-            >
-              Use Emergency Access
-            </a>
+  // Render based on authentication state
+  const renderContent = () => {
+    // If emergency token authentication is successful
+    if (isManuallyAuthenticated && manualAuthUser) {
+      return (
+        <MainLayout>
+          <Component />
+        </MainLayout>
+      );
+    }
+    
+    // Show loading state
+    if (isLoading && !isManuallyAuthenticated) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+          <div className="text-center space-y-4">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <h2 className="text-lg font-medium">Verifying your session...</h2>
+            <p className="text-sm text-gray-500">Please wait, checking authentication status</p>
           </div>
         </div>
-      </div>
-    );
-  }
+      );
+    }
 
-  // Successfully authenticated
-  return (
-    <MainLayout>
-      <Component />
-    </MainLayout>
-  );
+    // Handle authentication errors (when not using emergency token)
+    if (!isManuallyAuthenticated && (!authData || !authData.isAuthenticated)) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-gray-50">
+          <div className="text-center space-y-4">
+            <div className="p-3 bg-red-100 text-red-800 rounded-full inline-flex">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-medium">Authentication Required</h2>
+            <p className="text-sm text-gray-500">Your session has expired or you're not logged in</p>
+            <div className="space-y-2 mt-4">
+              <button 
+                onClick={() => setLocation('/login')} 
+                className="px-4 py-2 bg-primary text-white rounded-md block w-full"
+              >
+                Go to Login
+              </button>
+              <a 
+                href="/api/auth/emergency-login?username=Antonio&token=direct-access-token" 
+                className="px-4 py-2 bg-green-600 text-white rounded-md block w-full text-center"
+              >
+                Use Emergency Access
+              </a>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Successfully authenticated via regular session
+    return (
+      <MainLayout>
+        <Component />
+      </MainLayout>
+    );
+  };
+
+  // Always use a single return statement to avoid hook errors
+  return renderContent();
 }
 
 // App component
