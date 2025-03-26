@@ -14,17 +14,25 @@ export async function apiRequest<T = any>(
 ): Promise<T> {
   console.log(`Making ${method} request to ${url}`, data ? { data } : '');
   
-  const res = await fetch(url, {
+  const fetchOptions: RequestInit = {
     method,
     headers: {
       ...(data ? { "Content-Type": "application/json" } : {}),
-      "X-Requested-With": "XMLHttpRequest"
+      "X-Requested-With": "XMLHttpRequest",
+      // Add Cache-Control to prevent caching issues
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      "Pragma": "no-cache"
     },
     body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    credentials: "include", // Critical - include cookies
     mode: 'cors',
     cache: 'no-cache',
-  });
+    redirect: 'follow'
+  };
+  
+  console.log("Fetch options:", fetchOptions);
+  
+  const res = await fetch(url, fetchOptions);
 
   console.log(`Response from ${url}:`, {
     status: res.status,
@@ -68,14 +76,21 @@ export const getQueryFn: <T>(options: {
     }
     
     console.log(`Making GET request to ${url} via queryFn`);
-    const res = await fetch(url, {
+    const queryFetchOptions: RequestInit = {
+      method: 'GET',
       credentials: "include",
       mode: 'cors',
       cache: 'no-cache',
+      redirect: 'follow',
       headers: {
-        "X-Requested-With": "XMLHttpRequest"
+        "X-Requested-With": "XMLHttpRequest",
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        "Pragma": "no-cache"
       }
-    });
+    };
+    
+    console.log("Query fetch options:", queryFetchOptions);
+    const res = await fetch(url, queryFetchOptions);
     console.log(`Response from ${url} in queryFn:`, {
       status: res.status,
       ok: res.ok

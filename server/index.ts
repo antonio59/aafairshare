@@ -14,12 +14,27 @@ import cors from 'cors';
 
 const app = express();
 
-// Enable CORS for all routes to help with development
+// Determine environment
+const isProduction = app.get('env') === 'production';
+const isDevelopment = !isProduction;
+
+console.log(`Running in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+
+// Set up protocol detection
+const isSecure = process.env.REPLIT_ENVIRONMENT === 'deployment' || isProduction;
+
+// Log all requests to help with debugging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - Origin: ${req.headers.origin || 'no-origin'}, Protocol: ${req.protocol}`);
+  next();
+});
+
+// Enable CORS with more detailed configuration
 app.use(cors({
-  origin: true,
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: true, // Allow all origins for now, can be restricted later
+  credentials: true, // Important: allow cookies to be sent
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 app.use(express.json());
@@ -31,19 +46,27 @@ const store = new MemoryStoreSession({
   checkPeriod: 86400000 // prune expired entries every 24h
 });
 
+// Cookie configuration based on environment
+// The critical part: in Replit's environment, cookies need proper configuration
+const cookieConfig = {
+  // Always true for production/deployment or when using HTTPS
+  secure: isSecure,
+  maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
+  path: '/',
+  httpOnly: true,
+  // sameSite must be 'none' when secure is true for cross-site requests
+  sameSite: isSecure ? 'none' as const : 'lax' as const
+};
+
+console.log('Session cookie configuration:', cookieConfig);
+
 // Enhanced session setup
 app.use(session({
   secret: 'expense-app-secret',
   resave: false,
   saveUninitialized: false,
   store: store,
-  cookie: { 
-    secure: true, // Must be true when sameSite is 'none'
-    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
-    path: '/',
-    httpOnly: true,
-    sameSite: 'none' // Allow cookies to be sent with all cross-site requests
-  }
+  cookie: cookieConfig
 }));
 
 // Use the storage instance exported from storage.ts
