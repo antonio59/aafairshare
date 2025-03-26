@@ -59,28 +59,7 @@ export async function initializeDatabase() {
       );
     `);
 
-    // Insert default data
-    await pool.query(`
-      INSERT INTO categories (name, color)
-      SELECT 'Groceries', '#4CAF50'
-      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Groceries')
-      UNION ALL
-      SELECT 'Rent', '#2196F3'
-      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Rent')
-      UNION ALL
-      SELECT 'Utilities', '#FFC107'
-      WHERE NOT EXISTS (SELECT 1 FROM categories WHERE name = 'Utilities');
-
-      INSERT INTO locations (name)
-      SELECT 'Supermarket'
-      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Supermarket')
-      UNION ALL
-      SELECT 'Restaurant'
-      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Restaurant')
-      UNION ALL
-      SELECT 'Online'
-      WHERE NOT EXISTS (SELECT 1 FROM locations WHERE name = 'Online');
-    `);
+    // Database tables initialized - no default data inserted
 
     log('Database initialized successfully');
     return true;
