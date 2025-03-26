@@ -16,11 +16,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(500).json({ message: error.message || "An error occurred" });
   };
 
-  // Authentication middleware to protect routes
+  // Authentication middleware to protect routes with emergency token support
   const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
+    // Check for emergency token
+    const token = req.query.token as string;
+    if (token && emergencyTokens.has(token)) {
+      const userData = emergencyTokens.get(token);
+      
+      // Check if token is expired
+      if (userData.expiry < Date.now()) {
+        emergencyTokens.delete(token);
+        return res.status(401).json({ message: "Emergency token expired. Please log in again." });
+      }
+      
+      // Attach user to request for API usage
+      (req as any).user = userData;
+      return next();
+    }
+    
+    // Regular session auth check
     if (req.isAuthenticated()) {
       return next();
     }
+    
     res.status(401).json({ message: "Unauthorized. Please log in." });
   };
 
@@ -102,42 +120,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  // Enhanced auth status endpoint with detailed diagnostic information
-  app.get(`${API_PREFIX}/auth/status`, (req, res) => {
-    console.log("Auth status check - Headers:", req.headers);
-    console.log("Auth status check - Session ID:", req.sessionID);
-    console.log("Auth status check - User:", req.user);
-    console.log("Auth status check - Is authenticated:", req.isAuthenticated());
-    console.log("Auth status check - Session:", req.session);
+  // Emergency token store - very simple alternative to session auth when cookies aren't working
+const emergencyTokens = new Map<string, any>();
+
+// Create temporary login URL route
+app.get(`${API_PREFIX}/auth/emergency-login`, async (req, res) => {
+  try {
+    const { username, token } = req.query;
     
-    if (req.isAuthenticated() && req.user) {
-      console.log("User is authenticated, returning user data");
-      return res.status(200).json({
-        isAuthenticated: true,
-        user: {
-          id: (req.user as any).id,
-          username: (req.user as any).username,
-          email: (req.user as any).email
-        },
-        sessionID: req.sessionID
+    // Hardcoded token verification for emergency access - Antonio only
+    if (username === 'Antonio' && token === 'direct-access-token') {
+      console.log('Emergency direct login for Antonio approved');
+      
+      // Find Antonio's user account
+      const user = await storage.getUserByEmail('antoniojsmith@protonmail.com');
+      if (!user) {
+        return res.status(404).send('User not found');
+      }
+      
+      // Generate a temporary token
+      const tempToken = Math.random().toString(36).substring(2, 15);
+      
+      // Store the token with the user data
+      emergencyTokens.set(tempToken, {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        expiry: Date.now() + 3600000 // 1 hour expiry
+      });
+      
+      // Redirect to dashboard with token
+      return res.redirect(`/?token=${tempToken}`);
+    }
+    
+    res.status(401).send('Invalid emergency login attempt');
+  } catch (error) {
+    console.error('Emergency login error:', error);
+    res.status(500).send('Emergency login error');
+  }
+});
+
+// Enhanced auth status endpoint with emergency token support
+app.get(`${API_PREFIX}/auth/status`, (req, res) => {
+  // Check for emergency token authentication
+  const token = req.query.token as string;
+  if (token && emergencyTokens.has(token)) {
+    const userData = emergencyTokens.get(token);
+    
+    // Check if token is expired
+    if (userData.expiry < Date.now()) {
+      emergencyTokens.delete(token);
+      return res.status(200).json({ 
+        isAuthenticated: false,
+        message: 'Emergency token expired'
       });
     }
     
-    // If we have a sessionID but no authenticated user, log this anomaly
-    if (req.sessionID && !req.isAuthenticated()) {
-      console.log("WARNING: Session exists but user is not authenticated");
-    }
-    
-    res.status(200).json({ 
-      isAuthenticated: false,
-      sessionID: req.sessionID || null,
-      sessionExists: !!req.session,
-      // Debug info to help diagnose issues
-      debug: {
-        hasUser: !!req.user,
-        cookiesReceived: !!req.headers.cookie
+    console.log('User authenticated via emergency token');
+    return res.status(200).json({
+      isAuthenticated: true,
+      emergencyAuth: true,
+      user: {
+        id: userData.id,
+        username: userData.username,
+        email: userData.email
       }
     });
+  }
+  
+  // Regular session auth check
+  console.log("Auth status check - Session ID:", req.sessionID);
+  console.log("Auth status check - Is authenticated:", req.isAuthenticated());
+    
+  if (req.isAuthenticated() && req.user) {
+    console.log("User is authenticated via session");
+    return res.status(200).json({
+      isAuthenticated: true,
+      user: {
+        id: (req.user as any).id,
+        username: (req.user as any).username,
+        email: (req.user as any).email
+      }
+    });
+  }
+    
+  res.status(200).json({ 
+    isAuthenticated: false
+  });
   });
 
   // Registration route - Disabled for closed application
