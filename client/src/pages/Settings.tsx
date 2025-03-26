@@ -79,7 +79,8 @@ export default function Settings() {
     try {
       // Use the correct plural form for categories
       const endpoint = itemToDelete.type === 'category' ? 'categories' : `${itemToDelete.type}s`;
-      const response = await apiRequest("DELETE", `/api/${endpoint}/${itemToDelete.id}`);
+      // Fix the parameter order: apiRequest(method, url) instead of the wrong order
+      await apiRequest(`/api/${endpoint}/${itemToDelete.id}`, "DELETE");
 
       localQueryClient.invalidateQueries({
         queryKey: [`/api/${endpoint}`],
