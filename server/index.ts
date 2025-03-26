@@ -10,8 +10,18 @@ import { Strategy as LocalStrategy } from "passport-local";
 import { storage, IStorage } from "./storage"; 
 import { db, initializeDatabase } from "./db";
 import MemoryStore from 'memorystore';
+import cors from 'cors';
 
 const app = express();
+
+// Enable CORS for all routes to help with development
+app.use(cors({
+  origin: true,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -32,7 +42,7 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
     path: '/',
     httpOnly: true,
-    sameSite: 'lax' // Allow cookies to be sent with cross-site requests (but only for navigation)
+    sameSite: 'none' // Allow cookies to be sent with all cross-site requests
   }
 }));
 
@@ -105,6 +115,9 @@ app.use((req, res, next) => {
 
   // Log all requests for debugging
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path} (${req.headers['user-agent'] || 'no-ua'})`);
+  console.log("Request headers:", req.headers);
+  console.log("Request session:", req.session);
+  console.log("Is authenticated:", req.isAuthenticated());
 
   res.on("finish", () => {
     const duration = Date.now() - start;
