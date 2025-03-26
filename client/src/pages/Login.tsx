@@ -96,104 +96,44 @@ export default function Login() {
     },
   });
 
-  // Improved login function with better session handling
+  // Streamlined login function to avoid page refresh
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
+    
     try {
-      // Clear any existing console
-      console.clear();
-      console.log("%c=== IMPROVED LOGIN ATTEMPT ===", "color:blue; font-size:16px; font-weight:bold");
-      console.log("Attempting login with:", { email: data.email });
-
-      console.log("STEP 1: Checking cookies before login");
-      console.log(`Current document.cookie (length only for security): ${document.cookie.length}`);
-      
-      // Using standard fetch with credentials
-      console.log("STEP 2: Sending login request via fetch with credentials");
-      
-      const loginResponse = await fetch("/api/auth/login", {
+      const response = await fetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "X-Requested-With": "XMLHttpRequest"
         },
         body: JSON.stringify(data),
-        credentials: "include", // Critical for session cookies
-        mode: "cors",
-        cache: "no-cache"
+        credentials: "include"
       });
       
-      if (!loginResponse.ok) {
-        throw new Error(`Login failed with status ${loginResponse.status}: ${await loginResponse.text()}`);
+      if (!response.ok) {
+        throw new Error("Login failed. Please check your credentials.");
       }
       
-      console.log(`Login response status: ${loginResponse.status}`);
-      console.log("Login response headers:", [...loginResponse.headers.entries()].reduce((obj, [key, val]) => ({...obj, [key]: val}), {}));
-      
-      const loginData = await loginResponse.json();
-      console.log("Login response data:", loginData);
-      
-      console.log("STEP 3: Checking cookies after login");
-      console.log(`document.cookie after login (length only): ${document.cookie.length}`);
-      
-      // Force delay to ensure cookie is properly set
-      console.log("Waiting 500ms before checking auth status...");
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      console.log("STEP 4: Verifying auth status");
-      const statusResponse = await fetch("/api/auth/status", {
-        method: "GET",
-        headers: {
-          "X-Requested-With": "XMLHttpRequest",
-          "Cache-Control": "no-cache, no-store, must-revalidate",
-          "Pragma": "no-cache"
-        },
-        credentials: "include", // Critical for session cookies
-        mode: "cors",
-        cache: "no-cache"
-      });
-      
-      if (!statusResponse.ok) {
-        throw new Error(`Auth status check failed with status ${statusResponse.status}`);
-      }
-      
-      const authStatus = await statusResponse.json();
-      console.log("Auth status response:", authStatus);
-      
-      if (authStatus.isAuthenticated) {
-        console.log("%c=== LOGIN SUCCESSFUL ===", "color:green; font-size:16px; font-weight:bold");
-        console.log(`Logged in as: ${authStatus.user?.username} (ID: ${authStatus.user?.id})`);
-        
-        // Invalidate query cache to refresh data
-        await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
-        
-        toast({
-          title: "Success",
-          description: "Login successful! Redirecting to dashboard...",
-        });
-        
-        console.log("STEP 5: Redirecting to dashboard");
-        
-        // Try the complete new path approach to force a fresh load
-        window.location.href = '/'; 
-      } else {
-        console.error("%c=== AUTH VERIFICATION FAILED ===", "color:red; font-size:16px; font-weight:bold");
-        console.log("Login succeeded but session verification failed!");
-        
-        // Try emergency token as fallback
-        console.log("Attempting emergency token login as fallback...");
-        window.location.href = '/api/auth/emergency-login?username=Antonio&token=direct-access-token';
-      }
-    } catch (error: any) {
-      console.error("%c=== LOGIN FAILED ===", "color:red; font-size:16px; font-weight:bold");
-      console.error("Login error:", error);
+      // Refresh auth state
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
       
       toast({
-        title: "Login Error",
-        description: error.message || "Authentication failed. Please try again.",
+        title: "Success",
+        description: "Login successful!",
+      });
+      
+      // Use React Router navigation instead of page reload
+      setLocation('/');
+    } 
+    catch (error: any) {
+      toast({
+        title: "Login Failed",
+        description: error.message || "Authentication failed",
         variant: "destructive",
       });
-    } finally {
+    } 
+    finally {
       setIsLoading(false);
     }
   };
