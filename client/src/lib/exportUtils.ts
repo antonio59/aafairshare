@@ -4,6 +4,15 @@ import { formatCurrency, formatDate, formatMonthYear } from './utils';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import autoTable from 'jspdf-autotable';
+
+// Extend jsPDF with lastAutoTable property that exists after autoTable is called
+declare module 'jspdf' {
+  interface jsPDF {
+    lastAutoTable: {
+      finalY?: number;
+    };
+  }
+}
 import { USERS } from './constants';
 
 type ExportFormat = 'csv' | 'xlsx' | 'pdf';

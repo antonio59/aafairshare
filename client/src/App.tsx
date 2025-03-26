@@ -43,7 +43,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   useEffect(() => {
     if (!isLoading && (!authData || !authData.isAuthenticated)) {
-      console.log('ProtectedRoute: Not authenticated, redirecting to login');
       setLocation('/login');
     }
   }, [authData, isLoading, setLocation]);
@@ -62,7 +61,6 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   // Handle authentication errors
   if (isError || !authData || !authData.isAuthenticated) {
-    console.log('ProtectedRoute: Authentication check failed:', { isError, authData });
     return null; // The useEffect will redirect to login
   }
 
