@@ -189,24 +189,24 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 md:ml-64 min-h-screen">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-6 pb-20 md:py-8">
+        <div className="max-w-7xl mx-auto px-2 sm:px-4 md:px-6 py-3 pb-24 md:pb-8 md:py-6">
           {children}
         </div>
       </main>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-10 pb-safe">
         <div className="flex justify-around">
           {navigation.map((item) => (
             <Link 
               key={item.name} 
               href={item.href}
               className={cn(
-                'flex flex-col items-center py-3',
+                'flex flex-col items-center py-2 px-1',
                 location === item.href ? 'text-primary' : 'text-gray-600'
               )}
             >
-              <item.icon className="h-6 w-6" />
+              <item.icon className="h-5 w-5" />
               <span className="text-xs mt-1">{item.name}</span>
             </Link>
           ))}
