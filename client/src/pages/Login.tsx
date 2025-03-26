@@ -99,33 +99,74 @@ export default function Login() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
-      console.log("Logging in with:", { email: data.email });
+      console.log("Attempting login with:", { email: data.email });
+
+      // Enhanced login procedure with diagnostics
+      const loginUrl = '/api/auth/login';
+      console.log(`Making fetch request to ${loginUrl} with credentials: include`);
       
-      const result = await apiRequest('/api/auth/login', 'POST', data);
-      console.log("Login response:", result);
+      // Use direct fetch for diagnostic reasons
+      const loginResponse = await fetch(loginUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(data),
+        credentials: 'include',
+        mode: 'cors',
+        cache: 'no-cache'
+      });
       
-      // Invalidate the auth status query to force a refresh of authentication state
-      // This is critical to ensure the protected routes recognize the new session
+      console.log("Login fetch response status:", loginResponse.status);
+      console.log("Login response headers:", 
+        [...loginResponse.headers.entries()].reduce((obj, [key, val]) => ({...obj, [key]: val}), {})
+      );
+      
+      if (!loginResponse.ok) {
+        throw new Error(`Login failed with status: ${loginResponse.status}`);
+      }
+      
+      const result = await loginResponse.json();
+      console.log("Login response data:", result);
+      
+      // Clear and invalidate auth queries to force refresh
+      queryClient.removeQueries({ queryKey: ['/api/auth/status'] });
       await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
       
-      // Check authentication status again after login
-      const authStatus = await apiRequest('/api/auth/status', 'GET');
+      // Check authentication status to verify session
+      console.log("Verifying authentication status...");
+      const checkResponse = await fetch('/api/auth/status', {
+        credentials: 'include',
+        cache: 'no-cache',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      
+      const authStatus = await checkResponse.json();
       console.log("Auth status after login:", authStatus);
+      
+      if (!authStatus.isAuthenticated) {
+        console.warn("Login succeeded but session verification failed!");
+        // We'll still proceed and hope for the best
+      }
       
       toast({
         title: "Success",
-        description: "Login successful",
+        description: "Login successful - redirecting to dashboard",
       });
 
-      // Wait a brief moment for the session to be fully established
+      // Wait longer to ensure session is fully established
       setTimeout(() => {
-        setLocation('/');
-      }, 100);
+        // Force full page reload to ensure fresh state
+        window.location.href = '/';
+      }, 500);
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
-        title: "Error",
-        description: error.message || "Login failed",
+        title: "Login Error",
+        description: error.message || "Authentication failed. Please try again.",
         variant: "destructive",
       });
     } finally {

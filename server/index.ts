@@ -14,14 +14,16 @@ import cors from 'cors';
 
 const app = express();
 
-// Determine environment
-const isProduction = app.get('env') === 'production';
+// Determine environment - on Replit, we'll consider it production
+const isReplit = !!process.env.REPL_ID || !!process.env.REPLIT_ENVIRONMENT;
+const isProduction = app.get('env') === 'production' || isReplit;
 const isDevelopment = !isProduction;
 
 console.log(`Running in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode`);
+console.log(`Detected Replit environment: ${isReplit ? 'Yes' : 'No'}`);
 
-// Set up protocol detection
-const isSecure = process.env.REPLIT_ENVIRONMENT === 'deployment' || isProduction;
+// For Replit, cookies must be secure because it uses HTTPS for access
+const forceSecureCookies = true; // Always use secure cookies in Replit
 
 // Log all requests to help with debugging
 app.use((req, res, next) => {
@@ -50,12 +52,12 @@ const store = new MemoryStoreSession({
 // The critical part: in Replit's environment, cookies need proper configuration
 const cookieConfig = {
   // Always true for production/deployment or when using HTTPS
-  secure: isSecure,
+  secure: forceSecureCookies,
   maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
   path: '/',
   httpOnly: true,
   // sameSite must be 'none' when secure is true for cross-site requests
-  sameSite: isSecure ? 'none' as const : 'lax' as const
+  sameSite: forceSecureCookies ? 'none' as const : 'lax' as const
 };
 
 console.log('Session cookie configuration:', cookieConfig);
