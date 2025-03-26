@@ -16,25 +16,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(500).json({ message: error.message || "An error occurred" });
   };
 
-  // Authentication middleware to protect routes with emergency token support
+  // Authentication middleware to protect routes
   const isAuthenticated = (req: Request, res: Response, next: NextFunction) => {
-    // Check for emergency token
-    const token = req.query.token as string;
-    if (token && emergencyTokens.has(token)) {
-      const userData = emergencyTokens.get(token);
-      
-      // Check if token is expired
-      if (userData.expiry < Date.now()) {
-        emergencyTokens.delete(token);
-        return res.status(401).json({ message: "Emergency token expired. Please log in again." });
-      }
-      
-      // Attach user to request for API usage
-      (req as any).user = userData;
-      return next();
-    }
-    
-    // Regular session auth check
+    // Session authentication check
     if (req.isAuthenticated()) {
       return next();
     }
