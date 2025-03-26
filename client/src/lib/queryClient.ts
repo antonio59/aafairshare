@@ -16,9 +16,10 @@ export async function apiRequest<T = any>(
   
   const res = await fetch(url, {
     method,
-    headers: data ? { 
-      "Content-Type": "application/json",
-    } : {},
+    headers: {
+      ...(data ? { "Content-Type": "application/json" } : {}),
+      "X-Requested-With": "XMLHttpRequest"
+    },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
     mode: 'cors',
@@ -71,6 +72,9 @@ export const getQueryFn: <T>(options: {
       credentials: "include",
       mode: 'cors',
       cache: 'no-cache',
+      headers: {
+        "X-Requested-With": "XMLHttpRequest"
+      }
     });
     console.log(`Response from ${url} in queryFn:`, {
       status: res.status,

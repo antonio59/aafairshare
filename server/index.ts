@@ -38,7 +38,7 @@ app.use(session({
   saveUninitialized: false,
   store: store,
   cookie: { 
-    secure: false, // Set to false to allow cookies over HTTP for testing
+    secure: true, // Must be true when sameSite is 'none'
     maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
     path: '/',
     httpOnly: true,
