@@ -31,13 +31,30 @@ app.use((req, res, next) => {
   next();
 });
 
-// Enable CORS with more detailed configuration
+// Enhanced CORS configuration to improve cross-origin cookie handling
 app.use(cors({
-  origin: true, // Allow all origins for now, can be restricted later
-  credentials: true, // Important: allow cookies to be sent
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Allow all origins that include replit.dev or localhost
+    if (origin.includes('replit.dev') || origin.includes('localhost')) {
+      return callback(null, true);
+    }
+    
+    callback(null, true); // Allow all origins for now
+  },
+  credentials: true, // Critical for allowing cookies to be sent cross-origin
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Cache-Control', 'Pragma'],
+  exposedHeaders: ['Set-Cookie']
 }));
+
+// Add specific header to ensure cookies are accepted in the browser
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  next();
+});
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -64,13 +81,15 @@ const cookieConfig = {
 
 console.log('Session cookie configuration:', cookieConfig);
 
-// Enhanced session setup
+// Enhanced session setup with additional options for cross-origin support
 app.use(session({
   secret: 'expense-app-secret',
   resave: false,
   saveUninitialized: false,
   store: store,
-  cookie: cookieConfig
+  cookie: cookieConfig,
+  name: 'sessionId', // Custom name for better tracking
+  proxy: true // Trust the reverse proxy when determining secure connections
 }));
 
 // Use the storage instance exported from storage.ts

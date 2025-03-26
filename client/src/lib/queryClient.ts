@@ -14,6 +14,7 @@ export async function apiRequest<T = any>(
 ): Promise<T> {
   console.log(`Making ${method} request to ${url}`, data ? { data } : '');
   
+  // Enhanced fetch options for better session handling
   const fetchOptions: RequestInit = {
     method,
     headers: {
@@ -21,7 +22,9 @@ export async function apiRequest<T = any>(
       "X-Requested-With": "XMLHttpRequest",
       // Add Cache-Control to prevent caching issues
       "Cache-Control": "no-cache, no-store, must-revalidate",
-      "Pragma": "no-cache"
+      "Pragma": "no-cache",
+      // Accept header to ensure proper content negotiation
+      "Accept": "application/json"
     },
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include", // Critical - include cookies
@@ -32,8 +35,12 @@ export async function apiRequest<T = any>(
   
   console.log("Fetch options:", fetchOptions);
   
+  // Add cookie debug information
+  console.log(`Current document.cookie (length only for security): ${document.cookie.length}`);
+  
   const res = await fetch(url, fetchOptions);
 
+  // Log response headers for debugging purposes
   console.log(`Response from ${url}:`, {
     status: res.status,
     ok: res.ok,
@@ -76,6 +83,7 @@ export const getQueryFn: <T>(options: {
     }
     
     console.log(`Making GET request to ${url} via queryFn`);
+    // Enhanced query fetch options for better session handling
     const queryFetchOptions: RequestInit = {
       method: 'GET',
       credentials: "include",
@@ -85,15 +93,22 @@ export const getQueryFn: <T>(options: {
       headers: {
         "X-Requested-With": "XMLHttpRequest",
         "Cache-Control": "no-cache, no-store, must-revalidate",
-        "Pragma": "no-cache"
+        "Pragma": "no-cache",
+        "Accept": "application/json"
       }
     };
     
+    // Add cookie debug information
+    console.log(`Current document.cookie in queryFn (length only): ${document.cookie.length}`);
     console.log("Query fetch options:", queryFetchOptions);
+    
     const res = await fetch(url, queryFetchOptions);
+    
+    // Log detailed response information for debugging
     console.log(`Response from ${url} in queryFn:`, {
       status: res.status,
-      ok: res.ok
+      ok: res.ok,
+      headers: [...res.headers.entries()].reduce((obj, [key, val]) => ({...obj, [key]: val}), {})
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {

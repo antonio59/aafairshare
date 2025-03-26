@@ -28,14 +28,17 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
   const [isManuallyAuthenticated, setIsManuallyAuthenticated] = useState(false);
   const [manualAuthUser, setManualAuthUser] = useState<any>(null);
   
-  // Regular authentication via React Query - ALWAYS declare this regardless of token
+  // Enhanced authentication via React Query with improved options
   const { data: authData, isLoading } = useQuery<AuthStatusResponse>({
     queryKey: ['/api/auth/status'],
-    retry: 2,
+    retry: 3,
     retryDelay: 1000,
     staleTime: 0,
     refetchInterval: 30000,
     refetchOnWindowFocus: true,
+    refetchOnMount: true,
+    networkMode: 'always',
+    gcTime: 0 // Don't cache auth state
   });
   
   // Extract URL parameters
