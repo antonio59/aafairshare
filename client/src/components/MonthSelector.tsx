@@ -32,25 +32,25 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
   };
 
   return (
-    <div className="flex items-center justify-between mb-4 sm:mb-6">
+    <div className="flex items-center justify-between">
       <div className="flex items-center">
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={previousMonth}
-          className="mr-1 sm:mr-2 h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-gray-100"
+          className="mr-1 sm:mr-2 h-7 w-7 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100"
         >
-          <ChevronLeft className="h-4 w-4 sm:h-5 sm:w-5" />
+          <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="sr-only">Previous</span>
         </Button>
-        <h2 className="text-base sm:text-xl font-semibold text-gray-800">{formattedMonth}</h2>
+        <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-800">{formattedMonth}</h2>
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={nextMonth}
-          className="ml-1 sm:ml-2 h-8 w-8 sm:h-10 sm:w-10 rounded-full hover:bg-gray-100"
+          className="ml-1 sm:ml-2 h-7 w-7 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100"
         >
-          <ChevronRight className="h-4 w-4 sm:h-5 sm:w-5" />
+          <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="sr-only">Next</span>
         </Button>
       </div>
@@ -83,19 +83,22 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
           <div className="sm:hidden">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full hover:bg-gray-100">
-                  <Download className="h-4 w-4" />
+                <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full hover:bg-gray-100">
+                  <Download className="h-3.5 w-3.5" />
                   <span className="sr-only">Export</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleExport('csv')}>
+              <DropdownMenuContent align="end" className="w-28">
+                <DropdownMenuItem onClick={() => handleExport('csv')} className="text-xs py-1.5">
+                  <FileText className="h-3 w-3 mr-1.5" />
                   <span>CSV</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('xlsx')}>
+                <DropdownMenuItem onClick={() => handleExport('xlsx')} className="text-xs py-1.5">
+                  <FileText className="h-3 w-3 mr-1.5" />
                   <span>Excel</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('pdf')}>
+                <DropdownMenuItem onClick={() => handleExport('pdf')} className="text-xs py-1.5">
+                  <FileText className="h-3 w-3 mr-1.5" />
                   <span>PDF</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>

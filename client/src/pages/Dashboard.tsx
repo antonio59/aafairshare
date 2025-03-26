@@ -135,26 +135,27 @@ export default function Dashboard() {
   const user2IdStr = user2Id.toString();
 
   return (
-    <div className="space-y-4 sm:space-y-6 px-2 sm:px-4 pb-24">
-      <div className="flex items-center justify-between mb-2 sm:mb-4 pt-2">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Dashboard</h1>
+    <div className="space-y-3 sm:space-y-6 px-2 sm:px-4 pb-24">
+      <div className="flex items-center justify-between mb-1 sm:mb-4 pt-2">
+        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Dashboard</h1>
         
         {/* Add New Expense Button for larger screens */}
         <Button 
           onClick={handleAddExpense}
           className="hidden sm:flex items-center"
+          size="sm"
         >
-          <PlusIcon className="h-4 w-4 mr-2" />
+          <PlusIcon className="h-4 w-4 mr-1.5" />
           Add Expense
         </Button>
       </div>
       
-      <div className="mb-4">
+      <div className="mb-3 sm:mb-4">
         <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
       </div>
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
         {summaryLoading ? (
           <>
             <Skeleton className="h-24 w-full" />
@@ -196,8 +197,8 @@ export default function Dashboard() {
       </div>
 
       {/* Expenses Section */}
-      <div className="rounded-t-lg bg-white shadow-sm border border-gray-200 overflow-hidden sm:overflow-visible sm:rounded-lg">
-        <div className="px-3 py-4 sm:px-6 sm:py-5 border-b border-gray-200">
+      <div className="rounded-lg bg-white shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <h3 className="text-base sm:text-lg font-medium text-gray-800">Expenses</h3>
             
@@ -208,12 +209,12 @@ export default function Dashboard() {
               variant="outline"
               className="sm:hidden"
             >
-              <PlusIcon className="h-4 w-4 mr-1" />
+              <PlusIcon className="h-3.5 w-3.5 mr-1" />
               Add
             </Button>
           </div>
         </div>
-        <div className="sm:overflow-x-auto">
+        <div className="overflow-x-auto">
           <ExpenseTable 
             expenses={expenses || []} 
             onEdit={handleEditExpense} 
@@ -222,12 +223,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Floating Add New Expense Button for mid-size screens */}
+      {/* Floating Add New Expense Button */}
       <Button 
         onClick={handleAddExpense}
-        className="fixed bottom-20 right-4 md:bottom-8 md:right-6 h-12 w-12 rounded-full bg-primary text-white shadow-lg flex sm:hidden md:flex items-center justify-center hover:bg-blue-600 transition-colors p-0 z-10"
+        className="fixed bottom-20 right-4 md:bottom-8 md:right-6 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary text-white shadow-lg flex sm:hidden md:flex items-center justify-center hover:bg-primary/90 transition-colors p-0 z-10"
       >
-        <PlusIcon className="h-5 w-5" />
+        <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
       </Button>
 
       {/* Expense Form */}

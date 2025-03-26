@@ -90,40 +90,43 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
       {/* Mobile Card View */}
       <div className="sm:hidden">
         {expenses.map(expense => (
-          <div key={expense.id} className="mb-3 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div 
+            key={expense.id} 
+            className="mb-2 bg-white border-b border-gray-200 overflow-hidden last:border-b-0 last:mb-0"
+          >
             <div className="p-3">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-sm font-medium" style={{ color: expense.category.color }}>
+              <div className="flex justify-between items-start mb-1">
+                <div className="max-w-[70%]">
+                  <p className="text-sm font-medium truncate" style={{ color: expense.category.color }}>
                     {expense.category?.name || 'Uncategorized'}
                   </p>
-                  <p className="text-xs text-gray-500">{expense.location?.name || 'No location'}</p>
+                  <p className="text-xs text-gray-500 truncate">{expense.location?.name || 'No location'}</p>
                 </div>
-                <p className="text-sm font-medium">{formatCurrency(Number(expense.amount))}</p>
+                <p className="text-sm font-semibold whitespace-nowrap">{formatCurrency(Number(expense.amount))}</p>
               </div>
 
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex flex-col">
+              <div className="flex justify-between items-center mt-1">
+                <div className="flex flex-col space-y-0.5">
                   <span className="text-xs text-gray-500">{formatDate(expense.date)}</span>
-                  <span className="text-xs text-gray-500">{expense.paidByUser.username} • {expense.split_type}</span>
+                  <span className="text-xs text-gray-500 truncate max-w-[120px]">{expense.paidByUser.username} • {expense.split_type}</span>
                 </div>
-                <div className="flex space-x-2">
+                <div className="flex space-x-1">
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => onEdit(expense)}
-                    className="text-gray-500 hover:text-primary h-7 w-7 p-0"
+                    className="text-gray-500 hover:text-primary h-6 w-6 p-0"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <Pencil className="h-3.5 w-3.5" />
                     <span className="sr-only">Edit</span>
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => openDeleteDialog(expense)}
-                    className="text-gray-500 hover:text-red-500 h-7 w-7 p-0"
+                    className="text-gray-500 hover:text-red-500 h-6 w-6 p-0"
                   >
-                    <Trash className="h-4 w-4" />
+                    <Trash className="h-3.5 w-3.5" />
                     <span className="sr-only">Delete</span>
                   </Button>
                 </div>
