@@ -22,13 +22,11 @@ interface AuthStatusResponse {
   };
 }
 
-// Protected route component with emergency token support
+// Protected route component
 function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
   const [, setLocation] = useLocation();
-  const [isManuallyAuthenticated, setIsManuallyAuthenticated] = useState(false);
-  const [manualAuthUser, setManualAuthUser] = useState<any>(null);
   
-  // Enhanced authentication via React Query with improved options
+  // Authentication via React Query with improved options
   const { data: authData, isLoading } = useQuery<AuthStatusResponse>({
     queryKey: ['/api/auth/status'],
     retry: 3,
@@ -41,65 +39,18 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
     gcTime: 0 // Don't cache auth state
   });
   
-  // Extract URL parameters
-  const queryParams = new URLSearchParams(window.location.search);
-  const emergencyToken = queryParams.get('token');
-  
-  // Check for emergency token
-  useEffect(() => {
-    if (emergencyToken) {
-      const checkEmergencyToken = async () => {
-        try {
-          console.log("Checking emergency token");
-          const response = await fetch(`/api/auth/status?token=${emergencyToken}`, {
-            cache: 'no-store'
-          });
-          
-          if (!response.ok) {
-            console.error("Token validation failed");
-            return;
-          }
-          
-          const data = await response.json();
-          if (data.isAuthenticated && data.emergencyAuth) {
-            console.log("Emergency token auth successful");
-            setIsManuallyAuthenticated(true);
-            setManualAuthUser(data.user);
-            
-            // Clean URL without reloading page
-            const newUrl = window.location.pathname;
-            window.history.replaceState({}, document.title, newUrl);
-          }
-        } catch (error) {
-          console.error("Error validating emergency token:", error);
-        }
-      };
-      
-      checkEmergencyToken();
-    }
-  }, [emergencyToken]);
-  
   // Redirect to login if not authenticated
   useEffect(() => {
-    if (!isLoading && (!authData || !authData.isAuthenticated) && !isManuallyAuthenticated) {
+    if (!isLoading && (!authData || !authData.isAuthenticated)) {
       console.log("Authentication check failed, redirecting to login");
       setLocation('/login');
     }
-  }, [authData, isLoading, setLocation, isManuallyAuthenticated]);
+  }, [authData, isLoading, setLocation]);
 
   // Render based on authentication state
   const renderContent = () => {
-    // If emergency token authentication is successful
-    if (isManuallyAuthenticated && manualAuthUser) {
-      return (
-        <MainLayout>
-          <Component />
-        </MainLayout>
-      );
-    }
-    
     // Show loading state
-    if (isLoading && !isManuallyAuthenticated) {
+    if (isLoading) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">
           <div className="text-center space-y-4">
@@ -111,8 +62,8 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
       );
     }
 
-    // Handle authentication errors (when not using emergency token)
-    if (!isManuallyAuthenticated && (!authData || !authData.isAuthenticated)) {
+    // Handle authentication errors
+    if (!authData || !authData.isAuthenticated) {
       return (
         <div className="flex items-center justify-center min-h-screen bg-gray-50">
           <div className="text-center space-y-4">
@@ -123,19 +74,13 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
             </div>
             <h2 className="text-lg font-medium">Authentication Required</h2>
             <p className="text-sm text-gray-500">Your session has expired or you're not logged in</p>
-            <div className="space-y-2 mt-4">
+            <div className="mt-4">
               <button 
                 onClick={() => setLocation('/login')} 
                 className="px-4 py-2 bg-primary text-white rounded-md block w-full"
               >
                 Go to Login
               </button>
-              <a 
-                href="/api/auth/emergency-login?username=Antonio&token=direct-access-token" 
-                className="px-4 py-2 bg-green-600 text-white rounded-md block w-full text-center"
-              >
-                Use Emergency Access
-              </a>
             </div>
           </div>
         </div>

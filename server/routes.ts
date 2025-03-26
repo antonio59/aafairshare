@@ -112,101 +112,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post(`${API_PREFIX}/auth/logout`, (req, res) => {
+    // First, call the logout function from passport
     req.logout((err) => {
       if (err) {
+        console.error("Logout error:", err);
         return res.status(500).json({ message: "Logout failed" });
       }
-      res.status(200).json({ message: "Logout successful" });
+      
+      // Destroy the session to ensure complete cleanup
+      req.session.destroy((sessionErr) => {
+        if (sessionErr) {
+          console.error("Session destruction error:", sessionErr);
+          return res.status(500).json({ message: "Error clearing session" });
+        }
+        
+        // Also clear any cookies
+        res.clearCookie('sessionId');
+        res.clearCookie('connect.sid');
+        
+        // Send success response
+        res.status(200).json({ message: "Logout successful" });
+      });
     });
   });
 
-  // Emergency token store - very simple alternative to session auth when cookies aren't working
-const emergencyTokens = new Map<string, any>();
-
-// Create temporary login URL route
-app.get(`${API_PREFIX}/auth/emergency-login`, async (req, res) => {
-  try {
-    const { username, token } = req.query;
-    
-    // Hardcoded token verification for emergency access - Antonio only
-    if (username === 'Antonio' && token === 'direct-access-token') {
-      console.log('Emergency direct login for Antonio approved');
+  // Auth status endpoint to check if a user is authenticated
+  app.get(`${API_PREFIX}/auth/status`, (req, res) => {
+    // Regular session auth check
+    console.log("Auth status check - Session ID:", req.sessionID);
+    console.log("Auth status check - Is authenticated:", req.isAuthenticated());
       
-      // Find Antonio's user account
-      const user = await storage.getUserByEmail('antoniojsmith@protonmail.com');
-      if (!user) {
-        return res.status(404).send('User not found');
-      }
-      
-      // Generate a temporary token
-      const tempToken = Math.random().toString(36).substring(2, 15);
-      
-      // Store the token with the user data
-      emergencyTokens.set(tempToken, {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        expiry: Date.now() + 3600000 // 1 hour expiry
-      });
-      
-      // Redirect to dashboard with token
-      return res.redirect(`/?token=${tempToken}`);
-    }
-    
-    res.status(401).send('Invalid emergency login attempt');
-  } catch (error) {
-    console.error('Emergency login error:', error);
-    res.status(500).send('Emergency login error');
-  }
-});
-
-// Enhanced auth status endpoint with emergency token support
-app.get(`${API_PREFIX}/auth/status`, (req, res) => {
-  // Check for emergency token authentication
-  const token = req.query.token as string;
-  if (token && emergencyTokens.has(token)) {
-    const userData = emergencyTokens.get(token);
-    
-    // Check if token is expired
-    if (userData.expiry < Date.now()) {
-      emergencyTokens.delete(token);
-      return res.status(200).json({ 
-        isAuthenticated: false,
-        message: 'Emergency token expired'
+    if (req.isAuthenticated() && req.user) {
+      console.log("User is authenticated via session");
+      return res.status(200).json({
+        isAuthenticated: true,
+        user: {
+          id: (req.user as any).id,
+          username: (req.user as any).username,
+          email: (req.user as any).email
+        }
       });
     }
-    
-    console.log('User authenticated via emergency token');
-    return res.status(200).json({
-      isAuthenticated: true,
-      emergencyAuth: true,
-      user: {
-        id: userData.id,
-        username: userData.username,
-        email: userData.email
-      }
+      
+    res.status(200).json({ 
+      isAuthenticated: false
     });
-  }
-  
-  // Regular session auth check
-  console.log("Auth status check - Session ID:", req.sessionID);
-  console.log("Auth status check - Is authenticated:", req.isAuthenticated());
-    
-  if (req.isAuthenticated() && req.user) {
-    console.log("User is authenticated via session");
-    return res.status(200).json({
-      isAuthenticated: true,
-      user: {
-        id: (req.user as any).id,
-        username: (req.user as any).username,
-        email: (req.user as any).email
-      }
-    });
-  }
-    
-  res.status(200).json({ 
-    isAuthenticated: false
-  });
   });
 
   // Registration route - Disabled for closed application
