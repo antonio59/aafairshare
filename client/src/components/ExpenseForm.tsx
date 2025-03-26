@@ -3,7 +3,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { insertExpenseSchema } from "@shared/schema";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +18,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { Category, ExpenseWithDetails, Location, InsertLocation } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { SPLIT_TYPES } from "@/lib/constants";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 
 interface ExpenseFormProps {
   open: boolean;
@@ -195,254 +195,260 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
   };
 
+  // Create footer buttons
+  const formFooter = (
+    <>
+      <Button 
+        type="button" 
+        variant="outline" 
+        onClick={() => onOpenChange(false)}
+        disabled={isSubmitting}
+        className="w-full sm:w-auto"
+      >
+        Cancel
+      </Button>
+      <Button 
+        type="submit" 
+        disabled={isSubmitting}
+        className="w-full sm:w-auto"
+        form="expense-form" // Connect to form by id
+      >
+        {isSubmitting ? "Saving..." : expense ? "Update Expense" : "Save Expense"}
+      </Button>
+    </>
+  );
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>{expense ? "Edit Expense" : "Add New Expense"}</DialogTitle>
-          <p className="text-sm text-muted-foreground">
-            {expense 
-              ? "Update expense details using the form below." 
-              : "Enter expense details using the form below."}
-          </p>
-        </DialogHeader>
-
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="amount"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Amount (£)</FormLabel>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <span className="text-gray-500 sm:text-sm">£</span>
-                    </div>
-                    <FormControl>
-                      <Input {...field} type="number" step="0.01" placeholder="0.00" className="pl-7" />
-                    </FormControl>
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      title={expense ? "Edit Expense" : "Add New Expense"}
+      description={expense 
+        ? "Update expense details using the form below." 
+        : "Enter expense details using the form below."}
+      footer={formFooter}
+    >
+      <Form {...form}>
+        <form id="expense-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+          <FormField
+            control={form.control}
+            name="amount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Amount (£)</FormLabel>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="text-gray-500 sm:text-sm">£</span>
                   </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="category_id"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Category</FormLabel>
-                  <Select 
-                    onValueChange={(value) => field.onChange(parseInt(value))} 
-                    defaultValue={field.value?.toString()}
-                    value={field.value?.toString()}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {categoriesLoading ? (
-                        <SelectItem value="loading" disabled>Loading categories...</SelectItem>
-                      ) : (
-                        categories?.map((category) => (
-                          <SelectItem key={category.id} value={category.id.toString()}>
-                            {category.name}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="location_id"
-              render={({ field }) => {
-                // Convert locations array to combobox items
-                const locationItems: ComboboxItem[] = locations?.map(location => ({
-                  value: location.id.toString(),
-                  label: location.name
-                })) || [];
-
-                // Find the currently selected location name for display
-                const selectedLocation = locations?.find(loc => loc.id === field.value)?.name;
-
-                // Handle creation of a new location
-                const handleCreateLocation = async (locationName: string) => {
-                  try {
-                    // Check if we already have this location (case insensitive match)
-                    const existingLocation = locations?.find(
-                      loc => loc.name.toLowerCase() === locationName.toLowerCase()
-                    );
-                    
-                    if (existingLocation) {
-                      // If the location already exists, just use it
-                      field.onChange(existingLocation.id);
-                      toast({
-                        title: "Location selected",
-                        description: `"${existingLocation.name}" has been selected.`,
-                      });
-                      return;
-                    }
-                    
-                    // Otherwise create a new location
-                    const newLocation = await createLocationMutation.mutateAsync(locationName);
-                    field.onChange(newLocation.id);
-
-                    toast({
-                      title: "Location added",
-                      description: `"${locationName}" has been added to locations.`,
-                    });
-                  } catch (error) {
-                    toast({
-                      title: "Error",
-                      description: "Failed to create new location.",
-                      variant: "destructive"
-                    });
-                  }
-                };
-
-                return (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      {locationsLoading ? (
-                        <Button variant="outline" disabled className="w-full justify-start">
-                          Loading locations...
-                        </Button>
-                      ) : (
-                        <Combobox
-                          items={locationItems}
-                          value={field.value?.toString()}
-                          onSelect={(value) => field.onChange(parseInt(value))}
-                          onCreateNew={handleCreateLocation}
-                          placeholder="Select or add a location"
-                          createNewLabel="Add new location"
-                          emptyMessage="No locations found. Type to add a new one."
-                          disabled={isSubmitting}
-                        />
-                      )}
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
-
-            <FormField
-              control={form.control}
-              name="split_type"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Split Type</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select split type" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {SPLIT_TYPES.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="date"
-              render={({ field }) => {
-                const [open, setOpen] = useState(false);
-                
-                const handleSelect = (date: Date | undefined) => {
-                  field.onChange(date);
-                  // Auto-close the popover when a date is selected
-                  setOpen(false);
-                };
-                
-                return (
-                  <FormItem className="flex flex-col">
-                    <FormLabel>Date</FormLabel>
-                    <Popover open={open} onOpenChange={setOpen}>
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <Button
-                            variant={"outline"}
-                            className={cn(
-                              "w-full pl-3 text-left font-normal",
-                              !field.value && "text-muted-foreground"
-                            )}
-                          >
-                            {field.value ? (
-                              format(field.value, "PPP")
-                            ) : (
-                              <span>Pick a date</span>
-                            )}
-                            <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                          </Button>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                          mode="single"
-                          selected={field.value}
-                          onSelect={handleSelect}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                    <FormMessage />
-                  </FormItem>
-                );
-              }}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description (Optional)</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="What was this expense for?" />
+                    <Input {...field} type="number" step="0.01" placeholder="0.00" className="pl-7" />
+                  </FormControl>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="category_id"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Category</FormLabel>
+                <Select 
+                  onValueChange={(value) => field.onChange(parseInt(value))} 
+                  defaultValue={field.value?.toString()}
+                  value={field.value?.toString()}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a category" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {categoriesLoading ? (
+                      <SelectItem value="loading" disabled>Loading categories...</SelectItem>
+                    ) : (
+                      categories?.map((category) => (
+                        <SelectItem key={category.id} value={category.id.toString()}>
+                          {category.name}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="location_id"
+            render={({ field }) => {
+              // Convert locations array to combobox items
+              const locationItems: ComboboxItem[] = locations?.map(location => ({
+                value: location.id.toString(),
+                label: location.name
+              })) || [];
+
+              // Find the currently selected location name for display
+              const selectedLocation = locations?.find(loc => loc.id === field.value)?.name;
+
+              // Handle creation of a new location
+              const handleCreateLocation = async (locationName: string) => {
+                try {
+                  // Check if we already have this location (case insensitive match)
+                  const existingLocation = locations?.find(
+                    loc => loc.name.toLowerCase() === locationName.toLowerCase()
+                  );
+                  
+                  if (existingLocation) {
+                    // If the location already exists, just use it
+                    field.onChange(existingLocation.id);
+                    toast({
+                      title: "Location selected",
+                      description: `"${existingLocation.name}" has been selected.`,
+                    });
+                    return;
+                  }
+                  
+                  // Otherwise create a new location
+                  const newLocation = await createLocationMutation.mutateAsync(locationName);
+                  field.onChange(newLocation.id);
+
+                  toast({
+                    title: "Location added",
+                    description: `"${locationName}" has been added to locations.`,
+                  });
+                } catch (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to create new location.",
+                    variant: "destructive"
+                  });
+                }
+              };
+
+              return (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    {locationsLoading ? (
+                      <Button variant="outline" disabled className="w-full justify-start">
+                        Loading locations...
+                      </Button>
+                    ) : (
+                      <Combobox
+                        items={locationItems}
+                        value={field.value?.toString()}
+                        onSelect={(value) => field.onChange(parseInt(value))}
+                        onCreateNew={handleCreateLocation}
+                        placeholder="Select or add a location"
+                        createNewLabel="Add new location"
+                        emptyMessage="No locations found. Type to add a new one."
+                        disabled={isSubmitting}
+                      />
+                    )}
                   </FormControl>
                   <FormMessage />
                 </FormItem>
-              )}
-            />
+              );
+            }}
+          />
 
-            <DialogFooter>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Saving..." : expense ? "Update Expense" : "Save Expense"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          <FormField
+            control={form.control}
+            name="split_type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Split Type</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select split type" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {SPLIT_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => {
+              const [open, setOpen] = useState(false);
+              
+              const handleSelect = (date: Date | undefined) => {
+                field.onChange(date);
+                // Auto-close the popover when a date is selected
+                setOpen(false);
+              };
+              
+              return (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Date</FormLabel>
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant={"outline"}
+                          className={cn(
+                            "w-full pl-3 text-left font-normal",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={handleSelect}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              );
+            }}
+          />
+
+          <FormField
+            control={form.control}
+            name="description"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Description (Optional)</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="What was this expense for?" />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </form>
+      </Form>
+    </ResponsiveDialog>
   );
 }
