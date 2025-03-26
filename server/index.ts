@@ -28,7 +28,7 @@ app.use(session({
   saveUninitialized: false,
   store: store,
   cookie: { 
-    secure: process.env.NODE_ENV === 'production',
+    secure: false, // Set to false to allow cookies over HTTP for testing
     maxAge: 1000 * 60 * 60 * 24, // 1 day
     path: '/',
     httpOnly: true,
