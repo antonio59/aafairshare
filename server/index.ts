@@ -29,7 +29,7 @@ app.use(session({
   store: store,
   cookie: { 
     secure: false, // Set to false to allow cookies over HTTP for testing
-    maxAge: 1000 * 60 * 60 * 24, // 1 day
+    maxAge: 1000 * 60 * 60 * 24 * 30, // 30 days
     path: '/',
     httpOnly: true,
     sameSite: 'lax' // Allow cookies to be sent with cross-site requests (but only for navigation)

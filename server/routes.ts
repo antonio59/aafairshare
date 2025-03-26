@@ -26,20 +26,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Authentication routes
   app.post(`${API_PREFIX}/auth/login`, (req, res, next) => {
+    console.log("Login request received:", { email: req.body.email });
+    
     passport.authenticate('local', async (err: Error, user: any, info: any) => { //async added
+      console.log("Passport authenticate result:", { error: err, userFound: !!user, info });
+      
       if (err) {
+        console.error("Login authentication error:", err);
         return next(err);
       }
 
       if (!user) {
+        console.log("Login failed - invalid credentials");
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
       req.logIn(user, (loginErr) => {
         if (loginErr) {
+          console.error("req.logIn error:", loginErr);
           return next(loginErr);
         }
 
+        console.log("Login successful, session created:", { 
+          userId: user.id, 
+          username: user.username,
+          sessionID: req.sessionID,
+          authenticated: req.isAuthenticated()
+        });
+        
         return res.status(200).json({
           message: "Login successful",
           user: {

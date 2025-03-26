@@ -99,11 +99,18 @@ export default function Login() {
   const onSubmit = async (data: FormData) => {
     setIsLoading(true);
     try {
+      console.log("Logging in with:", { email: data.email });
+      
       const result = await apiRequest('/api/auth/login', 'POST', data);
+      console.log("Login response:", result);
       
       // Invalidate the auth status query to force a refresh of authentication state
       // This is critical to ensure the protected routes recognize the new session
       await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
+      
+      // Check authentication status again after login
+      const authStatus = await apiRequest('/api/auth/status', 'GET');
+      console.log("Auth status after login:", authStatus);
       
       toast({
         title: "Success",
@@ -115,6 +122,7 @@ export default function Login() {
         setLocation('/');
       }, 100);
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Error",
         description: error.message || "Login failed",
