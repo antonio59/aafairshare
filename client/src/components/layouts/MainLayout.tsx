@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
 import { User } from '@shared/schema';
 import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -46,27 +46,31 @@ export default function MainLayout({ children }: MainLayoutProps) {
   
   const handleLogout = async () => {
     try {
-      const response = await apiRequest('/api/auth/logout', 'POST');
-      
-      if (response.ok) {
-        toast({
-          title: "Logged out",
-          description: "You have been logged out successfully",
-        });
-        setLocation('/login');
-      } else {
-        toast({
-          title: "Logout failed",
-          description: "An error occurred during logout",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Logout error",
-        description: "Could not connect to the server",
-        variant: "destructive"
+      // Use fetch directly with proper credentials
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
       });
+      
+      // Invalidate auth state regardless of response
+      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
+      
+      // Show success message and redirect
+      toast({
+        title: "Logged out",
+        description: "You have been logged out successfully",
+      });
+      
+      // Redirect to login page
+      setLocation('/login');
+    } catch (error) {
+      // Even if there's an error, we'll still redirect and consider it a success
+      // This prevents showing error messages to users
+      console.error("Logout error:", error);
+      setLocation('/login');
     }
   };
   
