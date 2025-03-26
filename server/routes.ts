@@ -28,23 +28,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post(`${API_PREFIX}/auth/login`, (req, res, next) => {
     console.log("Login request received:", { email: req.body.email });
     
+    // Determine the client's preference for JSON or HTML response
+    const wantsJson = req.headers['content-type']?.includes('application/json') || 
+                     req.headers['accept']?.includes('application/json') ||
+                     req.headers['x-requested-with'] === 'XMLHttpRequest';
+    
     passport.authenticate('local', async (err: Error, user: any, info: any) => { //async added
       console.log("Passport authenticate result:", { error: err, userFound: !!user, info });
       
+      // Handle authentication errors
       if (err) {
         console.error("Login authentication error:", err);
-        return next(err);
+        return wantsJson 
+          ? res.status(500).json({ message: "Authentication error" }) 
+          : res.redirect('/login?error=server');
       }
 
+      // Handle invalid credentials
       if (!user) {
         console.log("Login failed - invalid credentials");
-        return res.status(401).json({ message: "Invalid credentials" });
+        return wantsJson 
+          ? res.status(401).json({ message: "Invalid credentials" }) 
+          : res.redirect('/login?error=credentials');
       }
 
+      // Log user in
       req.logIn(user, (loginErr) => {
         if (loginErr) {
           console.error("req.logIn error:", loginErr);
-          return next(loginErr);
+          return wantsJson 
+            ? res.status(500).json({ message: "Login error" }) 
+            : res.redirect('/login?error=session');
         }
 
         console.log("Login successful, session created:", { 
@@ -54,13 +68,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
           authenticated: req.isAuthenticated()
         });
         
-        return res.status(200).json({
-          message: "Login successful",
-          user: {
-            id: user.id,
-            username: user.username
-          }
-        });
+        // For direct browser submission (form POST), redirect to dashboard
+        // For API calls, return JSON as before
+        if (wantsJson) {
+          return res.status(200).json({
+            message: "Login successful",
+            user: {
+              id: user.id,
+              username: user.username
+            }
+          });
+        } else {
+          // For form submissions, set a stronger cookie and redirect
+          // This helps browsers that might block third-party cookies
+          res.cookie('auth_success', 'true', { 
+            maxAge: 10000, // Short lived - just for display purposes
+            httpOnly: false // Allow JS to read this cookie
+          });
+          
+          // Redirect to dashboard
+          return res.redirect('/');
+        }
       });
     })(req, res, next);
   });
