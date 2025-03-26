@@ -176,11 +176,6 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
       <div className="w-full max-w-md">
         <div className="mb-8 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="h-16 w-16 rounded-full bg-primary/20 flex items-center justify-center">
-              <CreditCard className="h-8 w-8 text-primary" />
-            </div>
-          </div>
           <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">AAFairShare</h1>
           <p className="text-gray-500 text-lg">Track, split, and settle expenses effortlessly</p>
         </div>
