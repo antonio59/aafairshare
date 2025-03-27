@@ -44,22 +44,22 @@ export function ResponsiveDialog({
         <SheetContent
           side="bottom"
           className={cn(
-            "pb-safe pt-safe max-h-[90vh] rounded-t-xl border-t border-border",
+            "pb-safe pt-safe max-h-[95vh] rounded-t-xl border-t border-border",
             "overflow-y-auto flex flex-col",
             className
           )}
         >
           <SheetHeader className="text-left mb-4 px-1">
-            <SheetTitle className="text-xl">{title}</SheetTitle>
+            <SheetTitle className="text-xl font-bold">{title}</SheetTitle>
             {description && (
-              <p className="text-sm text-muted-foreground">{description}</p>
+              <p className="text-sm text-muted-foreground mt-1">{description}</p>
             )}
           </SheetHeader>
-          <div className="space-y-5 flex-1 overflow-y-auto px-1">
+          <div className="space-y-6 flex-1 overflow-y-auto px-1 mobile-form-spacing">
             {children}
           </div>
           {footer && (
-            <SheetFooter className="mt-6 flex-col space-y-2 sticky bottom-0 pb-2 pt-2 bg-card border-t border-border">
+            <SheetFooter className="mt-6 flex-col space-y-3 sticky bottom-0 pb-4 pt-3 bg-card border-t border-border">
               {footer}
             </SheetFooter>
           )}

@@ -33,6 +33,15 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
+  
+  /* Improved mobile-specific paddings */
+  .px-mobile {
+    @apply px-4 sm:px-6;
+  }
+  
+  .py-mobile {
+    @apply py-3 sm:py-4;
+  }
 }
 
 @layer components {
@@ -40,10 +49,15 @@
   .touch-target {
     @apply min-h-[44px] min-w-[44px]; /* Minimum Apple recommended touch target size */
   }
+  
+  /* Larger touch targets for interactive elements on mobile */
+  .mobile-touch {
+    @apply h-12 sm:h-10;
+  }
 
   /* Mobile-first containers with better spacing */
   .mobile-container {
-    @apply px-3 sm:px-4 md:px-6 w-full mx-auto;
+    @apply px-4 sm:px-6 md:px-8 w-full mx-auto;
   }
   
   /* Sticky footer handling for forms */
@@ -52,13 +66,40 @@
   }
   
   .form-footer {
-    @apply sticky bottom-0 bg-card py-3 border-t border-border mt-auto;
+    @apply sticky bottom-0 bg-card py-4 border-t border-border mt-auto;
+  }
+  
+  /* Improved card styling for mobile */
+  .mobile-card {
+    @apply rounded-xl px-4 py-4 shadow-sm;
+  }
+  
+  /* Enhanced visibility for financial figures in dark mode */
+  .financial-figure {
+    @apply font-semibold;
+  }
+  
+  .dark .financial-figure {
+    @apply text-white font-bold;
   }
 }
 
 /* Dark mode improvements */
 .dark .form-control:focus-within {
   @apply ring-offset-background;
+}
+
+.dark .financial-text {
+  @apply text-white;
+}
+
+/* High contrast for important financial values */
+.financial-value {
+  @apply font-medium;
+}
+
+.dark .financial-value {
+  @apply text-white font-semibold;
 }
 
 /* Improved mobile form styles */
@@ -72,6 +113,80 @@
   }
   
   .mobile-pad {
-    @apply px-3 py-2;
+    @apply px-4 py-3;
+  }
+  
+  /* Improved table for mobile view */
+  .mobile-table-cell {
+    @apply py-3 px-3;
+  }
+  
+  /* Improved spacing for mobile forms */
+  .mobile-form-spacing > * {
+    @apply py-2.5;
+  }
+  
+  /* Better card spacing on mobile */
+  .mobile-card-grid {
+    @apply grid gap-3;
+  }
+  
+  /* Enlarged touch targets for mobile button groups */
+  .mobile-button-group {
+    @apply space-y-2;
+  }
+  
+  /* Enhanced chart container for mobile */
+  .mobile-chart-container {
+    @apply max-h-[300px] pt-2 px-2;
+  }
+  
+  /* Analytics page optimizations */
+  .analytics-card {
+    @apply p-3 rounded-lg shadow-sm;
+  }
+  
+  /* Optimized chart dimensions for mobile */
+  .chart-container-mobile {
+    @apply h-[250px];
+  }
+  
+  /* Better padding for mobile lists */
+  .list-item-mobile {
+    @apply py-2 px-3;
+  }
+  
+  /* Improved spacing for mobile buttons */
+  .button-mobile {
+    @apply h-12 min-w-[44px];
+  }
+  
+  /* Better font sizes for mobile charts */
+  .chart-label-mobile {
+    @apply text-xs;
+  }
+  
+  /* Better spacing between sections */
+  .section-spacing-mobile {
+    @apply space-y-4;
+  }
+}
+
+/* Better chart and data visualizations for mobile */
+@media (max-width: 640px) {
+  /* Make labels more readable */
+  canvas {
+    max-height: 300px;
+    width: 100% !important;
+  }
+  
+  /* Ensure scrollable areas have momentum scrolling on iOS */
+  .overflow-y-auto, .overflow-x-auto, .overflow-scroll {
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Ensure proper contrast in charts for dark mode */
+  .dark canvas {
+    filter: brightness(1.05);
   }
 }

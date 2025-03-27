@@ -135,9 +135,9 @@ export default function Dashboard() {
   const user2IdStr = user2Id.toString();
 
   return (
-    <div className="space-y-3 sm:space-y-6 px-2 sm:px-4 pb-24">
-      <div className="flex items-center justify-between mb-1 sm:mb-4 pt-2">
-        <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-900">Dashboard</h1>
+    <div className="space-y-4 sm:space-y-6 pb-24">
+      <div className="flex items-center justify-between mb-2 sm:mb-4">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
         
         {/* Add New Expense Button for larger screens */}
         <Button 
@@ -150,18 +150,18 @@ export default function Dashboard() {
         </Button>
       </div>
       
-      <div className="mb-3 sm:mb-4">
+      <div className="mb-4">
         <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
       </div>
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3 md:gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mobile-card-grid">
         {summaryLoading ? (
           <>
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
-            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
+            <Skeleton className="h-28 w-full" />
           </>
         ) : (
           <>
@@ -197,19 +197,19 @@ export default function Dashboard() {
       </div>
 
       {/* Expenses Section */}
-      <div className="rounded-lg bg-white shadow-sm border border-gray-200 overflow-hidden">
-        <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-gray-200">
+      <div className="rounded-lg bg-white dark:bg-card shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
+        <div className="px-4 py-4 sm:px-6 border-b border-gray-200 dark:border-gray-800">
           <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-medium text-gray-800">Expenses</h3>
+            <h3 className="text-base sm:text-lg font-medium text-gray-800 dark:text-white">Expenses</h3>
             
             {/* Add New Expense Button for small screens - inside the table header */}
             <Button 
               onClick={handleAddExpense}
               size="sm"
               variant="outline"
-              className="sm:hidden"
+              className="sm:hidden h-9 min-w-[70px]"
             >
-              <PlusIcon className="h-3.5 w-3.5 mr-1" />
+              <PlusIcon className="h-4 w-4 mr-1.5" />
               Add
             </Button>
           </div>
@@ -226,9 +226,10 @@ export default function Dashboard() {
       {/* Floating Add New Expense Button */}
       <Button 
         onClick={handleAddExpense}
-        className="fixed bottom-20 right-4 md:bottom-8 md:right-6 h-10 w-10 sm:h-12 sm:w-12 rounded-full bg-primary text-white shadow-lg flex sm:hidden md:flex items-center justify-center hover:bg-primary/90 transition-colors p-0 z-10"
+        className="fixed bottom-20 right-4 md:bottom-8 md:right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg flex sm:hidden md:flex items-center justify-center hover:bg-primary/90 transition-colors p-0 z-20"
+        aria-label="Add expense"
       >
-        <PlusIcon className="h-4 w-4 sm:h-5 sm:w-5" />
+        <PlusIcon className="h-6 w-6" />
       </Button>
 
       {/* Expense Form */}

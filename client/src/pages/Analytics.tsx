@@ -160,30 +160,30 @@ export default function Analytics() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 px-4 sm:px-0">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Analytics</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Analytics</h1>
       </div>
       
       <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
       
       <div ref={printRef} className="space-y-6">
         {/* Total expenses card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly Expenses Summary</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl">Monthly Expenses Summary</CardTitle>
           </CardHeader>
           <CardContent>
             {summaryLoading ? (
               <Skeleton className="h-24 w-full" />
             ) : (
               <div className="text-center">
-                <p className="text-sm text-gray-500">Total Expenses for Month</p>
-                <p className="text-4xl font-bold text-primary mt-2">
+                <p className="text-sm text-gray-500 dark:text-gray-400">Total Expenses for Month</p>
+                <p className="text-3xl sm:text-4xl font-bold text-primary mt-2 financial-value">
                   {summary ? formatCurrency(summary.totalExpenses) : "£0.00"}
                 </p>
-                <p className="text-sm text-gray-500 mt-4">
-                  Settlement: {summary ? formatCurrency(summary.settlementAmount) : "£0.00"}
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+                  Settlement: <span className="font-medium financial-value">{summary ? formatCurrency(summary.settlementAmount) : "£0.00"}</span>
                 </p>
               </div>
             )}
@@ -191,15 +191,15 @@ export default function Analytics() {
         </Card>
         
         {/* User comparison chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>User Expense Comparison</CardTitle>
+        <Card className="overflow-hidden">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xl">User Expense Comparison</CardTitle>
           </CardHeader>
           <CardContent>
             {summaryLoading ? (
               <Skeleton className="h-64 w-full" />
             ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
-              <div className="h-64">
+              <div className="h-[250px] sm:h-64">
                 <Bar 
                   data={userExpenseData} 
                   options={{
@@ -225,6 +225,13 @@ export default function Analytics() {
                             return '£' + value;
                           }
                         }
+                      },
+                      x: {
+                        ticks: {
+                          font: {
+                            size: 12
+                          }
+                        }
                       }
                     }
                   }} 
@@ -232,7 +239,7 @@ export default function Analytics() {
               </div>
             ) : (
               <div className="p-8 text-center">
-                <p className="text-gray-600">No expense data available for this month.</p>
+                <p className="text-gray-600 dark:text-gray-400">No expense data available for this month.</p>
               </div>
             )}
           </CardContent>

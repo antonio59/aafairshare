@@ -66,12 +66,12 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
   // Display loading state or empty state
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+      <div className="bg-white dark:bg-card rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-          <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
-          <div className="h-4 bg-gray-200 rounded w-full mb-4"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
+          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mb-4"></div>
+          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mb-4"></div>
+          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mb-4"></div>
         </div>
       </div>
     );
@@ -79,8 +79,8 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
 
   if (expenses.length === 0) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-        <p className="text-gray-600">No expenses found for this period.</p>
+      <div className="bg-white dark:bg-card rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-8 text-center">
+        <p className="text-gray-600 dark:text-gray-400 text-base">No expenses found for this period.</p>
       </div>
     );
   }
@@ -92,41 +92,43 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
         {expenses.map(expense => (
           <div 
             key={expense.id} 
-            className="mb-2 bg-white border-b border-gray-200 overflow-hidden last:border-b-0 last:mb-0"
+            className="bg-white dark:bg-card border-b border-gray-200 dark:border-gray-800 overflow-hidden last:border-b-0"
           >
-            <div className="p-3">
-              <div className="flex justify-between items-start mb-1">
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-2">
                 <div className="max-w-[70%]">
-                  <p className="text-sm font-medium truncate" style={{ color: expense.category.color }}>
+                  <p className="text-base font-medium truncate financial-text" style={{ color: expense.category.color }}>
                     {expense.category?.name || 'Uncategorized'}
                   </p>
-                  <p className="text-xs text-gray-500 truncate">{expense.location?.name || 'No location'}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">{expense.location?.name || 'No location'}</p>
                 </div>
-                <p className="text-sm font-semibold whitespace-nowrap">{formatCurrency(Number(expense.amount))}</p>
+                <p className="text-base font-semibold whitespace-nowrap financial-value">{formatCurrency(Number(expense.amount))}</p>
               </div>
 
-              <div className="flex justify-between items-center mt-1">
-                <div className="flex flex-col space-y-0.5">
-                  <span className="text-xs text-gray-500">{formatDate(expense.date)}</span>
-                  <span className="text-xs text-gray-500 truncate max-w-[120px]">{expense.paidByUser.username} • {expense.split_type}</span>
+              <div className="flex justify-between items-center mt-2">
+                <div className="flex flex-col space-y-1">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(expense.date)}</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[160px]">
+                    {expense.paidByUser.username} • {expense.split_type}
+                  </span>
                 </div>
-                <div className="flex space-x-1">
+                <div className="flex space-x-2 ml-2">
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => onEdit(expense)}
-                    className="text-gray-500 hover:text-primary h-6 w-6 p-0"
+                    className="text-gray-500 hover:text-primary h-8 w-8 p-0 touch-target"
                   >
-                    <Pencil className="h-3.5 w-3.5" />
+                    <Pencil className="h-4 w-4" />
                     <span className="sr-only">Edit</span>
                   </Button>
                   <Button 
                     variant="ghost" 
                     size="sm" 
                     onClick={() => openDeleteDialog(expense)}
-                    className="text-gray-500 hover:text-red-500 h-6 w-6 p-0"
+                    className="text-gray-500 hover:text-red-500 h-8 w-8 p-0 touch-target"
                   >
-                    <Trash className="h-3.5 w-3.5" />
+                    <Trash className="h-4 w-4" />
                     <span className="sr-only">Delete</span>
                   </Button>
                 </div>
@@ -137,10 +139,10 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
       </div>
 
       {/* Desktop Table View */}
-      <div className="hidden sm:block bg-white rounded-lg shadow-sm border-gray-200 w-full">
+      <div className="hidden sm:block bg-white dark:bg-card rounded-lg shadow-sm border-gray-200 dark:border-gray-800 w-full">
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader className="bg-gray-50">
+            <TableHeader className="bg-gray-50 dark:bg-gray-900/40">
               <TableRow>
                 <TableHead className="w-[100px] lg:w-[120px] whitespace-nowrap">Date</TableHead>
                 <TableHead>Category</TableHead>
@@ -153,25 +155,25 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
             <TableBody>
               {expenses.map(expense => (
                 <TableRow key={expense.id}>
-                  <TableCell className="text-sm text-gray-600 whitespace-nowrap">{formatDate(expense.date)}</TableCell>
+                  <TableCell className="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">{formatDate(expense.date)}</TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-gray-800" style={{ color: expense.category.color }}>{expense.category?.name || 'Uncategorized'}</p>
-                        <p className="text-xs text-gray-500">{expense.location?.name || 'No location'}</p>
+                      <div>
+                        <p className="text-sm font-medium financial-text" style={{ color: expense.category.color }}>{expense.category?.name || 'Uncategorized'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{expense.location?.name || 'No location'}</p>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell className="text-sm font-medium text-gray-800 whitespace-nowrap">{formatCurrency(Number(expense.amount))}</TableCell>
-                  <TableCell className="text-sm text-gray-600">{expense.paidByUser.username}</TableCell>
-                  <TableCell className="text-sm text-gray-600">{expense.split_type}</TableCell>
+                  <TableCell className="text-sm font-medium text-gray-800 dark:text-white whitespace-nowrap financial-value">{formatCurrency(Number(expense.amount))}</TableCell>
+                  <TableCell className="text-sm text-gray-600 dark:text-gray-300">{expense.paidByUser.username}</TableCell>
+                  <TableCell className="text-sm text-gray-600 dark:text-gray-300">{expense.split_type}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
                       <Button 
                         variant="ghost" 
                         size="sm" 
                         onClick={() => onEdit(expense)}
-                        className="text-gray-500 hover:text-primary h-8 w-8 p-0"
+                        className="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary h-8 w-8 p-0"
                       >
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
@@ -180,7 +182,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                         variant="ghost" 
                         size="sm" 
                         onClick={() => openDeleteDialog(expense)}
-                        className="text-gray-500 hover:text-red-500 h-8 w-8 p-0"
+                        className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 h-8 w-8 p-0"
                       >
                         <Trash className="h-4 w-4" />
                         <span className="sr-only">Delete</span>

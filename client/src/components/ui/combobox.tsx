@@ -132,14 +132,14 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between h-11 text-base", className)}
+          className={cn("w-full justify-between h-12 sm:h-11 text-base", className)}
           disabled={disabled}
         >
           {selectedItem ? selectedItem.label : placeholder}
           <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-full min-w-[260px] sm:w-[350px]" align="start">
+      <PopoverContent className="p-0 w-full min-w-[280px] sm:w-[350px]" align="start">
         <Command shouldFilter={false} className="w-full">
           <CommandInput 
             placeholder={`Search ${placeholder.toLowerCase()}...`} 
@@ -147,10 +147,10 @@ export function Combobox({
             onValueChange={setSearchQuery}
             onBlur={handleBlur}
             onKeyDown={handleKeyDown}
-            className="h-11 text-base py-2.5"
+            className="h-12 text-base py-3 sm:py-2.5"
           />
-          <CommandList>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+          <CommandList className="max-h-[250px] sm:max-h-[300px]">
+            <CommandEmpty className="py-3 text-base">{emptyMessage}</CommandEmpty>
             <CommandGroup>
               {filteredItems.length > 0 ? (
                 filteredItems.map((item) => (
@@ -162,7 +162,7 @@ export function Combobox({
                       setOpen(false)
                       setSearchQuery("")
                     }}
-                    className="text-base py-2.5"
+                    className="text-base py-3 sm:py-2.5"
                   >
                     <Check
                       className={cn(
@@ -183,7 +183,7 @@ export function Combobox({
                       setOpen(false)
                       setSearchQuery("")
                     }}
-                    className="text-base py-2.5"
+                    className="text-base py-3 sm:py-2.5"
                   >
                     <Check
                       className={cn(
@@ -209,10 +209,12 @@ export function Combobox({
                         setSearchQuery("")
                       }
                     }}
-                    className="text-base py-2.5"
+                    className="text-base py-3 sm:py-2.5 flex items-center"
                   >
-                    <Plus className="mr-2 h-5 w-5" />
-                    {createNewLabel}: <span className="font-medium">{searchQuery}</span>
+                    <Plus className="mr-2 h-5 w-5 flex-shrink-0" />
+                    <span className="truncate">
+                      {createNewLabel}: <span className="font-medium">{searchQuery}</span>
+                    </span>
                   </CommandItem>
                 </CommandGroup>
               </>

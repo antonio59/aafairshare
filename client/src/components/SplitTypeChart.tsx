@@ -94,12 +94,12 @@ export default function SplitTypeChart({ summary, isLoading = false }: SplitType
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Split Type Distribution</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">Split Type Distribution</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-[200px] sm:h-64 w-full" />
         </CardContent>
       </Card>
     );
@@ -107,13 +107,13 @@ export default function SplitTypeChart({ summary, isLoading = false }: SplitType
 
   if (!summary || !summary.splitTypeTotals || Object.keys(summary.splitTypeTotals).length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Split Type Distribution</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">Split Type Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="p-8 text-center">
-            <p className="text-gray-600">No expense data available for this month.</p>
+            <p className="text-gray-600 dark:text-gray-400">No expense data available for this month.</p>
           </div>
         </CardContent>
       </Card>
@@ -121,35 +121,35 @@ export default function SplitTypeChart({ summary, isLoading = false }: SplitType
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-gray-200">
-        <CardTitle>Split Type Distribution</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-800">
+        <CardTitle className="text-xl">Split Type Distribution</CardTitle>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
-        <div className="h-64">
+        <div className="h-[200px] sm:h-64">
           <canvas ref={chartRef} />
         </div>
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-3">
           {Object.entries(summary.splitTypeTotals).map(([splitType, amount], index) => {
             const totalAmount = Object.values(summary.splitTypeTotals).reduce((sum, val) => sum + val, 0);
             const percentage = ((amount / totalAmount) * 100).toFixed(1);
             
             return (
-              <div key={splitType} className="flex items-center justify-between">
+              <div key={splitType} className="flex items-center justify-between py-1">
                 <div className="flex items-center">
                   <div 
-                    className="h-3 w-3 rounded-full" 
+                    className="h-3.5 w-3.5 rounded-full flex-shrink-0" 
                     style={{ backgroundColor: index === 0 ? '#4f46e5' : '#f97316' }}
                   ></div>
-                  <span className="ml-2 text-sm text-gray-600">
+                  <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
                     {splitType === "50/50" ? "Equal Split (50/50)" : "One Person (100%)"}
                   </span>
                 </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-800">
+                <div className="text-right">
+                  <span className="text-sm font-medium text-gray-800 dark:text-gray-200 financial-value">
                     {formatCurrency(amount)}
                   </span>
-                  <span className="ml-1 text-xs text-gray-500">
+                  <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
                     {percentage}%
                   </span>
                 </div>

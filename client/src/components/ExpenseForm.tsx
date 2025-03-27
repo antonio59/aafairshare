@@ -238,7 +238,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                 <FormLabel>Amount (£)</FormLabel>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-muted-foreground sm:text-sm">£</span>
+                    <span className="text-muted-foreground text-base">£</span>
                   </div>
                   <FormControl>
                     <Input 
@@ -246,7 +246,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                       type="number" 
                       step="0.01" 
                       placeholder="0.00" 
-                      className="pl-7 h-11 text-base" 
+                      className="pl-7 h-12 sm:h-11 text-base" 
                       inputMode="decimal"
                     />
                   </FormControl>
@@ -268,7 +268,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   value={field.value?.toString()}
                 >
                   <FormControl>
-                    <SelectTrigger className="h-11 text-base">
+                    <SelectTrigger className="h-12 sm:h-11 text-base">
                       <SelectValue placeholder="Select a category" />
                     </SelectTrigger>
                   </FormControl>
@@ -379,7 +379,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   defaultValue={field.value}
                 >
                   <FormControl>
-                    <SelectTrigger className="h-11 text-base">
+                    <SelectTrigger className="h-12 sm:h-11 text-base">
                       <SelectValue placeholder="Select split type" />
                     </SelectTrigger>
                   </FormControl>
@@ -421,7 +421,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                         <Button
                           variant={"outline"}
                           className={cn(
-                            "w-full pl-3 text-left font-normal h-11 text-base",
+                            "w-full pl-3 text-left font-normal h-12 sm:h-11 text-base",
                             !field.value && "text-muted-foreground"
                           )}
                         >
@@ -464,7 +464,7 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   <Input 
                     {...field} 
                     placeholder="What was this expense for?" 
-                    className="h-11 text-base"
+                    className="h-12 sm:h-11 text-base"
                   />
                 </FormControl>
                 <FormMessage />

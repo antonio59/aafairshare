@@ -134,30 +134,84 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Expense Trends Over Time</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-xl">Expense Trends Over Time</CardTitle>
       </CardHeader>
       <CardContent>
         <Tabs defaultValue="total" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="total">Total Expenses</TabsTrigger>
-            <TabsTrigger value="categories">By Category</TabsTrigger>
-            <TabsTrigger value="locations">By Location</TabsTrigger>
+          <TabsList className="mb-4 grid grid-cols-3 h-auto">
+            <TabsTrigger value="total" className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-3">Total Expenses</TabsTrigger>
+            <TabsTrigger value="categories" className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-3">By Category</TabsTrigger>
+            <TabsTrigger value="locations" className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-3">By Location</TabsTrigger>
           </TabsList>
-          <TabsContent value="total" className="pt-4">
-            <div className="h-[300px]">
-              <Line data={totalData} options={options} />
+          <TabsContent value="total" className="pt-2 sm:pt-4">
+            <div className="h-[250px] sm:h-[300px]">
+              <Line 
+                data={totalData} 
+                options={{
+                  ...options,
+                  scales: {
+                    ...options.scales,
+                    x: {
+                      ...options.scales.y,
+                      ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: {
+                          size: 10
+                        }
+                      }
+                    }
+                  }
+                }} 
+              />
             </div>
           </TabsContent>
-          <TabsContent value="categories" className="pt-4">
-            <div className="h-[300px]">
-              <Line data={categoriesData} options={options} />
+          <TabsContent value="categories" className="pt-2 sm:pt-4">
+            <div className="h-[250px] sm:h-[300px]">
+              <Line 
+                data={categoriesData}
+                options={{
+                  ...options,
+                  scales: {
+                    ...options.scales,
+                    x: {
+                      ...options.scales.y,
+                      ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: {
+                          size: 10
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
             </div>
           </TabsContent>
-          <TabsContent value="locations" className="pt-4">
-            <div className="h-[300px]">
-              <Line data={locationsData} options={options} />
+          <TabsContent value="locations" className="pt-2 sm:pt-4">
+            <div className="h-[250px] sm:h-[300px]">
+              <Line 
+                data={locationsData}
+                options={{
+                  ...options,
+                  scales: {
+                    ...options.scales,
+                    x: {
+                      ...options.scales.y,
+                      ticks: {
+                        maxRotation: 45,
+                        minRotation: 45,
+                        font: {
+                          size: 10
+                        }
+                      }
+                    }
+                  }
+                }}
+              />
             </div>
           </TabsContent>
         </Tabs>

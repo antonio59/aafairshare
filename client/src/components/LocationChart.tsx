@@ -75,13 +75,13 @@ export default function LocationChart({ summary, isLoading = false }: LocationCh
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Location Distribution</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">Location Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Skeleton className="h-64 w-full" />
+            <Skeleton className="h-[250px] sm:h-64 w-full" />
             <div className="space-y-4">
               <Skeleton className="h-6 w-full" />
               <Skeleton className="h-6 w-full" />
@@ -96,13 +96,13 @@ export default function LocationChart({ summary, isLoading = false }: LocationCh
 
   if (!summary || summary.locationTotals.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Location Distribution</CardTitle>
+      <Card className="overflow-hidden">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-xl">Location Distribution</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="p-8 text-center">
-            <p className="text-gray-600">No location data available for this month.</p>
+            <p className="text-gray-600 dark:text-gray-400">No location data available for this month.</p>
           </div>
         </CardContent>
       </Card>
@@ -110,31 +110,31 @@ export default function LocationChart({ summary, isLoading = false }: LocationCh
   }
 
   return (
-    <Card>
-      <CardHeader className="border-b border-gray-200">
-        <CardTitle>Location Distribution</CardTitle>
+    <Card className="overflow-hidden">
+      <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-800">
+        <CardTitle className="text-xl">Location Distribution</CardTitle>
       </CardHeader>
       <CardContent className="p-4 sm:p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+          <div className="h-[250px] sm:h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-900/30 rounded-lg">
             <canvas ref={chartRef} />
           </div>
           <div>
-            <div className="space-y-4">
+            <div className="mt-4 md:mt-0 space-y-4 max-h-[250px] sm:max-h-[300px] overflow-y-auto pr-2">
               {summary.locationTotals.map((locationTotal) => (
-                <div key={locationTotal.location.id} className="flex items-center justify-between">
-                  <div className="flex items-center">
+                <div key={locationTotal.location.id} className="flex items-center justify-between py-1.5">
+                  <div className="flex items-center max-w-[65%]">
                     <div
-                      className={cn("h-3 w-3 rounded-full")}
+                      className={cn("h-3.5 w-3.5 rounded-full flex-shrink-0")}
                       style={{ backgroundColor: stringToColor(locationTotal.location.name) }}
                     ></div>
-                    <span className="ml-2 text-sm text-gray-600">{locationTotal.location.name}</span>
+                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300 truncate">{locationTotal.location.name}</span>
                   </div>
-                  <div>
-                    <span className="text-sm font-medium text-gray-800">
+                  <div className="text-right">
+                    <span className="text-sm font-medium text-gray-800 dark:text-gray-200 financial-value">
                       {formatCurrency(Number(locationTotal.amount))}
                     </span>
-                    <span className="ml-1 text-xs text-gray-500">
+                    <span className="ml-1.5 text-xs text-gray-500 dark:text-gray-400">
                       {locationTotal.percentage.toFixed(0)}%
                     </span>
                   </div>

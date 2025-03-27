@@ -124,16 +124,16 @@ export default function MainLayout({ children }: MainLayoutProps) {
       </aside>
 
       {/* Mobile Header */}
-      <div className="md:hidden bg-card border-b border-border sticky top-0 z-40 safe-top">
-        <div className="flex items-center justify-between h-14 px-4">
-          <h1 className="text-lg font-bold text-foreground">AAFairShare</h1>
+      <div className="md:hidden bg-card border-b border-border sticky top-0 z-40 safe-top shadow-sm">
+        <div className="flex items-center justify-between h-16 px-4">
+          <h1 className="text-xl font-bold text-foreground dark:text-white">AAFairShare</h1>
           <Button 
             variant="ghost" 
             size="icon" 
             onClick={() => setMobileMenuOpen(true)}
-            className="flex-shrink-0"
+            className="flex-shrink-0 h-10 w-10 rounded-full"
           >
-            <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center text-white font-medium">
+            <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-medium shadow-sm">
               {currentUser ? currentUser.username.substring(0, 2).toUpperCase() : 'JD'}
             </div>
           </Button>
@@ -189,27 +189,27 @@ export default function MainLayout({ children }: MainLayoutProps) {
 
       {/* Main Content */}
       <main className="flex-1 md:ml-64 min-h-screen pt-safe-top">
-        <div className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6 py-3 pb-24 md:pb-8 md:py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-4 pb-24 md:pb-8 md:py-6">
           {children}
         </div>
       </main>
 
       {/* Mobile Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border z-30 pb-safe">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-40 pb-safe">
         <div className="flex justify-around">
           {navigation.map((item) => (
             <Link 
               key={item.name} 
               href={item.href}
               className={cn(
-                'flex flex-col items-center py-2.5 px-1 transition-colors',
+                'flex flex-col items-center justify-center py-3 px-2 transition-colors touch-target',
                 location === item.href 
                   ? 'text-primary' 
                   : 'text-muted-foreground hover:text-foreground active:text-primary'
               )}
             >
               <item.icon className="h-5 w-5" />
-              <span className="text-xs mt-1 font-medium">{item.name}</span>
+              <span className="text-xs mt-1.5 font-medium">{item.name}</span>
             </Link>
           ))}
         </div>
