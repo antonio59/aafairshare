@@ -211,6 +211,42 @@
     @apply ring-2 ring-primary/30 transition-all duration-200;
     transform: translateY(-1px);
   }
+  
+  /* Enhanced form styling */
+  .form-label-enhanced {
+    @apply text-sm font-medium mb-1.5;
+  }
+  
+  .form-input-enhanced {
+    @apply h-11 transition-all focus:ring-2 focus:ring-primary/25 hover:border-primary/40;
+  }
+  
+  /* Modal form container */
+  .modal-form-container {
+    @apply p-4 space-y-6;
+  }
+  
+  /* Color selector grid */
+  .color-selector-grid {
+    @apply grid grid-cols-5 gap-4 py-2;
+  }
+  
+  .color-selector-item {
+    @apply h-11 w-11 rounded-full transition-all flex items-center justify-center;
+  }
+  
+  .color-selector-item.selected {
+    @apply ring-2 ring-primary shadow-md;
+  }
+  
+  /* Modal footer */
+  .modal-footer-buttons {
+    @apply flex space-x-3 w-full;
+  }
+  
+  .modal-button {
+    @apply flex-1 h-11 transition-all active:scale-[0.98];
+  }
 }
 
 /* Mobile container for responsive layouts */

@@ -8,12 +8,14 @@ import {
   FormField, 
   FormItem, 
   FormLabel, 
-  FormMessage 
+  FormMessage,
+  FormDescription
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { MapPin } from "lucide-react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 
 interface LocationFormProps {
@@ -84,7 +86,7 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
     }
   };
 
-  // Create footer buttons
+  // Create footer buttons with improved styling
   const formFooter = (
     <>
       <Button 
@@ -92,17 +94,17 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
         variant="outline" 
         onClick={() => onOpenChange(false)}
         disabled={isSubmitting}
-        className="w-full sm:w-auto"
+        className="flex-1 h-11 min-w-[120px] transition-all hover:bg-muted/80 active:scale-[0.98]"
       >
         Cancel
       </Button>
       <Button 
         type="submit" 
         disabled={isSubmitting}
-        className="w-full sm:w-auto"
+        className="flex-1 h-11 min-w-[120px] transition-all hover:brightness-105 active:scale-[0.98]"
         form="location-form"
       >
-        {isSubmitting ? "Saving..." : location ? "Update Location" : "Save Location"}
+        {isSubmitting ? "Saving..." : location ? "Update" : "Save"}
       </Button>
     </>
   );
@@ -112,25 +114,41 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
       open={open}
       onOpenChange={onOpenChange}
       title={location ? "Edit Location" : "Add New Location"}
+      description="Locations help track where expenses occur"
       footer={formFooter}
     >
-      <Form {...form}>
-        <form id="location-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          <FormField
-            control={form.control}
-            name="name"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Name</FormLabel>
-                <FormControl>
-                  <Input {...field} placeholder="Location name" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </form>
-      </Form>
+      <div className="py-2">
+        <div className="flex items-center justify-center mb-4">
+          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+            <MapPin className="h-8 w-8 text-primary" />
+          </div>
+        </div>
+        
+        <Form {...form}>
+          <form id="location-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-base font-medium">Location Name</FormLabel>
+                  <FormControl>
+                    <Input 
+                      {...field} 
+                      placeholder="Enter location name" 
+                      className="h-11 transition-all focus:ring-2 focus:ring-primary/25" 
+                    />
+                  </FormControl>
+                  <FormDescription className="text-xs text-muted-foreground">
+                    Examples: Grocery Store, Restaurant, Online Shop
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </form>
+        </Form>
+      </div>
     </ResponsiveDialog>
   );
 }
