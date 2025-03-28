@@ -172,6 +172,37 @@
   }
 }
 
+/* Mobile container for responsive layouts */
+.mobile-container {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
+  padding-left: 16px;
+  padding-right: 16px;
+}
+
+/* Mobile card view for better UI on small screens */
+.mobile-card-view {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Hide scrollbars while allowing scrolling */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari and Opera */
+}
+
 /* Better chart and data visualizations for mobile */
 @media (max-width: 640px) {
   /* Make labels more readable */
@@ -188,5 +219,64 @@
   /* Ensure proper contrast in charts for dark mode */
   .dark canvas {
     filter: brightness(1.05);
+  }
+  
+  /* Card styles for better mobile presentation */
+  .card {
+    border-radius: 14px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Fixed viewport settings to eliminate horizontal scrolling */
+  html, body {
+    max-width: 100vw;
+    overflow-x: hidden;
+  }
+  
+  /* Enhanced text truncation for mobile */
+  .mobile-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+  
+  /* Button sizing for mobile touch targets */
+  button, a {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Table cell formatting for mobile */
+  td, th {
+    max-width: 40vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  
+  /* Fixed layout containers */
+  .mobile-fixed-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  
+  .mobile-scrollable-content {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding: 16px;
+    padding-bottom: 80px; /* Extra padding to account for bottom nav */
+  }
+  
+  /* Responsive width for form fields */
+  input, select, textarea {
+    width: 100%;
+    box-sizing: border-box;
   }
 }

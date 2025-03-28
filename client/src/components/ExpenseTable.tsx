@@ -88,50 +88,60 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
   return (
     <>
       {/* Mobile Card View */}
-      <div className="sm:hidden">
+      <div className="sm:hidden space-y-4">
         {expenses.map(expense => (
           <div 
             key={expense.id} 
-            className="bg-white dark:bg-card border-b border-gray-200 dark:border-gray-800 overflow-hidden last:border-b-0"
+            className="mobile-card-view bg-card dark:bg-card border border-border dark:border-border"
           >
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div className="max-w-[70%]">
-                  <p className="text-base font-medium truncate financial-text" style={{ color: expense.category.color }}>
+            <div className="flex justify-between items-center mb-3">
+              <div className="flex items-center space-x-2">
+                <div className="rounded-full h-10 w-10 flex items-center justify-center" 
+                     style={{ backgroundColor: `${expense.category.color}20` }}>
+                  <div className="text-sm font-semibold" style={{ color: expense.category.color }}>
+                    {expense.category?.name.substring(0, 1).toUpperCase() || 'U'}
+                  </div>
+                </div>
+                <div className="mobile-truncate" style={{ maxWidth: 'calc(100vw - 140px)' }}>
+                  <p className="text-base font-medium mobile-truncate" style={{ color: expense.category.color }}>
                     {expense.category?.name || 'Uncategorized'}
                   </p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 truncate mt-0.5">{expense.location?.name || 'No location'}</p>
+                  <p className="text-xs text-muted-foreground mobile-truncate">
+                    {expense.location?.name || 'No location'}
+                  </p>
                 </div>
-                <p className="text-base font-semibold whitespace-nowrap financial-value">{formatCurrency(Number(expense.amount))}</p>
               </div>
+              <p className="text-base font-bold text-foreground whitespace-nowrap pl-2">
+                {formatCurrency(Number(expense.amount))}
+              </p>
+            </div>
 
-              <div className="flex justify-between items-center mt-2">
-                <div className="flex flex-col space-y-1">
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(expense.date)}</span>
-                  <span className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-[160px]">
-                    {expense.paidByUser.username} • {expense.split_type}
-                  </span>
-                </div>
-                <div className="flex space-x-2 ml-2">
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => onEdit(expense)}
-                    className="text-gray-500 hover:text-primary h-8 w-8 p-0 touch-target"
-                  >
-                    <Pencil className="h-4 w-4" />
-                    <span className="sr-only">Edit</span>
-                  </Button>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    onClick={() => openDeleteDialog(expense)}
-                    className="text-gray-500 hover:text-red-500 h-8 w-8 p-0 touch-target"
-                  >
-                    <Trash className="h-4 w-4" />
-                    <span className="sr-only">Delete</span>
-                  </Button>
-                </div>
+            <div className="flex justify-between items-center pt-2 border-t border-border dark:border-border">
+              <div className="flex flex-col">
+                <span className="text-xs text-muted-foreground">{formatDate(expense.date)}</span>
+                <span className="text-xs text-muted-foreground mobile-truncate" style={{ maxWidth: '150px' }}>
+                  {expense.paidByUser.username} • {expense.split_type}
+                </span>
+              </div>
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => onEdit(expense)}
+                  className="h-9 w-9 p-0 rounded-full"
+                >
+                  <Pencil className="h-4 w-4" />
+                  <span className="sr-only">Edit</span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => openDeleteDialog(expense)}
+                  className="h-9 w-9 p-0 rounded-full text-destructive"
+                >
+                  <Trash className="h-4 w-4" />
+                  <span className="sr-only">Delete</span>
+                </Button>
               </div>
             </div>
           </div>

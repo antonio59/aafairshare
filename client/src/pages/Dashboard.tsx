@@ -135,14 +135,14 @@ export default function Dashboard() {
   const user2IdStr = user2Id.toString();
 
   return (
-    <div className="space-y-4 sm:space-y-6 pb-24">
-      <div className="flex items-center justify-between mb-2 sm:mb-4">
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+    <div className="space-y-4 md:space-y-6">
+      {/* Desktop Header */}
+      <div className="hidden md:flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         
-        {/* Add New Expense Button for larger screens */}
         <Button 
           onClick={handleAddExpense}
-          className="hidden sm:flex items-center"
+          className="flex items-center"
           size="sm"
         >
           <PlusIcon className="h-4 w-4 mr-1.5" />
@@ -150,12 +150,71 @@ export default function Dashboard() {
         </Button>
       </div>
       
+      {/* Month Selector - showing on both mobile and desktop */}
       <div className="mb-4">
         <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
       </div>
       
-      {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mobile-card-grid">
+      {/* Mobile Summary Card - Horizontal scrollable */}
+      <div className="md:hidden bg-card dark:bg-card border border-border dark:border-border rounded-xl p-3 mb-4">
+        {summaryLoading ? (
+          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
+            <Skeleton className="h-16 w-44 flex-shrink-0" />
+            <Skeleton className="h-16 w-44 flex-shrink-0" />
+            <Skeleton className="h-16 w-44 flex-shrink-0" />
+            <Skeleton className="h-16 w-44 flex-shrink-0" />
+          </div>
+        ) : (
+          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
+            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
+              <div className="flex items-center justify-between">
+                <PoundSterling className="h-4 w-4 text-primary" />
+                <span className="text-sm text-muted-foreground">Total</span>
+              </div>
+              <p className="text-lg font-bold mt-1">
+                {summary ? formatCurrency(summary.totalExpenses) : "£0.00"}
+              </p>
+            </div>
+            
+            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
+              <div className="flex items-center justify-between">
+                <Users className="h-4 w-4 text-blue-500" />
+                <span className="text-sm text-muted-foreground truncate">{user1Name}</span>
+              </div>
+              <p className="text-lg font-bold mt-1">
+                {summary && summary.userExpenses[user1Id] ? formatCurrency(summary.userExpenses[user1Id]) : "£0.00"}
+              </p>
+            </div>
+            
+            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
+              <div className="flex items-center justify-between">
+                <Users className="h-4 w-4 text-green-500" />
+                <span className="text-sm text-muted-foreground truncate">{user2Name}</span>
+              </div>
+              <p className="text-lg font-bold mt-1">
+                {summary && summary.userExpenses[user2Id] ? formatCurrency(summary.userExpenses[user2Id]) : "£0.00"}
+              </p>
+            </div>
+            
+            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
+              <div className="flex items-center justify-between">
+                <WalletCards className="h-4 w-4 text-amber-500" />
+                <span className="text-sm text-muted-foreground truncate">
+                  {summary && summary.settlementDirection.fromUserId === user1Id 
+                    ? `${user1Name} Owes ${user2Name}` 
+                    : `${user2Name} Owes ${user1Name}`}
+                </span>
+              </div>
+              <p className="text-lg font-bold mt-1 text-red-500">
+                {summary ? formatCurrency(summary.settlementAmount) : "£0.00"}
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Desktop Summary Cards - Grid layout */}
+      <div className="hidden md:grid grid-cols-4 gap-4">
         {summaryLoading ? (
           <>
             <Skeleton className="h-28 w-full" />
@@ -196,41 +255,35 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Expenses Section */}
-      <div className="rounded-lg bg-white dark:bg-card shadow-sm border border-gray-200 dark:border-gray-800 overflow-hidden">
-        <div className="px-4 py-4 sm:px-6 border-b border-gray-200 dark:border-gray-800">
-          <div className="flex items-center justify-between">
-            <h3 className="text-base sm:text-lg font-medium text-gray-800 dark:text-white">Expenses</h3>
-            
-            {/* Add New Expense Button for small screens - inside the table header */}
-            <Button 
-              onClick={handleAddExpense}
-              size="sm"
-              variant="outline"
-              className="sm:hidden h-9 min-w-[70px]"
-            >
-              <PlusIcon className="h-4 w-4 mr-1.5" />
-              Add
-            </Button>
-          </div>
+      {/* Recent Expenses Section - Mobile & Desktop */}
+      <div className="pb-20 md:pb-0">
+        {/* Mobile Header */}
+        <div className="flex md:hidden items-center justify-between mb-3">
+          <h2 className="text-lg font-semibold text-foreground">Recent Expenses</h2>
+          
+          <Button 
+            onClick={handleAddExpense}
+            variant="outline"
+            size="sm"
+            className="h-9 min-w-[80px]"
+          >
+            <PlusIcon className="h-4 w-4 mr-1.5" />
+            Add
+          </Button>
         </div>
-        <div className="overflow-x-auto">
-          <ExpenseTable 
-            expenses={expenses || []} 
-            onEdit={handleEditExpense} 
-            isLoading={expensesLoading} 
-          />
+        
+        {/* Desktop Header */}
+        <div className="hidden md:flex items-center justify-between mb-2">
+          <h3 className="text-lg font-medium text-foreground">Expenses</h3>
         </div>
+        
+        {/* Expense List/Table */}
+        <ExpenseTable 
+          expenses={expenses || []} 
+          onEdit={handleEditExpense} 
+          isLoading={expensesLoading} 
+        />
       </div>
-
-      {/* Floating Add New Expense Button */}
-      <Button 
-        onClick={handleAddExpense}
-        className="fixed bottom-20 right-4 md:bottom-8 md:right-6 h-14 w-14 rounded-full bg-primary text-white shadow-lg flex sm:hidden md:flex items-center justify-center hover:bg-primary/90 transition-colors p-0 z-20"
-        aria-label="Add expense"
-      >
-        <PlusIcon className="h-6 w-6" />
-      </Button>
 
       {/* Expense Form */}
       <ExpenseForm 
