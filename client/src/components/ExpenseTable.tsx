@@ -110,6 +110,11 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                   <p className="text-xs text-muted-foreground truncate">
                     {expense.location?.name || 'No location'}
                   </p>
+                  {expense.description && (
+                    <p className="text-xs text-muted-foreground truncate italic mt-1">
+                      {expense.description}
+                    </p>
+                  )}
                 </div>
               </div>
               <p className="text-base font-bold text-foreground whitespace-nowrap pl-2">
@@ -167,6 +172,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
               <TableRow>
                 <TableHead className="w-[100px] lg:w-[120px] whitespace-nowrap">Date</TableHead>
                 <TableHead>Category</TableHead>
+                <TableHead className="hidden md:table-cell">Description</TableHead>
                 <TableHead className="w-[100px] lg:w-[120px] whitespace-nowrap">Amount</TableHead>
                 <TableHead className="w-[100px] whitespace-nowrap">Paid By</TableHead>
                 <TableHead className="w-[80px] whitespace-nowrap">Split</TableHead>
@@ -184,6 +190,9 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                         <p className="text-xs text-gray-500 dark:text-gray-400">{expense.location?.name || 'No location'}</p>
                       </div>
                     </div>
+                  </TableCell>
+                  <TableCell className="hidden md:table-cell text-sm text-gray-600 dark:text-gray-300">
+                    {expense.description || '-'}
                   </TableCell>
                   <TableCell className="text-sm font-medium text-gray-800 dark:text-white whitespace-nowrap financial-value">{formatCurrency(Number(expense.amount))}</TableCell>
                   <TableCell className="text-sm text-gray-600 dark:text-gray-300">{expense.paidByUser.username}</TableCell>
