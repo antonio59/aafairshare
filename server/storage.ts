@@ -433,34 +433,34 @@ export class Storage {
     // Get user expenses and summarize by user
     const users = await this.getAllUsers();
     const userExpenses: Record<number, number> = {};
-
-    // Initialize userExpenses with zeros
+    
+    // Track 50/50 and 100% expenses separately
+    const splitFiftyExpenses: number[] = [];
+    const splitHundredExpenses: Record<number, number> = {}; // userId -> amount they owe
+    
+    // Initialize userExpenses and splitHundredExpenses with zeros
     users.forEach(user => {
       userExpenses[user.id] = 0;
+      splitHundredExpenses[user.id] = 0;
     });
 
-    // Sum expenses accounting for split types
+    // Sum expenses and categorize by split type
     expenses.forEach(expense => {
+      // Always record who paid what
+      userExpenses[expense.paid_by_user_id] += Number(expense.amount);
+      
       if (expense.split_type === "50/50") {
-        // For 50/50 splits, add the full amount to the paying user's expenses
-        userExpenses[expense.paid_by_user_id] += Number(expense.amount);
+        // Track 50/50 expenses for later calculation
+        splitFiftyExpenses.push(Number(expense.amount));
       } else if (expense.split_type === "100%") {
-        // For 100% splits, the other user owes the full amount
-        // This means the paying user's contribution should count toward the total,
-        // but the other user is responsible for the entire expense amount
-
-        // First, get the other user's ID
+        // For 100% expenses, track which user owes the amount
         const otherUserId = Object.keys(userExpenses)
           .map(Number)
           .find(id => id !== expense.paid_by_user_id);
 
         if (otherUserId) {
-          // The paying user paid, but the other user owes 100%
-          // So we credit the paying user's expenses (they paid but don't owe)
-          userExpenses[expense.paid_by_user_id] += Number(expense.amount);
-
-          // We don't need to add anything to the other user's expenses,
-          // as the settlement calculation will reflect that they owe the full amount
+          // The other user owes the full amount
+          splitHundredExpenses[otherUserId] += Number(expense.amount);
         }
       }
     });
@@ -518,7 +518,7 @@ export class Storage {
       dateDistribution[dateKey] = (dateDistribution[dateKey] || 0) + Number(expense.amount);
     });
 
-    // Calculate settlement amounts for the month
+    // Calculate settlement amounts for the month using the new method
     let userIds = Object.keys(userExpenses).map(Number).filter(id => userExpenses[id] !== undefined);
 
     if (userIds.length !== 2) {
@@ -536,29 +536,49 @@ export class Storage {
     }
 
     let [user1Id, user2Id] = userIds;
+    
+    // Calculate 50/50 splits total and how much each should pay for them
+    const totalFiftyFifty = splitFiftyExpenses.reduce((sum, amount) => sum + amount, 0);
+    const eachShouldPayForFiftyFifty = totalFiftyFifty / 2;
+    
+    // What each user actually paid
     const user1Paid = userExpenses[user1Id];
     const user2Paid = userExpenses[user2Id];
-
-    // Calculate what each user should have paid (50% of total)
-    const eachShouldPay = totalExpenses / 2;
-
-    // Calculate the difference
+    
+    // How much each user owes for 100% expenses
+    const user1OwesForHundred = splitHundredExpenses[user1Id];
+    const user2OwesForHundred = splitHundredExpenses[user2Id];
+    
+    // Calculate net balance
+    // 1. Start with what each user paid
+    let user1Balance = user1Paid;
+    let user2Balance = user2Paid;
+    
+    // 2. Subtract what they should pay for 50/50 expenses
+    user1Balance -= eachShouldPayForFiftyFifty;
+    user2Balance -= eachShouldPayForFiftyFifty;
+    
+    // 3. Subtract what they owe for 100% expenses
+    user1Balance -= user1OwesForHundred;
+    user2Balance -= user2OwesForHundred;
+    
+    // Calculate final settlement
     let settlementAmount = 0;
     let settlementDirection = {
       fromUserId: 0,
       toUserId: 0
     };
 
-    if (user1Paid > eachShouldPay) {
-      // User 1 paid more
-      settlementAmount = user1Paid - eachShouldPay;
+    if (user1Balance > 0) {
+      // User 1 is owed money
+      settlementAmount = Math.abs(user1Balance);
       settlementDirection = {
         fromUserId: user2Id,
         toUserId: user1Id
       };
-    } else if (user2Paid > eachShouldPay) {
-      // User 2 paid more
-      settlementAmount = user2Paid - eachShouldPay;
+    } else if (user2Balance > 0) {
+      // User 2 is owed money
+      settlementAmount = Math.abs(user2Balance);
       settlementDirection = {
         fromUserId: user1Id,
         toUserId: user2Id
