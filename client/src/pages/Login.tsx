@@ -173,38 +173,51 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4">
-      <div className="w-full max-w-md">
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900 mb-2">AAFairShare</h1>
-          <p className="text-gray-500 text-lg">Track, split, and settle expenses effortlessly</p>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/5 p-4 login-screen-mobile">
+      <div className="w-full max-w-md flex flex-col">
+        {/* Reduced top margin for the app title/logo */}
+        <div className="mb-3 text-center login-header">
+          <h1 className="text-3xl font-bold tracking-tight text-gray-900 mb-1">
+            <span className="text-primary">AA</span>FairShare
+          </h1>
+          <p className="text-gray-500 text-sm">Track, split, and settle expenses effortlessly</p>
         </div>
         
-        <Card className="border shadow-lg">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-2xl font-bold text-center">Welcome Back</CardTitle>
-            <CardDescription className="text-center">
+        <Card className="border shadow-md login-card">
+          <CardHeader className="pb-0 pt-3">
+            <div className="flex items-center justify-center">
+              <PoundSterling className="h-6 w-6 text-primary mb-1" />
+            </div>
+            <CardTitle className="text-xl font-bold text-center">Welcome Back</CardTitle>
+            <CardDescription className="text-center text-xs">
               Sign in to continue managing shared expenses
             </CardDescription>
+            
+            {/* Moved the security message from footer into the card */}
+            <div className="mt-1 text-center text-xs text-gray-500">
+              <div className="flex space-x-1 justify-center items-center">
+                <CreditCard className="h-3 w-3" />
+                <span>Securely manage shared finances with ease</span>
+              </div>
+            </div>
           </CardHeader>
           
-          <CardContent className="pt-4">
-            
+          <CardContent className="pt-2 px-4 pb-1">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5 mt-4">
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
                 <FormField
                   control={form.control}
                   name="email"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">Email</FormLabel>
+                    <FormItem className="space-y-1 form-field">
+                      <FormLabel className="text-xs font-medium">Email</FormLabel>
                       <FormControl>
-                        <div className="relative">
+                        <div className="relative login-input-animated">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <Mail className="h-5 w-5 text-gray-400" />
+                            <Mail className="h-4 w-4 text-gray-400" />
                           </div>
                           <Input
-                            className="pl-10 h-11 bg-gray-50/50"
+                            className="pl-10 h-10 bg-gray-50/50 transition-all"
                             type="email"
                             placeholder="Enter your email"
                             {...field}
@@ -212,7 +225,7 @@ export default function Login() {
                           />
                         </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs" />
                     </FormItem>
                   )}
                 />
@@ -220,15 +233,15 @@ export default function Login() {
                   control={form.control}
                   name="password"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-medium">Password</FormLabel>
+                    <FormItem className="space-y-1 form-field">
+                      <FormLabel className="text-xs font-medium">Password</FormLabel>
                       <FormControl>
-                        <div className="relative">
+                        <div className="relative login-input-animated">
                           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <LockKeyhole className="h-5 w-5 text-gray-400" />
+                            <LockKeyhole className="h-4 w-4 text-gray-400" />
                           </div>
                           <Input
-                            className="pl-10 h-11 bg-gray-50/50"
+                            className="pl-10 h-10 bg-gray-50/50 transition-all"
                             type="password"
                             placeholder="Enter your password"
                             {...field}
@@ -236,13 +249,13 @@ export default function Login() {
                           />
                         </div>
                       </FormControl>
-                      <FormMessage />
+                      <FormMessage className="text-xs" />
                     </FormItem>
                   )}
                 />
                 <Button 
                   type="submit" 
-                  className="w-full h-12 text-base font-semibold mt-2" 
+                  className="w-full h-11 text-base font-semibold mt-1 transition-all hover:brightness-105 active:scale-[0.98]" 
                   disabled={isLoading || isCheckingAuth}
                 >
                   {isLoading ? "Signing in..." : isCheckingAuth ? "Checking..." : "Sign in"}
@@ -251,11 +264,11 @@ export default function Login() {
             </Form>
           </CardContent>
           
-          <CardFooter className="pb-6 flex justify-center">
+          <CardFooter className="pt-0 pb-3 flex justify-center">
             <Dialog open={resetDialogOpen} onOpenChange={setResetDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="link" className="text-sm text-gray-500 hover:text-primary">
-                  <KeyRound className="h-4 w-4 mr-1" />
+                <Button variant="link" className="text-xs text-gray-500 hover:text-primary h-8">
+                  <KeyRound className="h-3 w-3 mr-1" />
                   Forgot password?
                 </Button>
               </DialogTrigger>
@@ -319,11 +332,10 @@ export default function Login() {
           </CardFooter>
         </Card>
         
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <div className="flex space-x-2 justify-center">
-            <CreditCard className="h-4 w-4" />
-            <span>Securely manage shared finances with ease</span>
-          </div>
+        {/* The registration link if needed */}
+        <div className="mt-2 text-center text-xs">
+          <span className="text-gray-500">Don't have an account?</span>{" "}
+          <a href="/register" className="text-primary font-medium hover:underline">Sign up</a>
         </div>
       </div>
     </div>

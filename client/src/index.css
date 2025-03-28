@@ -188,6 +188,29 @@
   .section-spacing-mobile {
     @apply space-y-4;
   }
+  
+  /* Optimized login screen for mobile */
+  .login-screen-mobile {
+    @apply flex flex-col min-h-screen;
+  }
+  
+  .login-screen-mobile .login-header {
+    @apply mb-3;
+  }
+  
+  .login-screen-mobile .login-card {
+    @apply rounded-xl shadow-md;
+  }
+  
+  .login-screen-mobile .form-field {
+    @apply space-y-1;
+  }
+  
+  /* Focus animation for login inputs */
+  .login-input-animated:focus-within {
+    @apply ring-2 ring-primary/30 transition-all duration-200;
+    transform: translateY(-1px);
+  }
 }
 
 /* Mobile container for responsive layouts */
