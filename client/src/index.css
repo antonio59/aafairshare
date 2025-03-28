@@ -9,11 +9,16 @@
 
   html {
     -webkit-tap-highlight-color: transparent;
+    /* Fixed viewport settings for mobile devices */
+    max-width: 100vw;
+    overflow-x: hidden;
   }
 
   body {
     @apply font-sans antialiased bg-background text-foreground min-h-screen;
     @apply touch-manipulation; /* Better touch experience */
+    overflow-x: hidden;
+    max-width: 100vw;
   }
 
   input, textarea, button, select {
@@ -41,6 +46,19 @@
   
   .py-mobile {
     @apply py-3 sm:py-4;
+  }
+  
+  /* Fix overscrolling behavior */
+  .overscroll-contain {
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Add viewport meta tag */
+  @media (max-width: 640px) {
+    meta[name="viewport"] {
+      content: "width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no";
+    }
   }
 }
 
@@ -201,6 +219,30 @@
 
 .no-scrollbar::-webkit-scrollbar {
   display: none; /* Chrome, Safari and Opera */
+}
+
+/* Tooltip styles */
+.tooltip-trigger {
+  position: relative;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.tooltip-trigger:after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: currentColor;
+  opacity: 0.5;
+}
+
+/* Custom tooltip arrow */
+.tooltip-arrow {
+  width: 0;
+  height: 0;
 }
 
 /* Better chart and data visualizations for mobile */

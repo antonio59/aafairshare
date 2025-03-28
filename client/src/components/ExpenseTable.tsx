@@ -15,6 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
+import { Tooltip } from "@/components/ui/tooltip";
 
 interface ExpenseTableProps {
   expenses: ExpenseWithDetails[];
@@ -92,21 +93,21 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
         {expenses.map(expense => (
           <div 
             key={expense.id} 
-            className="mobile-card-view bg-card dark:bg-card border border-border dark:border-border"
+            className="p-4 rounded-lg bg-card dark:bg-card border border-border dark:border-border shadow-sm"
           >
             <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center space-x-2">
-                <div className="rounded-full h-10 w-10 flex items-center justify-center" 
+              <div className="flex items-center space-x-3">
+                <div className="rounded-full h-11 w-11 flex items-center justify-center touch-target" 
                      style={{ backgroundColor: `${expense.category.color}20` }}>
-                  <div className="text-sm font-semibold" style={{ color: expense.category.color }}>
+                  <div className="text-base font-semibold" style={{ color: expense.category.color }}>
                     {expense.category?.name.substring(0, 1).toUpperCase() || 'U'}
                   </div>
                 </div>
-                <div className="mobile-truncate" style={{ maxWidth: 'calc(100vw - 140px)' }}>
-                  <p className="text-base font-medium mobile-truncate" style={{ color: expense.category.color }}>
+                <div style={{ maxWidth: 'calc(100vw - 160px)' }}>
+                  <p className="text-base font-medium truncate" style={{ color: expense.category.color }}>
                     {expense.category?.name || 'Uncategorized'}
                   </p>
-                  <p className="text-xs text-muted-foreground mobile-truncate">
+                  <p className="text-xs text-muted-foreground truncate">
                     {expense.location?.name || 'No location'}
                   </p>
                 </div>
@@ -116,19 +117,29 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
               </p>
             </div>
 
-            <div className="flex justify-between items-center pt-2 border-t border-border dark:border-border">
+            <div className="flex justify-between items-center pt-3 border-t border-border dark:border-border">
               <div className="flex flex-col">
                 <span className="text-xs text-muted-foreground">{formatDate(expense.date)}</span>
-                <span className="text-xs text-muted-foreground mobile-truncate" style={{ maxWidth: '150px' }}>
-                  {expense.paidByUser.username} • {expense.split_type}
-                </span>
+                <div className="flex items-center">
+                  <span className="text-xs text-muted-foreground truncate mr-1">
+                    {expense.paidByUser.username.split(' ')[0]} • {expense.split_type.replace('SPLIT_', '')}
+                  </span>
+                  <Tooltip 
+                    content={`Paid by ${expense.paidByUser.username}, split ${expense.split_type}`}
+                    position="top"
+                  >
+                    <span className="text-xs text-muted-foreground cursor-pointer">
+                      ℹ️
+                    </span>
+                  </Tooltip>
+                </div>
               </div>
-              <div className="flex space-x-1">
+              <div className="flex space-x-2">
                 <Button 
                   variant="ghost" 
                   size="sm" 
                   onClick={() => onEdit(expense)}
-                  className="h-9 w-9 p-0 rounded-full"
+                  className="h-10 w-10 p-0 rounded-full touch-target"
                 >
                   <Pencil className="h-4 w-4" />
                   <span className="sr-only">Edit</span>
@@ -137,7 +148,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                   variant="ghost" 
                   size="sm" 
                   onClick={() => openDeleteDialog(expense)}
-                  className="h-9 w-9 p-0 rounded-full text-destructive"
+                  className="h-10 w-10 p-0 rounded-full text-destructive touch-target"
                 >
                   <Trash className="h-4 w-4" />
                   <span className="sr-only">Delete</span>

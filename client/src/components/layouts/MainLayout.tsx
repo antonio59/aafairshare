@@ -1,7 +1,7 @@
 import { ReactNode, useState } from 'react';
 import { Link, useLocation } from 'wouter';
 import { cn } from '@/lib/utils';
-import { BarChart3, Home, PiggyBank, Settings, ShoppingCart, RepeatIcon } from 'lucide-react';
+import { BarChart3, Home, PiggyBank, Settings, ShoppingCart, RepeatIcon, PlusIcon } from 'lucide-react';
 import { Sheet, SheetContent } from '@/components/ui/sheet';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
@@ -129,16 +129,31 @@ export default function MainLayout({ children }: MainLayoutProps) {
         <header className="bg-card border-b border-border fixed top-0 left-0 right-0 z-40 pt-safe">
           <div className="flex items-center justify-between h-16 px-4">
             <h1 className="text-xl font-bold text-foreground dark:text-white">AAFairShare</h1>
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={() => setMobileMenuOpen(true)}
-              className="flex-shrink-0 h-10 w-10 rounded-full"
-            >
-              <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-medium shadow-sm">
-                {currentUser ? currentUser.username.substring(0, 2).toUpperCase() : 'JD'}
-              </div>
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => {
+                  // Publish a custom event to trigger add expense
+                  const event = new CustomEvent('add-expense-event');
+                  window.dispatchEvent(event);
+                }}
+                className="h-10 w-10 rounded-full"
+                aria-label="Add expense"
+              >
+                <PlusIcon className="h-5 w-5 text-primary" />
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setMobileMenuOpen(true)}
+                className="flex-shrink-0 h-10 w-10 rounded-full"
+              >
+                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-medium shadow-sm">
+                  {currentUser ? currentUser.username.substring(0, 2).toUpperCase() : 'JD'}
+                </div>
+              </Button>
+            </div>
           </div>
         </header>
 

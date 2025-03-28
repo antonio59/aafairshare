@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
+import { Tooltip } from "@/components/ui/tooltip";
 
 type SummaryCardVariant = 'total' | 'user1' | 'user2' | 'balance';
 
@@ -9,9 +10,17 @@ interface SummaryCardProps {
   icon: LucideIcon;
   variant?: SummaryCardVariant;
   isNegative?: boolean;
+  tooltip?: string;
 }
 
-export default function SummaryCard({ title, value, icon: IconComponent, variant = 'total', isNegative = false }: SummaryCardProps) {
+export default function SummaryCard({ 
+  title, 
+  value, 
+  icon: IconComponent, 
+  variant = 'total', 
+  isNegative = false, 
+  tooltip 
+}: SummaryCardProps) {
   const getBgColor = () => {
     switch (variant) {
       case 'total':
@@ -28,13 +37,23 @@ export default function SummaryCard({ title, value, icon: IconComponent, variant
   };
 
   return (
-    <div className="bg-white dark:bg-card p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+    <div className="bg-white dark:bg-card p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 relative">
       <div className="flex items-center">
         <div className={cn("p-2.5 rounded-md shrink-0", getBgColor())}>
           <IconComponent className="h-5 w-5 sm:h-6 sm:w-6" />
         </div>
         <div className="ml-3 min-w-0">
-          <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">{title}</p>
+          {tooltip ? (
+            <Tooltip content={tooltip} position="top">
+              <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate cursor-pointer">
+                {title}
+              </p>
+            </Tooltip>
+          ) : (
+            <p className="text-sm font-medium text-gray-500 dark:text-gray-400 truncate">
+              {title}
+            </p>
+          )}
           <p className={cn(
             "text-base sm:text-xl font-semibold truncate financial-figure",
             isNegative ? "text-red-500 dark:text-red-400" : "text-gray-800 dark:text-white"

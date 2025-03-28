@@ -12,12 +12,27 @@ import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { exportExpenses } from "@/lib/exportUtils";
 import { apiRequest } from "@/lib/queryClient";
+import { Tooltip } from "@/components/ui/tooltip";
 
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseWithDetails | undefined>(undefined);
   const { toast } = useToast();
+  
+  // Listen for the custom add-expense event
+  useEffect(() => {
+    const handleAddExpense = () => {
+      setSelectedExpense(undefined);
+      setIsExpenseFormOpen(true);
+    };
+    
+    window.addEventListener('add-expense-event', handleAddExpense);
+    
+    return () => {
+      window.removeEventListener('add-expense-event', handleAddExpense);
+    };
+  }, []);
 
   // Fetch summary data for the month
   const { 
@@ -169,7 +184,9 @@ export default function Dashboard() {
             <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
               <div className="flex items-center justify-between">
                 <PoundSterling className="h-4 w-4 text-primary" />
-                <span className="text-sm text-muted-foreground">Total</span>
+                <Tooltip content="Total expenses for this month">
+                  <span className="text-sm text-muted-foreground">Total</span>
+                </Tooltip>
               </div>
               <p className="text-lg font-bold mt-1">
                 {summary ? formatCurrency(summary.totalExpenses) : "£0.00"}
@@ -179,7 +196,9 @@ export default function Dashboard() {
             <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
               <div className="flex items-center justify-between">
                 <Users className="h-4 w-4 text-blue-500" />
-                <span className="text-sm text-muted-foreground truncate">{user1Name}</span>
+                <Tooltip content={`Amount paid by ${user1Name}`}>
+                  <span className="text-sm text-muted-foreground truncate">{user1Name} +</span>
+                </Tooltip>
               </div>
               <p className="text-lg font-bold mt-1">
                 {summary && summary.userExpenses[user1Id] ? formatCurrency(summary.userExpenses[user1Id]) : "£0.00"}
@@ -189,7 +208,9 @@ export default function Dashboard() {
             <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
               <div className="flex items-center justify-between">
                 <Users className="h-4 w-4 text-green-500" />
-                <span className="text-sm text-muted-foreground truncate">{user2Name}</span>
+                <Tooltip content={`Amount paid by ${user2Name}`}>
+                  <span className="text-sm text-muted-foreground truncate">{user2Name} +</span>
+                </Tooltip>
               </div>
               <p className="text-lg font-bold mt-1">
                 {summary && summary.userExpenses[user2Id] ? formatCurrency(summary.userExpenses[user2Id]) : "£0.00"}
@@ -199,11 +220,15 @@ export default function Dashboard() {
             <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
               <div className="flex items-center justify-between">
                 <WalletCards className="h-4 w-4 text-amber-500" />
-                <span className="text-sm text-muted-foreground truncate">
-                  {summary && summary.settlementDirection.fromUserId === user1Id 
-                    ? `${user1Name} Owes ${user2Name}` 
-                    : `${user2Name} Owes ${user1Name}`}
-                </span>
+                <Tooltip content={summary && summary.settlementDirection.fromUserId === user1Id 
+                  ? `${user1Name} owes ${user2Name} this amount` 
+                  : `${user2Name} owes ${user1Name} this amount`}>
+                  <span className="text-sm text-muted-foreground truncate">
+                    {summary && summary.settlementDirection.fromUserId === user1Id 
+                      ? `${user1Name} -` 
+                      : `${user2Name} -`}
+                  </span>
+                </Tooltip>
               </div>
               <p className="text-lg font-bold mt-1 text-red-500">
                 {summary ? formatCurrency(summary.settlementAmount) : "£0.00"}
@@ -225,27 +250,33 @@ export default function Dashboard() {
         ) : (
           <>
             <SummaryCard 
-              title="Total Expenses" 
+              title="Total" 
+              tooltip="Total expenses for this month"
               value={summary ? formatCurrency(summary.totalExpenses) : "£0.00"} 
               icon={PoundSterling} 
               variant="total" 
             />
             <SummaryCard 
-              title={`${user1Name} Paid`} 
+              title={`${user1Name} +`} 
+              tooltip={`Amount paid by ${user1Name}`}
               value={summary && summary.userExpenses[user1Id] ? formatCurrency(summary.userExpenses[user1Id]) : "£0.00"} 
               icon={Users} 
               variant="user1" 
             />
             <SummaryCard 
-              title={`${user2Name} Paid`} 
+              title={`${user2Name} +`} 
+              tooltip={`Amount paid by ${user2Name}`}
               value={summary && summary.userExpenses[user2Id] ? formatCurrency(summary.userExpenses[user2Id]) : "£0.00"} 
               icon={Users} 
               variant="user2" 
             />
             <SummaryCard 
               title={summary && summary.settlementDirection.fromUserId === user1Id 
-                ? `${user1Name} Owes ${user2Name}` 
-                : `${user2Name} Owes ${user1Name}`} 
+                ? `${user1Name} -` 
+                : `${user2Name} -`} 
+              tooltip={summary && summary.settlementDirection.fromUserId === user1Id 
+                ? `${user1Name} owes ${user2Name} this amount` 
+                : `${user2Name} owes ${user1Name} this amount`}
               value={summary ? formatCurrency(summary.settlementAmount) : "£0.00"} 
               icon={WalletCards} 
               variant="balance" 
