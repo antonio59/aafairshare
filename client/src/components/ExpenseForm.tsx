@@ -309,6 +309,9 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
               // Handle creation of a new location
               const handleCreateLocation = async (locationName: string) => {
                 try {
+                  // Store current form values to preserve them
+                  const currentValues = form.getValues();
+                  
                   // Check if we already have this location (case insensitive match)
                   const existingLocation = locations?.find(
                     loc => loc.name.toLowerCase() === locationName.toLowerCase()
@@ -326,8 +329,10 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
                   
                   // Otherwise create a new location
                   const newLocation = await createLocationMutation.mutateAsync(locationName);
+                  
+                  // Update only the location field, preserving all other form values
                   field.onChange(newLocation.id);
-
+                  
                   toast({
                     title: "Location added",
                     description: `"${locationName}" has been added to locations.`,

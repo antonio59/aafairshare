@@ -99,12 +99,12 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
               <div className="flex items-center space-x-3">
                 <div className="rounded-full h-11 w-11 flex items-center justify-center touch-target" 
                      style={{ backgroundColor: `${expense.category.color}20` }}>
-                  <div className="text-base font-semibold" style={{ color: expense.category.color }}>
+                  <div className="text-base font-bold" style={{ color: expense.category.color, textShadow: '0px 0px 1px rgba(0,0,0,0.15)' }}>
                     {expense.category?.name.substring(0, 1).toUpperCase() || 'U'}
                   </div>
                 </div>
                 <div style={{ maxWidth: 'calc(100vw - 160px)' }}>
-                  <p className="text-base font-medium truncate" style={{ color: expense.category.color }}>
+                  <p className="text-base font-bold truncate" style={{ color: expense.category.color, textShadow: '0px 0px 1px rgba(0,0,0,0.15)' }}>
                     {expense.category?.name || 'Uncategorized'}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">
@@ -186,7 +186,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
                   <TableCell>
                     <div className="flex items-center">
                       <div>
-                        <p className="text-sm font-medium financial-text" style={{ color: expense.category.color }}>{expense.category?.name || 'Uncategorized'}</p>
+                        <p className="text-sm font-bold financial-text" style={{ color: expense.category.color, textShadow: '0px 0px 1px rgba(0,0,0,0.15)' }}>{expense.category?.name || 'Uncategorized'}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">{expense.location?.name || 'No location'}</p>
                       </div>
                     </div>

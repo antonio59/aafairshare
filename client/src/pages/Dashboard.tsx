@@ -286,11 +286,11 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Recent Expenses Section - Mobile & Desktop */}
+      {/* Expenses Section - Mobile & Desktop */}
       <div className="pb-20 md:pb-0">
         {/* Mobile Header */}
         <div className="flex md:hidden items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-foreground">Recent Expenses</h2>
+          <h2 className="text-lg font-semibold text-foreground">Expenses</h2>
           
           <Button 
             onClick={handleAddExpense}

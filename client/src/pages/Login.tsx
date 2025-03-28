@@ -185,21 +185,10 @@ export default function Login() {
         
         <Card className="border shadow-md login-card">
           <CardHeader className="pb-0 pt-3">
-            <div className="flex items-center justify-center">
-              <PoundSterling className="h-6 w-6 text-primary mb-1" />
-            </div>
             <CardTitle className="text-xl font-bold text-center">Welcome Back</CardTitle>
             <CardDescription className="text-center text-xs">
               Sign in to continue managing shared expenses
             </CardDescription>
-            
-            {/* Moved the security message from footer into the card */}
-            <div className="mt-1 text-center text-xs text-gray-500">
-              <div className="flex space-x-1 justify-center items-center">
-                <CreditCard className="h-3 w-3" />
-                <span>Securely manage shared finances with ease</span>
-              </div>
-            </div>
           </CardHeader>
           
           <CardContent className="pt-2 px-4 pb-1">
@@ -331,12 +320,7 @@ export default function Login() {
             </Dialog>
           </CardFooter>
         </Card>
-        
-        {/* The registration link if needed */}
-        <div className="mt-2 text-center text-xs">
-          <span className="text-gray-500">Don't have an account?</span>{" "}
-          <a href="/register" className="text-primary font-medium hover:underline">Sign up</a>
-        </div>
+        {/* Registration link removed */}
       </div>
     </div>
   );
