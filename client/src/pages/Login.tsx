@@ -24,7 +24,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { LockKeyhole, Mail, CreditCard, PoundSterling, KeyRound } from "lucide-react";
+import { LockKeyhole, Mail, KeyRound } from "lucide-react";
 import {
   Dialog,
   DialogContent,
