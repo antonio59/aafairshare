@@ -7,7 +7,7 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash } from "lucide-react";
+import { ChevronLeft, ChevronRight, Pencil, Trash } from "lucide-react";
 import { ExpenseWithDetails } from "@shared/schema";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { useState } from "react";
@@ -16,6 +16,14 @@ import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { Tooltip } from "@/components/ui/tooltip";
+import { 
+  Pagination, 
+  PaginationContent, 
+  PaginationItem, 
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious
+} from "@/components/ui/pagination";
 
 interface ExpenseTableProps {
   expenses: ExpenseWithDetails[];
@@ -26,6 +34,9 @@ interface ExpenseTableProps {
 export default function ExpenseTable({ expenses, onEdit, isLoading = false }: ExpenseTableProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [expenseToDelete, setExpenseToDelete] = useState<ExpenseWithDetails | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+  const totalPages = Math.ceil(expenses.length / itemsPerPage);
   const { toast } = useToast();
 
   const handleDelete = async () => {
@@ -86,11 +97,69 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
     );
   }
 
+  // Calculate current items to display based on pagination
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, expenses.length);
+  const currentExpenses = expenses.slice(startIndex, endIndex);
+
+  // Navigation functions
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Generate page numbers
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    
+    // Logic to show a reasonable number of page links
+    if (totalPages <= maxPagesToShow) {
+      // If we have 5 or fewer pages, show all
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      // Always show first page
+      pages.push(1);
+      
+      // Calculate middle pages to show
+      let startPage = Math.max(2, currentPage - 1);
+      let endPage = Math.min(totalPages - 1, currentPage + 1);
+      
+      // Adjust if at the beginning or end
+      if (currentPage <= 2) {
+        endPage = 3;
+      } else if (currentPage >= totalPages - 1) {
+        startPage = totalPages - 2;
+      }
+      
+      // Add ellipsis if there's a gap after page 1
+      if (startPage > 2) {
+        pages.push(-1); // -1 represents ellipsis
+      }
+      
+      // Add middle pages
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      
+      // Add ellipsis if there's a gap before the last page
+      if (endPage < totalPages - 1) {
+        pages.push(-2); // -2 represents ellipsis
+      }
+      
+      // Always show last page
+      pages.push(totalPages);
+    }
+    
+    return pages;
+  };
+
   return (
     <>
       {/* Mobile Card View */}
       <div className="sm:hidden space-y-4">
-        {expenses.map(expense => (
+        {currentExpenses.map(expense => (
           <div 
             key={expense.id} 
             className="p-4 rounded-lg bg-card dark:bg-card border border-border dark:border-border shadow-sm"
@@ -180,7 +249,7 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
               </TableRow>
             </TableHeader>
             <TableBody>
-              {expenses.map(expense => (
+              {currentExpenses.map(expense => (
                 <TableRow key={expense.id}>
                   <TableCell className="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">{formatDate(expense.date)}</TableCell>
                   <TableCell>
@@ -225,6 +294,54 @@ export default function ExpenseTable({ expenses, onEdit, isLoading = false }: Ex
           </Table>
         </div>
       </div>
+      
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4">
+          <Pagination>
+            <PaginationContent>
+              {currentPage > 1 && (
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => goToPage(currentPage - 1)}
+                    className="cursor-pointer" 
+                  />
+                </PaginationItem>
+              )}
+              
+              {getPageNumbers().map((page, index) => (
+                page < 0 ? (
+                  <PaginationItem key={`ellipsis-${index}`}>
+                    <div className="flex h-9 w-9 items-center justify-center">...</div>
+                  </PaginationItem>
+                ) : (
+                  <PaginationItem key={page}>
+                    <PaginationLink
+                      onClick={() => goToPage(page)}
+                      isActive={page === currentPage}
+                      className="cursor-pointer"
+                    >
+                      {page}
+                    </PaginationLink>
+                  </PaginationItem>
+                )
+              ))}
+              
+              {currentPage < totalPages && (
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => goToPage(currentPage + 1)}
+                    className="cursor-pointer" 
+                  />
+                </PaginationItem>
+              )}
+            </PaginationContent>
+          </Pagination>
+          <div className="mt-2 text-center text-sm text-muted-foreground">
+            Showing {startIndex + 1}-{endIndex} of {expenses.length} expenses
+          </div>
+        </div>
+      )}
 
       <AlertDialog 
         open={deleteDialogOpen} 
