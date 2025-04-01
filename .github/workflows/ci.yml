@@ -34,8 +34,10 @@ jobs:
           cache: 'npm' # Cache npm dependencies
 
       # Installs dependencies using npm install to handle platform differences
-      - name: Install dependencies
-        run: npm install
+      - name: Install dependencies (clean)
+        run: |
+          rm -f package-lock.json
+          npm install # Use install after removing lockfile
 
       # Runs the tests
       - name: Run tests
