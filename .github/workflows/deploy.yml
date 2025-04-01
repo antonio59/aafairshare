@@ -49,6 +49,6 @@ jobs:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_AAFAIRSHARE_37271 }}' # Use the specific service account secret if available
           channelId: live # Deploy to the live channel
-          projectId: aafairshare-firebase # Replace with your Firebase project ID if different
+          projectId: aafairshare-37271 # Use project ID from .firebaserc
         env:
           FIREBASE_CLI_PREVIEWS: hostingchannels # Enable hosting channels feature if needed
