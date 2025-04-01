@@ -11,9 +11,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with: # Explicitly set path (though '.' is default)
+          path: '.'
 
-      - name: List files after checkout # Add step immediately after checkout
-        run: ls -la
+      - name: Verify checkout directory and list files
+        run: |
+          pwd
+          ls -la
 
       - name: Set up Node.js
         uses: actions/setup-node@v4 # Correct indentation
@@ -28,8 +32,8 @@ jobs:
           rm -f package-lock.json
           npm install # Use install after removing lockfile
 
-      - name: List files before build # Add step to list files for debugging
-        run: ls -la
+      # - name: List files before build # Removed this ls step
+      #   run: ls -la
 
       - name: Build project
         run: npm run build
