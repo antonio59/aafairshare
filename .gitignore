@@ -16,7 +16,6 @@ complete_export_*.json
 serviceAccountKey.json
 client/.env.local
 .firebaserc
-firebase.json
 
 # Firebase CLI cache
 .firebase/
