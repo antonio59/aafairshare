@@ -73,7 +73,6 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.38.0",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.2.0",
