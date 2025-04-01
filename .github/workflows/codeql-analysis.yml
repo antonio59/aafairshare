@@ -32,12 +32,12 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
+      uses: actions/setup-node@v3 # Correct indentation
+      with: # Correct indentation
         node-version: '18'
-        cache: 'npm'
+        # cache: 'npm' # Removed cache
 
-    - name: Install dependencies (clean)
+    - name: Install dependencies (clean) # Correct indentation
       run: |
         rm -f package-lock.json
         npm install # Use install after removing lockfile

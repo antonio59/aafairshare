@@ -13,12 +13,12 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
+        uses: actions/setup-node@v4 # Correct indentation
+        with: # Correct indentation
           node-version: '20' # Use Node.js version 20 or match your project's requirement
-          cache: 'npm'
+          # cache: 'npm' # Removed cache due to potential issues with rm package-lock
 
-      - name: Install dependencies (clean)
+      - name: Install dependencies (clean) # Correct indentation
         run: |
           rm -f package-lock.json
           npm install # Use install after removing lockfile
@@ -27,6 +27,9 @@ jobs:
         run: npm run build
         env:
           CI: false # Sometimes needed if build treats warnings as errors
+
+      - name: List files before deploy # Add step to list files for debugging
+        run: ls -la
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
