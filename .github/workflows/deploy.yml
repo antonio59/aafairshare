@@ -25,6 +25,9 @@ jobs:
           rm -f package-lock.json
           npm install # Use install after removing lockfile
 
+      - name: List files before build # Add step to list files for debugging
+        run: ls -la
+
       - name: Build project
         run: npm run build
         env:
