@@ -40,6 +40,9 @@ jobs:
         env:
           CI: false # Sometimes needed if build treats warnings as errors
 
+      - name: List build output directory # Add step to check build output
+        run: ls -la client/dist
+
       # - name: List files before deploy # Removed debug step
       #   run: ls -la
 
