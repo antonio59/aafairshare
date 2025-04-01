@@ -14,10 +14,10 @@ jobs:
         with: # Explicitly set path (though '.' is default)
           path: '.'
 
-      - name: Verify checkout directory and list files
-        run: |
-          pwd
-          ls -la
+      # - name: Verify checkout directory and list files # Removed debug step
+      #   run: |
+      #     pwd
+      #     ls -la
 
       - name: Set up Node.js
         uses: actions/setup-node@v4 # Correct indentation
@@ -40,8 +40,8 @@ jobs:
         env:
           CI: false # Sometimes needed if build treats warnings as errors
 
-      - name: List files before deploy # Add step to list files for debugging
-        run: ls -la
+      # - name: List files before deploy # Removed debug step
+      #   run: ls -la
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
