@@ -12,6 +12,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: List files after checkout # Add step immediately after checkout
+        run: ls -la
+
       - name: Set up Node.js
         uses: actions/setup-node@v4 # Correct indentation
         with: # Correct indentation
