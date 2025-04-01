@@ -19,7 +19,7 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci # Use ci for faster, reliable installs in CI
+        run: npm install # Use install instead of ci to handle platform differences
 
       - name: Build project
         run: npm run build

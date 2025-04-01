@@ -33,9 +33,9 @@ jobs:
           node-version: '20' # Use a specific LTS version or 'lts/*'
           cache: 'npm' # Cache npm dependencies
 
-      # Installs dependencies using npm ci for faster, reliable builds
+      # Installs dependencies using npm install to handle platform differences
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       # Runs the tests
       - name: Run tests
