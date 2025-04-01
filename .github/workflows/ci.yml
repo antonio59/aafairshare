@@ -34,8 +34,10 @@ jobs:
           cache: 'npm' # Restore cache
 
       # Installs dependencies using npm install to handle platform differences
-      - name: Install dependencies (clean) # Correct indentation
+      - name: Install dependencies (clean & force public registry) # Correct indentation
         run: |
+          npm config set registry https://registry.npmjs.org/
+          npm cache clean --force
           rm -f package-lock.json
           npm install # Use install after removing lockfile
 
