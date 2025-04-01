@@ -57,7 +57,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
   }, [category, form, open]); // Add open dependency to reset on close
 
   // Use the custom hook for submission logic
-  const { handleSubmit: handleFirestoreSubmit, isSubmitting } = useFirestoreFormSubmit<FormData>({
+  const { handleSubmit: handleFirestoreSubmit, isSubmitting } = useFirestoreFormSubmit({ // Remove <FormData>
     collectionName: "categories",
     item: category, // Pass the category being edited (if any)
     onSuccess: () => {

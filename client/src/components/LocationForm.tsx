@@ -59,7 +59,7 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
   }, [location, form, open]); // Add open dependency
 
   // Use the custom hook for submission logic
-  const { handleSubmit: handleFirestoreSubmit, isSubmitting } = useFirestoreFormSubmit<FormData>({
+  const { handleSubmit: handleFirestoreSubmit, isSubmitting } = useFirestoreFormSubmit({ // Remove <FormData>
     collectionName: "locations",
     item: location, // Pass the location being edited (if any)
     onSuccess: () => {
