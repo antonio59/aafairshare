@@ -16,7 +16,7 @@ jobs:
         uses: actions/setup-node@v4 # Correct indentation
         with: # Correct indentation
           node-version: '20' # Use Node.js version 20 or match your project's requirement
-          # cache: 'npm' # Removed cache due to potential issues with rm package-lock
+          cache: 'npm' # Restore cache
 
       - name: Install dependencies (clean) # Correct indentation
         run: |

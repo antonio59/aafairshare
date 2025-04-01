@@ -18,7 +18,7 @@ jobs:
         uses: actions/setup-node@v3 # Correct indentation
         with: # Correct indentation
           node-version: '20'
-          # cache: 'npm' # Removed cache
+          cache: 'npm' # Restore cache
 
       - name: Install dependencies (clean) # Correct indentation
         run: |

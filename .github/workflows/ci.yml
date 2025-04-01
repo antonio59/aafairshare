@@ -31,7 +31,7 @@ jobs:
         uses: actions/setup-node@v4 # Correct indentation
         with: # Correct indentation
           node-version: '20' # Use a specific LTS version or 'lts/*'
-          # cache: 'npm' # Removed cache
+          cache: 'npm' # Restore cache
 
       # Installs dependencies using npm install to handle platform differences
       - name: Install dependencies (clean) # Correct indentation
