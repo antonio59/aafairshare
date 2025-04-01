@@ -37,11 +37,17 @@ jobs:
 
       - name: Build project
         run: npm run build
-        env:
-          CI: false # Sometimes needed if build treats warnings as errors
+        env: # Add Firebase config secrets as env vars for the build
+          CI: false
+          VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ secrets.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
-      - name: List build output directory # Add step to check build output
-        run: ls -la client/dist
+      # - name: List build output directory # Removed debug step
+      #   run: ls -la client/dist
 
       # - name: List files before deploy # Removed debug step
       #   run: ls -la
