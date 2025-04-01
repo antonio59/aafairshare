@@ -29,11 +29,14 @@ export default function SplitTypeChart({ summary, isLoading = false }: SplitType
     if (chartInstance.current) {
       chartInstance.current.destroy();
     }
-
-    const splitTypeLabels = splitTypes.map(type => type === "50/50" ? "Equal Split (50/50)" : "One Person (100%)");
+    
+    // Use more generic labels for non-50/50 splits
+    const splitTypeLabels = splitTypes.map(type => 
+      type === "50/50" ? "Equal Split (50/50)" : `Other (${type})` // Show the actual type if not 50/50
+    );
     const values = splitTypes.map(type => summary.splitTypeTotals[type]);
     const totalAmount = values.reduce((sum, value) => sum + value, 0);
-    
+
     const colors = ['#4f46e5', '#f97316'];
 
     chartInstance.current = new Chart(ctx, {
@@ -139,10 +142,12 @@ export default function SplitTypeChart({ summary, isLoading = false }: SplitType
                 <div className="flex items-center">
                   <div 
                     className="h-3.5 w-3.5 rounded-full flex-shrink-0" 
-                    style={{ backgroundColor: index === 0 ? '#4f46e5' : '#f97316' }}
+                    // Dynamically assign colors or use a predefined palette based on index/type
+                    style={{ backgroundColor: ['#4f46e5', '#f97316', '#10b981', '#3b82f6'][index % 4] }} 
                   ></div>
                   <span className="ml-2 text-sm text-gray-700 dark:text-gray-300">
-                    {splitType === "50/50" ? "Equal Split (50/50)" : "One Person (100%)"}
+                    {/* Apply label logic directly here */}
+                    {splitType === "50/50" ? "Equal Split (50/50)" : `Other (${splitType})`}
                   </span>
                 </div>
                 <div className="text-right">

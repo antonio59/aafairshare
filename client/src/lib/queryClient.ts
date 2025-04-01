@@ -7,13 +7,13 @@ async function throwIfResNotOk(res: Response) {
   }
 }
 
-export async function apiRequest<T = any>(
+// Changed default generic type from 'any' to 'unknown'
+export async function apiRequest<T = unknown>(
   url: string,
   method: string = 'GET',
   data?: unknown | undefined,
 ): Promise<T> {
-  console.log(`Making ${method} request to ${url}`, data ? { data } : '');
-  
+
   // Enhanced fetch options for better session handling
   const fetchOptions: RequestInit = {
     method,
@@ -32,31 +32,28 @@ export async function apiRequest<T = any>(
     cache: 'no-cache',
     redirect: 'follow'
   };
-  
-  console.log("Fetch options:", fetchOptions);
-  
+
+
   // Add cookie debug information
-  console.log(`Current document.cookie (length only for security): ${document.cookie.length}`);
-  
+
   const res = await fetch(url, fetchOptions);
 
   // Log response headers for debugging purposes
-  console.log(`Response from ${url}:`, {
-    status: res.status,
-    ok: res.ok,
-    headers: [...res.headers.entries()].reduce((obj, [key, val]) => ({...obj, [key]: val}), {})
-  });
+  // Removed leftover console.log arguments
 
   await throwIfResNotOk(res);
-  
-  // For 204 No Content responses (commonly used in DELETE operations), 
+
+  // For 204 No Content responses (commonly used in DELETE operations),
   // don't try to parse the response as JSON as there's no body
   if (res.status === 204) {
+    // Returning {} as any here because the function promises T, but there's no content.
+    // This assumes callers handle cases where T might be expected but an empty object is returned.
+    // A more robust solution might involve changing the return type to Promise<T | null> or similar.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     return ({} as any);
   }
-  
+
   const responseData = await res.json();
-  console.log(`Parsed response data from ${url}:`, responseData);
   return responseData as T;
 }
 
@@ -68,21 +65,20 @@ export const getQueryFn: <T>(options: {
   async ({ queryKey }) => {
     // Handle array query keys properly
     let url = queryKey[0] as string;
-    
+
     // If we have additional query parameters in the key, add them to the URL
     if (queryKey.length > 1 && queryKey[1]) {
       // Check if it's the settlements endpoint with month parameter
       if (url === '/api/settlements' && typeof queryKey[1] === 'string') {
         url += `?month=${queryKey[1]}`;
-      } 
+      }
       // For other endpoints, just append the month parameter
       else if (typeof queryKey[1] === 'string' && !url.includes(queryKey[1])) {
         url += url.includes('?') ? '&' : '?';
         url += `month=${queryKey[1]}`;
       }
     }
-    
-    console.log(`Making GET request to ${url} via queryFn`);
+
     // Enhanced query fetch options for better session handling
     const queryFetchOptions: RequestInit = {
       method: 'GET',
@@ -97,32 +93,29 @@ export const getQueryFn: <T>(options: {
         "Accept": "application/json"
       }
     };
-    
+
     // Add cookie debug information
-    console.log(`Current document.cookie in queryFn (length only): ${document.cookie.length}`);
-    console.log("Query fetch options:", queryFetchOptions);
-    
+
     const res = await fetch(url, queryFetchOptions);
-    
+
     // Log detailed response information for debugging
-    console.log(`Response from ${url} in queryFn:`, {
-      status: res.status,
-      ok: res.ok,
-      headers: [...res.headers.entries()].reduce((obj, [key, val]) => ({...obj, [key]: val}), {})
-    });
+    // Removed leftover console.log arguments
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
     }
 
     await throwIfResNotOk(res);
-    
+
     // For 204 No Content responses, don't try to parse the response as JSON
     if (res.status === 204) {
-      // Return empty object cast to the generic type
+      // Returning {} as any here because the function promises T, but there's no content.
+      // This assumes callers handle cases where T might be expected but an empty object is returned.
+      // A more robust solution might involve changing the return type to Promise<T | null> or similar.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return ({} as any);
     }
-    
+
     return await res.json();
   };
 

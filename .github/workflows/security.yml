@@ -1,0 +1,74 @@
+# .github/workflows/security.yml
+name: Snyk Security Scan
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    # The branches below must be a subset of the branches above
+    branches: ["main"]
+  schedule:
+    # Run weekly on Monday at 00:00 UTC
+    - cron: '0 0 * * 1'
+
+permissions:
+  contents: read # for actions/checkout to fetch code
+  security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+  actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+
+jobs:
+  snyk_scan:
+    name: Snyk Security Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # Or your project's Node.js version
+
+      - name: Install dependencies
+        run: npm ci # Use 'ci' for faster, deterministic installs in CI
+
+      - name: Run TypeScript Check
+        run: npm run check # Runs 'tsc' for type checking
+
+      # Snyk Open Source (Dependency Vulnerability Scan)
+      - name: Run Snyk to check for vulnerabilities
+        uses: snyk/actions/node@master # Use the official Snyk action
+        continue-on-error: true # Optional: Allow workflow to continue even if vulnerabilities are found
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+        with:
+          command: monitor # Monitors the project and reports results to Snyk UI
+          # Use 'test' instead of 'monitor' to fail the build based on severity
+          # command: test
+          # args: --severity-threshold=high # Example: fail on high severity vulns
+
+      # Snyk Code (SAST Scan)
+      - name: Run Snyk Code analysis
+        uses: snyk/actions/setup@master # Setup Snyk CLI
+
+      - name: Snyk Code test
+        run: snyk code test --sarif-file-output=snyk-code.sarif
+        continue-on-error: true # Optional: Allow workflow to continue even if issues are found
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+
+      # Secrets Scanning
+      - name: Run TruffleHog to scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.before }} # Scan changes in pushes/PRs efficiently
+          head: HEAD
+          extra_args: --only-verified # Scan for verified secrets only, reduce noise
+
+      - name: Upload Snyk Code results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: snyk-code.sarif
+          # Optional: Define category based on branch or event
+          # category: snyk-code-${{ github.ref_name }}

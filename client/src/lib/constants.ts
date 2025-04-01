@@ -3,10 +3,7 @@ export const USERS = [
   { id: 8, name: "Andres" },
 ];
 
-export const SPLIT_TYPES = [
-  { value: "50/50", label: "50/50 Split (I paid)" },
-  { value: "100%", label: "100% Other User Owes Me" },
-];
+export const SPLIT_TYPES = ["50/50", "100%"] as const;
 
 export const MONTHS = [
   "January",

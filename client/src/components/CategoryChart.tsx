@@ -120,7 +120,7 @@ export default function CategoryChart({ summary, isLoading = false }: CategoryCh
           </div>
           <div>
             <div className="mt-4 md:mt-0 space-y-4 max-h-[250px] sm:max-h-[300px] overflow-y-auto pr-2">
-              {summary.categoryTotals.map((categoryTotal, index) => (
+              {summary.categoryTotals.map((categoryTotal) => (
                 <div key={categoryTotal.category.id} className="flex items-center justify-between py-1.5">
                   <div className="flex items-center max-w-[65%]">
                     <div

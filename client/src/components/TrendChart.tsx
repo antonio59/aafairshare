@@ -1,11 +1,13 @@
-import { useState } from "react";
+// Removed unused useState import
+// import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendData } from "@shared/schema";
 import { Line } from "react-chartjs-2";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatMonthYear } from "@/lib/utils";
-import { stringToColor } from "@/lib/utils";
+import { formatMonthYear, stringToColor, formatCurrency } from "@/lib/utils"; // Added formatCurrency
+// Import specific types from chart.js
+import { TooltipItem } from 'chart.js';
 
 interface TrendChartProps {
   trendData?: TrendData;
@@ -13,7 +15,8 @@ interface TrendChartProps {
 }
 
 export default function TrendChart({ trendData, isLoading = false }: TrendChartProps) {
-  const [activeTrendType, setActiveTrendType] = useState<"categories" | "locations">("categories");
+  // Removed unused state setter: setActiveTrendType
+  // const [activeTrendType, setActiveTrendType] = useState<"categories" | "locations">("categories");
 
   if (isLoading) {
     return (
@@ -111,11 +114,13 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
         beginAtZero: true,
         ticks: {
           // Format the y-axis values as currency
-          callback: function(tickValue: any) {
+          // Changed 'any' to 'unknown' and adjusted return type
+          callback: function(tickValue: unknown): string | number | undefined {
             if (typeof tickValue === 'number') {
-              return `£${tickValue.toFixed(0)}`;
+              return formatCurrency(tickValue); // Use formatCurrency
             }
-            return tickValue;
+            // Return undefined if not a number to satisfy Chart.js types
+            return undefined;
           }
         }
       }
@@ -123,10 +128,15 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
     plugins: {
       tooltip: {
         callbacks: {
-          label: function(context: any) {
+          // Changed 'any' to 'TooltipItem<'line'>'
+          label: function(context: TooltipItem<'line'>): string {
             const label = context.dataset.label || '';
             const value = context.parsed.y;
-            return `${label}: £${value.toFixed(2)}`;
+            // Ensure value is a number before formatting
+            if (typeof value === 'number') {
+              return `${label}: ${formatCurrency(value)}`; // Use formatCurrency
+            }
+            return `${label}: ${value}`; // Fallback if value is not a number
           }
         }
       }
@@ -147,14 +157,14 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
           </TabsList>
           <TabsContent value="total" className="pt-2 sm:pt-4">
             <div className="h-[250px] sm:h-[300px]">
-              <Line 
-                data={totalData} 
+              <Line
+                data={totalData}
                 options={{
                   ...options,
                   scales: {
                     ...options.scales,
                     x: {
-                      ...options.scales.y,
+                      // Removed incorrect spread of y-axis options onto x-axis
                       ticks: {
                         maxRotation: 45,
                         minRotation: 45,
@@ -164,20 +174,20 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
                       }
                     }
                   }
-                }} 
+                }}
               />
             </div>
           </TabsContent>
           <TabsContent value="categories" className="pt-2 sm:pt-4">
             <div className="h-[250px] sm:h-[300px]">
-              <Line 
+              <Line
                 data={categoriesData}
                 options={{
                   ...options,
                   scales: {
                     ...options.scales,
                     x: {
-                      ...options.scales.y,
+                      // Removed incorrect spread of y-axis options onto x-axis
                       ticks: {
                         maxRotation: 45,
                         minRotation: 45,
@@ -193,14 +203,14 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
           </TabsContent>
           <TabsContent value="locations" className="pt-2 sm:pt-4">
             <div className="h-[250px] sm:h-[300px]">
-              <Line 
+              <Line
                 data={locationsData}
                 options={{
                   ...options,
                   scales: {
                     ...options.scales,
                     x: {
-                      ...options.scales.y,
+                      // Removed incorrect spread of y-axis options onto x-axis
                       ticks: {
                         maxRotation: 45,
                         minRotation: 45,

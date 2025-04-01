@@ -4,7 +4,10 @@ import { Command as CommandPrimitive } from "cmdk"
 import { Search } from "lucide-react"
 
 import { cn } from "@/lib/utils"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+// Removed unused VisuallyHidden import
+// import { VisuallyHidden } from "@/components/ui/visually-hidden"
+
 
 const Command = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive>,
@@ -13,7 +16,7 @@ const Command = React.forwardRef<
   <CommandPrimitive
     ref={ref}
     className={cn(
-      "flex h-full w-full flex-col overflow-hidden rounded-md bg-popover text-popover-foreground",
+      "flex h-full w-full flex-col rounded-md bg-popover text-popover-foreground", // Removed overflow-hidden
       className
     )}
     {...props}
@@ -21,12 +24,23 @@ const Command = React.forwardRef<
 ))
 Command.displayName = CommandPrimitive.displayName
 
-interface CommandDialogProps extends DialogProps {}
+// Replaced empty interface with type alias
+type CommandDialogProps = DialogProps;
 
 const CommandDialog = ({ children, ...props }: CommandDialogProps) => {
+  // Use a stable, hardcoded ID
+  const descriptionId = "command-dialog-description";
+
   return (
     <Dialog {...props}>
-      <DialogContent className="overflow-hidden p-0 shadow-lg">
+      <DialogContent
+        className="overflow-hidden p-0 shadow-lg"
+        aria-describedby={descriptionId} // Use stable ID
+      >
+        {/* Title and Description needed for accessibility */}
+        {/* Using sr-only directly as VisuallyHidden might add extra divs */}
+        <DialogTitle className="sr-only">Command Menu</DialogTitle>
+        <DialogDescription id={descriptionId} className="sr-only">Select a command or search.</DialogDescription>
         <Command className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-group]]:px-2 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5">
           {children}
         </Command>
@@ -39,6 +53,7 @@ const CommandInput = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Input>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.Input>
 >(({ className, ...props }, ref) => (
+  // eslint-disable-next-line react/no-unknown-property
   <div className="flex items-center border-b px-3" cmdk-input-wrapper="">
     <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
     <CommandPrimitive.Input
@@ -57,15 +72,57 @@ CommandInput.displayName = CommandPrimitive.Input.displayName
 const CommandList = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.List>,
   React.ComponentPropsWithoutRef<typeof CommandPrimitive.List>
->(({ className, ...props }, ref) => (
-  <CommandPrimitive.List
-    ref={ref}
-    className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden", className)}
-    {...props}
-  />
-))
+>(({ className, ...props }, ref) => {
+  // Use a local ref to access the DOM node for the event listener
+  const listRef = React.useRef<HTMLDivElement>(null);
 
-CommandList.displayName = CommandPrimitive.List.displayName
+  // Combine the forwarded ref and the local ref
+  React.useImperativeHandle(ref, () => listRef.current!, []);
+
+  React.useEffect(() => {
+    const listElement = listRef.current;
+    if (!listElement) return;
+
+    const handleWheel = (event: WheelEvent) => {
+      const { deltaY } = event;
+      const { scrollTop, scrollHeight, clientHeight } = listElement;
+
+      // Check if the element is actually scrollable
+      const isScrollable = scrollHeight > clientHeight;
+
+      if (isScrollable) {
+        // Prevent parent scroll only if the list itself can scroll in the wheel's direction
+        const isScrollingUp = deltaY < 0 && scrollTop > 0;
+        const isScrollingDown = deltaY > 0 && scrollTop < scrollHeight - clientHeight;
+
+        if (isScrollingUp || isScrollingDown) {
+          // Stop the event from bubbling up to parent elements (like Dialog or body)
+          event.stopPropagation();
+        }
+        // If scrolling isn't possible (at top/bottom), allow event to bubble for page scroll
+      }
+      // If not scrollable at all, allow event to bubble
+    };
+
+    // Add the wheel event listener. 'passive: false' is needed to call stopPropagation.
+    listElement.addEventListener('wheel', handleWheel, { passive: false });
+
+    // Cleanup: remove the event listener when the component unmounts
+    return () => {
+      listElement.removeEventListener('wheel', handleWheel);
+    };
+  }, []); // Empty dependency array ensures this effect runs only once on mount
+
+  return (
+    <CommandPrimitive.List
+      ref={listRef} // Attach the local ref to the DOM element
+      className={cn("max-h-[300px] overflow-y-auto overflow-x-hidden touch-action-pan-y", className, "[-webkit-overflow-scrolling:touch]")}
+      {...props}
+    />
+  );
+});
+
+CommandList.displayName = CommandPrimitive.List.displayName;
 
 const CommandEmpty = React.forwardRef<
   React.ElementRef<typeof CommandPrimitive.Empty>,
@@ -87,7 +144,7 @@ const CommandGroup = React.forwardRef<
   <CommandPrimitive.Group
     ref={ref}
     className={cn(
-      "overflow-hidden p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground",
+      "p-1 text-foreground [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-xs [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group-heading]]:text-muted-foreground", // Removed overflow-hidden
       className
     )}
     {...props}

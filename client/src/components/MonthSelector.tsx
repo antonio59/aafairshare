@@ -1,27 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { Download, FileText, ChevronLeft, ChevronRight } from "lucide-react";
-import useMonthNavigation from "@/hooks/useMonthNavigation";
-import { useEffect } from "react";
+// Removed useMonthNavigation import
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+// Import month calculation and formatting utils
+import { getPreviousMonth, getNextMonth, formatMonthYear } from "@/lib/utils";
 
 interface MonthSelectorProps {
-  onMonthChange: (month: string) => void;
-  initialMonth?: string;
-  onExport?: (format: 'csv' | 'xlsx' | 'pdf') => void;
+  value: string;
+  onChange: (month: string) => void;
+  onExport?: (format: 'csv' | 'pdf') => void; // Remove 'xlsx'
 }
 
-export default function MonthSelector({ onMonthChange, initialMonth, onExport }: MonthSelectorProps) {
-  const { currentMonth, previousMonth, nextMonth, formattedMonth } = useMonthNavigation(initialMonth);
+export default function MonthSelector({ value, onChange, onExport }: MonthSelectorProps) {
+  // Removed useMonthNavigation hook usage
   const { toast } = useToast();
 
-  useEffect(() => {
-    onMonthChange(currentMonth);
-  }, [currentMonth, onMonthChange]);
+  // Directly format the month using the value prop
+  const formattedMonth = formatMonthYear(value);
 
-  const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
+  const handleExport = (format: 'csv' | 'pdf') => {
     if (onExport) {
-      onExport(format);
+      onExport(format); // Pass the corrected format type
     } else {
       toast({
         title: "Export not available",
@@ -34,20 +34,22 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
   return (
     <div className="flex items-center justify-between">
       <div className="flex items-center">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={previousMonth}
+        <Button
+          variant="ghost"
+          size="icon"
+          // Directly call onChange with the calculated previous month
+          onClick={() => onChange(getPreviousMonth(value))}
           className="mr-1 sm:mr-2 h-7 w-7 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100"
         >
           <ChevronLeft className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           <span className="sr-only">Previous</span>
         </Button>
         <h2 className="text-sm sm:text-base md:text-lg font-semibold text-gray-800">{formattedMonth}</h2>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={nextMonth}
+        <Button
+          variant="ghost"
+          size="icon"
+           // Directly call onChange with the calculated next month
+          onClick={() => onChange(getNextMonth(value))}
           className="ml-1 sm:ml-2 h-7 w-7 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100"
         >
           <ChevronRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
@@ -69,9 +71,7 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
                 <DropdownMenuItem onClick={() => handleExport('csv')}>
                   <span>Export CSV</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('xlsx')}>
-                  <span>Export Excel</span>
-                </DropdownMenuItem>
+                {/* Removed Excel export option */}
                 <DropdownMenuItem onClick={() => handleExport('pdf')}>
                   <span>Export PDF</span>
                 </DropdownMenuItem>
@@ -93,10 +93,7 @@ export default function MonthSelector({ onMonthChange, initialMonth, onExport }:
                   <FileText className="h-3 w-3 mr-1.5" />
                   <span>CSV</span>
                 </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => handleExport('xlsx')} className="text-xs py-1.5">
-                  <FileText className="h-3 w-3 mr-1.5" />
-                  <span>Excel</span>
-                </DropdownMenuItem>
+                {/* Removed Excel export option */}
                 <DropdownMenuItem onClick={() => handleExport('pdf')} className="text-xs py-1.5">
                   <FileText className="h-3 w-3 mr-1.5" />
                   <span>PDF</span>

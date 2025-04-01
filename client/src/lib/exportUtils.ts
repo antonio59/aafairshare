@@ -1,11 +1,10 @@
-import { utils, writeFile } from 'xlsx';
-import { ExpenseWithDetails, SettlementWithUsers, MonthSummary } from '@shared/schema';
+// import { utils, writeFile } from 'xlsx'; // Remove xlsx import
+import { ExpenseWithDetails, SettlementWithUsers, MonthSummary, User } from '@shared/schema';
 import { formatCurrency, formatDate, formatMonthYear } from './utils';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
 import autoTable from 'jspdf-autotable';
 
-// Extend jsPDF with lastAutoTable property that exists after autoTable is called
+// Extend jsPDF with lastAutoTable property - needed for type checking
 declare module 'jspdf' {
   interface jsPDF {
     lastAutoTable: {
@@ -13,9 +12,9 @@ declare module 'jspdf' {
     };
   }
 }
-import { USERS } from './constants';
 
-type ExportFormat = 'csv' | 'xlsx' | 'pdf';
+// Define ExportFormat without xlsx
+type ExportFormat = 'csv' | 'pdf';
 
 interface ExportOptions {
   format: ExportFormat;
@@ -23,24 +22,37 @@ interface ExportOptions {
   expenses: ExpenseWithDetails[];
   settlements?: SettlementWithUsers[];
   summary?: MonthSummary;
+  allUsers: User[];
 }
 
-export const exportExpenses = ({ format, month, expenses, settlements = [], summary }: ExportOptions) => {
+// Helper function to escape CSV fields
+const escapeCsvField = (field: string | number): string => {
+  const stringField = String(field);
+  // If field contains comma, double quote, or newline, enclose in double quotes and escape existing double quotes
+  if (stringField.includes(',') || stringField.includes('"') || stringField.includes('\n')) {
+    return `"${stringField.replace(/"/g, '""')}"`;
+  }
+  return stringField;
+};
+
+
+export const exportExpenses = ({ format, month, expenses, settlements = [], summary, allUsers }: ExportOptions) => {
+
   // Calculate the total amount of expenses
   const totalAmount = expenses.reduce((total, expense) => total + Number(expense.amount), 0);
 
-  // Format expenses for display
+  // Format expenses for display (keep this formatting)
   const formattedExpenses = expenses.map(expense => ({
     'Date': formatDate(expense.date),
-    'Category': expense.category.name,
-    'Location': expense.location.name,
-    'Amount': formatCurrency(Number(expense.amount)),
-    'Paid By': expense.paidByUser.username,
-    'Split': expense.split_type,
+    'Category': expense.category?.name ?? 'N/A',
+    'Location': expense.location?.name ?? 'N/A',
+    'Amount': formatCurrency(Number(expense.amount)), // Keep formatted currency for display consistency? Or use raw number? Let's keep formatted for now.
+    'Paid By': expense.paidByUser?.username ?? 'Unknown',
+    'Split': expense.splitType,
     'Description': expense.description || ''
   }));
 
-  // Add a total row
+  // Add a total row (keep this formatting)
   const totalRow = {
     'Date': '',
     'Category': '',
@@ -51,7 +63,7 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
     'Description': ''
   };
 
-  // Format settlements data if available
+  // Format settlements data if available (keep this)
   const formattedSettlements = settlements.map(settlement => ({
     'Date': formatDate(settlement.date),
     'Month': formatMonthYear(settlement.month),
@@ -60,20 +72,15 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
     'Amount': formatCurrency(Number(settlement.amount))
   }));
 
-  // Get properly formatted settlement status using user names
+  // Get properly formatted settlement status using user names (keep this)
   let settlementStatus = "No settlement information available";
-
   if (summary && summary.settlementAmount > 0) {
     const fromUserId = summary.settlementDirection.fromUserId;
     const toUserId = summary.settlementDirection.toUserId;
-
-    // Get user names from the user IDs
-    const fromUser = USERS.find(user => user.id === fromUserId);
-    const toUser = USERS.find(user => user.id === toUserId);
-
-    const fromUserName = fromUser?.name || `User ${fromUserId}`;
-    const toUserName = toUser?.name || `User ${toUserId}`;
-
+    const fromUser = allUsers.find(user => user.id === fromUserId);
+    const toUser = allUsers.find(user => user.id === toUserId);
+    const fromUserName = fromUser?.username || `User ID: ${fromUserId}`;
+    const toUserName = toUser?.username || `User ID: ${toUserId}`;
     settlementStatus = `${fromUserName} owes ${formatCurrency(summary.settlementAmount)} to ${toUserName}`;
   } else if (summary) {
     settlementStatus = "No settlements needed";
@@ -81,146 +88,112 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
 
   const fileName = `expenses-${month}`;
 
-  if (format === 'csv' || format === 'xlsx') {
-    // Create expenses worksheet with total
-    const expensesWithTotal = [...formattedExpenses, totalRow];
-    const worksheet = utils.json_to_sheet(expensesWithTotal);
+  // --- CSV Export Logic ---
+  if (format === 'csv') {
+    const headers = ['Date', 'Category', 'Location', 'Amount', 'Paid By', 'Split', 'Description'];
+    const expenseRows = formattedExpenses.map(exp => headers.map(header => escapeCsvField(exp[header as keyof typeof exp])));
+    const totalCsvRow = headers.map(header => escapeCsvField(totalRow[header as keyof typeof totalRow]));
 
-    // Adjust column widths
-    const columnWidths = [
-      { wch: 12 }, // Date
-      { wch: 15 }, // Category
-      { wch: 15 }, // Location
-      { wch: 10 }, // Amount
-      { wch: 12 }, // Paid By
-      { wch: 10 }, // Split
-      { wch: 30 }  // Description
-    ];
-    worksheet['!cols'] = columnWidths;
+    // Combine headers, expense rows, and total row
+    const csvContent = [
+      headers.join(','),
+      ...expenseRows.map(row => row.join(',')),
+      totalCsvRow.join(',')
+    ].join('\n');
 
-    // Create workbook
-    const workbook = utils.book_new();
-    utils.book_append_sheet(workbook, worksheet, 'Expenses');
+    // Add summary section to CSV
+    let csvSummaryContent = '\n\nSummary\n';
+    if (summary && allUsers.length >= 2) {
+        const user1 = allUsers.find(u => u.id === Object.keys(summary.userExpenses)[0]) || allUsers[0];
+        const user2 = allUsers.find(u => u.id === Object.keys(summary.userExpenses)[1]) || allUsers[1];
+        const user1Expenses = summary.userExpenses[user1.id] || 0;
+        const user2Expenses = summary.userExpenses[user2.id] || 0;
+        csvSummaryContent += `Total Expenses,${escapeCsvField(formatCurrency(summary.totalExpenses))}\n`;
+        csvSummaryContent += `${user1.username} Paid,${escapeCsvField(formatCurrency(user1Expenses))}\n`;
+        csvSummaryContent += `${user2.username} Paid,${escapeCsvField(formatCurrency(user2Expenses))}\n`;
+        csvSummaryContent += `Settlement Status,${escapeCsvField(settlementStatus)}\n`;
+    } else {
+        csvSummaryContent += 'Summary data not available\n';
+    }
 
-    // Add settlements sheet if there are any
+    // Add settlements section to CSV if available
     if (settlements.length > 0) {
-      const settlementSheet = utils.json_to_sheet(formattedSettlements);
-
-      // Adjust column widths for settlements
-      const settlementColumnWidths = [
-        { wch: 12 }, // Date
-        { wch: 15 }, // Month
-        { wch: 12 }, // From
-        { wch: 12 }, // To
-        { wch: 10 }  // Amount
-      ];
-      settlementSheet['!cols'] = settlementColumnWidths;
-
-      utils.book_append_sheet(workbook, settlementSheet, 'Settlements');
+        csvSummaryContent += '\nSettlements\n';
+        const settlementHeaders = ['Date', 'Month', 'From', 'To', 'Amount'];
+        csvSummaryContent += settlementHeaders.join(',') + '\n';
+        const settlementRows = formattedSettlements.map(set => settlementHeaders.map(header => escapeCsvField(set[header as keyof typeof set])));
+        csvSummaryContent += settlementRows.map(row => row.join(',')).join('\n');
     }
 
-    // Add summary information sheet
-    if (summary) {
-      // Create a more detailed summary sheet with user expense info
-      const user1 = USERS[0];
-      const user2 = USERS[1];
 
-      const user1Expenses = summary.userExpenses[user1.id] || 0;
-      const user2Expenses = summary.userExpenses[user2.id] || 0;
+    const finalCsvContent = csvContent + csvSummaryContent;
 
-      const summaryData = [
-        { 'Item': 'Total Expenses', 'Value': formatCurrency(summary.totalExpenses) },
-        { 'Item': `${user1.name} Paid`, 'Value': formatCurrency(user1Expenses) },
-        { 'Item': `${user2.name} Paid`, 'Value': formatCurrency(user2Expenses) },
-        { 'Item': 'Settlement Status', 'Value': settlementStatus }
-      ];
-
-      const summarySheet = utils.json_to_sheet(summaryData);
-      utils.book_append_sheet(workbook, summarySheet, 'Summary');
+    // Create Blob and trigger download
+    const blob = new Blob([finalCsvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    if (link.download !== undefined) { // Feature detection
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", `${fileName}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url); // Clean up Blob URL
+    } else {
+        console.error("CSV download link creation failed.");
+        // Fallback or error message
+        alert("CSV download failed. Your browser might not support this feature.");
     }
 
-    writeFile(workbook, `${fileName}.${format}`);
+  // --- PDF Export Logic ---
   } else if (format === 'pdf') {
-    let doc: jsPDF;
     try {
-      doc = new jsPDF();
+      const doc = new jsPDF();
 
-      // Add title and header info
       doc.setFontSize(16);
       doc.text(`Expenses for ${formatMonthYear(month)}`, 14, 15);
-
       doc.setFontSize(10);
       doc.text(`Generated: ${formatDate(new Date())}`, 14, 22);
-
-      // Add settlement status if available
       if (summary) {
         doc.setFontSize(10);
         doc.text(`Settlement Status: ${settlementStatus}`, 14, 28);
       }
 
-      // Add expenses table with proper formatting
       autoTable(doc, {
         head: [['Date', 'Category', 'Location', 'Amount', 'Paid By', 'Split', 'Description']],
         body: [
-          ...expenses.map(expense => [
-            formatDate(expense.date),
-            expense.category.name,
-            expense.location.name,
-            formatCurrency(Number(expense.amount)),
-            expense.paidByUser.username,
-            expense.split_type,
-            expense.description || ''
+          ...formattedExpenses.map(expense => [
+            expense['Date'], expense['Category'], expense['Location'], expense['Amount'], expense['Paid By'], expense['Split'], expense['Description']
           ]),
-          // Add total row with bold formatting
           ['', '', 'TOTAL', formatCurrency(totalAmount), '', '', '']
         ],
         startY: 32,
         theme: 'grid',
         styles: { fontSize: 8 },
         headStyles: { fillColor: [59, 130, 246], textColor: [255, 255, 255], fontStyle: 'bold' },
-        columns: [
-          { dataKey: 'date' },
-          { dataKey: 'category' },
-          { dataKey: 'location' },
-          { dataKey: 'amount' },
-          { dataKey: 'paidBy' },
-          { dataKey: 'split' },
-          { dataKey: 'description' }
-        ],
         columnStyles: {
-          0: { cellWidth: 20 },
-          1: { cellWidth: 25 },
-          2: { cellWidth: 25 },
-          3: { cellWidth: 20 },
-          4: { cellWidth: 20 },
-          5: { cellWidth: 20 },
-          6: { cellWidth: 'auto' }
+          0: { cellWidth: 20 }, 1: { cellWidth: 25 }, 2: { cellWidth: 25 }, 3: { cellWidth: 20 }, 4: { cellWidth: 20 }, 5: { cellWidth: 20 }, 6: { cellWidth: 'auto' }
         },
         alternateRowStyles: { fillColor: [248, 250, 252] },
-        // Add bottom row styling for total
         foot: [['', '', 'TOTAL', formatCurrency(totalAmount), '', '', '']],
         footStyles: { fontStyle: 'bold', fillColor: [240, 240, 240] }
       });
 
-      // Get the last Y position after expenses table
       const finalY = doc.lastAutoTable.finalY || 150;
 
-      // Add user expense breakdown if summary is available
-      if (summary) {
-        const user1 = USERS[0];
-        const user2 = USERS[1];
-
+      if (summary && allUsers.length >= 2) {
+        const user1 = allUsers.find(u => u.id === Object.keys(summary.userExpenses)[0]) || allUsers[0];
+        const user2 = allUsers.find(u => u.id === Object.keys(summary.userExpenses)[1]) || allUsers[1];
         const user1Expenses = summary.userExpenses[user1.id] || 0;
         const user2Expenses = summary.userExpenses[user2.id] || 0;
-
         doc.setFontSize(14);
         doc.text('Expense Summary', 14, finalY + 15);
-
         autoTable(doc, {
           head: [['User', 'Amount', 'Percentage']],
           body: [
-            [user1.name, formatCurrency(user1Expenses), '50%'],
-            [user2.name, formatCurrency(user2Expenses), '50%'],
+            [user1.username, formatCurrency(user1Expenses), summary.totalExpenses > 0 ? `${((user1Expenses / summary.totalExpenses) * 100).toFixed(0)}%` : '0%'],
+            [user2.username, formatCurrency(user2Expenses), summary.totalExpenses > 0 ? `${((user2Expenses / summary.totalExpenses) * 100).toFixed(0)}%` : '0%'],
             ['Total', formatCurrency(summary.totalExpenses), '100%']
           ],
           startY: finalY + 20,
@@ -231,14 +204,10 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
         });
       }
 
-      // Add settlement information if available
       if (settlements.length > 0) {
-        // Get the current Y position
         const summaryY = doc.lastAutoTable.finalY || finalY + 40;
-
         doc.setFontSize(14);
         doc.text('Settlement History', 14, summaryY + 15);
-
         autoTable(doc, {
           head: [['Date', 'Month', 'From', 'To', 'Amount']],
           body: settlements.map(settlement => [
@@ -255,7 +224,6 @@ export const exportExpenses = ({ format, month, expenses, settlements = [], summ
         });
       }
 
-      // Save the PDF file
       doc.save(`${fileName}.pdf`);
     } catch (err) {
       console.error("PDF generation error:", err);

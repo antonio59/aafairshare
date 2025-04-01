@@ -1,34 +1,35 @@
-import { useState, useEffect } from "react";
+import React, { useEffect } from "react"; // Removed useState
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Category, insertCategorySchema } from "@shared/schema";
+import { Category } from "@shared/schema"; // Use Category type from schema
 import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useToast } from "@/hooks/use-toast";
+// Removed useToast import, handled by hook
 import { CATEGORY_COLORS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+// Removed Firestore imports, handled by hook
+import { useFirestoreFormSubmit } from '@/hooks/useFirestoreFormSubmit'; // Import the hook
 
 interface CategoryFormProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  category?: Category;
+  category?: Category; // Use Category type from schema
 }
 
-const formSchema = insertCategorySchema.extend({
-  // Ensure color is selected
+// Local Zod schema for form validation
+const formSchema = z.object({
+  name: z.string().min(1, "Category name is required"),
   color: z.string().min(1, "Please select a color")
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 export default function CategoryForm({ open, onOpenChange, category }: CategoryFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
+  // Removed local isSubmitting state and toast
 
   // Form setup
   const form = useForm<FormData>({
@@ -47,68 +48,38 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
         color: category.color
       });
     } else {
-      form.reset({
-        name: "",
-        color: CATEGORY_COLORS[0]
-      });
+      // Reset to defaults when adding a new category or closing the form
+       form.reset({
+         name: "",
+         color: CATEGORY_COLORS[0]
+       });
     }
-  }, [category, form]);
+  }, [category, form, open]); // Add open dependency to reset on close
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
+  // Use the custom hook for submission logic
+  const { handleSubmit: handleFirestoreSubmit, isSubmitting } = useFirestoreFormSubmit<FormData>({
+    collectionName: "categories",
+    item: category, // Pass the category being edited (if any)
+    onSuccess: () => {
+      // No need to invalidate queries here if Settings listener handles it
+      onOpenChange(false); // Close dialog on success
+      form.reset({ name: "", color: CATEGORY_COLORS[0] }); // Reset form
+    },
+    // onError is handled by the hook's default toast
+  });
 
-    try {
-      if (category) {
-        // Update existing category
-        await apiRequest(`/api/categories/${category.id}`, 'PATCH', data);
-        toast({
-          title: "Category updated",
-          description: "The category has been updated successfully."
-        });
-      } else {
-        // Create new category
-        await apiRequest('/api/categories', 'POST', data);
-        toast({
-          title: "Category added",
-          description: "The category has been added successfully."
-        });
-      }
-
-      // Invalidate queries
-      queryClient.invalidateQueries({ queryKey: ['/api/categories'] });
-
-      // Close the form
-      onOpenChange(false);
-      form.reset();
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to save category. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
+  // Wrapper function to match react-hook-form's expected signature
+  const onSubmit = (data: FormData) => {
+    handleFirestoreSubmit(data); // Call the hook's submit handler
   };
 
-  // Create footer buttons with improved styling
+  // Create footer buttons (uses isSubmitting from the hook)
   const formFooter = (
     <>
-      <Button 
-        type="button" 
-        variant="outline" 
-        onClick={() => onOpenChange(false)}
-        disabled={isSubmitting}
-        className="flex-1 h-11 min-w-[120px] transition-all hover:bg-muted/80 active:scale-[0.98]"
-      >
+      <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="flex-1 h-11 min-w-[120px] transition-all hover:bg-muted/80 active:scale-[0.98]">
         Cancel
       </Button>
-      <Button 
-        type="submit" 
-        disabled={isSubmitting}
-        className="flex-1 h-11 min-w-[120px] transition-all hover:brightness-105 active:scale-[0.98]"
-        form="category-form"
-      >
+      <Button type="submit" disabled={isSubmitting} className="flex-1 h-11 min-w-[120px] transition-all hover:brightness-105 active:scale-[0.98]" form="category-form">
         {isSubmitting ? "Saving..." : category ? "Update" : "Save"}
       </Button>
     </>
@@ -129,15 +100,14 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-base font-medium">Name</FormLabel>
+                <FormLabel>Name</FormLabel>
                 <FormControl>
                   <Input 
-                    {...field} 
                     placeholder="Category name" 
-                    className="h-11 transition-all focus:ring-2 focus:ring-primary/25"
+                    {...field} 
                   />
                 </FormControl>
-                <FormDescription className="text-xs text-muted-foreground">
+                <FormDescription>
                   Give your category a clear, descriptive name
                 </FormDescription>
                 <FormMessage />
@@ -150,30 +120,33 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
             name="color"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-base font-medium">Color</FormLabel>
+                <FormLabel>Color</FormLabel>
                 <FormControl>
-                  <div className="grid grid-cols-5 gap-4 py-2">
+                  <div className="grid grid-cols-5 gap-4">
                     {CATEGORY_COLORS.map(color => (
-                      <div key={color} className="relative flex items-center justify-center">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className={cn(
-                            "h-12 w-12 p-0 rounded-full transition-all", 
-                            field.value === color ? "ring-2 ring-primary border-primary shadow-md" : "opacity-80 hover:opacity-100"
-                          )}
-                          style={{ backgroundColor: color }}
-                          onClick={() => field.onChange(color)}
-                        >
-                          {field.value === color && (
-                            <Check className="h-5 w-5 text-white drop-shadow-md" />
-                          )}
-                        </Button>
-                      </div>
+                      <Button
+                        key={color}
+                        type="button"
+                        variant="outline"
+                        className={cn(
+                          "h-10 w-10 rounded-full p-0 relative",
+                          field.value === color && "ring-2 ring-primary"
+                        )}
+                        style={{ 
+                          backgroundColor: color,
+                          borderColor: color
+                        }}
+                        onClick={() => field.onChange(color)}
+                      >
+                        {field.value === color && (
+                          <Check className="h-4 w-4 text-white absolute" />
+                        )}
+                        <span className="sr-only">Select color {color}</span>
+                      </Button>
                     ))}
                   </div>
                 </FormControl>
-                <FormDescription className="text-xs text-muted-foreground">
+                <FormDescription>
                   Select a color to visually identify this category
                 </FormDescription>
                 <FormMessage />

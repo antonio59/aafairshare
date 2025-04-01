@@ -1,327 +1,616 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import SummaryCard from "@/components/SummaryCard";
-import ExpenseTable from "@/components/ExpenseTable";
-import ExpenseForm from "@/components/ExpenseForm";
+import { ExpenseTable } from "@/components/ExpenseTable";
+import ExpenseForm from "@/components/ExpenseForm"; // Import the inline form
 import { Button } from "@/components/ui/button";
-import { PlusIcon, PoundSterling, Users, WalletCards } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { ExpenseWithDetails, MonthSummary, SettlementWithUsers } from "@shared/schema";
+import { PlusIcon, PoundSterling, Users, WalletCards, Download } from "lucide-react"; // Added Download icon
+// Removed unused Settlement import
+import { ExpenseWithDetails, MonthSummary, User, Category, Location, Expense } from "@shared/schema";
 import { formatCurrency, getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
-import { exportExpenses } from "@/lib/exportUtils";
-import { apiRequest } from "@/lib/queryClient";
-import { Tooltip } from "@/components/ui/tooltip";
+// Removed unused Skeleton import
+// import { Skeleton } from "@/components/ui/skeleton";
+// Removed unused exportExpenses import
+// import { exportExpenses } from "@/lib/exportUtils";
+// Removed unused Tooltip import
+// import { Tooltip } from "@/components/ui/tooltip";
+import { useAuth } from "@/context/AuthContext";
+import { db } from "@/lib/firebase";
+// Removed unused getDoc import
+import { collection, query, where, orderBy, Timestamp, doc, getDocs, deleteDoc } from "firebase/firestore";
+// Removed unused Dialog imports
+// import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"; // Import Dropdown components
+
+// Define ExportFormat locally to match the one in exportUtils
+type ExportFormat = 'csv' | 'pdf';
 
 export default function Dashboard() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
-  const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
+  const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false); // State to toggle inline form
   const [selectedExpense, setSelectedExpense] = useState<ExpenseWithDetails | undefined>(undefined);
   const { toast } = useToast();
-  
-  // Listen for the custom add-expense event
-  useEffect(() => {
-    const handleAddExpense = () => {
-      setSelectedExpense(undefined);
-      setIsExpenseFormOpen(true);
-    };
-    
-    window.addEventListener('add-expense-event', handleAddExpense);
-    
-    return () => {
-      window.removeEventListener('add-expense-event', handleAddExpense);
-    };
-  }, []);
+  // Removed unused userProfile from useAuth()
+  const { currentUser } = useAuth();
 
-  // Fetch summary data for the month
-  const { 
-    data: summary, 
-    isLoading: summaryLoading,
-    isError: summaryError
-  } = useQuery<MonthSummary>({
-    queryKey: [`/api/summary/${currentMonth}`],
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1
-  });
+  // State for Firestore data
+  const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
+  const [expensesLoading, setExpensesLoading] = useState(true);
+  const [summary, setSummary] = useState<MonthSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  // Removed unused settlements state
+  // const [settlements, setSettlements] = useState<Settlement[]>([]);
+  // Removed unused settlementsLoading state
+  // const [settlementsLoading, setSettlementsLoading] = useState(true);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
 
-  // If there's an error with summary, show toast
-  useEffect(() => {
-    if (summaryError) {
+  // --- Data Fetching Functions ---
+  const fetchUsers = useCallback(async () => {
+    setUsersLoading(true);
+    try {
+      const usersCol = collection(db, "users");
+      const snapshot = await getDocs(usersCol);
+      const fetchedUsers = snapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          // id field matches Firebase UID
+          email: data.email,
+          username: data.username,
+          photoURL: data.photoURL // Add photoURL
+        } as User;
+      });
+      // console.log("Fetched users:", fetchedUsers); // Removed console.log
+      setAllUsers(fetchedUsers);
+    } catch (error) {
+      console.error("Error fetching users:", error);
       toast({
         title: "Error",
-        description: "Failed to load summary data. Please try again.",
-        variant: "destructive"
+        description: "Could not load user data. Please refresh the page.",
+        variant: "destructive",
+        duration: 5000
       });
+    } finally {
+      setUsersLoading(false);
     }
-  }, [summaryError, toast]);
+  }, [toast]);
 
-  // Fetch expenses for the month
-  const { 
-    data: expenses = [], // provide empty array as default
-    isLoading: expensesLoading,
-    isError: expensesError
-  } = useQuery<ExpenseWithDetails[]>({
-    queryKey: [`/api/expenses?month=${currentMonth}`],
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1
-  });
+  const fetchCategories = useCallback(async () => {
+    setCategoriesLoading(true);
+    try {
+      const catCol = collection(db, "categories");
+      const q = query(catCol, orderBy("name"));
+      const snapshot = await getDocs(q);
+      const fetchedCategories = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+      setCategories(fetchedCategories);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast({ title: "Error", description: "Could not load categories.", variant: "destructive" });
+    } finally {
+      setCategoriesLoading(false);
+    }
+  }, [toast]);
 
-  // Fetch all users
-  const {
-    data: allUsers = [],
-    isLoading: usersLoading
-  } = useQuery({
-    queryKey: ['/api/users'],
-    staleTime: 1000 * 60 * 30, // 30 minutes
-    retry: 1
-  });
-  
-  // If there's an error with expenses, show toast
+  const fetchLocations = useCallback(async () => {
+    setLocationsLoading(true);
+    try {
+      const locCol = collection(db, "locations");
+      const q = query(locCol, orderBy("name"));
+      const snapshot = await getDocs(q);
+      const fetchedLocations = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Location));
+      setLocations(fetchedLocations);
+    } catch (error) {
+      console.error("Error fetching locations:", error);
+      toast({ title: "Error", description: "Could not load locations.", variant: "destructive" });
+    } finally {
+      setLocationsLoading(false);
+    }
+  }, [toast]);
+
+  // --- Mobile Add Expense Event Listener ---
   useEffect(() => {
-    if (expensesError) {
+    const handleMobileAdd = () => handleAddExpense();
+    window.addEventListener('add-expense-event', handleMobileAdd);
+    return () => window.removeEventListener('add-expense-event', handleMobileAdd);
+  }, []); // handleAddExpense is stable due to useState setter
+
+  // Fetch Expenses (Settlements excluded)
+  const fetchExpensesAndSettlements = useCallback(async (month: string) => {
+    if (!currentUser) return;
+    setExpensesLoading(true);
+
+    try {
+      // First, ensure we have the necessary reference data
+      if (!categories.length) await fetchCategories();
+      if (!locations.length) await fetchLocations();
+      if (!allUsers.length) await fetchUsers();
+
+      const expensesCol = collection(db, "expenses");
+
+      // Log the month we're querying for
+      // console.log("Fetching expenses for month:", month); // Removed console.log
+
+      // Create a simpler query that doesn't require a composite index
+      let expensesQuery = query(
+        expensesCol,
+        where("month", "==", month)
+      );
+
+      try {
+        let expensesSnapshot = await getDocs(expensesQuery);
+
+        // If no results, check all expenses to debug
+        if (expensesSnapshot.empty) {
+          // console.log("No expenses found for month. Checking all expenses to debug..."); // Removed console.log
+          expensesQuery = query(expensesCol);
+          expensesSnapshot = await getDocs(expensesQuery);
+          // console.log("Total expenses in collection:", expensesSnapshot.size); // Removed console.log
+          if (expensesSnapshot.size > 0) {
+            // Log some sample data to see the month format
+            // Removed unused sampleDocs variable
+            // const sampleDocs = expensesSnapshot.docs.slice(0, 3).map(doc => { ... });
+            // console.log("Sample expense documents:", sampleDocs); // Removed console.log
+          }
+        }
+
+        // console.log(`Found ${expensesSnapshot.size} expenses${expensesSnapshot.size > 0 ? ' for month ' + month : ''}`); // Removed console.log
+
+        // Create maps for lookups
+        const categoryMap = new Map(categories.map(c => [c.id, c]));
+        const locationMap = new Map(locations.map(l => [l.id, l]));
+        const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+        // Process expenses with fallbacks for missing references
+        const resolvedExpenses = expensesSnapshot.docs.map((expenseDoc): ExpenseWithDetails => {
+          const expenseData = expenseDoc.data();
+          // console.log(`Processing expense ${expenseDoc.id}:`, expenseData); // Removed console.log
+
+          // Get category with fallback
+          const category = categoryMap.get(expenseData.categoryId) || {
+            id: expenseData.categoryId,
+            name: 'Unknown Category',
+            color: '#888888'
+          };
+
+          // Get location with fallback
+          const location = locationMap.get(expenseData.locationId) || {
+            id: expenseData.locationId,
+            name: 'Unknown Location'
+          };
+
+          // Get user with fallback
+          const paidByUser = userMap.get(expenseData.paidByUserId) || {
+            id: expenseData.paidByUserId,
+            // id field matches paidByUserId
+            email: currentUser.email,
+            username: 'Unknown User'
+          };
+
+          // Convert Timestamp to Date safely
+          let date = new Date();
+          if (expenseData.date) {
+            if (expenseData.date instanceof Timestamp) {
+              date = expenseData.date.toDate();
+            } else if (expenseData.date.seconds) {
+              date = new Date(expenseData.date.seconds * 1000);
+            }
+          }
+
+          const expenseBase: Expense = {
+            id: expenseDoc.id,
+            description: expenseData.description || "",
+            amount: Number(expenseData.amount) || 0,
+            date: date,
+            paidByUserId: expenseData.paidByUserId,
+            splitType: expenseData.splitType || "50/50",
+            categoryId: expenseData.categoryId,
+            locationId: expenseData.locationId,
+            month: expenseData.month
+          };
+
+          return { ...expenseBase, category, location, paidByUser };
+        });
+
+        // Sort expenses by date after fetching
+        resolvedExpenses.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+        // --- START FIX: Filter expenses to ONLY the requested month before setting state ---
+        const filteredExpensesForMonth = resolvedExpenses.filter(exp => exp.month === month);
+        // console.log(`Successfully processed ${resolvedExpenses.length} total expenses, filtered down to ${filteredExpensesForMonth.length} for month ${month}`); // Removed console.log
+        setExpenses(filteredExpensesForMonth);
+        // --- END FIX ---
+
+        // setSettlements([]); // Removed as state is removed
+        // setSettlementsLoading(false); // Removed as state is removed
+
+      } catch (error) {
+        console.error("Error fetching expenses:", error);
+        if (error instanceof Error) {
+          console.error("Detailed error:", {
+            message: error.message,
+            stack: error.stack
+          });
+        }
+        toast({
+          title: "Error",
+          description: "Failed to load expenses. Please check the console for details.",
+          variant: "destructive"
+        });
+        setExpenses([]);
+        // setSettlements([]); // Removed as state is removed
+      }
+    } catch (error) {
+      console.error("Error fetching expenses:", error);
+      if (error instanceof Error) {
+        console.error("Detailed error:", {
+          message: error.message,
+          stack: error.stack
+        });
+      }
       toast({
         title: "Error",
-        description: "Failed to load expenses data. Please try again.",
+        description: "Failed to load expenses. Please check the console for details.",
         variant: "destructive"
       });
+      setExpenses([]);
+      // setSettlements([]); // Removed as state is removed
+    } finally {
+      setExpensesLoading(false);
+      // setSettlementsLoading(false); // Removed as state is removed
     }
-  }, [expensesError, toast]);
+  }, [currentUser, categories, locations, allUsers, fetchCategories, fetchLocations, fetchUsers, toast]);
+
+  // --- Initial Data Fetch ---
+  useEffect(() => {
+    const loadInitialData = async () => {
+      try {
+        await Promise.all([
+          fetchUsers(),
+          fetchCategories(),
+          fetchLocations()
+        ]);
+      } catch (error) {
+        console.error("Error loading initial data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load initial data. Please refresh the page.",
+          variant: "destructive"
+        });
+      }
+    };
+    loadInitialData();
+  }, [fetchUsers, fetchCategories, fetchLocations, toast]);
+
+  // --- Fetch Monthly Data ---
+  useEffect(() => {
+    if (currentUser) {
+      fetchExpensesAndSettlements(currentMonth);
+    }
+  }, [currentMonth, fetchExpensesAndSettlements, currentUser]);
+
+  // --- Calculate Summary ---
+  useEffect(() => {
+    if (expensesLoading || usersLoading || !currentUser || allUsers.length < 2) {
+      setSummaryLoading(true); return;
+    }
+    setSummaryLoading(true);
+
+    // Find user1 by matching document ID to Firebase UID
+    const user1 = allUsers.find(u => u.id === currentUser.uid);
+    if (!user1) {
+      console.error("Could not identify current user in users collection. UID:", currentUser.uid);
+      toast({
+        title: "Error",
+        description: "Could not identify your user profile. Please try logging out and back in.",
+        variant: "destructive"
+      });
+      setSummaryLoading(false);
+      setSummary(null);
+      return;
+    }
+
+    // Find the other user
+    const user2 = allUsers.find(u => u.id !== currentUser.uid);
+    if (!user2) {
+      console.error("Could not find second user in users collection");
+      toast({
+        title: "Error",
+        description: "Could not find the other user profile.",
+        variant: "destructive"
+      });
+      setSummaryLoading(false);
+      setSummary(null);
+      return;
+    }
+
+    let totalExpenses = 0; // Still useful for the "Total" card
+    let totalSplitExpenses = 0; // For calculating fair share of 50/50 items
+    const userExpenses: Record<string, number> = { [user1.id]: 0, [user2.id]: 0 }; // Total paid by each user
+    let user1_paid_50_50 = 0;
+    // Removed unused user2_paid_50_50
+    // let user2_paid_50_50 = 0;
+    let user1_paid_100_owed_by_other = 0;
+    let user2_paid_100_owed_by_other = 0;
+
+    expenses.forEach(exp => {
+      const amount = Number(exp.amount) || 0;
+      totalExpenses += amount; // Sum all expenses for the total card
+
+      // Track total paid by each user regardless of split type
+      if (exp.paidByUserId === user1.id) userExpenses[user1.id] += amount;
+      else if (exp.paidByUserId === user2.id) userExpenses[user2.id] += amount;
+
+      // Handle split types for balance calculation
+      if (exp.splitType === "50/50") {
+        totalSplitExpenses += amount;
+        if (exp.paidByUserId === user1.id) {
+          user1_paid_50_50 += amount;
+        } else if (exp.paidByUserId === user2.id) {
+          // user2_paid_50_50 += amount; // This variable is unused
+        }
+      } else if (exp.splitType === "100%") {
+        if (exp.paidByUserId === user1.id) {
+          user1_paid_100_owed_by_other += amount; // User 2 owes User 1 this full amount
+        } else if (exp.paidByUserId === user2.id) {
+          user2_paid_100_owed_by_other += amount; // User 1 owes User 2 this full amount
+        }
+      }
+      // Add other split types here if necessary in the future
+    });
+
+    const fairShare = totalSplitExpenses / 2; // Fair share only applies to 50/50 items
+
+    // Calculate User 1's balance
+    // Start with their share of 50/50 expenses
+    let user1Balance = user1_paid_50_50 - fairShare;
+    // Add amounts User 2 owes User 1 (User 1 paid 100%)
+    user1Balance += user1_paid_100_owed_by_other;
+    // Subtract amounts User 1 owes User 2 (User 2 paid 100%)
+    user1Balance -= user2_paid_100_owed_by_other;
+
+
+    let settlementAmount = 0;
+    let settlementDirection = { fromUserId: "", toUserId: "" };
+
+    if (user1Balance < 0) { // User1 owes User2
+      settlementAmount = Math.abs(user1Balance);
+      settlementDirection = { fromUserId: user1.id, toUserId: user2.id };
+    } else if (user1Balance > 0) { // User2 owes User1
+      settlementAmount = user1Balance;
+      settlementDirection = { fromUserId: user2.id, toUserId: user1.id };
+    }
+
+    // Note: categoryTotals, locationTotals, splitTypeTotals, dateDistribution are not calculated here
+    // They are calculated in Analytics.tsx. We only need the basic summary for the dashboard cards.
+    const calculatedSummary: MonthSummary = {
+      month: currentMonth, // Add month
+      totalExpenses,
+      userExpenses,
+      settlementAmount,
+      settlementDirection,
+      // Provide empty arrays/objects for unused fields to satisfy the type
+      categoryTotals: [],
+      locationTotals: [],
+      splitTypeTotals: {},
+      dateDistribution: {},
+    };
+
+    setSummary(calculatedSummary);
+    setSummaryLoading(false);
+    // Added currentMonth to dependency array
+  }, [expenses, allUsers, currentUser, expensesLoading, usersLoading, toast, currentMonth]);
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
   };
 
-  const handleAddExpense = () => {
-    setSelectedExpense(undefined);
-    setIsExpenseFormOpen(true);
-  };
+  // Handlers to open/close the inline form
+   const handleAddExpense = () => {
+     setSelectedExpense(undefined);
+     setIsExpenseFormOpen(true); // Show inline form
+   };
+   const handleEditExpense = (expense: ExpenseWithDetails) => {
+     setSelectedExpense(expense);
+     setIsExpenseFormOpen(true); // Show inline form
+   };
+   const onExpenseFormClose = (needsRefetch?: boolean) => {
+       setIsExpenseFormOpen(false); // Hide inline form
+       if (needsRefetch) {
+           fetchExpensesAndSettlements(currentMonth);
+       }
+    };
 
-  const handleEditExpense = (expense: ExpenseWithDetails) => {
-    setSelectedExpense(expense);
-    setIsExpenseFormOpen(true);
-  };
-
-  // Fetch settlements for the month
-  const { 
-    data: settlements = [] as SettlementWithUsers[], 
-    isLoading: settlementsLoading 
-  } = useQuery<SettlementWithUsers[]>({
-    queryKey: [`/api/settlements?month=${currentMonth}`],
-    staleTime: 1000 * 60 * 5, // 5 minutes
-    retry: 1
-  });
-
-  const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
-    if (expenses && expenses.length > 0) {
-      exportExpenses({
-        format,
-        month: currentMonth,
+   // Update handleExport type signature
+   const handleExport = async (format: ExportFormat) => { // Use updated ExportFormat type
+     if (!summary || expensesLoading || summaryLoading) {
+       toast({
+         title: "Data Not Ready",
+        description: "Please wait for the data to load before exporting.",
+        variant: "default",
+       });
+       return;
+     }
+     try {
+       // Dynamically import the export function only when needed
+       const { exportExpenses } = await import('@/lib/exportUtils');
+       exportExpenses({
+         format,
+         month: currentMonth,
         expenses,
-        settlements, // Add settlements data
-        summary      // Add summary data
-      });
-    } else {
-      toast({
-        title: "Export failed",
-        description: "No expenses to export for the selected month.",
-        variant: "destructive"
+        // settlements, // Removed as it causes a type error and isn't fetched here
+        summary,
+         allUsers, // Pass the fetched user list
+       });
+       toast({ title: "Export Successful", description: `Expenses exported as ${format.toUpperCase()}.` });
+     } catch (error) {
+       console.error("Export failed:", error);
+       toast({
+        title: "Export Failed",
+        description: error instanceof Error ? error.message : "An unknown error occurred.",
+        variant: "destructive",
       });
     }
   };
 
-  // Find users from summary
-  const userIds = summary?.userExpenses ? Object.keys(summary.userExpenses).map(Number) : [];
-  const user1Id = userIds.length > 0 ? userIds[0] : 0;
-  const user2Id = userIds.length > 1 ? userIds[1] : 0;
+  // Removed unused expenseDialogDescId
+  // const expenseDialogDescId = "expense-dialog-description";
 
-  // Find user objects from the users array (safely handling unknown data type)
-  const user1Obj = Array.isArray(allUsers) ? 
-    allUsers.find((u: any) => u.id === user1Id) : null;
-  const user2Obj = Array.isArray(allUsers) ? 
-    allUsers.find((u: any) => u.id === user2Id) : null;
-  
-  // Use the username from the user object, or a fallback if not found
-  const user1Name = user1Obj?.username || "User 1";
-  const user2Name = user2Obj?.username || "User 2";
+  // Removed unused user1Name and user2Name
+  // const user1Name = userProfile?.username || currentUser?.email?.split('@')[0] || "User 1";
+  const user2Data = currentUser ? allUsers.find(u => u.id !== currentUser.uid) : null;
+  // const user2Name = user2Data?.username || user2Data?.email?.split('@')[0] || "User 2";
+  const user1Id = currentUser?.uid || "unknown1"; // Use Auth UID
+  const user2Id = user2Data?.id || "unknown2"; // Use Firestore ID for user 2
 
-  // Convert IDs to strings for use in JSX
-  const user1IdStr = user1Id.toString();
-  const user2IdStr = user2Id.toString();
+  // Find the user who owes money for the settlement card
+  const owingUserId = summary?.settlementDirection.fromUserId;
+  const owingUser = owingUserId ? allUsers.find(u => u.id === owingUserId) : null;
+
+  // Removed unused showSummarySkeleton and showExpenseSkeleton
+  // const showSummarySkeleton = summaryLoading || usersLoading;
+  // const showExpenseSkeleton = expensesLoading || categoriesLoading || locationsLoading || usersLoading;
+
+  const handleDeleteExpense = async (expense: ExpenseWithDetails) => {
+    if (!currentUser) return;
+    try {
+      const expenseRef = doc(db, "expenses", expense.id);
+      await deleteDoc(expenseRef);
+      toast({ title: "Success", description: "Expense deleted successfully." });
+      // Refresh expenses
+      await fetchExpensesAndSettlements(currentMonth);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      toast({ title: "Error", description: "Could not delete expense.", variant: "destructive" });
+    }
+  };
 
   return (
-    <div className="space-y-4 md:space-y-6">
-      {/* Desktop Header */}
-      <div className="hidden md:flex items-center justify-between mb-4">
-        <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
-        
-        <Button 
-          onClick={handleAddExpense}
-          className="flex items-center"
-          size="sm"
-        >
-          <PlusIcon className="h-4 w-4 mr-1.5" />
-          Add Expense
-        </Button>
-      </div>
-      
-      {/* Month Selector - showing on both mobile and desktop */}
-      <div className="mb-4">
-        <MonthSelector onMonthChange={handleMonthChange} onExport={handleExport} />
-      </div>
-      
-      {/* Mobile Summary Card - Horizontal scrollable */}
-      <div className="md:hidden bg-card dark:bg-card border border-border dark:border-border rounded-xl p-3 mb-4">
-        {summaryLoading ? (
-          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
-            <Skeleton className="h-16 w-44 flex-shrink-0" />
-            <Skeleton className="h-16 w-44 flex-shrink-0" />
-            <Skeleton className="h-16 w-44 flex-shrink-0" />
-            <Skeleton className="h-16 w-44 flex-shrink-0" />
+    <>
+      <div className="flex flex-col gap-8 pb-8">
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-semibold">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            {/* Replace single button with DropdownMenu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                {/* Changed to icon button */}
+                <Button variant="outline" size="icon">
+                  <Download className="h-4 w-4" /> {/* Removed margin */}
+                  <span className="sr-only">Export</span> {/* Added screen reader text */}
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {/* Use onSelect for dropdown items */}
+                <DropdownMenuItem onSelect={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
+                {/* <DropdownMenuItem onSelect={() => handleExport('xlsx')}>Export as XLSX</DropdownMenuItem> // Removed XLSX option */}
+                <DropdownMenuItem onSelect={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            {/* Changed to icon button */}
+            <Button onClick={handleAddExpense} variant="outline" size="icon">
+              <PlusIcon className="h-4 w-4" /> {/* Removed margin */}
+              <span className="sr-only">Add Expense</span> {/* Added screen reader text */}
+            </Button>
           </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto pb-1 no-scrollbar">
-            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
-              <div className="flex items-center justify-between">
-                <PoundSterling className="h-4 w-4 text-primary" />
-                <Tooltip content="Total expenses for this month">
-                  <span className="text-sm text-muted-foreground">Total</span>
-                </Tooltip>
-              </div>
-              <p className="text-lg font-bold mt-1">
-                {summary ? formatCurrency(summary.totalExpenses) : "£0.00"}
-              </p>
-            </div>
-            
-            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
-              <div className="flex items-center justify-between">
-                <Users className="h-4 w-4 text-blue-500" />
-                <Tooltip content={`Amount paid by ${user1Name}`}>
-                  <span className="text-sm text-muted-foreground truncate">{user1Name} +</span>
-                </Tooltip>
-              </div>
-              <p className="text-lg font-bold mt-1">
-                {summary && summary.userExpenses[user1Id] ? formatCurrency(summary.userExpenses[user1Id]) : "£0.00"}
-              </p>
-            </div>
-            
-            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
-              <div className="flex items-center justify-between">
-                <Users className="h-4 w-4 text-green-500" />
-                <Tooltip content={`Amount paid by ${user2Name}`}>
-                  <span className="text-sm text-muted-foreground truncate">{user2Name} +</span>
-                </Tooltip>
-              </div>
-              <p className="text-lg font-bold mt-1">
-                {summary && summary.userExpenses[user2Id] ? formatCurrency(summary.userExpenses[user2Id]) : "£0.00"}
-              </p>
-            </div>
-            
-            <div className="min-w-[180px] p-3 bg-background dark:bg-background rounded-lg border border-border dark:border-border">
-              <div className="flex items-center justify-between">
-                <WalletCards className="h-4 w-4 text-amber-500" />
-                <Tooltip content={summary && summary.settlementDirection.fromUserId === user1Id 
-                  ? `${user1Name} owes ${user2Name} this amount` 
-                  : `${user2Name} owes ${user1Name} this amount`}>
-                  <span className="text-sm text-muted-foreground truncate">
-                    {summary && summary.settlementDirection.fromUserId === user1Id 
-                      ? `${user1Name} -` 
-                      : `${user2Name} -`}
-                  </span>
-                </Tooltip>
-              </div>
-              <p className="text-lg font-bold mt-1 text-red-500">
-                {summary ? formatCurrency(summary.settlementAmount) : "£0.00"}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-      
-      {/* Desktop Summary Cards - Grid layout */}
-      <div className="hidden md:grid grid-cols-4 gap-4">
-        {summaryLoading ? (
-          <>
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-            <Skeleton className="h-28 w-full" />
-          </>
-        ) : (
-          <>
-            <SummaryCard 
-              title="Total" 
-              tooltip="Total expenses for this month"
-              value={summary ? formatCurrency(summary.totalExpenses) : "£0.00"} 
-              icon={PoundSterling} 
-              variant="total" 
-            />
-            <SummaryCard 
-              title={`${user1Name} +`} 
-              tooltip={`Amount paid by ${user1Name}`}
-              value={summary && summary.userExpenses[user1Id] ? formatCurrency(summary.userExpenses[user1Id]) : "£0.00"} 
-              icon={Users} 
-              variant="user1" 
-            />
-            <SummaryCard 
-              title={`${user2Name} +`} 
-              tooltip={`Amount paid by ${user2Name}`}
-              value={summary && summary.userExpenses[user2Id] ? formatCurrency(summary.userExpenses[user2Id]) : "£0.00"} 
-              icon={Users} 
-              variant="user2" 
-            />
-            <SummaryCard 
-              title={summary && summary.settlementDirection.fromUserId === user1Id 
-                ? `${user1Name} -` 
-                : `${user2Name} -`} 
-              tooltip={summary && summary.settlementDirection.fromUserId === user1Id 
-                ? `${user1Name} owes ${user2Name} this amount` 
-                : `${user2Name} owes ${user1Name} this amount`}
-              value={summary ? formatCurrency(summary.settlementAmount) : "£0.00"} 
-              icon={WalletCards} 
-              variant="balance" 
-              isNegative={true}
-            />
-          </>
-        )}
-      </div>
+        </div>
 
-      {/* Expenses Section - Mobile & Desktop */}
-      <div className="pb-20 md:pb-0">
-        {/* Mobile Header */}
-        <div className="flex md:hidden items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold text-foreground">Expenses</h2>
-          
-          <Button 
-            onClick={handleAddExpense}
-            variant="outline"
-            size="sm"
-            className="h-9 min-w-[80px]"
-          >
-            <PlusIcon className="h-4 w-4 mr-1.5" />
-            Add
-          </Button>
+        <div className="flex items-center justify-between">
+          <MonthSelector value={currentMonth} onChange={handleMonthChange} />
         </div>
-        
-        {/* Desktop Header */}
-        <div className="hidden md:flex items-center justify-between mb-2">
-          <h3 className="text-lg font-medium text-foreground">Expenses</h3>
+
+        {/* Changed to flex container with horizontal scroll */}
+        <div className="flex overflow-x-auto space-x-4 py-2">
+          {/* Added min-w and flex-shrink-0 to each card wrapper */}
+          <div className="min-w-[180px] flex-shrink-0">
+            <SummaryCard
+              title="Total"
+              value={formatCurrency(summary?.totalExpenses || 0)}
+              icon={PoundSterling}
+              variant="total"
+              isLoading={summaryLoading}
+            />
+          </div>
+          <div className="min-w-[180px] flex-shrink-0">
+            <SummaryCard
+              title="Antonio +"
+              value={formatCurrency(summary?.userExpenses?.[user1Id] || 0)}
+              icon={Users}
+              variant="user1"
+              isLoading={summaryLoading}
+              tooltip="Amount paid by Antonio"
+              photoURL={currentUser?.photoURL || undefined}
+              email={currentUser?.email || undefined}
+            />
+          </div>
+          <div className="min-w-[180px] flex-shrink-0">
+            <SummaryCard
+              title="Andres +"
+              value={formatCurrency(summary?.userExpenses?.[user2Id] || 0)}
+              icon={Users}
+              variant="user2"
+              isLoading={summaryLoading}
+              tooltip="Amount paid by Andres"
+              photoURL={user2Data?.photoURL || undefined}
+              email={user2Data?.email || undefined}
+            />
+          </div>
+          <div className="min-w-[180px] flex-shrink-0">
+            <SummaryCard
+              title={summary?.settlementDirection.fromUserId === user2Id ? "Andres -" : "Antonio -"}
+              value={formatCurrency(summary?.settlementAmount ?? 0)}
+              icon={WalletCards}
+              variant="balance"
+              isNegative={summary?.settlementDirection.fromUserId === user1Id}
+              isLoading={summaryLoading}
+              tooltip={summary?.settlementDirection.fromUserId === user2Id ? "Amount Andres needs to pay Antonio" : "Amount Antonio needs to pay Andres"}
+              photoURL={owingUser?.photoURL || undefined}
+              email={owingUser?.email || undefined}
+            />
+          </div>
         </div>
-        
-        {/* Expense List/Table */}
-        <ExpenseTable 
-          expenses={expenses || []} 
-          onEdit={handleEditExpense} 
-          isLoading={expensesLoading} 
+        {/* End of corrected summary card section */}
+
+        <ExpenseTable
+          expenses={expenses}
+          onEdit={handleEditExpense}
+          onDelete={handleDeleteExpense}
+          isLoading={expensesLoading}
         />
       </div>
 
-      {/* Expense Form */}
-      <ExpenseForm 
-        open={isExpenseFormOpen} 
-        onOpenChange={setIsExpenseFormOpen} 
-        expense={selectedExpense} 
-      />
-    </div>
+      {/* Restore ResponsiveDialog */}
+      <ResponsiveDialog
+        open={isExpenseFormOpen}
+        onOpenChange={(open) => {
+          setIsExpenseFormOpen(open);
+          if (!open) onExpenseFormClose(false);
+        }}
+        title={selectedExpense ? "Edit Expense" : "Add New Expense"}
+        description="Enter the expense details below. All fields marked with * are required."
+        // descriptionId prop removed
+        className="sm:max-w-[600px]"
+      >
+        <ExpenseForm
+          expense={selectedExpense}
+          onClose={onExpenseFormClose}
+          categories={categories}
+          locations={locations}
+          users={allUsers}
+          isLoading={categoriesLoading || locationsLoading || usersLoading}
+        />
+      </ResponsiveDialog>
+    </>
   );
 }

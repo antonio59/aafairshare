@@ -35,12 +35,14 @@ PaginationItem.displayName = "PaginationItem"
 type PaginationLinkProps = {
   isActive?: boolean
 } & Pick<ButtonProps, "size"> &
+  // Ensure children is part of the props type if not already included by React.ComponentProps
   React.ComponentProps<"a">
 
 const PaginationLink = ({
   className,
   isActive,
   size = "icon",
+  children, // Explicitly destructure children
   ...props
 }: PaginationLinkProps) => (
   <a
@@ -53,7 +55,9 @@ const PaginationLink = ({
       className
     )}
     {...props}
-  />
+  >
+    {children} {/* Explicitly render children */}
+  </a>
 )
 PaginationLink.displayName = "PaginationLink"
 

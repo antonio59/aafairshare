@@ -1,8 +1,8 @@
-import { defineConfig } from "vite";
+/// <reference types="vitest" />
+import { defineConfig } from 'vitest/config'; // Use defineConfig from vitest/config
 import react from "@vitejs/plugin-react";
-import themePlugin from "@replit/vite-plugin-shadcn-theme-json";
+import basicSsl from '@vitejs/plugin-basic-ssl'; // Import the SSL plugin
 import path, { dirname } from "path";
-import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -11,16 +11,7 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [
     react(),
-    runtimeErrorOverlay(),
-    themePlugin(),
-    ...(process.env.NODE_ENV !== "production" &&
-    process.env.REPL_ID !== undefined
-      ? [
-          await import("@replit/vite-plugin-cartographer").then((m) =>
-            m.cartographer(),
-          ),
-        ]
-      : []),
+    basicSsl(), // Re-enable SSL plugin
   ],
   resolve: {
     alias: {
@@ -28,9 +19,48 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "shared"),
     },
   },
-  root: path.resolve(__dirname, "client"),
-  build: {
-    outDir: path.resolve(__dirname, "dist/public"),
+  css: { // Add explicit CSS configuration
+    postcss: './postcss.config.js',
+  },
+  server: {
+    headers: {
+      // Allow popups for OAuth flows - Changed to unsafe-none for Firebase popup compatibility
+      "Cross-Origin-Opener-Policy": "unsafe-none",
+      // Keep COEP relaxed for now unless specific features require 'require-corp'
+      "Cross-Origin-Embedder-Policy": "unsafe-none",
+    }
+   },
+   optimizeDeps: { // Add optimizeDeps
+     include: ['jspdf'], // Pre-bundle jspdf, removed xlsx
+   },
+   root: path.resolve(__dirname, "client"), // Keep root as client
+   build: {
+    outDir: path.resolve(__dirname, "client/dist"), // Output directly to client/dist for Firebase
     emptyOutDir: true,
+    chunkSizeWarningLimit: 700, // Increase warning limit to 700 kB
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          // Group node_modules into specific chunks
+          if (id.includes('node_modules')) {
+            if (id.includes('/react/') || id.includes('/react-dom/')) { // More specific check for react/react-dom
+              return 'vendor-core'; // Core React libs
+            } else if (id.includes('recharts') || id.includes('chart.js')) {
+              return 'vendor-charting'; // Charting libs
+            }
+            // Let Rollup handle Firebase and other dependencies automatically
+            // Other node_modules will be implicitly grouped by Rollup
+          }
+        },
+      },
+    },
+  },
+  // Add Vitest configuration
+  test: {
+    globals: true, // Use Vitest global APIs
+    environment: 'jsdom', // Simulate browser environment for React components
+    setupFiles: './client/src/setupTests.ts', // Path to setup file (relative to root)
+    // Optional: Configure CSS handling if needed (e.g., for CSS Modules)
+    // css: true,
   },
 });

@@ -1,244 +1,135 @@
-import { ReactNode, useState } from 'react';
-import { Link, useLocation } from 'wouter';
-import { cn } from '@/lib/utils';
-import { BarChart3, Home, PiggyBank, Settings, ShoppingCart, RepeatIcon, PlusIcon } from 'lucide-react';
-import { Sheet, SheetContent } from '@/components/ui/sheet';
-import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
-import { User } from '@shared/schema';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest, queryClient } from '@/lib/queryClient';
+import React, { ReactNode } from "react";
+import { Link, useLocation } from "wouter";
+// Removed unused Button import
+// import { Button } from "@/components/ui/button";
+// Removed unused ShoppingCart, RepeatIcon imports
+import { Home, BarChart2, Settings, Users, PlusIcon } from "lucide-react"; // Keep PlusIcon for mobile add
+import { useAuth } from "@/context/AuthContext";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
 
 interface MainLayoutProps {
   children: ReactNode;
 }
 
+const navItems = [
+  { href: "/", label: "Dashboard", icon: Home },
+  { href: "/analytics", label: "Analytics", icon: BarChart2 },
+  { href: "/settlement", label: "Settlement", icon: Users },
+  { href: "/settings", label: "Settings", icon: Settings },
+];
+
 export default function MainLayout({ children }: MainLayoutProps) {
-  const [location, setLocation] = useLocation();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { toast } = useToast();
-  
-  // Define the auth status response type
-  interface AuthStatusResponse {
-    isAuthenticated: boolean;
-    user?: {
-      id: number;
-      username: string;
-    };
-  }
-  
-  // Get current user from auth status
-  const { data: authData, isLoading: authLoading } = useQuery<AuthStatusResponse>({
-    queryKey: ['/api/auth/status']
-  });
-  
-  const closeMobileMenu = () => setMobileMenuOpen(false);
-  
-  const navigation = [
-    { name: 'Dashboard', href: '/', icon: Home },
-    { name: 'Settlement', href: '/settlement', icon: PiggyBank },
-    { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-    { name: 'Settings', href: '/settings', icon: Settings },
-  ];
-  
-  // Get current user from auth data
-  const currentUser = authData?.isAuthenticated ? authData.user : null;
-  
-  const handleLogout = async () => {
-    try {
-      // Use fetch directly with proper credentials
-      await fetch('/api/auth/logout', {
-        method: 'POST',
-        credentials: 'include',
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      });
-      
-      // Invalidate auth state regardless of response
-      await queryClient.invalidateQueries({ queryKey: ['/api/auth/status'] });
-      
-      // Show success message and redirect
-      toast({
-        title: "Logged out",
-        description: "You have been logged out successfully",
-      });
-      
-      // Redirect to login page
-      setLocation('/login');
-    } catch (error) {
-      // Even if there's an error, we'll still redirect and consider it a success
-      // This prevents showing error messages to users
-      console.error("Logout error:", error);
-      setLocation('/login');
+  const [location] = useLocation(); // Removed unused setLocation
+  const { currentUser, userProfile, loading } = useAuth(); // Get userProfile
+
+  // Function to get initials from username or email
+  const getInitials = (name?: string | null, email?: string | null): string => {
+    if (name) {
+      const names = name.split(' ');
+      if (names.length > 1) {
+        return `${names[0][0]}${names[names.length - 1][0]}`.toUpperCase();
+      }
+      return name.substring(0, 2).toUpperCase();
     }
+    if (email) {
+      // Keep email logic here for fallback, even if not displayed
+      return email.substring(0, 2).toUpperCase();
+    }
+    return '??';
   };
-  
+
+  // Function to dispatch the custom event for mobile add button
+  const triggerMobileAddExpense = () => {
+    window.dispatchEvent(new CustomEvent('add-expense-event'));
+  };
+
   return (
-    <div className="min-h-[100vh] max-h-[100vh] flex flex-col md:flex-row overflow-hidden">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 bg-card border-r border-border dark:bg-card">
-        <div className="flex flex-col flex-1 overflow-y-auto">
-          <div className="flex items-center justify-center h-16 border-b border-border px-4">
-            <h1 className="text-xl font-bold text-foreground">AAFairShare</h1>
-          </div>
-          <nav className="flex-1 px-4 py-4 space-y-1">
-            {navigation.map((item) => (
-              <Link 
-                key={item.name} 
-                href={item.href}
-                onClick={closeMobileMenu}
-                className={cn(
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Sidebar */}
+      <aside className="hidden md:flex md:flex-col w-64 bg-white border-r border-gray-200">
+        <div className="flex items-center justify-center h-16 border-b border-gray-200">
+          <span className="text-xl font-semibold text-primary">AAFairShare</span>
+        </div>
+        <nav className="flex-1 p-4 space-y-2">
+          {navItems.map((item) => (
+            <Link key={item.href} href={item.href}>
+              {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+              <a
+                className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                   location === item.href
-                    ? 'text-primary bg-primary/10'
-                    : 'text-foreground hover:text-primary hover:bg-primary/5',
-                  'flex items-center px-2 py-2 text-sm font-medium rounded-md group transition-colors'
-                )}
+                    ? "bg-primary text-white"
+                    : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                }`}
               >
-                <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                {item.name}
-              </Link>
-            ))}
-          </nav>
-          <div className="px-4 py-4 border-t border-border">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-medium">
-                  {currentUser ? currentUser.username.substring(0, 2).toUpperCase() : 'JD'}
-                </div>
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-foreground">
-                  {currentUser ? currentUser.username : 'Loading...'}
-                </p>
-                <button 
-                  className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </button>
+                <item.icon className="mr-3 h-5 w-5" />
+                {item.label}
+              </a>
+            </Link>
+          ))}
+        </nav>
+        {/* User Profile Section */}
+        <div className="p-4 border-t border-gray-200">
+          {loading ? (
+            <div className="flex items-center space-x-3">
+              <div className="h-10 w-10 rounded-full bg-gray-200 animate-pulse"></div>
+              <div className="space-y-1">
+                <div className="h-4 w-24 bg-gray-200 rounded animate-pulse"></div>
+                {/* Removed email skeleton line */}
               </div>
             </div>
-          </div>
+          ) : currentUser ? (
+            <div className="flex items-center space-x-3">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={userProfile?.photoURL || currentUser.photoURL || undefined} alt={userProfile?.username || currentUser.displayName || "User"} />
+                <AvatarFallback>{getInitials(userProfile?.username || currentUser.displayName, currentUser.email)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="text-sm font-medium text-gray-900 truncate">{userProfile?.username || currentUser.displayName || "User"}</p>
+                {/* Removed email display line below */}
+                {/* <p className="text-xs text-gray-500 truncate">{currentUser.email}</p> */}
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-500">Not logged in</p>
+          )}
         </div>
       </aside>
 
-      {/* Mobile Layout - fixed header, scrollable content, fixed footer */}
-      <div className="flex flex-col w-full h-[100vh] md:hidden">
-        {/* Fixed Mobile Header */}
-        <header className="bg-card border-b border-border fixed top-0 left-0 right-0 z-40 pt-safe">
-          <div className="flex items-center justify-between h-16 px-4">
-            <h1 className="text-xl font-bold text-foreground dark:text-white">AAFairShare</h1>
-            <div className="flex items-center space-x-2">
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => {
-                  // Publish a custom event to trigger add expense
-                  const event = new CustomEvent('add-expense-event');
-                  window.dispatchEvent(event);
-                }}
-                className="h-10 w-10 rounded-full"
-                aria-label="Add expense"
-              >
-                <PlusIcon className="h-5 w-5 text-primary" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={() => setMobileMenuOpen(true)}
-                className="flex-shrink-0 h-10 w-10 rounded-full"
-              >
-                <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-white font-medium shadow-sm">
-                  {currentUser ? currentUser.username.substring(0, 2).toUpperCase() : 'JD'}
-                </div>
-              </Button>
-            </div>
-          </div>
-        </header>
-
-        {/* Scrollable Content Area for Mobile */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden pt-16 pb-16 overscroll-contain">
-          <div className="px-4 py-4">
-            {children}
-          </div>
-        </main>
-
-        {/* Fixed Mobile Footer Navigation */}
-        <footer className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-40 pb-safe">
-          <div className="flex justify-around">
-            {navigation.map((item) => (
-              <Link 
-                key={item.name} 
-                href={item.href}
-                className={cn(
-                  'flex flex-col items-center justify-center py-3 px-2 transition-colors touch-target',
-                  location === item.href 
-                    ? 'text-primary' 
-                    : 'text-muted-foreground hover:text-foreground active:text-primary'
-                )}
-              >
-                <item.icon className="h-5 w-5" />
-                <span className="text-xs mt-1.5 font-medium">{item.name}</span>
-              </Link>
-            ))}
-          </div>
-        </footer>
-      </div>
-
-      {/* Mobile Menu Overlay */}
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-[250px] sm:w-[300px] border-r pt-safe">
-          <div className="py-4">
-            <h2 className="text-lg font-semibold px-4 mb-4">Menu</h2>
-            <nav className="space-y-1 px-2">
-              {navigation.map((item) => (
-                <Link 
-                  key={item.name} 
-                  href={item.href}
-                  onClick={closeMobileMenu}
-                  className={cn(
-                    location === item.href
-                      ? 'text-primary bg-primary/10'
-                      : 'text-foreground hover:text-primary hover:bg-primary/5',
-                    'flex items-center px-3 py-2.5 text-sm font-medium rounded-md group transition-colors'
-                  )}
-                >
-                  <item.icon className="mr-3 h-5 w-5 flex-shrink-0" />
-                  {item.name}
-                </Link>
-              ))}
-            </nav>
-            <div className="mt-8 px-4">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className="h-9 w-9 rounded-full bg-primary flex items-center justify-center text-primary-foreground font-medium">
-                    {currentUser ? currentUser.username.substring(0, 2).toUpperCase() : 'JD'}
-                  </div>
-                </div>
-                <div className="ml-3">
-                  <p className="text-sm font-medium text-foreground">
-                    {currentUser ? currentUser.username : 'Loading...'}
-                  </p>
-                  <button 
-                    className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors"
-                    onClick={handleLogout}
-                  >
-                    Logout
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      {/* Desktop Main Content */}
-      <main className="hidden md:block flex-1 md:ml-64 min-h-screen pt-safe-top">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-4 pb-24 md:pb-8 md:py-6">
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col">
+        {/* Top Bar (Optional - can be added if needed) */}
+        {/* <header className="h-16 bg-white border-b border-gray-200 flex items-center px-6">
+          Header Content
+        </header> */}
+        <div className="flex-1 p-4 sm:p-6 overflow-y-auto">
           {children}
         </div>
       </main>
+
+      {/* Bottom Navigation (Mobile) */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around h-16 items-center z-20">
+        {navItems.map((item) => (
+          <Link key={item.href} href={item.href}>
+            {/* eslint-disable-next-line jsx-a11y/anchor-is-valid */}
+            <a
+              className={`flex flex-col items-center justify-center w-full h-full text-xs font-medium transition-colors ${
+                location === item.href ? "text-primary" : "text-gray-500 hover:text-primary"
+              }`}
+            >
+              <item.icon className="h-5 w-5 mb-1" />
+              {item.label}
+            </a>
+          </Link>
+        ))}
+        {/* Mobile Add Button - Dispatches Event */}
+        <button
+          onClick={triggerMobileAddExpense}
+          className="flex flex-col items-center justify-center w-full h-full text-xs font-medium text-primary"
+        >
+          <PlusIcon className="h-6 w-6 mb-0.5" />
+          Add
+        </button>
+      </nav>
     </div>
   );
 }

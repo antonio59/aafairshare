@@ -1,365 +1,200 @@
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Pencil, Trash } from "lucide-react";
-import { ExpenseWithDetails } from "@shared/schema";
-import { formatCurrency, formatDate } from "@/lib/utils";
-import { useState } from "react";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useToast } from "@/hooks/use-toast";
-import { apiRequest } from "@/lib/queryClient";
-import { queryClient } from "@/lib/queryClient";
-import { Tooltip } from "@/components/ui/tooltip";
-import { 
-  Pagination, 
-  PaginationContent, 
-  PaginationItem, 
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious
-} from "@/components/ui/pagination";
+// Removed unused Badge import
+// import { Badge } from "@/components/ui/badge";
+import { Pencil, Trash2 } from "lucide-react";
+import { formatDate, formatCurrency } from "@/lib/utils";
+// Removed unused Expense type import
+import { type ExpenseWithDetails, type User } from "@shared/schema";
+import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
 
 interface ExpenseTableProps {
   expenses: ExpenseWithDetails[];
+  users?: User[]; // Keep users in props definition for API consistency
   onEdit: (expense: ExpenseWithDetails) => void;
-  isLoading?: boolean;
+  onDelete: (expense: ExpenseWithDetails) => void;
+  isLoading: boolean;
 }
 
-export default function ExpenseTable({ expenses, onEdit, isLoading = false }: ExpenseTableProps) {
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [expenseToDelete, setExpenseToDelete] = useState<ExpenseWithDetails | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10;
-  const totalPages = Math.ceil(expenses.length / itemsPerPage);
-  const { toast } = useToast();
-
-  const handleDelete = async () => {
-    if (!expenseToDelete) return;
-
-    try {
-      await apiRequest(`/api/expenses/${expenseToDelete.id}`, 'DELETE');
-
-      toast({
-        title: "Expense deleted",
-        description: "The expense has been deleted successfully.",
-      });
-
-      // Get the month of the deleted expense to invalidate the correct queries
-      const month = expenseToDelete.date 
-        ? new Date(expenseToDelete.date).toISOString().substring(0, 7) 
-        : new Date().toISOString().substring(0, 7);
-
-      // Invalidate queries with the proper query key patterns
-      queryClient.invalidateQueries({ queryKey: [`/api/expenses?month=${month}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/summary/${month}`] });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to delete the expense. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setDeleteDialogOpen(false);
-      setExpenseToDelete(null);
-    }
-  };
-
-  const openDeleteDialog = (expense: ExpenseWithDetails) => {
-    setExpenseToDelete(expense);
-    setDeleteDialogOpen(true);
-  };
-
-  // Display loading state or empty state
-  if (isLoading) {
-    return (
-      <div className="bg-white dark:bg-card rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-6"></div>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mb-4"></div>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mb-4"></div>
-          <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-full mb-4"></div>
+// Skeleton Card for loading state on mobile (Updated Layout v2)
+const ExpenseCardSkeleton = () => (
+  <div className="block border rounded-md p-3 mb-3 md:hidden">
+    <div className="space-y-2">
+      <div className="flex justify-between items-start">
+        <Skeleton className="h-4 w-28" /> {/* Category */}
+        <Skeleton className="h-5 w-24" /> {/* Amount */}
+      </div>
+      <Skeleton className="h-3 w-20 mb-1" /> {/* Location */}
+      <Skeleton className="h-4 w-full mb-2" /> {/* Description */}
+      <div className="flex justify-between items-center text-xs">
+        <div className="space-y-1">
+          <Skeleton className="h-3 w-24" /> {/* Paid By */}
+          <Skeleton className="h-3 w-16" /> {/* Split */}
+          <Skeleton className="h-3 w-20" /> {/* Date */}
+        </div>
+        <div className="flex space-x-1">
+          <Skeleton className="h-7 w-7 rounded-md" /> {/* Edit */}
+          <Skeleton className="h-7 w-7 rounded-md" /> {/* Delete */}
         </div>
       </div>
-    );
-  }
+    </div>
+  </div>
+);
 
-  if (expenses.length === 0) {
-    return (
-      <div className="bg-white dark:bg-card rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-8 text-center">
-        <p className="text-gray-600 dark:text-gray-400 text-base">No expenses found for this period.</p>
-      </div>
-    );
-  }
-
-  // Calculate current items to display based on pagination
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, expenses.length);
-  const currentExpenses = expenses.slice(startIndex, endIndex);
-
-  // Navigation functions
-  const goToPage = (page: number) => {
-    setCurrentPage(page);
-  };
-
-  // Generate page numbers
-  const getPageNumbers = () => {
-    const pages = [];
-    const maxPagesToShow = 5;
-    
-    // Logic to show a reasonable number of page links
-    if (totalPages <= maxPagesToShow) {
-      // If we have 5 or fewer pages, show all
-      for (let i = 1; i <= totalPages; i++) {
-        pages.push(i);
-      }
-    } else {
-      // Always show first page
-      pages.push(1);
-      
-      // Calculate middle pages to show
-      let startPage = Math.max(2, currentPage - 1);
-      let endPage = Math.min(totalPages - 1, currentPage + 1);
-      
-      // Adjust if at the beginning or end
-      if (currentPage <= 2) {
-        endPage = 3;
-      } else if (currentPage >= totalPages - 1) {
-        startPage = totalPages - 2;
-      }
-      
-      // Add ellipsis if there's a gap after page 1
-      if (startPage > 2) {
-        pages.push(-1); // -1 represents ellipsis
-      }
-      
-      // Add middle pages
-      for (let i = startPage; i <= endPage; i++) {
-        pages.push(i);
-      }
-      
-      // Add ellipsis if there's a gap before the last page
-      if (endPage < totalPages - 1) {
-        pages.push(-2); // -2 represents ellipsis
-      }
-      
-      // Always show last page
-      pages.push(totalPages);
-    }
-    
-    return pages;
-  };
+// Removed unused 'users' from props destructuring
+export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseTableProps) {
 
   return (
-    <>
-      {/* Mobile Card View */}
-      <div className="sm:hidden space-y-4">
-        {currentExpenses.map(expense => (
-          <div 
-            key={expense.id} 
-            className="p-4 rounded-lg bg-card dark:bg-card border border-border dark:border-border shadow-sm"
-          >
-            <div className="flex justify-between items-center mb-3">
-              <div className="flex items-center space-x-3">
-                <div className="rounded-full h-11 w-11 flex items-center justify-center touch-target" 
-                     style={{ backgroundColor: `${expense.category.color}20` }}>
-                  <div className="text-base font-bold" style={{ color: expense.category.color, textShadow: '0px 0px 1px rgba(0,0,0,0.15)' }}>
-                    {expense.category?.name.substring(0, 1).toUpperCase() || 'U'}
-                  </div>
-                </div>
-                <div style={{ maxWidth: 'calc(100vw - 160px)' }}>
-                  <p className="text-base font-bold truncate" style={{ color: expense.category.color, textShadow: '0px 0px 1px rgba(0,0,0,0.15)' }}>
-                    {expense.category?.name || 'Uncategorized'}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {expense.location?.name || 'No location'}
-                  </p>
-                  {expense.description && (
-                    <p className="text-xs text-muted-foreground truncate italic mt-1">
-                      {expense.description}
-                    </p>
-                  )}
-                </div>
-              </div>
-              <p className="text-base font-bold text-foreground whitespace-nowrap pl-2">
-                {formatCurrency(Number(expense.amount))}
-              </p>
-            </div>
-
-            <div className="flex justify-between items-center pt-3 border-t border-border dark:border-border">
-              <div className="flex flex-col">
-                <span className="text-xs text-muted-foreground">{formatDate(expense.date)}</span>
-                <div className="flex items-center">
-                  <span className="text-xs text-muted-foreground truncate mr-1">
-                    {expense.paidByUser.username.split(' ')[0]} • {expense.split_type.replace('SPLIT_', '')}
-                  </span>
-                  <Tooltip 
-                    content={`Paid by ${expense.paidByUser.username}, split ${expense.split_type}`}
-                    position="top"
-                  >
-                    <span className="text-xs text-muted-foreground cursor-pointer">
-                      ℹ️
-                    </span>
-                  </Tooltip>
-                </div>
-              </div>
-              <div className="flex space-x-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => onEdit(expense)}
-                  className="h-10 w-10 p-0 rounded-full touch-target"
-                >
-                  <Pencil className="h-4 w-4" />
-                  <span className="sr-only">Edit</span>
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => openDeleteDialog(expense)}
-                  className="h-10 w-10 p-0 rounded-full text-destructive touch-target"
-                >
-                  <Trash className="h-4 w-4" />
-                  <span className="sr-only">Delete</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop Table View */}
-      <div className="hidden sm:block bg-white dark:bg-card rounded-lg shadow-sm border-gray-200 dark:border-gray-800 w-full">
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader className="bg-gray-50 dark:bg-gray-900/40">
+    <div className="w-full">
+      {/* Desktop Table View (hidden on small screens) */}
+      <div className="hidden md:block border rounded-md overflow-hidden">
+        <Table>
+          <TableHeader className="bg-muted/50">
+            <TableRow>
+              <TableHead>Date</TableHead>
+              <TableHead>Category/Location</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead className="text-right">Amount</TableHead>
+              <TableHead>Paid By</TableHead>
+              <TableHead>Split</TableHead>
+              <TableHead className="text-right">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {isLoading ? (
               <TableRow>
-                <TableHead className="w-[100px] lg:w-[120px] whitespace-nowrap">Date</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="hidden md:table-cell">Description</TableHead>
-                <TableHead className="w-[100px] lg:w-[120px] whitespace-nowrap">Amount</TableHead>
-                <TableHead className="w-[100px] whitespace-nowrap">Paid By</TableHead>
-                <TableHead className="w-[80px] whitespace-nowrap">Split</TableHead>
-                <TableHead className="w-[80px] lg:w-[100px] whitespace-nowrap">Actions</TableHead>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  Loading expenses...
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentExpenses.map(expense => (
+            ) : expenses.length > 0 ? (
+              expenses.map((expense) => (
                 <TableRow key={expense.id}>
-                  <TableCell className="text-sm text-gray-600 dark:text-gray-300 whitespace-nowrap">{formatDate(expense.date)}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <div>
-                        <p className="text-sm font-bold financial-text" style={{ color: expense.category.color, textShadow: '0px 0px 1px rgba(0,0,0,0.15)' }}>{expense.category?.name || 'Uncategorized'}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{expense.location?.name || 'No location'}</p>
-                      </div>
+                  <TableCell className="py-2 px-3 text-xs">{formatDate(expense.date)}</TableCell>
+                  <TableCell className="py-2 px-3 text-xs">
+                    <div className="flex flex-col gap-0.5">
+                      <span
+                        style={{ color: expense.category?.color || 'inherit' }}
+                        className="text-xs font-medium"
+                      >
+                        {expense.category?.name || "Uncategorized"}
+                      </span>
+                      <span className="text-xs text-muted-foreground">
+                        {expense.location?.name || "-"}
+                      </span>
                     </div>
                   </TableCell>
-                  <TableCell className="hidden md:table-cell text-sm text-gray-600 dark:text-gray-300">
-                    {expense.description || '-'}
+                  <TableCell className="py-2 px-3 text-xs">{expense.description || "-"}</TableCell>
+                  <TableCell className="py-2 px-3 text-xs text-right font-medium">
+                    {formatCurrency(expense.amount)}
                   </TableCell>
-                  <TableCell className="text-sm font-medium text-gray-800 dark:text-white whitespace-nowrap financial-value">{formatCurrency(Number(expense.amount))}</TableCell>
-                  <TableCell className="text-sm text-gray-600 dark:text-gray-300">{expense.paidByUser.username}</TableCell>
-                  <TableCell className="text-sm text-gray-600 dark:text-gray-300">{expense.split_type}</TableCell>
-                  <TableCell>
-                    <div className="flex space-x-2">
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
+                  <TableCell className="py-2 px-3 text-xs">
+                    {expense.paidByUser?.username ?? "-"}
+                  </TableCell>
+                  <TableCell className="py-2 px-3 text-xs">{expense.splitType || "50/50"}</TableCell>
+                  <TableCell className="py-2 px-1 text-xs">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => onEdit(expense)}
-                        className="text-gray-500 dark:text-gray-400 hover:text-primary dark:hover:text-primary h-8 w-8 p-0"
+                        className="h-7 w-7 hover:bg-background"
                       >
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
+                        <Pencil className="h-3.5 w-3.5" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => openDeleteDialog(expense)}
-                        className="text-gray-500 dark:text-gray-400 hover:text-red-500 dark:hover:text-red-400 h-8 w-8 p-0"
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => onDelete(expense)}
+                        className="h-7 w-7 hover:bg-background text-destructive hover:text-destructive"
                       >
-                        <Trash className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center">
+                  No expenses found for this period.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
       </div>
-      
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-4">
-          <Pagination>
-            <PaginationContent>
-              {currentPage > 1 && (
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => goToPage(currentPage - 1)}
-                    className="cursor-pointer" 
-                  />
-                </PaginationItem>
+
+      {/* Mobile Card View (visible on small screens) - Updated Layout v3 */}
+      <div className="md:hidden space-y-2"> {/* Reduced gap between cards */}
+        {isLoading ? (
+          Array.from({ length: 5 }).map((_, index) => <ExpenseCardSkeleton key={index} />)
+        ) : expenses.length > 0 ? (
+          expenses.map((expense) => (
+            <div key={expense.id} className="block border rounded-md p-3">
+              {/* Top Row: Category/Location and Amount */}
+              <div className="flex justify-between items-start mb-1">
+                <div className="flex flex-col text-xs">
+                  <span style={{ color: expense.category?.color || 'inherit' }} className="font-medium text-sm text-foreground"> {/* Made category stand out */}
+                    {expense.category?.name || "Uncategorized"}
+                  </span>
+                  <span className="text-muted-foreground">{expense.location?.name || "-"}</span>
+                </div>
+                <div className="text-base font-semibold text-right">{formatCurrency(expense.amount)}</div>
+              </div>
+
+              {/* Description Row (Conditional) */}
+              {expense.description && (
+                <div className="text-sm mb-2 truncate" title={expense.description}>
+                  {expense.description}
+                </div>
               )}
-              
-              {getPageNumbers().map((page, index) => (
-                page < 0 ? (
-                  <PaginationItem key={`ellipsis-${index}`}>
-                    <div className="flex h-9 w-9 items-center justify-center">...</div>
-                  </PaginationItem>
-                ) : (
-                  <PaginationItem key={page}>
-                    <PaginationLink
-                      onClick={() => goToPage(page)}
-                      isActive={page === currentPage}
-                      className="cursor-pointer"
-                    >
-                      {page}
-                    </PaginationLink>
-                  </PaginationItem>
-                )
-              ))}
-              
-              {currentPage < totalPages && (
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => goToPage(currentPage + 1)}
-                    className="cursor-pointer" 
-                  />
-                </PaginationItem>
-              )}
-            </PaginationContent>
-          </Pagination>
-          <div className="mt-2 text-center text-sm text-muted-foreground">
-            Showing {startIndex + 1}-{endIndex} of {expenses.length} expenses
+
+              {/* Bottom Row: PaidBy/Split/Date and Actions */}
+              <div className="flex justify-between items-center text-xs text-muted-foreground border-t pt-1.5 mt-1.5">
+                <div>
+                  <span>Paid by: {expense.paidByUser?.username ?? "-"}</span>
+                  <span className="mx-1.5">•</span> {/* Separator */}
+                  <span>Split: {expense.splitType || "50/50"}</span>
+                  <span className="mx-1.5">•</span> {/* Separator */}
+                  <span>{formatDate(expense.date)}</span> {/* Moved Date here */}
+                </div>
+                <div className="flex space-x-0"> {/* Reduced space for buttons */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onEdit(expense)}
+                    className="h-7 w-7"
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    <span className="sr-only">Edit</span>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onDelete(expense)}
+                    className="h-7 w-7 text-destructive hover:text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                    <span className="sr-only">Delete</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="text-center text-muted-foreground py-10">
+            No expenses found for this period.
           </div>
+        )}
+      </div>
+
+      {/* Total Count (Optional - maybe move to parent component) */}
+      {!isLoading && expenses.length > 0 && (
+        <div className="text-sm text-muted-foreground mt-4">
+          Total: {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
         </div>
       )}
-
-      <AlertDialog 
-        open={deleteDialogOpen} 
-        onOpenChange={setDeleteDialogOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete this expense. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">Delete</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+    </div>
   );
 }

@@ -1,193 +1,176 @@
-import { useEffect, useState } from "react";
+import React, { useState } from "react"; // Removed useEffect
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Category, Location, ExpenseWithDetails, User } from "@shared/schema";
 import { z } from "zod";
-import { insertExpenseSchema } from "@shared/schema";
+// Removed unused Controller import
+// import { Controller } from "react-hook-form";
+// Removed unused useFormField import
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Combobox, ComboboxItem } from "@/components/ui/combobox";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Category, ExpenseWithDetails, Location, InsertLocation } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+// Removed unused cn import
+// import { cn } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+// Removed unused Timestamp, query, orderBy, getDocs imports
+import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+// Removed unused SelectPrimitive import
+// import * as SelectPrimitive from "@radix-ui/react-select";
+// Removed unused ChevronDown import
+// import { ChevronDown } from "lucide-react";
+import { Combobox, ComboboxItem } from "@/components/ui/combobox"; // Keep Combobox
+import { getMonthFromDate } from "@/lib/utils"; // Added getMonthFromDate
+import { useAuth } from "@/context/AuthContext";
+// Removed unused apiRequest import
+import { queryClient } from "@/lib/queryClient"; // Import queryClient for invalidation
 import { SPLIT_TYPES } from "@/lib/constants";
-import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import { DatePicker } from "@/components/ui/date-picker";
 
-interface ExpenseFormProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+export interface ExpenseFormProps {
   expense?: ExpenseWithDetails;
+  onClose: (needsRefetch?: boolean) => void;
+  categories: Category[];
+  locations: Location[];
+  users: User[]; // Keep users prop for potential future use, even if currently unused in logic
+  isLoading?: boolean;
 }
-
-interface AuthStatusResponse {
-  isAuthenticated: boolean;
-  user?: {
-    id: number;
-    username: string;
-  };
-}
-
-// Create a modified schema that excludes fields we handle automatically
+// Zod schema
 const formSchema = z.object({
-  // Description is now optional (not required)
-  description: z.string().optional().or(z.literal("")),
-  amount: z.string().min(1, "Amount is required").refine(
-    (val) => !isNaN(parseFloat(val)) && parseFloat(val) > 0,
-    { message: "Amount must be a positive number" }
-  ),
-  date: z.date({
-    required_error: "Please select a date",
-  }),
-  split_type: z.string(),
-  category_id: z.number(),
-  location_id: z.number(),
+  description: z.string().optional(),
+  amount: z.coerce.number().positive("Amount must be positive"), // Validate as positive number
+  date: z.date(),
+  categoryId: z.string().min(1, "Category is required"),
+  locationId: z.string().min(1, "Location is required"),
+  splitType: z.string().min(1, "Split type is required"),
 });
 
-type FormData = z.infer<typeof formSchema>;
+export type ExpenseFormData = z.infer<typeof formSchema>;
 
-export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseFormProps) {
+// Removed unused 'users' from props destructuring
+export default function ExpenseForm({ expense, onClose, categories, locations, isLoading }: ExpenseFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { currentUser, userProfile } = useAuth();
 
-  // Queries
-  const { data: categories, isLoading: categoriesLoading } = useQuery<Category[]>({
-    queryKey: ['/api/categories'],
-  });
-
-  const { data: locations, isLoading: locationsLoading } = useQuery<Location[]>({
-    queryKey: ['/api/locations'],
-  });
-
-  // Get current user data
-  const { data: authData } = useQuery<AuthStatusResponse>({
-    queryKey: ['/api/auth/status'],
-  });
-
-  // Create new location mutation
-  const createLocationMutation = useMutation({
-    mutationFn: async (locationName: string): Promise<Location> => {
-      const newLocation: InsertLocation = { name: locationName };
-      return await apiRequest<Location>('/api/locations', 'POST', newLocation);
-    },
-    onSuccess: (newLocation) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/locations'] });
-      // Set the form value to the newly created location
-      form.setValue('location_id', newLocation.id);
-    },
-  });
-
-  // Form setup
-  const form = useForm<FormData>({
+  const form = useForm<ExpenseFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       description: expense?.description || "",
-      amount: expense ? String(Number(expense.amount)) : "",
-      date: expense ? new Date(expense.date) : new Date(),
-      split_type: expense ? expense.split_type : "50/50",
-      category_id: expense ? expense.category_id : categories?.[0]?.id || 1,
-      location_id: expense ? expense.location_id : locations?.[0]?.id || 1,
+      amount: expense?.amount ?? undefined, // Use number or undefined, not string
+      date: expense?.date || new Date(),
+      categoryId: expense?.categoryId || "",
+      locationId: expense?.locationId || "",
+      splitType: expense?.splitType || "50/50",
     },
   });
 
-  // Update form when expense or dependencies change
-  useEffect(() => {
-    if (expense) {
-      form.reset({
-        description: expense.description || "",
-        amount: String(Number(expense.amount)),
-        date: new Date(expense.date),
-        split_type: expense.split_type,
-        category_id: expense.category_id,
-        location_id: expense.location_id,
-      });
-    } else {
-      form.reset({
-        description: "",
-        amount: "",
-        date: new Date(),
-        split_type: "50/50",
-        category_id: categories?.[0]?.id || 1,
-        location_id: locations?.[0]?.id || 1,
-      });
-    }
-  }, [expense, form, categories, locations]);
+  // --- Start: Add Location Creation Logic ---
+  const [isCreatingLocation, setIsCreatingLocation] = useState(false);
 
-  const onSubmit = async (data: FormData) => {
-    setIsSubmitting(true);
+  const handleCreateLocation = async (locationName: string) => {
+    if (!locationName.trim() || isCreatingLocation) return;
 
+    setIsCreatingLocation(true);
     try {
-      if (!authData?.isAuthenticated || !authData?.user) {
-        throw new Error("You must be logged in to save an expense");
-      }
-
-      // Convert amount to number for the API and determine the correct paying user
-      const currentUserId = authData.user.id;
-      
-      // Find the other user's ID for proper split calculation
-      // User IDs in USERS array are 7 (Antonio) and 8 (Andres)
-      const otherUserId = currentUserId === 7 ? 8 : 7;
-      
-      // Set paid_by_user_id - always the current user regardless of split type
-      // The split_type now only determines how the expense amount is distributed
-      // but the expense is always paid by the user who records it
-      const paid_by_user_id = currentUserId;
-      
-      const expenseData = {
-        ...data,
-        amount: parseFloat(data.amount),
-        date: data.date instanceof Date ? data.date : new Date(data.date),
-        paid_by_user_id
+      const locationData = {
+        name: locationName.trim(),
+        createdAt: serverTimestamp()
       };
 
-      if (expense) {
-        // Update existing expense
-        await apiRequest(`/api/expenses/${expense.id}`, 'PATCH', expenseData);
-        
-        toast({
-          title: "Expense updated",
-          description: "The expense has been updated successfully.",
-        });
-      } else {
-        // Create new expense
-        await apiRequest('/api/expenses', 'POST', expenseData);
-        
-        toast({
-          title: "Expense added",
-          description: "The expense has been added successfully.",
-        });
+      const docRef = await addDoc(collection(db, "locations"), locationData);
+
+      toast({
+        title: "Location created",
+        description: `"${locationName.trim()}" added.`
+      });
+
+      // Refetch locations query and wait for completion
+      await queryClient.refetchQueries({ queryKey: ['locations'] });
+
+      // THEN update the form value with the new location ID, ensuring the list is updated
+      form.setValue("locationId", docRef.id, { shouldValidate: true });
+
+    } catch (error: unknown) { // Changed 'any' to 'unknown'
+      console.error("Error creating location:", error);
+      // Type check before accessing properties
+      const errorMessage = error instanceof Error ? error.message : "Could not add the new location.";
+      toast({
+        title: "Error creating location",
+        description: errorMessage,
+        variant: "destructive",
+      });
+    } finally {
+      setIsCreatingLocation(false);
+    }
+  };
+  // --- End: Add Location Creation Logic ---
+
+  const onSubmit = async (data: ExpenseFormData) => {
+    if (!currentUser || !userProfile) {
+      toast({
+        title: "Authentication Error",
+        description: "User data not available",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Verify auth consistency
+    if (currentUser.uid !== userProfile.id) {
+      console.error('Authentication mismatch:', {
+        currentUserId: currentUser.uid,
+        profileId: userProfile.id
+      });
+      toast({
+        title: "Data Error",
+        description: "Authentication data mismatch",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      if (!currentUser || !userProfile) {
+        throw new Error('Missing user data');
       }
 
-      // Invalidate queries to refresh data
-      // Use proper query key patterns matching the ones in Dashboard/Expenses component
-      const month = format(data.date, 'yyyy-MM');
-      
-      // Invalidate specific queries for the month
-      queryClient.invalidateQueries({ queryKey: [`/api/expenses?month=${month}`] });
-      queryClient.invalidateQueries({ queryKey: [`/api/summary/${month}`] });
-      
-      // Also invalidate the general expenses endpoint to ensure all views refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/expenses'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/summary'] });
-      
-      // Force an immediate refetch to update the UI
-      queryClient.refetchQueries({ queryKey: [`/api/expenses?month=${month}`] });
-      queryClient.refetchQueries({ queryKey: [`/api/summary/${month}`] });
+      if (!currentUser) {
+        throw new Error('User not authenticated');
+      }
+const expenseData = {
+  ...data,
+  paidByUserId: currentUser.uid, // Store only Firebase Auth UID
+  amount: data.amount, // Already a number from Zod coercion
+  month: getMonthFromDate(data.date), // Use utility function
+  createdAt: serverTimestamp(),
+};
 
-      // Close the form
-      onOpenChange(false);
-      form.reset();
-    } catch (error: any) {
+if (expense?.id) {
+        // Update existing expense
+        await updateDoc(doc(db, "expenses", expense.id), expenseData);
+        toast({ title: "Expense updated" });
+      } else {
+        // Add new expense
+        await addDoc(collection(db, "expenses"), expenseData);
+        toast({ title: "Expense added" });
+      }
+
+      // Invalidate queries to trigger refetch
+      queryClient.invalidateQueries({ queryKey: [`expenses`, expenseData.month] });
+      queryClient.invalidateQueries({ queryKey: [`summary`, expenseData.month] });
+
+      onClose(false); // Close without additional refetch
+    } catch (error: unknown) { // Changed 'any' to 'unknown'
       console.error("Error saving expense:", error);
+      // Type check before accessing properties
+      const errorMessage = error instanceof Error ? error.message : "Please try again";
       toast({
-        title: "Error",
-        description: error.message || "Failed to save expense. Please try again.",
+        title: "Error saving expense",
+        description: errorMessage,
         variant: "destructive"
       });
     } finally {
@@ -195,289 +178,182 @@ export default function ExpenseForm({ open, onOpenChange, expense }: ExpenseForm
     }
   };
 
-  // Create footer buttons
-  const formFooter = (
-    <>
-      <Button 
-        type="button" 
-        variant="outline" 
-        onClick={() => onOpenChange(false)}
-        disabled={isSubmitting}
-        className="w-full sm:w-auto"
-      >
-        Cancel
-      </Button>
-      <Button 
-        type="submit" 
-        disabled={isSubmitting}
-        className="w-full sm:w-auto"
-        form="expense-form" // Connect to form by id
-      >
-        {isSubmitting ? "Saving..." : expense ? "Update Expense" : "Save Expense"}
-      </Button>
-    </>
-  );
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-[100px]" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-[100px]" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  // Prepare items for Comboboxes
+  const categoryItems: ComboboxItem[] = categories.map(c => ({ value: c.id, label: c.name }));
+  const locationItems: ComboboxItem[] = locations.map(l => ({ value: l.id, label: l.name }));
 
   return (
-    <ResponsiveDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      title={expense ? "Edit Expense" : "Add New Expense"}
-      description={expense 
-        ? "Update expense details using the form below." 
-        : "Enter expense details using the form below."}
-      footer={formFooter}
-    >
-      <Form {...form}>
-        <form id="expense-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
+    <Form {...form}>
+      <form id="expense-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Reordered Fields */}
+        <div className="grid grid-cols-1 gap-4">
+          {/* 1. Amount */}
           <FormField
             control={form.control}
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Amount (£)</FormLabel>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <span className="text-muted-foreground text-base">£</span>
-                  </div>
-                  <FormControl>
-                    <Input 
-                      {...field} 
-                      type="number" 
-                      step="0.01" 
-                      placeholder="0.00" 
-                      className="pl-7 h-12 sm:h-11 text-base" 
-                      inputMode="decimal"
-                    />
-                  </FormControl>
-                </div>
-                <FormMessage />
+                <FormLabel className="text-sm font-medium">Amount (£)</FormLabel> {/* Match screenshot label */}
+                <FormControl asChild><Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    className="h-10"
+                    {...field} // Spread props, including id from FormControl
+                  /></FormControl>
+                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
 
+          {/* 2. Category (Combobox) */}
           <FormField
             control={form.control}
-            name="category_id"
+            name="categoryId"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel>Category</FormLabel>
-                <Select 
-                  onValueChange={(value) => field.onChange(parseInt(value))} 
-                  defaultValue={field.value?.toString()}
-                  value={field.value?.toString()}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-12 sm:h-11 text-base">
-                      <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent position="popper" align="start" className="max-h-[280px]">
-                    {categoriesLoading ? (
-                      <SelectItem value="loading" disabled>Loading categories...</SelectItem>
-                    ) : (
-                      categories?.map((category) => (
-                        <SelectItem 
-                          key={category.id} 
-                          value={category.id.toString()}
-                          className="text-base py-2.5"
-                        >
-                          {category.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
+              <FormItem className="flex flex-col"> {/* Ensure proper layout for Combobox */}
+                 <FormLabel className="text-sm font-medium">Category</FormLabel>
+                 <FormControl asChild><Combobox
+                     items={categoryItems}
+                     placeholder="Select a category"
+                     emptyMessage="No category found."
+                     className="h-10" // Keep height consistent
+                     {...field} // Spread field props (includes value, onChange, etc.)
+                     // No onCreateNew for categories
+                     // id is passed automatically by FormControl asChild
+                   /></FormControl>
+                 <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
 
+          {/* 3. Location (Combobox with Create New) */}
           <FormField
             control={form.control}
-            name="location_id"
-            render={({ field }) => {
-              // Convert locations array to combobox items
-              const locationItems: ComboboxItem[] = locations?.map(location => ({
-                value: location.id.toString(),
-                label: location.name
-              })) || [];
+            name="locationId"
+            render={({ field }) => (
+              <FormItem className="flex flex-col"> {/* Ensure proper layout for Combobox */}
+                 <FormLabel className="text-sm font-medium">Location</FormLabel>
+                 <FormControl asChild><Combobox
+                     items={locationItems}
+                     onCreateNew={handleCreateLocation} // Add create new handler
+                     placeholder="Select or add location"
+                     createNewLabel="Add new location"
+                     emptyMessage="No location found."
+                     className="h-10" // Keep height consistent
+                     disabled={isCreatingLocation} // Disable while creating (Keep this one, as it's specific logic)
+                     {...field} // Spread field props (includes value, onChange, etc.)
+                     // Removed duplicated props below
+                     // id is passed automatically by FormControl asChild
+                   /></FormControl>
+                 <FormMessage className="text-xs" />
+              </FormItem>
+            )}
+          />
 
-              // Find the currently selected location name for display
-              const selectedLocation = locations?.find(loc => loc.id === field.value)?.name;
-
-              // Handle creation of a new location
-              const handleCreateLocation = async (locationName: string) => {
-                try {
-                  // Store current form values to preserve them
-                  const currentValues = form.getValues();
-                  
-                  // Check if we already have this location (case insensitive match)
-                  const existingLocation = locations?.find(
-                    loc => loc.name.toLowerCase() === locationName.toLowerCase()
-                  );
-                  
-                  if (existingLocation) {
-                    // If the location already exists, just use it
-                    field.onChange(existingLocation.id);
-                    toast({
-                      title: "Location selected",
-                      description: `"${existingLocation.name}" has been selected.`,
-                    });
-                    return;
-                  }
-                  
-                  // Otherwise create a new location
-                  const newLocation = await createLocationMutation.mutateAsync(locationName);
-                  
-                  // Update only the location field, preserving all other form values
-                  field.onChange(newLocation.id);
-                  
-                  toast({
-                    title: "Location added",
-                    description: `"${locationName}" has been added to locations.`,
-                  });
-                } catch (error) {
-                  toast({
-                    title: "Error",
-                    description: "Failed to create new location.",
-                    variant: "destructive"
-                  });
-                }
-              };
-
-              return (
-                <FormItem>
-                  <FormLabel>Location</FormLabel>
-                  <FormControl>
-                    {locationsLoading ? (
-                      <Button variant="outline" disabled className="w-full justify-start">
-                        Loading locations...
-                      </Button>
-                    ) : (
-                      <Combobox
-                        items={locationItems}
-                        value={field.value?.toString()}
-                        onSelect={(value) => field.onChange(parseInt(value))}
-                        onCreateNew={handleCreateLocation}
-                        placeholder="Select or add a location"
-                        createNewLabel="Add new location"
-                        emptyMessage="No locations found. Type to add a new one."
-                        disabled={isSubmitting}
-                      />
-                    )}
-                  </FormControl>
-                  <FormMessage />
+          {/* 4. Split Type (Reverted to FormField) */}
+          <FormField
+            control={form.control}
+            name="splitType"
+            render={({ field }) => ( // Revert to simple render prop
+              <FormItem>
+                 <FormLabel className="text-sm font-medium">Split Type</FormLabel>
+                 {/* Remove FormControl asChild */}
+                 <Select
+                   onValueChange={field.onChange} // Pass field.onChange to onValueChange
+                   value={field.value}           // Pass field.value to value
+                   // name={field.name} // name is handled by FormField
+                   // onBlur={field.onBlur} // Optional: Pass onBlur if needed
+                 >
+                   <FormControl> {/* Wrap Trigger in FormControl (without asChild) */}
+                     <SelectTrigger ref={field.ref} className="h-10"> {/* Pass ref to Trigger */}
+                       <SelectValue placeholder="Select split type" />
+                     </SelectTrigger>
+                   </FormControl>
+                       <SelectContent>
+                         {SPLIT_TYPES.map((type) => (
+                           <SelectItem key={type} value={type}>
+                             {type === "100%" ? "100% (Owed by other)" : type}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                  {/* FormMessage remains outside */}
+                  <FormMessage className="text-xs" />
                 </FormItem>
-              );
-            }}
-          />
-
-          <FormField
-            control={form.control}
-            name="split_type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Split Type</FormLabel>
-                <Select 
-                  onValueChange={field.onChange} 
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="h-12 sm:h-11 text-base">
-                      <SelectValue placeholder="Select split type" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent position="popper" align="start" className="max-h-[280px]">
-                    {SPLIT_TYPES.map((type) => (
-                      <SelectItem 
-                        key={type.value} 
-                        value={type.value}
-                        className="text-base py-2.5"
-                      >
-                        {type.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
             )}
           />
 
-          <FormField
+          {/* 5. Date */}
+           <FormField
             control={form.control}
             name="date"
-            render={({ field }) => {
-              const [open, setOpen] = useState(false);
-              
-              const handleSelect = (date: Date | undefined) => {
-                field.onChange(date);
-                // Auto-close the popover when a date is selected
-                setOpen(false);
-              };
-              
-              return (
-                <FormItem className="flex flex-col">
-                  <FormLabel>Date</FormLabel>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <FormControl>
-                        <Button
-                          variant={"outline"}
-                          className={cn(
-                            "w-full pl-3 text-left font-normal h-12 sm:h-11 text-base",
-                            !field.value && "text-muted-foreground"
-                          )}
-                        >
-                          {field.value ? (
-                            format(field.value, "PPP")
-                          ) : (
-                            <span>Pick a date</span>
-                          )}
-                          <CalendarIcon className="ml-auto h-5 w-5 opacity-50" />
-                        </Button>
-                      </FormControl>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 sm:w-[350px]" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={field.value}
-                        onSelect={handleSelect}
-                        initialFocus
-                        classNames={{
-                          day_selected: "bg-primary text-primary-foreground",
-                          day_today: "bg-accent text-accent-foreground",
-                          day: "h-9 w-9 text-base p-0 font-normal focus-within:bg-accent",
-                        }}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                  <FormMessage />
-                </FormItem>
-              );
-            }}
+            render={({ field }) => (
+              <FormItem className="flex flex-col"> {/* Ensure proper layout */}
+                 <FormLabel className="text-sm font-medium">Date</FormLabel>
+                 <FormControl asChild><DatePicker {...field} className="h-10 w-full"/></FormControl>
+                 <FormMessage className="text-xs" />
+              </FormItem>
+            )}
           />
 
+          {/* 6. Description (Optional, at the end) */}
           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Description (Optional)</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="What was this expense for?" 
-                    className="h-12 sm:h-11 text-base"
-                  />
-                </FormControl>
-                <FormMessage />
+                <FormLabel className="text-sm font-medium">Description (Optional)</FormLabel> {/* Match screenshot label */}
+                {/* Comment moved outside FormControl */}
+                {/* Use Textarea for potentially longer descriptions? Or keep Input */}
+                <FormControl asChild><Input
+                    placeholder="What was this expense for?"
+                    className="h-10"
+                    {...field} // Spread props, including id from FormControl
+                  /></FormControl>
+                <FormMessage className="text-xs" />
               </FormItem>
             )}
           />
-        </form>
-      </Form>
-    </ResponsiveDialog>
+
+        </div> {/* End of grid */}
+
+        {/* Buttons remain at the end */}
+        <div className="flex justify-end gap-3 pt-6">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => onClose(false)}
+            disabled={isSubmitting}
+            className="h-10"
+          >
+            Cancel
+          </Button>
+          <Button
+            type="submit"
+            disabled={isSubmitting}
+            className="h-10"
+          >
+            {isSubmitting ? "Saving..." : expense ? "Update Expense" : "Save Expense"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }

@@ -1,6 +1,26 @@
+# Dependencies
 node_modules
 dist
-.DS_Store
+
+# Build output / Generated files
 server/public
+public/
 vite.config.ts.*
 *.tar.gz
+complete_export_*.json
+
+# OS generated files
+.DS_Store
+
+# Sensitive / Environment-specific
+serviceAccountKey.json
+client/.env.local
+.firebaserc
+firebase.json
+
+# Firebase CLI cache
+.firebase/
+
+# Editor directories and files
+.vscode/
+client/.vscode/

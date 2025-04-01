@@ -1,103 +1,294 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import MonthSelector from "@/components/MonthSelector";
-import SummaryCard from "@/components/SummaryCard";
+// Removed unused SummaryCard import
+// import SummaryCard from "@/components/SummaryCard";
 import SettlementHistory from "@/components/SettlementHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { DollarSign, Users, Check, CalendarClock, X } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
-import { MonthSummary, Settlement as SettlementType, SettlementWithUsers, User, ExpenseWithDetails } from "@shared/schema";
-import { getCurrentMonth, formatCurrency, getPreviousMonth } from "@/lib/utils";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
+// Removed unused DollarSign, Users imports
+import { Check, CalendarClock, X } from "lucide-react";
+import { Settlement as SettlementType, User, Expense } from "@shared/schema"; // Import correct types (MonthSummary removed as it's not fully used here)
+import { getCurrentMonth, formatCurrency, getPreviousMonth, formatDate } from "@/lib/utils"; // Added formatDate
+// Removed format import from date-fns
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { ResponsiveDialog } from "@/components/ui/responsive-dialog"; // Import ResponsiveDialog
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  AlertDialogAction, // Keep Action for button styling if needed
+  AlertDialogCancel, // Keep Cancel for button styling if needed
+} from "@/components/ui/alert-dialog"; // Keep parts if needed for buttons
+import { useAuth } from "@/context/AuthContext"; // Import useAuth
+import { db } from "@/lib/firebase"; // Import Firestore instance
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  onSnapshot,
+  addDoc,
+  deleteDoc,
+  doc,
+  Timestamp,
+  serverTimestamp // Import serverTimestamp
+} from "firebase/firestore";
+
+// Define a specific type for the summary data needed on this page
+interface SettlementPageSummary {
+  month: string;
+  totalExpenses: number;
+  userExpenses: Record<string, number>; // { userId: amount }
+}
 
 export default function Settlement() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useAuth();
 
-  // Fetch users
-  const {
-    data: users = [],
-    isLoading: usersLoading
-  } = useQuery<User[]>({
-    queryKey: ['/api/users']
-  });
+  // State for Firestore data
+  const [users, setUsers] = useState<User[]>([]);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [expenses, setExpenses] = useState<Expense[]>([]); // Need expenses for summary
+  const [expensesLoading, setExpensesLoading] = useState(true);
+  const [settlements, setSettlements] = useState<SettlementType[]>([]);
+  const [settlementsLoading, setSettlementsLoading] = useState(true);
+  // Use the new specific type for summary state
+  const [summary, setSummary] = useState<SettlementPageSummary | null>(null);
+  const [summaryLoading, setSummaryLoading] = useState(true);
+  const [previousMonthSettlements, setPreviousMonthSettlements] = useState<SettlementType[]>([]);
+  const [previousMonthSettlementsLoading, setPreviousMonthSettlementsLoading] = useState(true);
+  const [previousMonthExpenses, setPreviousMonthExpenses] = useState<Expense[]>([]);
+  const [previousMonthExpensesLoading, setPreviousMonthExpensesLoading] = useState(true);
+  const [isSettling, setIsSettling] = useState(false); // State for settlement in progress
 
-  // Fetch summary data for the month
-  const { 
-    data: summary, 
-    isLoading: summaryLoading,
-    isError: summaryError
-  } = useQuery<MonthSummary>({
-    queryKey: [`/api/summary/${currentMonth}`]
-  });
 
-  // Show error toast if summary query fails
+  // --- Firestore Listener for Users ---
   useEffect(() => {
-    if (summaryError) {
-      toast({
-        title: "Error",
-        description: "Failed to load summary data. Please try again.",
-        variant: "destructive"
-      });
-    }
-  }, [summaryError, toast]);
+    setUsersLoading(true);
+    const usersCol = collection(db, "users");
+    const unsubscribe = onSnapshot(usersCol, (snapshot) => {
+      const fetchedUsers = snapshot.docs.map(doc => ({
+        id: doc.id,
+        // id field matches Firebase UID
+        email: doc.data().email || null,
+        username: doc.data().username,
+        photoURL: doc.data().photoURL || undefined // Fetch photoURL
+      } as User));
+      setUsers(fetchedUsers);
+      setUsersLoading(false);
+    }, (error) => {
+      console.error("Error fetching users:", error);
+      toast({ title: "Error", description: "Could not load user data.", variant: "destructive" });
+      setUsersLoading(false);
+    });
+    return () => unsubscribe();
+  }, [toast]);
 
-  // Fetch settlements for the month
-  const {
-    data: settlements = [],
-    isLoading: settlementsLoading,
-    isError: settlementsError,
-    refetch: refetchSettlements
-  } = useQuery<SettlementWithUsers[]>({
-    queryKey: ['/api/settlements', currentMonth]
-  });
-
-  // Show error toast if settlements query fails
+  // --- Firestore Listener for Expenses (Current Month) ---
   useEffect(() => {
-    if (settlementsError) {
-      toast({
-        title: "Error",
-        description: "Failed to load settlements data. Please try again.",
-        variant: "destructive"
+    if (!currentUser) return;
+    setExpensesLoading(true);
+    const expensesCol = collection(db, "expenses");
+    const q = query(expensesCol, where("month", "==", currentMonth), orderBy("date", "desc"));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const fetchedExpenses = snapshot.docs.map(doc => {
+         const data = doc.data();
+         return {
+           id: doc.id,
+           ...data,
+           date: (data.date as Timestamp)?.toDate ? (data.date as Timestamp).toDate() : new Date(), // Convert Timestamp
+         } as Expense;
       });
+      setExpenses(fetchedExpenses);
+      setExpensesLoading(false);
+    }, (error) => {
+      console.error("Error fetching current month expenses:", error);
+      toast({ title: "Error", description: "Could not load expenses.", variant: "destructive" });
+      setExpensesLoading(false);
+    });
+    return () => unsubscribe();
+  }, [currentMonth, currentUser, toast]);
+
+  // --- Firestore Listener for Settlements (Current Month) ---
+   useEffect(() => {
+     if (!currentUser) return;
+     setSettlementsLoading(true);
+     const settlementsCol = collection(db, "settlements");
+     const q = query(settlementsCol, where("month", "==", currentMonth));
+     const unsubscribe = onSnapshot(q, (snapshot) => {
+       const fetchedSettlements = snapshot.docs.map(doc => {
+         const data = doc.data();
+         return {
+           id: doc.id, ...data,
+           date: (data.date as Timestamp)?.toDate ? (data.date as Timestamp).toDate() : new Date(),
+         } as SettlementType;
+       });
+       setSettlements(fetchedSettlements);
+       setSettlementsLoading(false);
+     }, (error) => {
+       console.error("Error fetching settlements:", error);
+       toast({ title: "Error", description: "Could not load settlements.", variant: "destructive" });
+       setSettlementsLoading(false);
+     });
+     return () => unsubscribe();
+   }, [currentMonth, currentUser, toast]);
+
+   // --- Firestore Listener for Previous Month Data ---
+   const previousMonth = getPreviousMonth(currentMonth);
+   useEffect(() => {
+     if (!currentUser || !previousMonth) return;
+
+     // Previous Month Settlements
+     setPreviousMonthSettlementsLoading(true);
+     const prevSettlementsCol = collection(db, "settlements");
+     const prevSettlementsQ = query(prevSettlementsCol, where("month", "==", previousMonth));
+     const unsubPrevSettlements = onSnapshot(prevSettlementsQ, (snapshot) => {
+       const fetched = snapshot.docs.map(doc => {
+         const data = doc.data();
+         return {
+           id: doc.id,
+           ...data,
+           date: (data.date as Timestamp)?.toDate ? (data.date as Timestamp).toDate() : new Date(), // Convert Timestamp
+         } as SettlementType;
+       });
+       setPreviousMonthSettlements(fetched);
+       setPreviousMonthSettlementsLoading(false);
+     }, (error) => {
+       console.error("Error fetching previous month settlements:", error);
+       setPreviousMonthSettlementsLoading(false);
+     });
+
+     // Previous Month Expenses
+     setPreviousMonthExpensesLoading(true);
+     const prevExpensesCol = collection(db, "expenses");
+     const prevExpensesQ = query(prevExpensesCol, where("month", "==", previousMonth));
+     const unsubPrevExpenses = onSnapshot(prevExpensesQ, (snapshot) => {
+         const fetched = snapshot.docs.map(doc => {
+           const data = doc.data();
+           return {
+             id: doc.id,
+             ...data,
+             date: (data.date as Timestamp)?.toDate ? (data.date as Timestamp).toDate() : new Date(), // Convert Timestamp
+           } as Expense;
+         });
+         setPreviousMonthExpenses(fetched);
+         setPreviousMonthExpensesLoading(false);
+     }, (error) => {
+         console.error("Error fetching previous month expenses:", error);
+         setPreviousMonthExpensesLoading(false);
+     });
+
+
+     return () => {
+       unsubPrevSettlements();
+       unsubPrevExpenses();
+     };
+   }, [previousMonth, currentUser, toast]);
+
+
+  // --- Calculate Summary ---
+  // Define state for calculated settlement details
+  const [settlementAmount, setSettlementAmount] = useState(0);
+  const [settlementDirection, setSettlementDirection] = useState<{ fromUserId: string; toUserId: string } | null>(null);
+
+  useEffect(() => {
+    if (expensesLoading || usersLoading || settlementsLoading || !currentUser || users.length < 2) {
+      setSummaryLoading(true); return;
     }
-  }, [settlementsError, toast]);
+    setSummaryLoading(true);
+    // Match current user by document ID
+    const user1 = users.find(u => u.id === currentUser.uid);
+    const user2 = users.find(u => u.id !== currentUser.uid);
+
+    if (!user1 || !user2) {
+        console.error("Could not find both users. User1:", user1, "User2:", user2);
+        setSummaryLoading(false);
+        setSummary(null);
+        setSettlementAmount(0);
+        setSettlementDirection(null);
+        return;
+    }
+
+    let total = 0;
+    const userExpensesPaid: Record<string, number> = { [user1.id]: 0, [user2.id]: 0 };
+
+    // Calculate expenses paid by each user
+    expenses.forEach(exp => {
+      const amount = Number(exp.amount) || 0;
+      total += amount;
+      // Use Firestore document ID (user1.id, user2.id) for matching paidByUserId
+      if (exp.paidByUserId === user1.id) userExpensesPaid[user1.id] += amount;
+      else if (exp.paidByUserId === user2.id) userExpensesPaid[user2.id] += amount;
+    });
+
+    const fairShare = total / 2;
+    // Calculate initial balance based on expenses
+    const user1InitialBalance = userExpensesPaid[user1.id] - fairShare;
+
+    // Adjust balance based on settlements
+    let netSettlementFromUser1ToUser2 = 0;
+    settlements.forEach(settle => {
+      const amount = Number(settle.amount) || 0;
+      // Use Firestore document ID (user1.id, user2.id) for matching settlement users
+      if (settle.fromUserId === user1.id && settle.toUserId === user2.id) netSettlementFromUser1ToUser2 += amount;
+      else if (settle.fromUserId === user2.id && settle.toUserId === user1.id) netSettlementFromUser1ToUser2 -= amount;
+    });
+
+    // Final balance after considering settlements
+    const finalBalance = user1InitialBalance - netSettlementFromUser1ToUser2;
+
+    // Determine settlement amount and direction based on final balance
+    let calculatedSettlementAmount = 0;
+    let calculatedSettlementDirection: { fromUserId: string; toUserId: string } | null = null;
+
+    // Use a small threshold to avoid floating point issues near zero
+    const threshold = 0.005;
+    if (finalBalance < -threshold) { // User1 owes User2
+      calculatedSettlementAmount = Math.abs(finalBalance);
+      calculatedSettlementDirection = { fromUserId: user1.id, toUserId: user2.id };
+    } else if (finalBalance > threshold) { // User2 owes User1
+      calculatedSettlementAmount = finalBalance;
+      calculatedSettlementDirection = { fromUserId: user2.id, toUserId: user1.id };
+    } else { // Considered settled
+      calculatedSettlementAmount = 0;
+      calculatedSettlementDirection = null; // Or keep previous direction if needed for display? Set to null for clarity.
+    }
+
+    // Create the summary object using the new specific type
+    const calculatedSummary: SettlementPageSummary = {
+      month: currentMonth, // Use currentMonth here
+      totalExpenses: total,
+      userExpenses: userExpensesPaid,
+    };
+    // Set the state without type assertion
+    setSummary(calculatedSummary);
+
+    // Update separate state for settlement details
+    setSettlementAmount(calculatedSettlementAmount);
+    setSettlementDirection(calculatedSettlementDirection);
+
+    setSummaryLoading(false);
+    // Added currentMonth to dependency array
+  }, [expenses, settlements, users, currentUser, expensesLoading, usersLoading, settlementsLoading, currentMonth]);
+
 
   const handleMonthChange = (month: string) => {
     setCurrentMonth(month);
   };
 
-  const handleUnsettlement = async (settlementId: number) => {
+  // Updated handleUnsettlement using Firestore
+  const handleUnsettlement = async (settlementId: string) => { // ID is now string
     try {
-      // Use apiRequest directly as it handles errors appropriately
-      await apiRequest(`/api/settlements/${settlementId}`, 'DELETE');
-
+      const settlementRef = doc(db, "settlements", settlementId);
+      await deleteDoc(settlementRef);
       toast({
         title: "Settlement removed",
         description: "The settlement has been removed successfully."
       });
-
-      // Directly refetch settlements data to ensure immediate UI update
-      await refetchSettlements();
-      
-      // Additionally invalidate queries to ensure consistent state
-      queryClient.invalidateQueries({ queryKey: ['/api/settlements', currentMonth] });
-      queryClient.invalidateQueries({ queryKey: ['/api/settlements'] }); // Invalidate all settlements queries
-      queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
+      // No need to manually refetch/invalidate, listener handles it
     } catch (error) {
+      console.error("Error removing settlement:", error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to remove settlement",
@@ -106,102 +297,77 @@ export default function Settlement() {
     }
   };
 
+  // Updated handleSettlement using Firestore
   const handleSettlement = async () => {
-    try {
-      // Check if already settled to prevent duplication
-      if (isSettled) {
-        toast({
-          title: "Already settled",
-          description: "This month has already been settled",
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      // Check if summary data exists
-      if (!summary) {
-        toast({
-          title: "Error",
-          description: "Summary data is not available. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
+    const isSettled = !settlementsLoading && settlements && settlements.length > 0; // Recalculate inside handler
+    if (isSettled) {
+      toast({ title: "Already settled", variant: "destructive" }); return;
+    }
+    // Use the separate settlementAmount state
+    if (!settlementDirection || settlementAmount <= 0) {
+      toast({ title: "Nothing to settle", description: "The balance is zero.", variant: "default" }); return;
+    }
+    if (!currentUser) {
+       toast({ title: "Error", description: "User not logged in.", variant: "destructive" }); return;
+    }
 
+    setIsSettling(true); // Start settling process
+    setIsDialogOpen(false); // Close dialog immediately
+
+    try {
       const settlementData = {
         month: currentMonth,
-        amount: summary.settlementAmount.toString(),
-        date: new Date().toISOString(),
-        from_user_id: summary.settlementDirection.fromUserId,
-        to_user_id: summary.settlementDirection.toUserId,
+        amount: settlementAmount, // Use state variable
+        date: Timestamp.now(), // Use Firestore Timestamp
+        fromUserId: settlementDirection.fromUserId, // Use state variable
+        toUserId: settlementDirection.toUserId, // Use state variable
         notes: `Settlement for ${currentMonth}`,
+        recordedBy: currentUser.uid, // Optional: track who recorded
+        createdAt: serverTimestamp() // Use server timestamp
       };
 
-      // Use apiRequest directly as it handles errors and returns the parsed JSON
-      await apiRequest('/api/settlements', 'POST', settlementData);
+      await addDoc(collection(db, "settlements"), settlementData);
 
       toast({
         title: "Settlement recorded",
         description: "The settlement has been recorded successfully."
       });
-
-      // Directly refetch settlements data to ensure immediate UI update
-      await refetchSettlements();
-      
-      // Additionally invalidate queries to ensure consistent state
-      queryClient.invalidateQueries({ queryKey: ['/api/settlements', currentMonth] });
-      queryClient.invalidateQueries({ queryKey: ['/api/settlements'] }); // Invalidate all settlements queries
-      queryClient.invalidateQueries({ queryKey: [`/api/summary/${currentMonth}`] });
+      // No need to manually refetch/invalidate, listener handles it
     } catch (error) {
       console.error('Settlement error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to record settlement. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to record settlement.",
         variant: "destructive"
       });
     } finally {
-      setIsDialogOpen(false);
+      setIsSettling(false); // End settling process
     }
   };
 
-  // Get data for the previous month to help calculate unsettled months
-  const previousMonth = getPreviousMonth(currentMonth);
-  const {
-    data: previousMonthSettlements = []
-  } = useQuery<SettlementWithUsers[]>({
-    queryKey: ['/api/settlements', previousMonth],
-    enabled: !!currentMonth
-  });
-
   // Find user names based on IDs
-  const getUserName = (userId: number): string => {
+  const getUserName = (userId: string): string => {
+    // Use Firestore document ID for matching
     const user = users.find(u => u.id === userId);
-    return user ? user.username : `User ${userId}`;
+    return user?.username || user?.email?.split('@')[0] || `User...`; // Fallback logic
   };
 
-  const fromUserName = summary?.settlementDirection.fromUserId 
-    ? getUserName(summary.settlementDirection.fromUserId) 
+  // Use settlementDirection state
+  const fromUserName = settlementDirection?.fromUserId
+    ? getUserName(settlementDirection.fromUserId)
     : "User A";
 
-  const toUserName = summary?.settlementDirection.toUserId 
-    ? getUserName(summary.settlementDirection.toUserId) 
+  const toUserName = settlementDirection?.toUserId
+    ? getUserName(settlementDirection.toUserId)
     : "User B";
 
-  // Check if a settlement exists for this month
-  const isSettled = settlements && settlements.length > 0;
+// Check if a settlement exists for this month (use state)
+const isSettled = !settlementsLoading && settlements && settlements.length > 0;
 
-  // Get previous month's expenses
-  const {
-    data: previousMonthExpenses = []
-  } = useQuery<ExpenseWithDetails[]>({
-    queryKey: [`/api/expenses?month=${previousMonth}`],
-    enabled: !!previousMonth
-  });
-
-  // Calculate unsettled months - only show warning if there are actual expenses
-  const previousMonthIsSettled = previousMonthSettlements && previousMonthSettlements.length > 0;
-  const hasPreviousMonthExpenses = previousMonthExpenses && previousMonthExpenses.length > 0;
-  const unsettledMonths = (!previousMonthIsSettled && hasPreviousMonthExpenses) ? 1 : 0;
+  // Check previous month status
+  const previousMonthIsSettled = !previousMonthSettlementsLoading && previousMonthSettlements && previousMonthSettlements.length > 0;
+  const hasPreviousMonthExpenses = !previousMonthExpensesLoading && previousMonthExpenses && previousMonthExpenses.length > 0;
+  const showUnsettledWarning = (!previousMonthIsSettled && hasPreviousMonthExpenses);
 
   return (
     <div className="space-y-6 px-2 sm:px-4 pb-24">
@@ -209,10 +375,10 @@ export default function Settlement() {
         <h1 className="text-2xl font-bold text-gray-900">Settlement</h1>
       </div>
 
-      <MonthSelector onMonthChange={handleMonthChange} />
+      <MonthSelector value={currentMonth} onChange={handleMonthChange} />
 
       {/* Unsettled months card */}
-      {unsettledMonths > 0 && (
+      {showUnsettledWarning && (
         <Card className="bg-amber-50 border-amber-200 mt-4">
           <CardContent className="pt-6">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -221,20 +387,12 @@ export default function Settlement() {
                   <CalendarClock className="h-5 w-5 text-amber-600" />
                 </div>
                 <div className="ml-3">
-                  <h3 className="text-sm font-medium text-amber-800">
-                    Unsettled Month
-                  </h3>
-                  <p className="text-sm text-amber-600 mt-1">
-                    The previous month hasn't been settled yet
-                  </p>
+                  <h3 className="text-sm font-medium text-amber-800">Unsettled Month</h3>
+                  {/* eslint-disable-next-line react/no-unescaped-entities */}
+                  <p className="text-sm text-amber-600 mt-1">The previous month hasn't been settled yet.</p>
                 </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-amber-200 text-amber-700 hover:bg-amber-100 w-full sm:w-auto"
-                onClick={() => handleMonthChange(previousMonth)}
-              >
+              <Button variant="outline" size="sm" className="border-amber-200 text-amber-700 hover:bg-amber-100 w-full sm:w-auto" onClick={() => handleMonthChange(previousMonth)}>
                 View Previous Month
               </Button>
             </div>
@@ -244,39 +402,67 @@ export default function Settlement() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Current settlement card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Current Month Settlement</CardTitle>
-          </CardHeader>
+        <Card className="border-gray-200"> {/* Added border class */}
+          <CardHeader><CardTitle>Current Month Settlement</CardTitle></CardHeader>
           <CardContent>
-            {summaryLoading ? (
+            {summaryLoading || usersLoading ? (
               <Skeleton className="h-32 w-full" />
             ) : (
               <>
-                <div className="text-center mb-4">
+                {/* DEBUG LOGS OUTSIDE CONDITION */}
+                {/* Removed console logs */}
+                <div className="flex flex-col items-center text-center mb-4"> {/* Changed layout to flex column */}
+                  {/* Conditionally render Avatar based on settlementDirection */}
+                  {settlementAmount > 0 && settlementDirection && (() => {
+                      const userIdToFind = settlementDirection.fromUserId;
+                      const foundUser = users.find(u => u.id === userIdToFind);
+                      if (!foundUser) return null; // Don't render if user not found yet
+
+                      const photoUrl = foundUser.photoURL;
+                      const name = fromUserName || 'User';
+                      return (
+                        <Avatar className="h-12 w-12 mb-2"> {/* Added margin */}
+                          <AvatarImage src={photoUrl} alt={name} />
+                          <AvatarFallback>
+                            {name.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                      );
+                  })()}
                   <p className="text-sm text-gray-500">
-                    {fromUserName} owes {toUserName}
+                    {/* Use settlementAmount state */}
+                    {settlementAmount > 0 && settlementDirection
+                      ? `${fromUserName} owes ${toUserName}`
+                      : "All settled up!"}
                   </p>
-                  <p className="text-3xl font-bold text-primary mt-2">
-                    {summary ? formatCurrency(summary.settlementAmount) : "£0.00"}
+                  <p className={`text-3xl font-bold mt-1 ${settlementAmount > 0 ? 'text-primary' : 'text-green-600'}`}> {/* Reduced margin top */}
+                     {/* Use settlementAmount state */}
+                    {formatCurrency(settlementAmount)}
                   </p>
                 </div>
 
-                {!isSettled && summary && summary.settlementAmount > 0 && (
-                  <Button 
+                 {/* Use settlementAmount state */}
+                {!isSettled && settlementAmount > 0 && !summaryLoading && ( // Added !summaryLoading check
+                  <Button
+                    variant="default"
                     className="w-full"
                     onClick={() => setIsDialogOpen(true)}
+                    disabled={isSettling} // Disable if already settling
                   >
-                    <Check className="mr-2 h-4 w-4" />
-                    Mark as Settled
+                    <Check className="mr-2 h-4 w-4" /> Mark as Settled
                   </Button>
                 )}
 
                 {isSettled && settlements && settlements.length > 0 && (
                   <div className="flex items-center justify-between bg-green-50 text-green-600 p-3 rounded-md">
-                    <p className="text-sm font-medium">This month has been settled!</p>
+                    <p className="text-sm font-medium">Settled on {formatDate(settlements[0].date)}</p> {/* Use formatDate */}
                     <Button onClick={() => handleUnsettlement(settlements[0].id)} variant="ghost" size="icon" className="text-red-600 hover:bg-red-100">
-                      <X className="h-4 w-4"/>
+                      <X className="h-4 w-4" />
+                      {/*
+                        Consider adding a confirmation dialog for unsettlement as well,
+                        and potentially disabling this button while isSettling is true
+                        if unsettling should be blocked during settlement.
+                      */}
                     </Button>
                   </div>
                 )}
@@ -287,30 +473,30 @@ export default function Settlement() {
 
         {/* User summaries */}
         <div className="space-y-4">
-          {summaryLoading ? (
-            <>
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
-            </>
+          {summaryLoading || usersLoading ? (
+            <> <Skeleton className="h-20 w-full" /> <Skeleton className="h-20 w-full" /> </>
           ) : (
-            Object.entries(summary?.userExpenses || {}).map(([userIdStr, amount]) => {
-              const userId = parseInt(userIdStr, 10);
-              const username = getUserName(userId);
-              const isFirstUser = userId === (users[0]?.id || 0);
+            users.map((user) => {
+              // Access amount from the userExpenses record using the user's Firestore ID
+              // Use the specific summary type here
+              const amountPaid = summary?.userExpenses?.[user.id] ?? 0;
+              // Removed unused variable isCurrentUser
+              // const isCurrentUser = user.id === currentUser?.uid; // Check if it's the logged-in user
 
               return (
-                <div key={userId} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                <div key={user.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                   <div className="flex items-center">
-                    <div className={`p-2 rounded-md ${isFirstUser ? "bg-emerald-100 text-emerald-600" : "bg-purple-100 text-purple-600"}`}>
-                      <Users className="h-6 w-6" />
-                    </div>
+                    {/* Replace static icon with Avatar */}
+                    <Avatar className="h-10 w-10"> {/* Adjust size as needed */}
+                      <AvatarImage src={user.photoURL} alt={getUserName(user.id)} />
+                      <AvatarFallback>
+                        {getUserName(user.id)?.charAt(0).toUpperCase()}
+                        {/* Simple fallback with first initial */}
+                      </AvatarFallback>
+                    </Avatar>
                     <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-500">
-                        {username} Paid
-                      </p>
-                      <p className="text-xl font-semibold text-gray-800">
-                        {formatCurrency(amount)}
-                      </p>
+                      <p className="text-sm font-medium text-gray-500">{getUserName(user.id)} Paid</p>
+                      <p className="text-xl font-semibold text-gray-800">{formatCurrency(amountPaid)}</p>
                     </div>
                   </div>
                 </div>
@@ -321,34 +507,41 @@ export default function Settlement() {
       </div>
 
       {/* Settlement history */}
-      <SettlementHistory 
-        settlements={settlements || []} 
-        isLoading={settlementsLoading} 
+      <SettlementHistory
+        settlements={settlements || []} // Pass base settlements
+        isLoading={settlementsLoading}
         onUnsettlement={handleUnsettlement}
+        users={users} // Pass users for name lookup
       />
 
-      {/* Confirm settlement dialog */}
-      <AlertDialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Settlement</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to mark this settlement as complete?
-              {summary && (
-                <div className="mt-2 font-medium">
-                  {fromUserName} will pay {toUserName} {formatCurrency(summary.settlementAmount)}
-                </div>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSettlement}>
-              Confirm Settlement
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Confirm settlement dialog using ResponsiveDialog */}
+      <ResponsiveDialog
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        title="Confirm Settlement"
+        description="Are you sure you want to mark this settlement as complete?"
+      >
+        {/* Main content including conditional description and footer */}
+        <div className="mt-2"> {/* Add margin if needed */}
+          {/* Use settlementAmount state */}
+          {settlementAmount > 0 && settlementDirection && (
+            <p className="text-sm text-muted-foreground font-medium"> {/* Use paragraph and standard text style */}
+              {fromUserName} will pay {toUserName} {formatCurrency(settlementAmount)}
+            </p>
+          )}
+        </div>
+
+        {/* Footer content */}
+        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4">
+          <AlertDialogCancel onClick={() => setIsDialogOpen(false)}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleSettlement}
+            disabled={isSettling} // Disable confirm button while settling
+          >
+            {isSettling ? "Settling..." : "Confirm Settlement"}
+          </AlertDialogAction>
+        </div>
+      </ResponsiveDialog>
     </div>
   );
 }

@@ -1,8 +1,7 @@
-import { useState } from "react";
-import { SettlementWithUsers } from "@shared/schema";
-import { 
-  Card, 
-  CardContent, 
+import { Settlement as SettlementType, User } from "@shared/schema"; // Import base Settlement and User types
+import {
+  Card,
+  CardContent,
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
@@ -14,24 +13,32 @@ import {
   TableCell, 
   TableHead, 
   TableHeader, 
-  TableRow 
+  TableRow
 } from "@/components/ui/table";
-import { format } from "date-fns";
-import { formatCurrency } from "@/lib/utils";
+// Removed format import from date-fns
+import { formatCurrency, formatDate, formatMonthYear } from "@/lib/utils"; // Added formatDate, formatMonthYear
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface SettlementHistoryProps {
-  settlements: SettlementWithUsers[];
+  settlements: SettlementType[]; // Use base Settlement type
+  users: User[]; // Add users prop for lookup
   isLoading?: boolean;
-  onUnsettlement?: (id: number) => void;
+  onUnsettlement?: (id: string) => void; // ID is now string
 }
 
 export default function SettlementHistory(props: SettlementHistoryProps) {
-  const { settlements, isLoading = false, onUnsettlement } = props;
+  const { settlements, users, isLoading = false, onUnsettlement } = props;
+
+  // Helper to get username from ID
+  const getUserName = (userId: string): string => {
+    const user = users.find(u => u.id === userId);
+    return user?.username || user?.email?.split('@')[0] || `User...`; // Fallback logic
+  };
+
   // Display loading state
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border-gray-200"> {/* Added border class */}
         <CardHeader>
           <CardTitle>Settlement History</CardTitle>
         </CardHeader>
@@ -49,7 +56,7 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
   // Display empty state
   if (settlements.length === 0) {
     return (
-      <Card>
+      <Card className="border-gray-200"> {/* Added border class */}
         <CardHeader>
           <CardTitle>Settlement History</CardTitle>
         </CardHeader>
@@ -63,7 +70,7 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
   }
 
   return (
-    <Card>
+    <Card className="border-gray-200"> {/* Added border class */}
       <CardHeader>
         <CardTitle>Settlement History</CardTitle>
       </CardHeader>
@@ -74,19 +81,19 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <p className="text-sm text-gray-500">Date</p>
-                  <p className="text-sm font-medium">{format(new Date(settlement.date), "MMM d, yyyy")}</p>
+                  <p className="text-sm font-medium">{formatDate(settlement.date)}</p> {/* Use formatDate */}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Month</p>
-                  <p className="text-sm font-medium">{format(new Date(settlement.month + "-01"), "MMMM yyyy")}</p>
+                  <p className="text-sm font-medium">{formatMonthYear(settlement.month)}</p> {/* Use formatMonthYear */}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">From</p>
-                  <p className="text-sm font-medium">{settlement.fromUser.username}</p>
+                  <p className="text-sm font-medium">{getUserName(settlement.fromUserId)}</p> {/* Lookup username */}
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">To</p>
-                  <p className="text-sm font-medium">{settlement.toUser.username}</p>
+                  <p className="text-sm font-medium">{getUserName(settlement.toUserId)}</p> {/* Lookup username */}
                 </div>
                 <div className="col-span-2">
                   <p className="text-sm text-gray-500">Amount</p>
@@ -95,9 +102,9 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
                 {onUnsettlement && (
                   <div className="col-span-2 mt-2 flex justify-end">
                     <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      onClick={() => onUnsettlement(settlement.id)} 
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onUnsettlement(settlement.id)} // Pass string ID
                       className="text-red-500 hover:text-red-700 hover:bg-red-50"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
@@ -125,16 +132,16 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
               {settlements.map((settlement) => (
                 <TableRow key={settlement.id}>
                   <TableCell className="text-sm text-gray-600">
-                    {format(new Date(settlement.date), "MMM d, yyyy")}
+                    {formatDate(settlement.date)} {/* Use formatDate */}
                   </TableCell>
                   <TableCell className="text-sm text-gray-600">
-                    {format(new Date(settlement.month + "-01"), "MMMM yyyy")}
+                    {formatMonthYear(settlement.month)} {/* Use formatMonthYear */}
                   </TableCell>
                   <TableCell className="text-sm font-medium text-gray-800">
-                    {settlement.fromUser.username}
+                    {getUserName(settlement.fromUserId)} {/* Lookup username */}
                   </TableCell>
                   <TableCell className="text-sm font-medium text-gray-800">
-                    {settlement.toUser.username}
+                    {getUserName(settlement.toUserId)} {/* Lookup username */}
                   </TableCell>
                   <TableCell className="text-sm font-medium text-gray-800 text-right">
                     {formatCurrency(Number(settlement.amount))}
@@ -144,7 +151,7 @@ export default function SettlementHistory(props: SettlementHistoryProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => onUnsettlement(settlement.id)}
+                        onClick={() => onUnsettlement(settlement.id)} // Pass string ID
                         className="text-red-500 hover:text-red-700 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
