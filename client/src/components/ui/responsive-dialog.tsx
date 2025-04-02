@@ -47,8 +47,7 @@ export function ResponsiveDialog({
   footer,
   className,
 }: ResponsiveDialogProps) {
-  // Removed isMobile hook usage
-  // const isMobile = useIsMobile();
+  // Removed isMobile hook usage and related logic
 
   // Define safe fallbacks
   const safeTitle = title || "Dialog"; // Ensure title is never empty
@@ -58,13 +57,7 @@ export function ResponsiveDialog({
   const titleId = `dialog-title-${safeTitle.replace(/\s+/g, '-').toLowerCase()}`;
   const descriptionId = `dialog-desc-${safeTitle.replace(/\s+/g, '-').toLowerCase()}`;
 
-  // Removed useEffect related to isMobile
-  // React.useEffect(() => {
-  // }, [open, isMobile]);
-
-  // Removed the 'if (isMobile)' block, always render Dialog
-
-  // Always render Dialog (previously Desktop view)
+  // Always render Dialog
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -81,11 +74,13 @@ export function ResponsiveDialog({
           {/* Add ID to DialogTitle */}
           <DialogTitle id={titleId}>{safeTitle}</DialogTitle>
           {/* Add ID to DialogDescription and wrap content with VisuallyHidden */}
-          <DialogDescription id={descriptionId}>
-             <VisuallyHidden>
-               {safeDescription}
-             </VisuallyHidden>
-          </DialogDescription>
+          {description && ( // Only render description if provided
+            <DialogDescription id={descriptionId}>
+              <VisuallyHidden>
+                {safeDescription}
+              </VisuallyHidden>
+            </DialogDescription>
+          )}
         </DialogHeader>
         {/* Children rendered after header */}
         {/* Add max-height and overflow for scrollable content */}
