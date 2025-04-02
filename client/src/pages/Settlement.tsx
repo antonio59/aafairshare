@@ -471,10 +471,13 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
           </CardContent>
         </Card>
 
-        {/* User summaries */}
-        <div className="space-y-4">
+        {/* User summaries - Changed to grid layout */}
+        <div className="grid grid-cols-2 gap-4"> {/* Changed from space-y-4 to grid */}
           {summaryLoading || usersLoading ? (
-            <> <Skeleton className="h-20 w-full" /> <Skeleton className="h-20 w-full" /> </>
+            <>
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-20 w-full" />
+            </>
           ) : (
             users.map((user) => {
               // Access amount from the userExpenses record using the user's Firestore ID

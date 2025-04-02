@@ -88,7 +88,8 @@ const Tooltip = ({
       <button
         ref={triggerRef} // Add ref to the trigger
         type="button" // Explicitly set type
-        className="tooltip-trigger cursor-pointer p-0 m-0 border-none bg-transparent appearance-none text-left" // Reset button styles
+        // Removed tooltip-trigger class
+        className="cursor-pointer p-0 m-0 border-none bg-transparent appearance-none text-left" // Reset button styles
         onClick={showTooltip}
         onFocus={showTooltip} // Show on focus for keyboard users
         onBlur={hideTooltip} // Hide on blur

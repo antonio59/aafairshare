@@ -130,12 +130,12 @@ export default function Settings() {
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {categories.map((category) => (
                     <Card key={category.id}>
-                      <CardContent className="flex items-center justify-between p-4">
-                        <div className="flex items-center space-x-4">
-                          <div className="h-4 w-4 rounded-full" style={{ backgroundColor: category.color || '#ccc' }}></div> {/* Display color */}
+                      <CardContent className="flex items-center justify-between p-3 sm:p-4"> {/* Adjusted Padding */}
+                        <div className="flex items-center space-x-3 sm:space-x-4"> {/* Adjusted Spacing */}
+                          <div className="h-5 w-5 rounded-full" style={{ backgroundColor: category.color || '#ccc' }}></div> {/* Increased Swatch Size */}
                           <span>{category.name}</span>
                         </div>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-1 sm:space-x-2"> {/* Adjusted Spacing */}
                           <Button variant="ghost" size="icon" onClick={() => { setSelectedCategory(category); setCategoryFormOpen(true); }} className="h-8 w-8 text-gray-500 hover:text-primary">
                             <Pencil className="h-4 w-4" /> <span className="sr-only">Edit</span>
                           </Button>
@@ -165,17 +165,17 @@ export default function Settings() {
                 <Plus className="h-4 w-4 mr-2" /> Add Location
               </Button>
             </CardHeader>
-            {/* Add overflow and max-height for testing */}
-            <CardContent className="overflow-y-auto max-h-[60vh]">
+            {/* Removed overflow-y-auto and max-h for better mobile scrolling */}
+            <CardContent>
               {locationsLoading ? (
                  <div className="space-y-2"> <Skeleton className="h-12" /> <Skeleton className="h-12" /> <Skeleton className="h-12" /> </div>
               ) : locations.length > 0 ? (
                  <div className="space-y-4"> {/* Reverted to vertical stack */}
                   {locations.map((location) => (
                     <Card key={location.id}>
-                      <CardContent className="flex items-center justify-between p-4">
+                      <CardContent className="flex items-center justify-between p-3 sm:p-4"> {/* Adjusted Padding */}
                         <span>{location.name}</span>
-                        <div className="flex space-x-2">
+                        <div className="flex space-x-1 sm:space-x-2"> {/* Adjusted Spacing */}
                           <Button variant="ghost" size="icon" onClick={() => { setSelectedLocation(location); setLocationFormOpen(true); }} className="h-8 w-8 text-gray-500 hover:text-primary">
                             <Pencil className="h-4 w-4" /> <span className="sr-only">Edit</span>
                           </Button>

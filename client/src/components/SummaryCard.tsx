@@ -1,6 +1,7 @@
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
-import { Tooltip } from "@/components/ui/tooltip";
+// Removed Tooltip import
+// import { Tooltip } from "@/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { useAuth } from "@/context/AuthContext";
 
@@ -12,7 +13,7 @@ interface SummaryCardProps {
   icon: LucideIcon;
   variant?: SummaryCardVariant;
   isNegative?: boolean;
-  tooltip?: string;
+  tooltip?: string; // Keep prop for potential future use or applying to parent
   isLoading?: boolean;
   photoURL?: string | null;
   email?: string;
@@ -24,7 +25,7 @@ export default function SummaryCard({
   icon: IconComponent,
   variant = 'total',
   isNegative = false,
-  tooltip,
+  tooltip, // Keep prop
   isLoading = false,
   photoURL,
   email
@@ -33,14 +34,13 @@ export default function SummaryCard({
   const isCurrentUserCard = variant === 'user1';
 
   if (isLoading) {
+    // Updated skeleton to match larger sizes
     return (
-      <div className="bg-card dark:bg-card p-4 rounded-lg border border-border/40 dark:border-border/40">
-        <div className="flex items-center">
-          <div className="h-10 w-10 rounded-md bg-muted animate-pulse" />
-          <div className="ml-3 space-y-2">
-            <div className="h-4 w-24 bg-muted rounded animate-pulse" />
-            <div className="h-6 w-32 bg-muted rounded animate-pulse" />
-          </div>
+      <div className="bg-card dark:bg-card p-4 rounded-lg border border-border/40 dark:border-border/40 h-full flex items-center">
+        <div className="h-14 w-14 rounded-md bg-muted animate-pulse shrink-0 mr-5" /> {/* Increased size and margin */}
+        <div className="flex-1 grid grid-rows-2 gap-0 items-center"> {/* Changed to items-center */}
+          <div className="h-6 w-3/4 bg-muted rounded animate-pulse" /> {/* Increased height */}
+          <div className="h-7 w-1/2 bg-muted rounded animate-pulse" /> {/* Increased height */}
         </div>
       </div>
     );
@@ -62,40 +62,45 @@ export default function SummaryCard({
   };
 
   return (
-    <div className="bg-card dark:bg-card p-4 rounded-lg border border-border/40 dark:border-border/40">
-      <div className="flex items-center">
+    // Use flex items-center, kept padding p-4
+    <div className="bg-card dark:bg-card p-4 rounded-lg border border-border/40 dark:border-border/40 h-full flex items-center">
+      {/* Icon/Avatar Container: Increased size, increased margin-right */}
+      <div className="shrink-0 mr-5"> {/* Increased margin */}
         {((typeof photoURL === 'string' && photoURL) || (isCurrentUserCard && currentUser?.photoURL)) ? (
-          <Avatar className="h-10 w-10">
+          // Increased Avatar size
+          <Avatar className="h-14 w-14"> {/* Increased size */}
             <AvatarImage
               src={(typeof photoURL === 'string' && photoURL) ? photoURL : currentUser?.photoURL || undefined}
               alt={email || currentUser?.email || 'User'}
             />
-            <AvatarFallback className={cn("text-foreground", getBgColor())}>
+            <AvatarFallback className={cn("text-foreground text-lg", getBgColor())}> {/* Increased text size */}
               {(email || currentUser?.email)?.substring(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
         ) : (
-          <div className={cn("p-2.5 rounded-md shrink-0", getBgColor())}>
-            <IconComponent className="h-5 w-5 sm:h-6 sm:w-6" />
+          // Increased padding and icon size
+          <div className={cn("p-3.5 rounded-md", getBgColor())}> {/* Increased padding */}
+            <IconComponent className="h-7 w-7" /> {/* Increased icon size */}
           </div>
         )}
-        <div className="ml-3 min-w-0">
-          {tooltip ? (
-            <Tooltip content={tooltip}><p className="text-sm font-medium text-muted-foreground truncate cursor-help">
-                {title}
-              </p></Tooltip>
-          ) : (
-            <p className="text-sm font-medium text-muted-foreground truncate">
-              {title}
-            </p>
-          )}
-          <p className={cn(
-            "text-base sm:text-xl font-semibold truncate",
-            isNegative ? "text-red-500 dark:text-red-400" : "text-foreground"
-          )}>
-            {value}
-          </p>
-        </div>
+      </div>
+
+      {/* Text container: Use grid layout with items-center */}
+      <div className="flex-1 min-w-0 grid grid-rows-2 gap-0 items-center"> {/* Changed items-start to items-center */}
+        {/* Title paragraph */}
+        <p
+          className="text-base font-medium text-muted-foreground whitespace-normal break-words" // Removed margin/leading classes
+          title={tooltip} // Use browser default tooltip
+        >
+          {title}
+        </p>
+        {/* Value paragraph */}
+        <p className={cn(
+          "text-lg sm:text-xl font-semibold whitespace-normal break-words no-underline", // Removed margin/leading classes
+          isNegative ? "text-red-500 dark:text-red-400" : "text-foreground"
+        )}>
+          {value}
+        </p>
       </div>
     </div>
   );

@@ -379,6 +379,7 @@
   text-decoration: none;
 }
 
+/*
 .tooltip-trigger:after {
   content: '';
   position: absolute;
@@ -389,6 +390,7 @@
   background-color: currentColor;
   opacity: 0.5;
 }
+*/
 
 /* Custom tooltip arrow */
 .tooltip-arrow {

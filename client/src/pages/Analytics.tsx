@@ -23,8 +23,8 @@ Chart.register(...registerables);
 export default function Analytics() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
-  const printRef = useRef<HTMLDivElement>(null);
-  const { currentUser, initialized } = useAuth();
+  const printRef = useRef<HTMLDivElement>(null); // Keep printRef if PDF export via print is still desired elsewhere or potentially later
+  const { currentUser, loading: authLoading } = useAuth(); // Removed initialized, added loading alias
 
   // State for Firestore data
   const [users, setUsers] = useState<User[]>([]);
@@ -46,24 +46,24 @@ export default function Analytics() {
   const [trendData, setTrendData] = useState<TrendData | null>(null);
   const [trendDataLoading, setTrendDataLoading] = useState(true);
 
-  // Wait for auth to be initialized before loading data
+  // Effect to show message if not logged in after auth check completes
   useEffect(() => {
-    if (!initialized) {
-      return;
-    }
-    if (!currentUser) {
+    if (!authLoading && !currentUser) {
       toast({
         title: "Authentication Required",
         description: "Please log in to view analytics.",
         variant: "destructive",
       });
-      return;
     }
-  }, [initialized, currentUser, toast]);
+  }, [authLoading, currentUser, toast]);
 
   // Fetch Users
   useEffect(() => {
-    if (!initialized || !currentUser) return;
+    if (!currentUser) { // Only proceed if user is logged in
+        setUsersLoading(false); // Ensure loading is false if no user
+        setUsers([]); // Clear users if logged out
+        return;
+    };
 
     setUsersLoading(true);
     const usersCol = collection(db, "users");
@@ -81,11 +81,15 @@ export default function Analytics() {
       setUsersLoading(false);
     });
     return () => unsubscribe();
-  }, [initialized, currentUser, toast]);
+  }, [currentUser, toast]); // Depend only on currentUser
 
   // Fetch Categories
   useEffect(() => {
-    if (!initialized || !currentUser) return;
+     if (!currentUser) { // Only proceed if user is logged in
+        setCategoriesLoading(false);
+        setCategories([]);
+        return;
+    };
 
     setCategoriesLoading(true);
     const catCol = collection(db, "categories");
@@ -104,9 +108,9 @@ export default function Analytics() {
       setCategoriesLoading(false);
     });
     return () => unsubscribe();
-  }, [initialized, currentUser, toast]);
+  }, [currentUser, toast]); // Depend only on currentUser
 
-  // Fetch Locations
+  // Fetch Locations (Can run even if not logged in, maybe?) - Assuming yes for now
   useEffect(() => {
     setLocationsLoading(true);
     const locCol = collection(db, "locations");
@@ -118,13 +122,22 @@ export default function Analytics() {
     }, (error) => {
       console.error("Error fetching locations:", error);
       setLocationsLoading(false);
+       toast({ // Added toast on error
+        title: "Error",
+        description: "Could not load locations.",
+        variant: "destructive"
+      });
     });
     return () => unsubscribe();
-  }, []);
+  }, [toast]); // Removed currentUser dependency if locations are public/global
 
   // Fetch Current Month Expenses
   useEffect(() => {
-    if (!currentUser) return;
+    if (!currentUser) {
+        setCurrentMonthExpensesLoading(false);
+        setCurrentMonthExpenses([]);
+        return;
+    };
     setCurrentMonthExpensesLoading(true);
     const expensesCol = collection(db, "expenses");
     const q = query(expensesCol, where("month", "==", currentMonth), orderBy("date", "desc"));
@@ -141,13 +154,22 @@ export default function Analytics() {
     }, (error) => {
       console.error("Error fetching current month expenses:", error);
       setCurrentMonthExpensesLoading(false);
+       toast({ // Added toast on error
+        title: "Error",
+        description: "Could not load current month expenses.",
+        variant: "destructive"
+      });
     });
     return () => unsubscribe();
-  }, [currentMonth, currentUser]);
+  }, [currentMonth, currentUser, toast]); // Added toast
 
   // Fetch Current Month Settlements
    useEffect(() => {
-     if (!currentUser) return;
+     if (!currentUser) {
+        setCurrentMonthSettlementsLoading(false);
+        setCurrentMonthSettlements([]);
+        return;
+     };
      setCurrentMonthSettlementsLoading(true);
      const settlementsCol = collection(db, "settlements");
      const q = query(settlementsCol, where("month", "==", currentMonth));
@@ -164,13 +186,22 @@ export default function Analytics() {
      }, (error) => {
        console.error("Error fetching settlements:", error);
        setCurrentMonthSettlementsLoading(false);
+        toast({ // Added toast on error
+            title: "Error",
+            description: "Could not load settlements.",
+            variant: "destructive"
+        });
      });
      return () => unsubscribe();
-   }, [currentMonth, currentUser]);
+   }, [currentMonth, currentUser, toast]); // Added toast
 
    // Fetch Expenses for Trend Calculation (e.g., last 6 months)
    useEffect(() => {
-     if (!currentUser) return;
+     if (!currentUser) {
+        setTrendExpensesLoading(false);
+        setTrendExpenses([]);
+        return;
+     };
      setTrendExpensesLoading(true);
      const sixMonthsAgo = startOfMonth(subMonths(new Date(), 5)); // Start of month 6 months ago (inclusive)
      const expensesCol = collection(db, "expenses");
@@ -189,29 +220,38 @@ export default function Analytics() {
      }, (error) => {
          console.error("Error fetching trend expenses:", error);
          setTrendExpensesLoading(false);
+          toast({ // Added toast on error
+            title: "Error",
+            description: "Could not load trend data.",
+            variant: "destructive"
+          });
      });
 
      return () => unsubscribe();
-   }, [currentUser]);
+   }, [currentUser, toast]); // Added toast
 
 
   // --- Calculations ---
 
   // Calculate Summary for Current Month
   useEffect(() => {
-    if (!initialized || !currentUser) return;
-    if (currentMonthExpensesLoading || usersLoading || currentMonthSettlementsLoading || users.length < 2) {
-      // Removed leftover console.log arguments
+    // Ensure user is logged in and required data is loaded
+    if (!currentUser || currentMonthExpensesLoading || usersLoading || currentMonthSettlementsLoading || categoriesLoading || locationsLoading) {
       setSummaryLoading(true);
       return;
+    }
+    // Also ensure we have at least two users for a meaningful summary
+     if (users.length < 2) {
+        console.warn("Summary calculation requires at least two users.");
+        setSummary(null);
+        setSummaryLoading(false);
+        return;
     }
 
     setSummaryLoading(true);
 
     try {
-      // Find current user by matching document ID to Firebase UID
       const user1 = users.find(u => u.id === currentUser.uid);
-      // Find other users
       const otherUsers = users.filter(u => u.id !== currentUser.uid);
 
       if (!user1) {
@@ -221,14 +261,14 @@ export default function Analytics() {
         return;
       }
 
+      // For simplicity, assuming only one other user for now. Adapt if multi-user needed.
       if (otherUsers.length !== 1) {
         console.warn(`Expected exactly one other user for summary calculation, but found ${otherUsers.length}. Skipping summary.`);
         setSummaryLoading(false);
-        setSummary(null); // Indicate no summary can be calculated
+        setSummary(null);
         return;
       }
 
-      // Proceed with calculation only if exactly one other user exists
       const user2 = otherUsers[0];
 
       let totalExpenses = 0;
@@ -243,7 +283,6 @@ export default function Analytics() {
         if (exp.paidByUserId === user1.id) userExpensesPaid[user1.id] += amount;
         else if (exp.paidByUserId === user2.id) userExpensesPaid[user2.id] += amount;
 
-        // Aggregate category/location/split totals
         categoryTotalsMap.set(exp.categoryId, (categoryTotalsMap.get(exp.categoryId) || 0) + amount);
         locationTotalsMap.set(exp.locationId, (locationTotalsMap.get(exp.locationId) || 0) + amount);
         splitTypeTotals[exp.splitType] = (splitTypeTotals[exp.splitType] || 0) + amount;
@@ -263,9 +302,8 @@ export default function Analytics() {
       let settlementDirection: { fromUserId: string; toUserId: string };
       if (finalBalance < -0.005) settlementDirection = { fromUserId: user1.id, toUserId: user2.id };
       else if (finalBalance > 0.005) settlementDirection = { fromUserId: user2.id, toUserId: user1.id };
-      else { settlementAmount = 0; settlementDirection = { fromUserId: user1.id, toUserId: user2.id }; }
+      else { settlementAmount = 0; settlementDirection = { fromUserId: user1.id, toUserId: user2.id }; } // Default direction if balanced
 
-      // Map category/location totals with names
       const categoryMap = new Map(categories.map(c => [c.id, c]));
       const locationMap = new Map(locations.map(l => [l.id, l]));
 
@@ -273,17 +311,17 @@ export default function Analytics() {
           category: categoryMap.get(id) || { id, name: 'Unknown', color: '#888' },
           amount,
           percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
-      })).sort((a, b) => b.amount - a.amount); // Sort descending
+      })).sort((a, b) => b.amount - a.amount);
 
       const locationTotals = Array.from(locationTotalsMap.entries()).map(([id, amount]) => ({
           location: locationMap.get(id) || { id, name: 'Unknown' },
           amount,
           percentage: totalExpenses > 0 ? (amount / totalExpenses) * 100 : 0
-      })).sort((a, b) => b.amount - a.amount); // Sort descending
+      })).sort((a, b) => b.amount - a.amount);
 
       const calculatedSummary: MonthSummary = {
         month: currentMonth, totalExpenses, userExpenses: userExpensesPaid, settlementAmount, settlementDirection,
-        categoryTotals, locationTotals, splitTypeTotals, dateDistribution: {}, // Placeholder for dateDistribution
+        categoryTotals, locationTotals, splitTypeTotals, dateDistribution: {}, // dateDistribution needs calculation if used
       };
       setSummary(calculatedSummary);
       setSummaryLoading(false);
@@ -296,40 +334,35 @@ export default function Analytics() {
       });
       setSummaryLoading(false);
     }
-    // Added currentMonth to dependencies as it's used in calculatedSummary
-  }, [initialized, currentUser, currentMonthExpensesLoading, usersLoading, currentMonthSettlementsLoading, users, currentMonthExpenses, currentMonthSettlements, toast, categories, locations, currentMonth]);
+    // Depend on all data sources and the current user
+  }, [currentUser, currentMonthExpensesLoading, usersLoading, currentMonthSettlementsLoading, categoriesLoading, locationsLoading, users, currentMonthExpenses, currentMonthSettlements, toast, categories, locations, currentMonth]);
 
   // Calculate Trend Data
   useEffect(() => {
-      if (trendExpensesLoading || categoriesLoading || locationsLoading) {
+      // Ensure user is logged in and required data is loaded
+      if (!currentUser || trendExpensesLoading || categoriesLoading || locationsLoading) {
           setTrendDataLoading(true); return;
       }
       setTrendDataLoading(true);
 
       const monthlyTotals: Record<string, number> = {};
-      const categoryMonthly: Record<string, Record<string, number>> = {}; // { categoryId: { month: total } }
-      const locationMonthly: Record<string, Record<string, number>> = {}; // { locationId: { month: total } }
+      const categoryMonthly: Record<string, Record<string, number>> = {};
+      const locationMonthly: Record<string, Record<string, number>> = {};
 
       trendExpenses.forEach(exp => {
-          const month = getMonthFromDate(exp.date); // Use utility function
+          const month = getMonthFromDate(exp.date);
           const amount = Number(exp.amount) || 0;
 
-          // Monthly total
           monthlyTotals[month] = (monthlyTotals[month] || 0) + amount;
 
-          // Category monthly total
           if (!categoryMonthly[exp.categoryId]) categoryMonthly[exp.categoryId] = {};
           categoryMonthly[exp.categoryId][month] = (categoryMonthly[exp.categoryId][month] || 0) + amount;
 
-          // Location monthly total
           if (!locationMonthly[exp.locationId]) locationMonthly[exp.locationId] = {};
           locationMonthly[exp.locationId][month] = (locationMonthly[exp.locationId][month] || 0) + amount;
       });
 
-      // Get sorted list of months present in the data
       const months = Object.keys(monthlyTotals).sort();
-
-      // Prepare final trend data structure
       const totalsByMonth = months.map(month => monthlyTotals[month]);
 
       const categoryMap = new Map(categories.map(c => [c.id, c.name]));
@@ -347,7 +380,6 @@ export default function Analytics() {
            locationsData[locName] = months.map(month => locationMonthly[locId][month] || 0);
        }
 
-
       const calculatedTrendData: TrendData = {
           months,
           totalsByMonth,
@@ -358,8 +390,7 @@ export default function Analytics() {
       setTrendData(calculatedTrendData);
       setTrendDataLoading(false);
 
-  // Added categories and locations to dependency array
-  }, [trendExpenses, categories, locations, trendExpensesLoading, categoriesLoading, locationsLoading]);
+  }, [currentUser, trendExpenses, categories, locations, trendExpensesLoading, categoriesLoading, locationsLoading]); // Depend on user and data sources
 
 
   // --- Event Handlers ---
@@ -367,16 +398,7 @@ export default function Analytics() {
     setCurrentMonth(month);
   };
 
-  // Removed unnecessary dependencies from useCallback
-  const handlePrint = useCallback(() => { /* ... keep existing print logic ... */ }, []);
-
-  const handleExport = (format: 'csv' | 'xlsx' | 'pdf') => {
-    if (format === 'pdf') {
-      handlePrint();
-    } else {
-      toast({ title: "Export not available", description: "Only PDF export is available.", variant: "default" });
-    }
-  };
+  // Removed handleExport function
 
   // Helper function to get username by ID
   const getUsernameById = (userId: string): string => {
@@ -397,10 +419,33 @@ export default function Analytics() {
   };
 
   // --- Render ---
-  const isLoading = summaryLoading || usersLoading || trendDataLoading; // Combine loading states
+  // Combine all relevant loading states
+  const isLoading = authLoading || summaryLoading || usersLoading || trendDataLoading || categoriesLoading || locationsLoading || currentMonthExpensesLoading || currentMonthSettlementsLoading;
 
+  // Show global loading if auth is still loading
+  if (authLoading) {
+     return (
+       <div className="flex items-center justify-center min-h-[calc(100vh-200px)]"> {/* Adjust height as needed */}
+         <div className="text-center space-y-4">
+           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Loading Analytics...</h2>
+         </div>
+       </div>
+     );
+  }
+
+  // Show message if not logged in after auth check
+  if (!currentUser) {
+     return (
+        <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+            <p className="text-lg text-gray-600 dark:text-gray-400">Please log in to view analytics.</p>
+        </div>
+     );
+  }
+
+  // Main content render
   return (
-    <div className="space-y-6 px-4 sm:px-0 pb-24">
+    <div className="space-y-6 px-4 md:px-6 pb-24"> {/* Changed padding here */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Analytics</h1>
       </div>
@@ -410,7 +455,7 @@ export default function Analytics() {
           <MonthSelector
             value={currentMonth}
             onChange={handleMonthChange}
-            onExport={handleExport}
+            // Removed onExport prop
           />
         </div>
       </div>
@@ -421,11 +466,15 @@ export default function Analytics() {
           <CardHeader className="pb-4"><CardTitle className="text-xl">Monthly Summary</CardTitle></CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-24 w-full" /> : (
-              <div className="text-center">
-                <p className="text-sm text-gray-500 dark:text-gray-400">Total Expenses</p>
-                <p className="text-3xl sm:text-4xl font-bold text-primary mt-2 financial-value">{formatCurrency(summary?.totalExpenses ?? 0)}</p>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Settlement: <span className="font-medium financial-value">{formatCurrency(summary?.settlementAmount ?? 0)}</span></p>
-              </div>
+              summary ? ( // Check if summary exists
+                <div className="text-center">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Total Expenses</p>
+                  <p className="text-3xl sm:text-4xl font-bold text-primary mt-2 financial-value">{formatCurrency(summary.totalExpenses)}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">Settlement: <span className="font-medium financial-value">{formatCurrency(summary.settlementAmount)}</span></p>
+                </div>
+              ) : (
+                 <div className="p-8 text-center"><p className="text-gray-600 dark:text-gray-400">No summary data available for this month.</p></div>
+              )
             )}
           </CardContent>
         </Card>
@@ -438,7 +487,7 @@ export default function Analytics() {
               <div className="h-[250px] sm:h-64">
                 <Bar data={userExpenseData} options={{ responsive: true, maintainAspectRatio: false, /* ... other options */ }} />
               </div>
-            ) : <div className="p-8 text-center"><p className="text-gray-600 dark:text-gray-400">No data.</p></div>
+            ) : <div className="p-8 text-center"><p className="text-gray-600 dark:text-gray-400">No expense comparison data.</p></div>
             )}
           </CardContent>
         </Card>

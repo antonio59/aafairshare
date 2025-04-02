@@ -24,8 +24,8 @@ export default defineConfig({
   },
   server: {
     headers: {
-      // Allow popups for OAuth flows - Changed to unsafe-none for Firebase popup compatibility
-      "Cross-Origin-Opener-Policy": "unsafe-none",
+      // Allow popups for OAuth flows using signInWithPopup
+      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
       // Keep COEP relaxed for now unless specific features require 'require-corp'
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     }

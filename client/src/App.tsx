@@ -40,26 +40,31 @@ type ProtectedRouteProps<P extends object> = {
 
 // Updated Protected route component using generics and AuthContext
 function ProtectedRoute<P extends object>({ component: Component, ...rest }: ProtectedRouteProps<P>) {
-  const { currentUser, userProfile, loading } = useAuth(); // Add userProfile check
+  const { currentUser, userProfile, loading, profileLoading } = useAuth(); // Added profileLoading
   // Removed unused location variable
 
-  // Show loading state from context
-  if (loading) {
+  // Show loading state while auth check and profile fetch are in progress
+  // Show loading state while initial auth check OR profile fetch are in progress
+  if (loading || profileLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        {/* Loading Spinner */}
         <div className="text-center space-y-4">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <h2 className="text-lg font-medium">Loading...</h2>
-          <p className="text-sm text-gray-500">Checking authentication status</p>
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Loading...</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {loading ? 'Checking authentication...' : 'Loading user profile...'}
+          </p>
         </div>
       </div>
     );
   }
 
-  // If not loading and either no user or no profile, redirect to login
+  // After loading is complete:
+  // If no user OR no profile, redirect to login.
   if (!currentUser || !userProfile) {
     // Use console.warn or remove in production
-    console.warn("Not authenticated or no user profile, redirecting to login.");
+    console.warn("ProtectedRoute: Not authenticated or no user profile after loading. Redirecting to login.", { currentUser, userProfile });
     return <Redirect to="/login" />;
   }
 

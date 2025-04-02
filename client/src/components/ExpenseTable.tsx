@@ -1,12 +1,11 @@
+import React, { useState, useMemo } from "react"; // Import useState and useMemo
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-// Removed unused Badge import
-// import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input"; // Import Input
+import { Pencil, Trash2, Search } from "lucide-react"; // Import Search icon
 import { formatDate, formatCurrency } from "@/lib/utils";
-// Removed unused Expense type import
 import { type ExpenseWithDetails, type User } from "@shared/schema";
-import { Skeleton } from "@/components/ui/skeleton"; // Import Skeleton
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ExpenseTableProps {
   expenses: ExpenseWithDetails[];
@@ -41,11 +40,45 @@ const ExpenseCardSkeleton = () => (
   </div>
 );
 
-// Removed unused 'users' from props destructuring
 export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseTableProps) {
+  const [filterText, setFilterText] = useState("");
+
+  const filteredExpenses = useMemo(() => {
+    if (!filterText) {
+      return expenses;
+    }
+    const lowerCaseFilter = filterText.toLowerCase();
+    return expenses.filter(exp => {
+      // const descriptionMatch = exp.description?.toLowerCase().includes(lowerCaseFilter); // Removed
+      const categoryMatch = exp.category?.name?.toLowerCase().includes(lowerCaseFilter);
+      const locationMatch = exp.location?.name?.toLowerCase().includes(lowerCaseFilter); // Added
+      const paidByMatch = exp.paidByUser?.username?.toLowerCase().includes(lowerCaseFilter);
+      // const amountMatch = exp.amount.toString().includes(lowerCaseFilter); // Removed
+      return categoryMatch || locationMatch || paidByMatch; // Updated return condition
+    });
+  }, [expenses, filterText]);
+
+  const hasExpenses = expenses.length > 0;
+  const hasFilteredExpenses = filteredExpenses.length > 0;
+  const showNoResultsMessage = hasExpenses && !hasFilteredExpenses; // Show only if filtering yielded no results
+  const showNoDataMessage = !hasExpenses && !isLoading; // Show only if there's no data initially
 
   return (
-    <div className="w-full">
+    <div className="w-full space-y-4"> {/* Added space-y-4 */}
+      {/* Filter Input - Only show if there are expenses to filter */}
+      {hasExpenses && (
+        <div className="relative">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            type="search"
+            placeholder="Filter by category, location, paid by..." // Updated placeholder
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            className="pl-8 w-full"
+          />
+        </div>
+      )}
+
       {/* Desktop Table View (hidden on small screens) */}
       <div className="hidden md:block border rounded-md overflow-hidden">
         <Table>
@@ -67,8 +100,8 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
                   Loading expenses...
                 </TableCell>
               </TableRow>
-            ) : expenses.length > 0 ? (
-              expenses.map((expense) => (
+            ) : hasFilteredExpenses ? (
+              filteredExpenses.map((expense) => (
                 <TableRow key={expense.id}>
                   <TableCell className="py-2 px-3 text-xs">{formatDate(expense.date)}</TableCell>
                   <TableCell className="py-2 px-3 text-xs">
@@ -114,23 +147,29 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
                   </TableCell>
                 </TableRow>
               ))
-            ) : (
+            ) : showNoResultsMessage ? (
               <TableRow>
-                <TableCell colSpan={7} className="h-24 text-center">
-                  No expenses found for this period.
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  No expenses match your filter "{filterText}".
                 </TableCell>
               </TableRow>
-            )}
+            ) : showNoDataMessage ? (
+              <TableRow>
+                <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                  No expenses recorded for this period.
+                </TableCell>
+              </TableRow>
+            ) : null /* Handle loading case separately */}
           </TableBody>
         </Table>
       </div>
 
-      {/* Mobile Card View (visible on small screens) - Updated Layout v3 */}
-      <div className="md:hidden space-y-2"> {/* Reduced gap between cards */}
+      {/* Mobile Card View (visible on small screens) */}
+      <div className="md:hidden space-y-1.5">
         {isLoading ? (
           Array.from({ length: 5 }).map((_, index) => <ExpenseCardSkeleton key={index} />)
-        ) : expenses.length > 0 ? (
-          expenses.map((expense) => (
+        ) : hasFilteredExpenses ? (
+          filteredExpenses.map((expense) => (
             <div key={expense.id} className="block border rounded-md p-3">
               {/* Top Row: Category/Location and Amount */}
               <div className="flex justify-between items-start mb-1">
@@ -159,7 +198,7 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
                   <span className="mx-1.5">•</span> {/* Separator */}
                   <span>{formatDate(expense.date)}</span> {/* Moved Date here */}
                 </div>
-                <div className="flex space-x-0"> {/* Reduced space for buttons */}
+                <div className="flex space-x-0.5"> {/* Added small space for buttons */}
                   <Button
                     variant="ghost"
                     size="icon"
@@ -182,17 +221,24 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
               </div>
             </div>
           ))
-        ) : (
+        ) : showNoResultsMessage ? (
           <div className="text-center text-muted-foreground py-10">
-            No expenses found for this period.
+            No expenses match your filter "{filterText}".
           </div>
-        )}
+        ) : showNoDataMessage ? (
+          <div className="text-center text-muted-foreground py-10">
+            No expenses recorded for this period.
+          </div>
+        ) : null /* Handle loading case separately */}
       </div>
 
-      {/* Total Count (Optional - maybe move to parent component) */}
-      {!isLoading && expenses.length > 0 && (
+      {/* Total Count - Updated to show filtered count */}
+      {!isLoading && hasExpenses && ( // Only show count if there was data initially
         <div className="text-sm text-muted-foreground mt-4">
-          Total: {expenses.length} expense{expenses.length !== 1 ? 's' : ''}
+          {filterText
+            ? `Showing ${filteredExpenses.length} of ${expenses.length} expense${expenses.length !== 1 ? 's' : ''}`
+            : `Total: ${expenses.length} expense${expenses.length !== 1 ? 's' : ''}`
+          }
         </div>
       )}
     </div>
