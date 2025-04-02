@@ -1,5 +1,6 @@
 import * as React from "react";
-import { useIsMobile } from "@/hooks/use-mobile";
+// Removed useIsMobile import
+// import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -8,20 +9,23 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetFooter,
-  SheetClose,
-  SheetDescription, // Import SheetDescription
-} from "@/components/ui/sheet";
-import { X } from "lucide-react";
-import { Button } from "@/components/ui/button";
+// Removed Sheet imports as they are no longer used
+// import {
+//   Sheet,
+//   SheetContent,
+//   SheetHeader,
+//   SheetTitle,
+//   SheetFooter,
+//   SheetClose,
+//   SheetDescription,
+// } from "@/components/ui/sheet";
+// Removed X icon import as it's handled by DialogContent
+// import { X } from "lucide-react";
+// Removed Button import as it's handled by DialogContent
+// import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 // Import the local VisuallyHidden component
-import { VisuallyHidden } from "@/components/ui/visually-hidden"; 
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 // DialogPrimitive import removed as Close button is handled by DialogContent wrapper now
 
 interface ResponsiveDialogProps {
@@ -43,8 +47,9 @@ export function ResponsiveDialog({
   footer,
   className,
 }: ResponsiveDialogProps) {
-  const isMobile = useIsMobile();
-  
+  // Removed isMobile hook usage
+  // const isMobile = useIsMobile();
+
   // Define safe fallbacks
   const safeTitle = title || "Dialog"; // Ensure title is never empty
   const safeDescription = description || `Information about ${safeTitle}`; // Fallback description
@@ -53,62 +58,24 @@ export function ResponsiveDialog({
   const titleId = `dialog-title-${safeTitle.replace(/\s+/g, '-').toLowerCase()}`;
   const descriptionId = `dialog-desc-${safeTitle.replace(/\s+/g, '-').toLowerCase()}`;
 
-  React.useEffect(() => {
-  }, [open, isMobile]);
+  // Removed useEffect related to isMobile
+  // React.useEffect(() => {
+  // }, [open, isMobile]);
 
-  if (isMobile) {
-    // Mobile view using Sheet (unchanged)
-    return (
-      <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent
-          side="bottom"
-          className={cn(
-            "pb-safe pt-safe max-h-[95vh] rounded-t-xl",
-            "overflow-y-auto flex flex-col",
-            "bg-background border-t border-border",
-            className
-          )}
-        >
-          <SheetHeader className="text-left relative mb-6 px-4 pt-2">
-            <SheetClose asChild>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-2 top-2 h-8 w-8 rounded-full hover:bg-muted"
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </Button>
-            </SheetClose>
-            <SheetTitle className="text-xl font-semibold">{safeTitle}</SheetTitle>
-            {description && ( // Use original description prop here if provided
-              <SheetDescription className="text-sm text-muted-foreground mt-1.5">{description}</SheetDescription>
-            )}
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto px-4">
-            {children}
-          </div>
-          {footer && (
-            <SheetFooter className="mt-6 flex flex-row justify-end gap-3 sticky bottom-0 pb-4 pt-3 px-4 bg-background border-t border-border">
-              {footer}
-            </SheetFooter>
-          )}
-        </SheetContent>
-      </Sheet>
-    );
-  }
+  // Removed the 'if (isMobile)' block, always render Dialog
 
-  // Desktop view using Dialog (Robust Radix Structure)
+  // Always render Dialog (previously Desktop view)
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent 
+      <DialogContent
         className={cn(
-          "sm:max-w-[600px]",
+          "sm:max-w-[600px]", // Keep desktop max-width
+          "w-[90vw] max-w-[90vw] rounded-lg", // Add mobile-friendly width and rounding
           className
         )}
         // Explicitly set both labels
         aria-labelledby={titleId}
-        aria-describedby={descriptionId} 
+        aria-describedby={descriptionId}
       >
         <DialogHeader>
           {/* Add ID to DialogTitle */}
@@ -121,7 +88,8 @@ export function ResponsiveDialog({
           </DialogDescription>
         </DialogHeader>
         {/* Children rendered after header */}
-        <div className="py-4">
+        {/* Add max-height and overflow for scrollable content */}
+        <div className="py-4 max-h-[70vh] overflow-y-auto">
           {children}
         </div>
         {/* Close button is implicitly handled by DialogContent wrapper */}

@@ -87,16 +87,16 @@ export default function SummaryCard({
 
       {/* Text container: Use grid layout with items-center */}
       <div className="flex-1 min-w-0 grid grid-rows-2 gap-0 items-center"> {/* Changed items-start to items-center */}
-        {/* Title paragraph */}
+        {/* Title paragraph - Reduced base font size */}
         <p
-          className="text-base font-medium text-muted-foreground whitespace-normal break-words" // Removed margin/leading classes
+          className="text-sm sm:text-base font-medium text-muted-foreground whitespace-normal break-words" // Reduced base font size
           title={tooltip} // Use browser default tooltip
         >
           {title}
         </p>
-        {/* Value paragraph */}
+        {/* Value paragraph - Reduced base font size */}
         <p className={cn(
-          "text-lg sm:text-xl font-semibold whitespace-normal break-words no-underline", // Removed margin/leading classes
+          "text-base sm:text-lg font-semibold whitespace-normal break-words no-underline", // Reduced base font size
           isNegative ? "text-red-500 dark:text-red-400" : "text-foreground"
         )}>
           {value}

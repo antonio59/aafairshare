@@ -67,7 +67,8 @@ export default function MainLayout({ children }: MainLayoutProps) {
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    // Use h-screen and overflow-hidden on the outer container for mobile layout control
+    <div className="flex h-screen overflow-hidden bg-gray-50">
       {/* Sidebar (Desktop) - Added md:h-screen md:sticky md:top-0 */}
       <aside className="hidden md:flex md:flex-col w-64 bg-white border-r border-gray-200 md:h-screen md:sticky md:top-0">
         {/* Sidebar Title Link */}
@@ -99,10 +100,10 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </div>
       </aside>
 
-      {/* Main Content Area - Added md:h-screen md:overflow-y-auto */}
-      <div className="flex-1 flex flex-col md:h-screen md:overflow-y-auto">
-        {/* Mobile Header */}
-        <header className="md:hidden sticky top-0 z-10 flex items-center justify-between h-14 px-4 bg-white border-b border-gray-200">
+      {/* Main Content Area - Changed to h-screen and overflow-y-auto for all sizes */}
+      <div className="flex-1 flex flex-col h-screen overflow-y-auto">
+        {/* Mobile Header - Kept sticky */}
+        <header className="md:hidden sticky top-0 z-10 flex items-center justify-between h-14 px-4 bg-white border-b border-gray-200 flex-shrink-0">
           {/* Mobile App Title/Logo Link */}
           {/* Apply styles directly to Link */}
           <Link href="/" className="text-lg font-semibold text-primary leading-[3.5rem]">
@@ -136,13 +137,13 @@ export default function MainLayout({ children }: MainLayoutProps) {
         </header>
 
         {/* Page Content - Removed overflow-y-auto, adjusted padding */}
+        {/* Added flex-shrink-0 to header, main takes remaining space */}
         <main className="flex-1 p-4 sm:p-6 lg:p-8 pb-16 md:pb-8"> {/* Adjusted md padding bottom */}
           {children}
         </main>
       </div>
 
-      {/* Bottom Navigation (Mobile) */}
-      {/* Bottom Navigation (Mobile) */}
+      {/* Bottom Navigation (Mobile) - Kept fixed */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around h-16 items-center z-20 px-1">
         {navItems.map((item) => (
           // Apply styles directly to Link

@@ -301,10 +301,10 @@ export default function Dashboard() {
                  </DropdownMenuContent>
                </DropdownMenu>
 
-                {/* Add Expense Button */}
+                {/* Add Expense Button - Changed variant to outline */}
                 <Button
                   onClick={handleAddExpense}
-                  variant="default" // Kept default variant
+                  variant="outline" // Changed variant to outline
                   size="icon"
                   className="rounded-full w-9 h-9" // Removed custom background/text colors
                 >
