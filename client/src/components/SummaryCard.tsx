@@ -36,7 +36,7 @@ export default function SummaryCard({
     return (
       <div className="bg-card dark:bg-card p-3 rounded-lg border border-border/40 dark:border-border/40 h-full flex items-center"> {/* Reduced padding */}
         <div className="h-12 w-12 rounded-md bg-muted animate-pulse shrink-0 mr-3" /> {/* Reduced size and margin */}
-        <div className="flex-1 grid grid-rows-2 gap-0 items-center min-w-0"> {/* Added min-w-0 */}
+        <div className="flex-1 grid grid-rows-2 gap-0 items-center min-w-0 overflow-hidden"> {/* Added overflow-hidden */}
           <div className="h-5 w-3/4 bg-muted rounded animate-pulse" /> {/* Adjusted height */}
           <div className="h-6 w-1/2 bg-muted rounded animate-pulse" /> {/* Adjusted height */}
         </div>
@@ -84,18 +84,18 @@ export default function SummaryCard({
         )}
       </div>
 
-      {/* Text container: Use grid layout with items-center */}
-      <div className="flex-1 min-w-0 grid grid-rows-2 gap-0 items-center"> {/* Kept items-center and min-w-0 */}
+      {/* Text container: Added overflow-hidden */}
+      <div className="flex-1 min-w-0 grid grid-rows-2 gap-0 items-center overflow-hidden"> {/* Added overflow-hidden */}
         {/* Title paragraph - Kept reduced base font size */}
         <p
-          className="text-sm sm:text-base font-medium text-muted-foreground whitespace-normal break-words"
+          className="text-sm sm:text-base font-medium text-muted-foreground whitespace-normal break-words truncate" /* Added truncate */
           title={tooltip} // Use browser default tooltip
         >
           {title}
         </p>
         {/* Value paragraph - Kept reduced base font size */}
         <p className={cn(
-          "text-base sm:text-lg font-semibold whitespace-normal break-words no-underline",
+          "text-base sm:text-lg font-semibold whitespace-normal break-words no-underline truncate", /* Added truncate */
           isNegative ? "text-red-500 dark:text-red-400" : "text-foreground"
         )}>
           {value}
