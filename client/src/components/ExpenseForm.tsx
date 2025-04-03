@@ -1,103 +1,134 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Category, Location, ExpenseWithDetails, User } from "@shared/schema";
 import { z } from "zod";
-// Removed unused Controller import
-// import { Controller } from "react-hook-form";
-// Removed unused useFormField import
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-// Removed unused cn import
-// import { cn } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-// Removed unused Timestamp, query, orderBy, getDocs imports
 import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/firestore";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// Removed unused SelectPrimitive import
-// import * as SelectPrimitive from "@radix-ui/react-select";
-// Removed unused ChevronDown import
-// import { ChevronDown } from "lucide-react";
-import { Combobox, ComboboxItem } from "@/components/ui/combobox"; // Keep Combobox
-import { getMonthFromDate } from "@/lib/utils"; // Added getMonthFromDate
-import { useAuth } from "@/context/AuthContext";
-// Removed unused apiRequest import
-import { queryClient } from "@/lib/queryClient"; // Import queryClient for invalidation
-import { SPLIT_TYPES } from "@/lib/constants";
+import { queryClient } from "@/lib/queryClient";
+import { SPLIT_TYPES, CATEGORY_ICONS, CategoryIconName } from "@/lib/constants"; // Added CATEGORY_ICONS and CategoryIconName
 import { Skeleton } from "@/components/ui/skeleton";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Combobox, ComboboxItem } from "@/components/ui/combobox"; // Import Combobox
+import { getMonthFromDate, cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
+import { Textarea } from "@/components/ui/textarea"; // Use Textarea for description
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"; // For Split Type
+import { CalendarIcon, LocateFixedIcon } from "lucide-react"; // Example icons
 
-export interface ExpenseFormProps {
-  expense?: ExpenseWithDetails;
-  onClose: (needsRefetch?: boolean) => void;
-  categories: Category[];
-  locations: Location[];
-  users: User[]; // Keep users prop for potential future use, even if currently unused in logic
-  isLoading?: boolean;
-}
-// Zod schema
+// --- Zod Schema (Adjust if needed based on new inputs) ---
 const formSchema = z.object({
-  description: z.string().optional(),
-  amount: z.coerce.number().positive("Amount must be positive"), // Validate as positive number
-  date: z.date(),
+  amount: z.coerce.number().positive("Amount must be positive"),
   categoryId: z.string().min(1, "Category is required"),
-  locationId: z.string().min(1, "Location is required"),
-  splitType: z.string().min(1, "Split type is required"),
+  locationId: z.string().min(1, "Location is required"), // Changed back to locationId
+  splitType: z.enum(["Equal", "Owned"]), // Updated based on image buttons
+  date: z.date(),
+  description: z.string().optional(),
 });
 
 export type ExpenseFormData = z.infer<typeof formSchema>;
 
-// Removed unused 'users' from props destructuring
-export default function ExpenseForm({ expense, onClose, categories, locations, isLoading }: ExpenseFormProps) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
-  const { currentUser, userProfile } = useAuth();
-  const formRef = useRef<HTMLFormElement>(null); // Ref for the form element
-  const scrollContainerRef = useRef<HTMLDivElement>(null); // Ref for the scrollable container
+// --- Component Props ---
+export interface ExpenseFormProps {
+  expense?: ExpenseWithDetails;
+  onClose: (needsRefetch?: boolean) => void;
+  categories: Category[];
+  locations: Location[]; // Re-add locations prop
+  // locations: Location[]; // Location might be free text now based on image? Removing for now.
+  users: User[];
+  // Removed duplicate locations prop declaration
+  isLoading?: boolean;
+}
 
+// --- Component ---
+export default function ExpenseForm({ expense, onClose, categories, locations, users, isLoading }: ExpenseFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCreatingLocation, setIsCreatingLocation] = useState(false); // State for create loading
+  const { toast } = useToast();
+  const { currentUser } = useAuth(); // Removed userProfile as it wasn't used in submit logic directly
+  const formRef = useRef<HTMLFormElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // --- React Hook Form Setup ---
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      description: expense?.description || "",
-      amount: expense?.amount ?? undefined, // Use number or undefined, not string
-      date: expense?.date || new Date(),
+      amount: expense?.amount ?? undefined,
       categoryId: expense?.categoryId || "",
-      locationId: expense?.locationId || "",
-      splitType: expense?.splitType || "50/50",
+      locationId: expense?.locationId || "", // Use locationId
+      splitType: expense?.splitType === "100%" ? "Owned" : "Equal", // Map existing values
+      date: expense?.date || new Date(),
+      description: expense?.description || "",
     },
   });
 
-  // --- Start: Add Location Creation Logic ---
-  const [isCreatingLocation, setIsCreatingLocation] = useState(false);
+  // --- Mobile Keyboard Handling Effect ---
+  useEffect(() => {
+    const formElement = formRef.current;
+    const scrollContainer = scrollContainerRef.current;
+    if (!formElement || !scrollContainer) return;
 
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement;
+      if (target.matches('input, select, textarea, button') && formElement.contains(target)) {
+        setTimeout(() => {
+          if (window.visualViewport) {
+            const viewport = window.visualViewport;
+            const targetRect = target.getBoundingClientRect();
+            const scrollContainerRect = scrollContainer.getBoundingClientRect();
+            const isObscured = targetRect.bottom > viewport.height - viewport.offsetTop;
+            const isAbove = targetRect.top < scrollContainerRect.top;
+            if (isObscured || isAbove) {
+               target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          } else {
+            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 300);
+      }
+    };
+    formElement.addEventListener('focusin', handleFocusIn);
+    return () => {
+      formElement.removeEventListener('focusin', handleFocusIn);
+    };
+  }, []);
+
+  // --- Start: Add Location Creation Logic ---
   const handleCreateLocation = async (locationName: string) => {
-    if (!locationName.trim() || isCreatingLocation) return;
+    const trimmedName = locationName.trim();
+    if (!trimmedName || isCreatingLocation) return;
+
+    // Capitalize first letter
+    const capitalizedName = trimmedName.charAt(0).toUpperCase() + trimmedName.slice(1);
 
     setIsCreatingLocation(true);
     try {
       const locationData = {
-        name: locationName.trim(),
+        name: capitalizedName, // Use capitalized name
         createdAt: serverTimestamp()
       };
 
+      // Add to Firestore
       const docRef = await addDoc(collection(db, "locations"), locationData);
 
       toast({
         title: "Location created",
-        description: `"${locationName.trim()}" added.`
+        description: `"${capitalizedName}" added.`
       });
 
-      // Refetch locations query and wait for completion
-      await queryClient.refetchQueries({ queryKey: ['locations'] });
+      // Refetch locations query (assuming Dashboard handles this via queryClient)
+      // We might need to explicitly pass a refetch function or rely on Dashboard's query invalidation
+      await queryClient.refetchQueries({ queryKey: ['locations'] }); // Ensure locations list updates
 
-      // THEN update the form value with the new location ID, ensuring the list is updated
+      // Set the newly created location in the form
       form.setValue("locationId", docRef.id, { shouldValidate: true });
 
-    } catch (error: unknown) { // Changed 'any' to 'unknown'
+    } catch (error: unknown) {
       console.error("Error creating location:", error);
-      // Type check before accessing properties
       const errorMessage = error instanceof Error ? error.message : "Could not add the new location.";
       toast({
         title: "Error creating location",
@@ -110,306 +141,292 @@ export default function ExpenseForm({ expense, onClose, categories, locations, i
   };
   // --- End: Add Location Creation Logic ---
 
+  // --- Submission Handler ---
   const onSubmit = async (data: ExpenseFormData) => {
-    if (!currentUser || !userProfile) {
-      toast({
-        title: "Authentication Error",
-        description: "User data not available",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Verify auth consistency
-    if (currentUser.uid !== userProfile.id) {
-      console.error('Authentication mismatch:', {
-        currentUserId: currentUser.uid,
-        profileId: userProfile.id
-      });
-      toast({
-        title: "Data Error",
-        description: "Authentication data mismatch",
-        variant: "destructive"
-      });
+    if (!currentUser) {
+      toast({ title: "Authentication Error", description: "User not logged in", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
     try {
-      if (!currentUser || !userProfile) {
-        throw new Error('Missing user data');
-      }
+      // TODO: Re-implement location handling if it's not free text.
+      // If location needs to be selected/created like before, the logic needs to be added back.
+      // For now, assuming 'location' is just a string field.
 
-      if (!currentUser) {
-        throw new Error('User not authenticated');
-      }
-const expenseData = {
-  ...data,
-  paidByUserId: currentUser.uid, // Store only Firebase Auth UID
-  amount: data.amount, // Already a number from Zod coercion
-  month: getMonthFromDate(data.date), // Use utility function
-  createdAt: serverTimestamp(),
-};
+      const expenseData = {
+        // Map form data to Firestore schema
+        amount: data.amount,
+        categoryId: data.categoryId,
+        locationId: data.locationId, // Use locationId
+        // locationName is not needed if we store locationId
+        splitType: data.splitType === "Owned" ? "100%" : "50/50", // Map back to stored values
+        date: data.date,
+        description: data.description,
+        paidByUserId: currentUser.uid,
+        month: getMonthFromDate(data.date),
+        // Add createdAt/updatedAt timestamps
+        ...(expense?.id ? { updatedAt: serverTimestamp() } : { createdAt: serverTimestamp() }),
+      };
 
-if (expense?.id) {
-        // Update existing expense
+      if (expense?.id) {
         await updateDoc(doc(db, "expenses", expense.id), expenseData);
         toast({ title: "Expense updated" });
       } else {
-        // Add new expense
         await addDoc(collection(db, "expenses"), expenseData);
         toast({ title: "Expense added" });
       }
 
-      // Invalidate queries to trigger refetch
+      // Invalidate queries
       queryClient.invalidateQueries({ queryKey: [`expenses`, expenseData.month] });
       queryClient.invalidateQueries({ queryKey: [`summary`, expenseData.month] });
 
-      onClose(false); // Close without additional refetch
-    } catch (error: unknown) { // Changed 'any' to 'unknown'
+      onClose(true); // Close and indicate refetch needed
+
+    } catch (error: unknown) {
       console.error("Error saving expense:", error);
-      // Type check before accessing properties
       const errorMessage = error instanceof Error ? error.message : "Please try again";
-      toast({
-        title: "Error saving expense",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      toast({ title: "Error saving expense", description: errorMessage, variant: "destructive" });
     } finally {
       setIsSubmitting(false);
     }
   };
- 
-  // --- Start: Mobile Keyboard Handling ---
-  useEffect(() => {
-    const formElement = formRef.current;
-    const scrollContainer = scrollContainerRef.current;
-    if (!formElement || !scrollContainer) return;
- 
-    const handleFocusIn = (event: FocusEvent) => {
-      const target = event.target as HTMLElement;
-      // Check if the focused element is an input, select, textarea, or button within our form
-      if (target.matches('input, select, textarea, button') && formElement.contains(target)) {
-        // Use setTimeout to allow the keyboard to finish animating/resizing viewport
-        setTimeout(() => {
-          // Check if visualViewport API is available
-          if (window.visualViewport) {
-            const viewport = window.visualViewport;
-            const targetRect = target.getBoundingClientRect();
-            const scrollContainerRect = scrollContainer.getBoundingClientRect();
- 
-            // Calculate how much of the element is visible within the visual viewport
-            const visibleHeight = Math.max(0, Math.min(targetRect.bottom, viewport.height) - Math.max(targetRect.top, 0));
- 
-            // If element is mostly obscured by keyboard (e.g., bottom part below viewport offsetTop)
-            // or if the top is above the scroll container's visible top
-            const isObscured = targetRect.bottom > viewport.height - viewport.offsetTop; // Simplified check
-            const isAbove = targetRect.top < scrollContainerRect.top;
- 
-            if (isObscured || isAbove) {
-               target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-          } else {
-            // Fallback for browsers without visualViewport API
-            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-          }
-        }, 300); // Adjust delay as needed
-      }
-    };
- 
-    formElement.addEventListener('focusin', handleFocusIn);
- 
-    return () => {
-      formElement.removeEventListener('focusin', handleFocusIn);
-    };
-  }, []); // Empty dependency array ensures this runs once on mount
-  // --- End: Mobile Keyboard Handling ---
- 
+
+  // --- Loading State ---
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-[100px]" />
-          <Skeleton className="h-10 w-full" />
+      <div className="space-y-6 p-4">
+        {/* Simplified skeleton for the new layout */}
+        <Skeleton className="h-8 w-1/3" />
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-8 w-1/4" />
+        <div className="grid grid-cols-3 gap-2">
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
         </div>
-        <div className="space-y-2">
-          <Skeleton className="h-4 w-[100px]" />
-          <Skeleton className="h-10 w-full" />
-        </div>
+        {/* Add more skeletons as needed */}
       </div>
     );
   }
 
-  // Prepare items for Comboboxes
-  const categoryItems: ComboboxItem[] = categories.map(c => ({ value: c.id, label: c.name }));
+  // Prepare items for Location Combobox (Moved before return statement)
   const locationItems: ComboboxItem[] = locations.map(l => ({ value: l.id, label: l.name }));
-
+  // --- Render Component ---
   return (
     <Form {...form}>
-      {/* Assign formRef here */}
-      <form id="expense-form" ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full"> {/* Make form flex column */}
+      <form
+        ref={formRef}
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-col h-full bg-white" // Assuming white background
+      >
+        {/* Header div removed */}
+        {/* Title moved before scrollable area */}
+        <h2 className="text-xl font-semibold text-center pt-4 px-4">Add Expense</h2> {/* Added padding directly */}
+
         {/* Scrollable Content Area */}
-        {/* Assign scrollContainerRef here and add styling */}
-        <div ref={scrollContainerRef} className="flex-grow overflow-y-auto space-y-6 p-1 mb-4"> {/* Added padding and margin-bottom */}
-          {/* Original content starts here */}
-          {/* Removed duplicate form tag */}
-        {/* Reordered Fields */}
-        <div className="grid grid-cols-1 gap-4">
-          {/* 1. Amount */}
+        <div ref={scrollContainerRef} className="flex-grow overflow-y-auto p-4 space-y-6">
+
+          {/* Amount */}
           <FormField
             control={form.control}
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium">Amount (£)</FormLabel> {/* Match screenshot label */}
-                <FormControl asChild><Input
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    placeholder="0.00"
-                    className="h-10"
-                    {...field} // Spread props, including id from FormControl
-                  /></FormControl>
-                <FormMessage className="text-xs" />
+                <FormLabel className="text-sm font-medium text-gray-700">Amount</FormLabel>
+                <FormControl>
+                  <div className="relative">
+                     <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                       <span className="text-gray-500 sm:text-sm">£</span>
+                     </div>
+                     <Input
+                       type="number"
+                       step="0.01"
+                       min="0"
+                       placeholder="0.00"
+                       className="pl-7 h-12 text-base" // Adjusted padding and size
+                       {...field}
+                     />
+                  </div>
+                </FormControl>
+                <FormMessage className="text-xs text-red-600" />
               </FormItem>
             )}
           />
 
-          {/* 2. Category (Combobox) */}
+          {/* Category */}
           <FormField
             control={form.control}
             name="categoryId"
             render={({ field }) => (
-              <FormItem className="flex flex-col"> {/* Ensure proper layout for Combobox */}
-                 <FormLabel className="text-sm font-medium">Category</FormLabel>
-                 <FormControl asChild><Combobox
-                     items={categoryItems}
-                     placeholder="Select a category"
-                     emptyMessage="No category found."
-                     className="h-10" // Keep height consistent
-                     {...field} // Spread field props (includes value, onChange, etc.)
-                     // No onCreateNew for categories
-                     // id is passed automatically by FormControl asChild
-                   /></FormControl>
-                 <FormMessage className="text-xs" />
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">Category</FormLabel>
+                <FormControl>
+                  {/* Using ToggleGroup for single selection visually similar to buttons */}
+                  <ToggleGroup
+                    type="single"
+                    variant="outline"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="grid grid-cols-3 sm:grid-cols-5 gap-2 pt-1" // Adjust grid columns as needed
+                  >
+                    {categories.map((category) => {
+                      // Use the icon field from the category data, fallback to placeholder
+                      const IconComponent = category.icon && CATEGORY_ICONS[category.icon as CategoryIconName]
+                        ? CATEGORY_ICONS[category.icon as CategoryIconName]
+                        : ({ className }: { className?: string }) => <span className={cn("text-xl", className)}>❓</span>; // Placeholder if icon missing or invalid
+                      return (
+                        <ToggleGroupItem
+                          key={category.id}
+                          value={category.id}
+                          aria-label={category.name}
+                          className={cn(
+                            "flex flex-col items-center justify-center h-20 rounded-lg border data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
+                            "hover:bg-gray-50" // Basic hover effect
+                          )}
+                        >
+                          <IconComponent className="w-6 h-6 mb-1" />
+                          <span className="text-xs font-medium">{category.name}</span>
+                        </ToggleGroupItem>
+                      );
+                    })}
+                  </ToggleGroup>
+                </FormControl>
+                <FormMessage className="text-xs text-red-600" />
               </FormItem>
             )}
           />
 
-          {/* 3. Location (Combobox with Create New) */}
+          {/* Location */}
           <FormField
             control={form.control}
-            name="locationId"
+            name="locationId" // Use locationId
             render={({ field }) => (
               <FormItem className="flex flex-col"> {/* Ensure proper layout for Combobox */}
-                 <FormLabel className="text-sm font-medium">Location</FormLabel>
-                 <FormControl asChild><Combobox
+                 <FormLabel className="text-sm font-medium text-gray-700">Location</FormLabel>
+                 <FormControl>
+                   <Combobox
                      items={locationItems}
-                     onCreateNew={handleCreateLocation} // Add create new handler
+                     onCreateNew={handleCreateLocation} // Connect create handler
                      placeholder="Select or add location"
-                     createNewLabel="Add new location"
+                     createNewLabel="Add new location..." // Updated label
                      emptyMessage="No location found."
-                     className="h-10" // Keep height consistent
-                     disabled={isCreatingLocation} // Disable while creating (Keep this one, as it's specific logic)
-                     {...field} // Spread field props (includes value, onChange, etc.)
-                     // Removed duplicated props below
-                     // id is passed automatically by FormControl asChild
-                   /></FormControl>
-                 <FormMessage className="text-xs" />
+                     className="h-12 text-base"
+                     disabled={isCreatingLocation} // Disable while creating
+                     {...field} // Spread field props (value, onChange, etc.)
+                   />
+                 </FormControl>
+                 <FormMessage className="text-xs text-red-600" />
               </FormItem>
             )}
           />
 
-          {/* 4. Split Type (Reverted to FormField) */}
+          {/* Split Type */}
           <FormField
             control={form.control}
             name="splitType"
-            render={({ field }) => ( // Revert to simple render prop
-              <FormItem>
-                 <FormLabel className="text-sm font-medium">Split Type</FormLabel>
-                 {/* Remove FormControl asChild */}
-                 <Select
-                   onValueChange={field.onChange} // Pass field.onChange to onValueChange
-                   value={field.value}           // Pass field.value to value
-                   // name={field.name} // name is handled by FormField
-                   // onBlur={field.onBlur} // Optional: Pass onBlur if needed
-                 >
-                   <FormControl> {/* Wrap Trigger in FormControl (without asChild) */}
-                     <SelectTrigger ref={field.ref} className="h-10"> {/* Pass ref to Trigger */}
-                       <SelectValue placeholder="Select split type" />
-                     </SelectTrigger>
-                   </FormControl>
-                       <SelectContent>
-                         {SPLIT_TYPES.map((type) => (
-                           <SelectItem key={type} value={type}>
-                             {type === "100%" ? "100% (Owed by other)" : type}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
-                     </Select>
-                  {/* FormMessage remains outside */}
-                  <FormMessage className="text-xs" />
-                </FormItem>
-            )}
-          />
-
-          {/* 5. Date */}
-           <FormField
-            control={form.control}
-            name="date"
             render={({ field }) => (
-              <FormItem className="flex flex-col"> {/* Ensure proper layout */}
-                 <FormLabel className="text-sm font-medium">Date</FormLabel>
-                 <FormControl asChild><DatePicker {...field} className="h-10 w-full"/></FormControl>
-                 <FormMessage className="text-xs" />
+              <FormItem>
+                <FormLabel className="text-sm font-medium text-gray-700">Split Type</FormLabel>
+                <FormControl>
+                  <ToggleGroup
+                    type="single"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    className="grid grid-cols-2 gap-3 pt-1"
+                  >
+                    <ToggleGroupItem
+                      value="Equal"
+                      aria-label="Split equally"
+                      className={cn(
+                        "flex flex-col items-start justify-center h-auto p-3 rounded-lg border data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
+                        "hover:bg-gray-50 text-left" // Align text left
+                      )}
+                    >
+                      <span className="font-semibold">Equal</span>
+                      <span className="text-xs text-gray-500 data-[state=on]:text-blue-600">Split equally among all</span>
+                    </ToggleGroupItem>
+                    <ToggleGroupItem
+                       value="Owned"
+                       aria-label="Owned by other user"
+                       className={cn(
+                         "flex flex-col items-start justify-center h-auto p-3 rounded-lg border data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
+                         "hover:bg-gray-50 text-left" // Align text left
+                       )}
+                    >
+                       <span className="font-semibold">Owned</span>
+                       <span className="text-xs text-gray-500 data-[state=on]:text-blue-600">100% owned by the other user</span>
+                    </ToggleGroupItem>
+                  </ToggleGroup>
+                </FormControl>
+                <FormMessage className="text-xs text-red-600" />
               </FormItem>
             )}
           />
 
-          {/* 6. Description (Optional, at the end) */}
+          {/* Date */}
+          <FormField
+            control={form.control}
+            name="date"
+            render={({ field }) => (
+              <FormItem className="flex flex-col">
+                <FormLabel className="text-sm font-medium text-gray-700">Date</FormLabel>
+                <FormControl>
+                  {/* Using Shadcn DatePicker, assuming it's styled appropriately or can be */}
+                  <DatePicker
+                    value={field.value}
+                    onChange={field.onChange}
+                    className="h-12 text-base w-full" // Ensure full width and height
+                   />
+                </FormControl>
+                <FormMessage className="text-xs text-red-600" />
+              </FormItem>
+            )}
+          />
+
+          {/* Description */}
           <FormField
             control={form.control}
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium">Description (Optional)</FormLabel> {/* Match screenshot label */}
-                {/* Comment moved outside FormControl */}
-                {/* Use Textarea for potentially longer descriptions? Or keep Input */}
-                <FormControl asChild><Input
-                    placeholder="What was this expense for?"
-                    className="h-10"
-                    {...field} // Spread props, including id from FormControl
-                  /></FormControl>
-                <FormMessage className="text-xs" />
+                <FormLabel className="text-sm font-medium text-gray-700">Description <span className="text-gray-500">(optional)</span></FormLabel>
+                <FormControl>
+                  <Textarea
+                    placeholder="Enter description (optional)"
+                    className="min-h-[80px] text-base" // Basic styling for textarea
+                    {...field}
+                  />
+                </FormControl>
+                <FormMessage className="text-xs text-red-600" />
               </FormItem>
             )}
           />
 
-        </div> {/* End of grid */}
-      </div> {/* <<<< ADDED: Close scrollable container div */}
+        </div> {/* End Scrollable Content Area */}
 
-        {/* <<<< REMOVED old non-sticky button container */}
- 
-        {/* Buttons Container (Fixed at bottom) */}
-        <div className="flex justify-end gap-3 pt-4 border-t border-border sticky bottom-0 bg-background pb-4 px-1"> {/* Make buttons sticky */}
+        {/* Sticky Buttons Container */}
+        <div className="flex justify-between gap-3 p-4 border-t border-gray-200 sticky bottom-0 bg-white">
           <Button
             type="button"
-            variant="outline"
+            variant="outline" // Style based on image
             onClick={() => onClose(false)}
             disabled={isSubmitting}
-            className="h-10"
+            className="flex-1 h-12 text-base border-gray-300 text-gray-700" // Adjusted styling
           >
             Cancel
           </Button>
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="h-10"
+            className="flex-1 h-12 text-base bg-blue-600 hover:bg-blue-700 text-white" // Adjusted styling
           >
-            {isSubmitting ? "Saving..." : expense ? "Update Expense" : "Save Expense"}
+            {isSubmitting ? "Saving..." : "Save Expense"}
           </Button>
         </div>
       </form>
     </Form>
   );
+
+  // locationItems definition moved above
 }

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 // Removed unused ChevronLeftIcon, ChevronRightIcon imports
-import { Pencil, Trash, Plus } from "lucide-react";
+import { Pencil, Trash, Plus, LucideIcon } from "lucide-react"; // Added LucideIcon
 import { Category, Location } from "@shared/schema"; // Use types from schema
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,8 @@ import {
   AlertDialogCancel, // Keep Cancel for button styling
 } from "@/components/ui/alert-dialog"; // Keep parts needed for buttons
 import { db } from "@/lib/firebase"; // Import Firestore instance
-import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore"; // Import Firestore functions
+import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
+import { CATEGORY_ICONS, CategoryIconName } from "@/lib/constants"; // Import icons
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -128,12 +129,18 @@ export default function Settings() {
                 <div className="space-y-2"> <Skeleton className="h-12" /> <Skeleton className="h-12" /> <Skeleton className="h-12" /> </div>
               ) : categories.length > 0 ? (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {categories.map((category) => (
-                    <Card key={category.id}>
-                      <CardContent className="flex items-center justify-between p-3 sm:p-4"> {/* Adjusted Padding */}
-                        <div className="flex items-center space-x-3 sm:space-x-4"> {/* Adjusted Spacing */}
-                          <div className="h-5 w-5 rounded-full" style={{ backgroundColor: category.color || '#ccc' }}></div> {/* Increased Swatch Size */}
-                          <span>{category.name}</span>
+                  {categories.map((category) => {
+                    // Get the icon component, default to a placeholder if not found
+                    const IconComponent = category.icon ? CATEGORY_ICONS[category.icon as CategoryIconName] || (() => <span className="text-xs">?</span>) : (() => <span className="text-xs">?</span>);
+                    return (
+                      <Card key={category.id}>
+                        <CardContent className="flex items-center justify-between p-3 sm:p-4">
+                          <div className="flex items-center space-x-3 sm:space-x-4">
+                            {/* Color Swatch */}
+                            <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: category.color || '#ccc' }}></div>
+                            {/* Icon */}
+                            <IconComponent className="h-5 w-5 text-gray-600" />
+                            <span>{category.name}</span>
                         </div>
                         <div className="flex space-x-1 sm:space-x-2"> {/* Adjusted Spacing */}
                           <Button variant="ghost" size="icon" onClick={() => { setSelectedCategory(category); setCategoryFormOpen(true); }} className="h-8 w-8 text-gray-500 hover:text-primary">
@@ -145,7 +152,8 @@ export default function Settings() {
                         </div>
                       </CardContent>
                     </Card>
-                  ))}
+                  ); // Close the return statement
+                  })} {/* Add closing brace for the map block */}
                 </div>
               ) : (
                 <div className="p-4 text-center"><p className="text-gray-600">No categories found.</p></div>

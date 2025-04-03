@@ -17,6 +17,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  // DrawerHeader, DrawerTitle, DrawerDescription // Not needed for this use case
+} from "@/components/ui/drawer"
+import { useIsMobile } from "@/hooks/use-mobile" // Correct hook name
 
 export type ComboboxItem = {
   value: string
@@ -36,19 +43,137 @@ interface ComboboxProps {
   id?: string // Add id prop
 }
 
-// Wrap with React.forwardRef
+// Define props for the inner content component
+interface ComboboxContentProps extends ComboboxProps {
+  searchQuery: string;
+  setSearchQuery: (query: string) => void;
+  setOpen: (open: boolean) => void;
+  filteredItems: ComboboxItem[];
+  showCreateNew: boolean;
+  exactMatch: ComboboxItem | null;
+  handleBlur: () => void;
+  handleKeyDown: (e: React.KeyboardEvent) => void;
+}
+
+// --- Reusable Content Component ---
+const ComboboxContent: React.FC<ComboboxContentProps> = ({
+  items,
+  value,
+  onChange,
+  onCreateNew,
+  placeholder = "Select an item",
+  createNewLabel = "Create new",
+  emptyMessage = "No item found.",
+  searchQuery,
+  setSearchQuery,
+  setOpen,
+  filteredItems,
+  showCreateNew,
+  exactMatch, // Pass exactMatch
+  handleBlur, // Pass handleBlur
+  handleKeyDown, // Pass handleKeyDown
+}) => {
+  return (
+    <Command shouldFilter={false} className="w-full">
+      <CommandInput
+        placeholder={`Search ${placeholder.toLowerCase()}...`}
+        value={searchQuery}
+        onValueChange={setSearchQuery}
+        onBlur={handleBlur} // Use passed handler
+        onKeyDown={handleKeyDown} // Use passed handler
+        className="h-12 text-base py-3 sm:py-2.5"
+      />
+      <CommandList className="max-h-[250px] sm:max-h-[300px] overflow-y-auto">
+        <CommandEmpty className="py-3 text-base">{emptyMessage}</CommandEmpty>
+        <CommandGroup>
+          {filteredItems.length > 0 ? (
+            filteredItems.map((item) => (
+              <CommandItem
+                key={item.value}
+                value={item.value}
+                onSelect={() => {
+                  onChange(item.value)
+                  setOpen(false)
+                  setSearchQuery("")
+                }}
+                className="text-base py-3 sm:py-2.5"
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-5 w-5",
+                    value === item.value ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {item.label}
+              </CommandItem>
+            ))
+          ) : searchQuery ? null : (
+            // Show all items if search is empty and filtered is empty (e.g., initial load)
+            items.map((item) => (
+              <CommandItem
+                key={item.value}
+                value={item.value}
+                onSelect={() => {
+                  onChange(item.value)
+                  setOpen(false)
+                  setSearchQuery("")
+                }}
+                className="text-base py-3 sm:py-2.5"
+              >
+                <Check
+                  className={cn(
+                    "mr-2 h-5 w-5",
+                    value === item.value ? "opacity-100" : "opacity-0"
+                  )}
+                />
+                {item.label}
+              </CommandItem>
+            ))
+          )}
+        </CommandGroup>
+
+        {showCreateNew && (
+          <>
+            <CommandSeparator />
+            <CommandGroup>
+              <CommandItem
+                onSelect={() => {
+                  if (onCreateNew) {
+                    onCreateNew(searchQuery)
+                    setOpen(false)
+                    setSearchQuery("")
+                  }
+                }}
+                className="text-base py-3 sm:py-2.5 flex items-center"
+              >
+                <Plus className="mr-2 h-5 w-5 flex-shrink-0" />
+                <span className="truncate">
+                  {createNewLabel}: <span className="font-medium">{searchQuery}</span>
+                </span>
+              </CommandItem>
+            </CommandGroup>
+          </>
+        )}
+      </CommandList>
+    </Command>
+  );
+};
+
+
+// --- Main Combobox Component ---
 export const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(({
   items,
   value,
-  onChange, // Renamed from onSelect
+  onChange,
   onCreateNew,
   placeholder = "Select an item",
   createNewLabel = "Create new",
   emptyMessage = "No item found.",
   className,
   disabled = false,
-  id, // Accept id prop
-}, ref) => { // Accept ref as second argument
+  id,
+}, ref) => {
+  const isMobile = useIsMobile(); // Use correct hook name
   const [open, setOpen] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
@@ -85,22 +210,23 @@ export const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(({
     )
   }, [items, searchQuery])
 
-  // Check if we have an exact match
-  const exactMatch = React.useMemo(() => {
+  // Ensure exactMatch returns null, not undefined
+  const exactMatch: ComboboxItem | null = React.useMemo(() => {
     if (!searchQuery) return null;
     return items.find(
       (item) => item.label.toLowerCase() === searchQuery.toLowerCase()
-    );
+    ) ?? null; // Ensure null if find returns undefined
   }, [items, searchQuery]);
 
   // Only show create new when there's no exact match
   const showCreateNew = React.useMemo(() => {
-    return (
+    // Explicitly return boolean
+    return !!(
       onCreateNew &&
       searchQuery &&
       !exactMatch
-    )
-  }, [exactMatch, onCreateNew, searchQuery])
+    );
+  }, [exactMatch, onCreateNew, searchQuery]);
 
   // Handle blur event on input to auto-select exact match
   const handleBlur = () => {
@@ -128,6 +254,44 @@ export const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(({
     }
   };
 
+  // Pass all props needed by ComboboxContent
+  // Provide default for showCreateNew if needed, ensure exactMatch is passed correctly
+  const contentProps: ComboboxContentProps = {
+    items, value, onChange, onCreateNew, placeholder, createNewLabel, emptyMessage,
+    searchQuery, setSearchQuery, setOpen, filteredItems,
+    showCreateNew, // Pass showCreateNew (already guaranteed to be boolean)
+    exactMatch, // Pass exactMatch (already guaranteed to be ComboboxItem | null)
+    handleBlur, handleKeyDown
+  };
+
+  if (isMobile) {
+    return (
+      <Drawer open={open} onOpenChange={setOpen}>
+        <DrawerTrigger asChild>
+          <Button
+            ref={ref}
+            id={id}
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className={cn("w-full justify-between h-12 text-base", className)} // Consistent height
+            disabled={disabled}
+          >
+            {selectedItem ? selectedItem.label : placeholder}
+            <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
+          </Button>
+        </DrawerTrigger>
+        <DrawerContent>
+          {/* Add padding/margin as needed for drawer layout */}
+          <div className="mt-4 border-t p-2">
+            <ComboboxContent {...contentProps} />
+          </div>
+        </DrawerContent>
+      </Drawer>
+    );
+  }
+
+  // Desktop view (Popover)
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -137,101 +301,21 @@ export const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between h-12 sm:h-11 text-base", className)}
+          className={cn("w-full justify-between h-12 text-base", className)} // Consistent height
           disabled={disabled}
         >
           {selectedItem ? selectedItem.label : placeholder}
           <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent 
-        className="p-0 w-full min-w-[280px] sm:w-[350px] pointer-events-auto" 
-        align="start" 
-        aria-label={`Options for ${placeholder}`} // Add aria-label
+      {/* Use PopoverContent for desktop */}
+      <PopoverContent
+        className="p-0 w-[--radix-popover-trigger-width] max-h-[--radix-popover-content-available-height]" // Use CSS vars for width/height
+        align="start"
+        aria-label={`Options for ${placeholder}`}
       >
-        <Command shouldFilter={false} className="w-full"> {/* Removed overflow-hidden */}
-          <CommandInput
-            placeholder={`Search ${placeholder.toLowerCase()}...`}
-            value={searchQuery}
-            onValueChange={setSearchQuery}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className="h-12 text-base py-3 sm:py-2.5"
-          />
-          <CommandList className="max-h-[250px] sm:max-h-[300px] overflow-y-auto"> {/* Added overflow-y-auto */}
-            <CommandEmpty className="py-3 text-base">{emptyMessage}</CommandEmpty>
-            <CommandGroup>
-              {filteredItems.length > 0 ? (
-                filteredItems.map((item) => (
-                  <CommandItem
-                    key={item.value}
-                    value={item.value}
-                    onSelect={() => { // Keep Radix Command's onSelect prop name
-                      onChange(item.value) // Call our onChange handler
-                      setOpen(false)
-                      setSearchQuery("")
-                    }}
-                    className="text-base py-3 sm:py-2.5"
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-5 w-5",
-                        value === item.value ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {item.label}
-                  </CommandItem>
-                ))
-              ) : searchQuery ? null : (
-                items.map((item) => (
-                  <CommandItem
-                    key={item.value}
-                    value={item.value}
-                    onSelect={() => { // Keep Radix Command's onSelect prop name
-                      onChange(item.value) // Call our onChange handler
-                      setOpen(false)
-                      setSearchQuery("")
-                    }}
-                    className="text-base py-3 sm:py-2.5"
-                  >
-                    <Check
-                      className={cn(
-                        "mr-2 h-5 w-5",
-                        value === item.value ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                    {item.label}
-                  </CommandItem>
-                ))
-              )}
-            </CommandGroup>
-
-            {showCreateNew && (
-              <>
-                <CommandSeparator />
-                <CommandGroup>
-                  <CommandItem
-                    onSelect={() => { // Keep Radix Command's onSelect prop name
-                      if (onCreateNew) {
-                        onCreateNew(searchQuery)
-                        // Note: We don't call onChange here as creating doesn't select an existing value immediately.
-                        // The form value update happens in ExpenseForm's handleCreateLocation.
-                        setOpen(false)
-                        setSearchQuery("")
-                      }
-                    }}
-                    className="text-base py-3 sm:py-2.5 flex items-center"
-                  >
-                    <Plus className="mr-2 h-5 w-5 flex-shrink-0" />
-                    <span className="truncate">
-                      {createNewLabel}: <span className="font-medium">{searchQuery}</span>
-                    </span>
-                  </CommandItem>
-                </CommandGroup>
-              </>
-            )}
-          </CommandList>
-        </Command>
+        {/* Render the reusable content */}
+        <ComboboxContent {...contentProps} />
       </PopoverContent>
     </Popover>
   )

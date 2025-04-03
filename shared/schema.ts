@@ -13,7 +13,9 @@ export type User = {
 export type Category = {
   id: string; // Firestore document ID
   name: string;
-  color: string;
+  icon?: string; // Keep optional icon field
+  color: string; // Re-add color field
+  // color: string; // Remove color field
   // originalId?: number | null; // Removed originalId
 };
 

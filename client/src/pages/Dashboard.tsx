@@ -214,21 +214,14 @@ export default function Dashboard() {
       {/* Standard Dialog for Expense Form */}
       <Dialog open={isExpenseFormOpen} onOpenChange={setIsExpenseFormOpen}>
         <DialogContent className="sm:max-w-[600px] w-[90vw] max-w-[90vw] rounded-lg">
-          <DialogHeader>
-            <DialogTitle>{dialogTitle}</DialogTitle>
-            <DialogDescription>
-              {/* Use VisuallyHidden for accessibility if description is implied */}
-              <VisuallyHidden>{dialogDescription}</VisuallyHidden>
-              {dialogDescription} {/* Keep visible description */}
-            </DialogDescription>
-          </DialogHeader>
+          {/* DialogHeader removed as ExpenseForm now has its own header */}
           {/* Add scrollable container for the form itself */}
           <div className="py-4 max-h-[70vh] overflow-y-auto">
             <ExpenseForm
               expense={selectedExpense}
               onClose={() => onExpenseFormClose(false)} // Close handler
               categories={categories}
-              locations={locations}
+              locations={locations} // Re-add locations prop
               users={allUsers}
               isLoading={categoriesLoading || locationsLoading || usersLoading}
             />
