@@ -1,4 +1,4 @@
-import React, { useState } from "react"; // Removed useEffect
+import React, { useState, useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Category, Location, ExpenseWithDetails, User } from "@shared/schema";
@@ -54,6 +54,8 @@ export default function ExpenseForm({ expense, onClose, categories, locations, i
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { currentUser, userProfile } = useAuth();
+  const formRef = useRef<HTMLFormElement>(null); // Ref for the form element
+  const scrollContainerRef = useRef<HTMLDivElement>(null); // Ref for the scrollable container
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(formSchema),
@@ -177,7 +179,52 @@ if (expense?.id) {
       setIsSubmitting(false);
     }
   };
-
+ 
+  // --- Start: Mobile Keyboard Handling ---
+  useEffect(() => {
+    const formElement = formRef.current;
+    const scrollContainer = scrollContainerRef.current;
+    if (!formElement || !scrollContainer) return;
+ 
+    const handleFocusIn = (event: FocusEvent) => {
+      const target = event.target as HTMLElement;
+      // Check if the focused element is an input, select, textarea, or button within our form
+      if (target.matches('input, select, textarea, button') && formElement.contains(target)) {
+        // Use setTimeout to allow the keyboard to finish animating/resizing viewport
+        setTimeout(() => {
+          // Check if visualViewport API is available
+          if (window.visualViewport) {
+            const viewport = window.visualViewport;
+            const targetRect = target.getBoundingClientRect();
+            const scrollContainerRect = scrollContainer.getBoundingClientRect();
+ 
+            // Calculate how much of the element is visible within the visual viewport
+            const visibleHeight = Math.max(0, Math.min(targetRect.bottom, viewport.height) - Math.max(targetRect.top, 0));
+ 
+            // If element is mostly obscured by keyboard (e.g., bottom part below viewport offsetTop)
+            // or if the top is above the scroll container's visible top
+            const isObscured = targetRect.bottom > viewport.height - viewport.offsetTop; // Simplified check
+            const isAbove = targetRect.top < scrollContainerRect.top;
+ 
+            if (isObscured || isAbove) {
+               target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+          } else {
+            // Fallback for browsers without visualViewport API
+            target.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        }, 300); // Adjust delay as needed
+      }
+    };
+ 
+    formElement.addEventListener('focusin', handleFocusIn);
+ 
+    return () => {
+      formElement.removeEventListener('focusin', handleFocusIn);
+    };
+  }, []); // Empty dependency array ensures this runs once on mount
+  // --- End: Mobile Keyboard Handling ---
+ 
   if (isLoading) {
     return (
       <div className="space-y-4">
@@ -199,7 +246,13 @@ if (expense?.id) {
 
   return (
     <Form {...form}>
-      <form id="expense-form" onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Assign formRef here */}
+      <form id="expense-form" ref={formRef} onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col h-full"> {/* Make form flex column */}
+        {/* Scrollable Content Area */}
+        {/* Assign scrollContainerRef here and add styling */}
+        <div ref={scrollContainerRef} className="flex-grow overflow-y-auto space-y-6 p-1 mb-4"> {/* Added padding and margin-bottom */}
+          {/* Original content starts here */}
+          {/* Removed duplicate form tag */}
         {/* Reordered Fields */}
         <div className="grid grid-cols-1 gap-4">
           {/* 1. Amount */}
@@ -333,9 +386,12 @@ if (expense?.id) {
           />
 
         </div> {/* End of grid */}
+      </div> {/* <<<< ADDED: Close scrollable container div */}
 
-        {/* Buttons remain at the end */}
-        <div className="flex justify-end gap-3 pt-6">
+        {/* <<<< REMOVED old non-sticky button container */}
+ 
+        {/* Buttons Container (Fixed at bottom) */}
+        <div className="flex justify-end gap-3 pt-4 border-t border-border sticky bottom-0 bg-background pb-4 px-1"> {/* Make buttons sticky */}
           <Button
             type="button"
             variant="outline"
