@@ -95,7 +95,7 @@ export default function SummaryCard({
         </p>
         {/* Value paragraph - Kept reduced base font size */}
         <p className={cn(
-          "text-base sm:text-lg font-semibold whitespace-normal break-words no-underline truncate", /* Added truncate */
+          "text-sm sm:text-base font-semibold whitespace-normal break-words no-underline truncate", /* Reduced font size */
           isNegative ? "text-red-500 dark:text-red-400" : "text-foreground"
         )}>
           {value}
