@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useQuery } from "@tanstack/react-query"; // Import useQuery
 import MonthSelector from "@/components/MonthSelector";
 import SummaryCard from "@/components/SummaryCard";
 import { ExpenseTable } from "@/components/ExpenseTable";
@@ -10,8 +11,7 @@ import { formatCurrency, getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext"; // Use the updated AuthContext
 import { db } from "@/lib/firebase";
-// Import onSnapshot
-import { collection, query, where, orderBy, Timestamp, doc, getDocs, deleteDoc, onSnapshot } from "firebase/firestore";
+import { collection, query, where, orderBy, Timestamp, doc, getDocs, deleteDoc, getDoc } from "firebase/firestore"; // Removed onSnapshot, added getDoc
 // Removed ResponsiveDialog import
 // import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 // Import standard Dialog components
@@ -51,8 +51,7 @@ export default function Dashboard() {
     loading: authLoading
   } = useAuth();
 
-  const [expenses, setExpenses] = useState<ExpenseWithDetails[]>([]);
-  const [expensesLoading, setExpensesLoading] = useState(true);
+  // Removed useState for expenses and expensesLoading
   const [summary, setSummary] = useState<MonthSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
 
@@ -63,48 +62,87 @@ export default function Dashboard() {
     return () => window.removeEventListener('add-expense-event', handleMobileAdd);
   }, []);
 
-  // --- Real-time Expenses Listener ---
-  useEffect(() => {
-    if (authLoading || !currentUser || usersLoading || categoriesLoading || locationsLoading) {
-      setExpensesLoading(true);
-      return;
-    }
-    setExpensesLoading(true);
+  // --- Fetch Expenses using React Query ---
+  const fetchExpenses = useCallback(async (month: string): Promise<ExpenseWithDetails[]> => {
+    console.log("Fetching expenses for month:", month);
     const expensesCol = collection(db, "expenses");
-    const expensesQuery = query(expensesCol, where("month", "==", currentMonth));
-    const unsubscribe = onSnapshot(expensesQuery, (snapshot) => {
-      const categoryMap = new Map(categories.map(c => [c.id, c]));
-      const locationMap = new Map(locations.map(l => [l.id, l]));
-      const userMap = new Map(allUsers.map(u => [u.id, u]));
-      const resolvedExpenses = snapshot.docs.map((expenseDoc): ExpenseWithDetails => {
-        const expenseData = expenseDoc.data();
-        const category = categoryMap.get(expenseData.categoryId) || { id: expenseData.categoryId, name: 'Unknown Category', color: '#888888' };
-        const location = locationMap.get(expenseData.locationId) || { id: expenseData.locationId, name: 'Unknown Location' };
-        const paidByUser = userMap.get(expenseData.paidByUserId) || { id: expenseData.paidByUserId, email: 'unknown@example.com', username: 'Unknown User' };
-        let date = new Date();
-        if (expenseData.date instanceof Timestamp) { date = expenseData.date.toDate(); }
-        else if (expenseData.date?.seconds) { date = new Date(expenseData.date.seconds * 1000); }
-        else if (typeof expenseData.date === 'string') { const parsedDate = new Date(expenseData.date); if (!isNaN(parsedDate.getTime())) { date = parsedDate; } }
-        const expenseBase: Expense = { id: expenseDoc.id, description: expenseData.description || "", amount: Number(expenseData.amount) || 0, date: date, paidByUserId: expenseData.paidByUserId, splitType: expenseData.splitType || "50/50", categoryId: expenseData.categoryId, locationId: expenseData.locationId, month: expenseData.month };
-        return { ...expenseBase, category, location, paidByUser };
-      });
-      resolvedExpenses.sort((a, b) => b.date.getTime() - a.date.getTime());
-      setExpenses(resolvedExpenses);
-      setExpensesLoading(false);
-    }, (error) => {
-      console.error("Error fetching expenses snapshot:", error);
-      toast({ title: "Error", description: "Failed to load real-time expenses.", variant: "destructive" });
-      setExpenses([]);
-      setExpensesLoading(false);
-    });
-    return () => unsubscribe();
-  }, [currentMonth, currentUser, authLoading, allUsers, categories, locations, usersLoading, categoriesLoading, locationsLoading, toast]);
+    const expensesQuery = query(expensesCol, where("month", "==", month));
+    const snapshot = await getDocs(expensesQuery);
 
-  // --- Calculate Summary ---
+    // Prepare maps for efficient lookups (ensure data is loaded)
+    const categoryMap = new Map(categories.map(c => [c.id, c]));
+    const locationMap = new Map(locations.map(l => [l.id, l]));
+    const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+    const resolvedExpenses = snapshot.docs.map((expenseDoc): ExpenseWithDetails => {
+      const expenseData = expenseDoc.data();
+      const category = categoryMap.get(expenseData.categoryId) || { id: expenseData.categoryId, name: 'Unknown Category', color: '#888888' };
+      const location = locationMap.get(expenseData.locationId) || { id: expenseData.locationId, name: 'Unknown Location' };
+      const paidByUser = userMap.get(expenseData.paidByUserId) || { id: expenseData.paidByUserId, email: 'unknown@example.com', username: 'Unknown User' };
+
+      let date = new Date(); // Default date
+      if (expenseData.date instanceof Timestamp) {
+        date = expenseData.date.toDate();
+      } else if (expenseData.date?.seconds) { // Handle Firestore Timestamp object structure if not instance
+        date = new Date(expenseData.date.seconds * 1000);
+      } else if (typeof expenseData.date === 'string') { // Handle string date
+        const parsedDate = new Date(expenseData.date);
+        if (!isNaN(parsedDate.getTime())) {
+          date = parsedDate;
+        }
+      }
+      // Ensure amount is a number
+      const amount = Number(expenseData.amount) || 0;
+
+      const expenseBase: Expense = {
+        id: expenseDoc.id,
+        description: expenseData.description || "",
+        amount: amount,
+        date: date,
+        paidByUserId: expenseData.paidByUserId,
+        splitType: expenseData.splitType || "50/50",
+        categoryId: expenseData.categoryId,
+        locationId: expenseData.locationId,
+        month: expenseData.month
+      };
+      return { ...expenseBase, category, location, paidByUser };
+    });
+
+    resolvedExpenses.sort((a, b) => b.date.getTime() - a.date.getTime()); // Sort by date descending
+    console.log("Resolved expenses:", resolvedExpenses.length);
+    return resolvedExpenses;
+  }, [categories, locations, allUsers]); // Dependencies for the fetch function
+
+  const {
+    data: expensesData, // Rename data to avoid conflict
+    isLoading: expensesLoading, // Use isLoading from useQuery
+    error: expensesError,
+  } = useQuery<ExpenseWithDetails[], Error>({
+    queryKey: ['expenses', currentMonth], // Query key includes the month
+    queryFn: () => fetchExpenses(currentMonth),
+    // Enable the query only when all necessary context data is loaded and user is logged in
+    enabled: !!currentUser && !authLoading && !usersLoading && !categoriesLoading && !locationsLoading && categories.length > 0 && locations.length > 0 && allUsers.length > 0,
+    staleTime: 5 * 60 * 1000, // Optional: Keep data fresh for 5 minutes
+    gcTime: 10 * 60 * 1000, // Optional: Garbage collect after 10 minutes of inactivity
+  });
+
+  // Handle query error
   useEffect(() => {
-    if (expensesLoading || usersLoading || !currentUser || allUsers.length < 2) {
+    if (expensesError) {
+      console.error("Error fetching expenses query:", expensesError);
+      toast({ title: "Error", description: `Failed to load expenses: ${expensesError.message}`, variant: "destructive" });
+    }
+  }, [expensesError, toast]);
+
+  // Use fetched data or default to empty array
+  const expenses = expensesData ?? [];
+
+  // --- Calculate Summary (depends on expenses from useQuery) ---
+  useEffect(() => {
+    // Depend on expensesLoading from useQuery and other context loadings
+    if (expensesLoading || usersLoading || categoriesLoading || locationsLoading || !currentUser || allUsers.length < 2) {
       setSummaryLoading(true);
-      return;
+      return; // Exit if data isn't ready
     }
     setSummaryLoading(true);
     const user1 = allUsers.find(u => u.id === currentUser.uid);
@@ -130,21 +168,33 @@ export default function Dashboard() {
     const calculatedSummary: MonthSummary = { month: currentMonth, totalExpenses, userExpenses, settlementAmount, settlementDirection, categoryTotals: [], locationTotals: [], splitTypeTotals: {}, dateDistribution: {} };
     setSummary(calculatedSummary);
     setSummaryLoading(false);
-  }, [expenses, allUsers, currentUser, expensesLoading, usersLoading, currentMonth]);
+  // Recalculate when expenses array changes, or users/context data changes
+  }, [expenses, allUsers, currentUser, expensesLoading, usersLoading, categoriesLoading, locationsLoading, currentMonth]);
 
   const handleMonthChange = (month: string) => { setCurrentMonth(month); };
   const handleAddExpense = () => { setSelectedExpense(undefined); setIsExpenseFormOpen(true); };
   const handleEditExpense = (expense: ExpenseWithDetails) => { setSelectedExpense(expense); setIsExpenseFormOpen(true); };
   const onExpenseFormClose = (needsRefetch?: boolean) => { setIsExpenseFormOpen(false); };
   const handleExport = async (format: ExportFormat) => {
+    // Check expensesLoading from useQuery
     if (!summary || expensesLoading || summaryLoading) { toast({ title: "Data Not Ready", description: "Please wait for data to load." }); return; }
     try { const { exportExpenses } = await import('@/lib/exportUtils'); exportExpenses({ format, month: currentMonth, expenses, summary, allUsers }); toast({ title: "Export Successful", description: `Expenses exported as ${format.toUpperCase()}.` }); }
     catch (error) { console.error("Export failed:", error); toast({ title: "Export Failed", description: error instanceof Error ? error.message : "An unknown error occurred.", variant: "destructive" }); }
   };
   const handleDeleteExpense = async (expense: ExpenseWithDetails) => {
     if (!currentUser) return;
-    try { const expenseRef = doc(db, "expenses", expense.id); await deleteDoc(expenseRef); toast({ title: "Success", description: "Expense deleted successfully." }); }
-    catch (error) { console.error("Error deleting expense:", error); toast({ title: "Error", description: "Could not delete expense.", variant: "destructive" }); }
+    try {
+      const expenseRef = doc(db, "expenses", expense.id);
+      await deleteDoc(expenseRef);
+      // No need to manually invalidate here if using React Query correctly,
+      // but explicit invalidation after delete is also fine.
+      // queryClient.invalidateQueries({ queryKey: ['expenses', currentMonth] });
+      // queryClient.invalidateQueries({ queryKey: ['summary', currentMonth] }); // Also invalidate summary if needed
+      toast({ title: "Success", description: "Expense deleted successfully." });
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+      toast({ title: "Error", description: "Could not delete expense.", variant: "destructive" });
+    }
   };
 
   const user1 = currentUser ? allUsers.find(u => u.id === currentUser.uid) : null;
@@ -207,19 +257,29 @@ export default function Dashboard() {
         {/* Expenses Section */}
         <div>
            <h2 className="text-xl font-semibold mb-4">Expenses</h2>
+           {/* Pass expenses from useQuery result */}
            <ExpenseTable expenses={expenses} onEdit={handleEditExpense} onDelete={handleDeleteExpense} isLoading={expensesLoading || usersLoading || categoriesLoading || locationsLoading} />
         </div>
       </div>
 
       {/* Standard Dialog for Expense Form */}
       <Dialog open={isExpenseFormOpen} onOpenChange={setIsExpenseFormOpen}>
-        <DialogContent className="sm:max-w-[600px] w-[90vw] max-w-[90vw] rounded-lg">
-          {/* DialogHeader removed as ExpenseForm now has its own header */}
-          {/* Add scrollable container for the form itself */}
-          <div className="py-4 max-h-[70vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] w-[90vw] max-w-[90vw] rounded-lg p-0"> {/* Remove padding from content */}
+           {/* Add DialogHeader, Title, and Description for Accessibility */}
+           <DialogHeader className="p-6 pb-0"> {/* Add padding to header */}
+             <DialogTitle>
+               <VisuallyHidden>{dialogTitle}</VisuallyHidden> {/* Hide visually */}
+             </DialogTitle>
+             <DialogDescription>
+               <VisuallyHidden>{dialogDescription}</VisuallyHidden> {/* Hide visually */}
+             </DialogDescription>
+           </DialogHeader>
+           {/* Scrollable container for the form */}
+          {/* Form container - remove padding here as it's in ExpenseForm */}
+          <div className="max-h-[70vh] overflow-y-auto">
             <ExpenseForm
               expense={selectedExpense}
-              onClose={() => onExpenseFormClose(false)} // Close handler
+              onClose={onExpenseFormClose} // Pass close handler
               categories={categories}
               locations={locations} // Re-add locations prop
               users={allUsers}

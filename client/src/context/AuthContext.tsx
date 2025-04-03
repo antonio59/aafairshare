@@ -59,9 +59,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Reusable function to fetch profile and update state - wrapped in useCallback
   // Returns true if profile was set or created, false otherwise
   const fetchAndSetUserProfile = useCallback(async (user: FirebaseAuthUser | null): Promise<boolean> => {
-    console.log("fetchAndSetUserProfile: Called with user:", user?.uid);
+    // console.log("fetchAndSetUserProfile: Called with user:", user?.uid);
     if (!user) {
-      console.log("fetchAndSetUserProfile: No user provided, resetting profile.");
+      // console.log("fetchAndSetUserProfile: No user provided, resetting profile.");
       setUserProfile(null);
       setProfileLoading(false);
       return false; // Indicate no profile set
@@ -70,23 +70,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Avoid fetching if profile *state* already matches this user's UID
     // Avoid fetching if profile *state* already matches this user's UID
     if (userProfile?.id === user.uid) {
-      console.log("fetchAndSetUserProfile: Profile already exists in state for user:", user.uid);
+      // console.log("fetchAndSetUserProfile: Profile already exists in state for user:", user.uid);
       setProfileLoading(false); // Still ensure profile loading is false
       return true; // Indicate profile exists
     }
 
-    console.log("fetchAndSetUserProfile: Starting profile fetch/create for user:", user.uid);
+    // console.log("fetchAndSetUserProfile: Starting profile fetch/create for user:", user.uid);
     setProfileLoading(true); // Set profile loading true
     let profileSet = false; // Track if profile was successfully set/created
 
     try {
       const userDocRef = doc(db, "users", user.uid);
       const userDoc = await getDoc(userDocRef);
-      console.log("fetchAndSetUserProfile: Firestore doc fetched for user:", user.uid, "Exists:", userDoc.exists());
+      // console.log("fetchAndSetUserProfile: Firestore doc fetched for user:", user.uid, "Exists:", userDoc.exists());
 
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        console.log("fetchAndSetUserProfile: User doc exists, data:", userData);
+        // console.log("fetchAndSetUserProfile: User doc exists, data:", userData);
 
         // Verify document ID matches Firebase UID (redundant check, but safe)
         // if (userDoc.id !== user.uid) { ... } // Removed for brevity, Firestore ensures this
@@ -97,15 +97,15 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           username: userData.username || user.displayName || user.email?.split('@')[0] || 'User',
           photoURL: userData.photoURL || user.photoURL || undefined
         };
-        console.log("fetchAndSetUserProfile: Profile data constructed:", profileDataToSet);
+        // console.log("fetchAndSetUserProfile: Profile data constructed:", profileDataToSet);
 
         // Check if Firestore photoURL needs updating from Firebase Auth
         if ((!userData.photoURL || userData.photoURL === '') && user.photoURL) {
-          console.log("fetchAndSetUserProfile: Updating Firestore photoURL for user:", user.uid);
+          // console.log("fetchAndSetUserProfile: Updating Firestore photoURL for user:", user.uid);
           try {
             await updateDoc(userDocRef, { photoURL: user.photoURL });
             profileDataToSet.photoURL = user.photoURL; // Update local object too
-            console.log("fetchAndSetUserProfile: Firestore photoURL updated successfully.");
+            // console.log("fetchAndSetUserProfile: Firestore photoURL updated successfully.");
           } catch (updateError) {
             console.error("fetchAndSetUserProfile: Error updating photoURL in Firestore:", updateError);
           }
@@ -113,9 +113,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
         setUserProfile(profileDataToSet);
         profileSet = true; // Mark profile as set
-        console.log("fetchAndSetUserProfile: User profile state updated for existing user:", user.uid);
+        // console.log("fetchAndSetUserProfile: User profile state updated for existing user:", user.uid);
       } else {
-        console.log("fetchAndSetUserProfile: User doc does not exist, creating profile for user:", user.uid);
+        // console.log("fetchAndSetUserProfile: User doc does not exist, creating profile for user:", user.uid);
         // User document doesn't exist - Create the profile.
 
         const newUserProfile: FirestoreUserProfile = {
@@ -124,7 +124,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           username: user.displayName || user.email?.split('@')[0] || 'New User',
           photoURL: user.photoURL || undefined,
         };
-        console.log("fetchAndSetUserProfile: New profile data constructed:", newUserProfile);
+        // console.log("fetchAndSetUserProfile: New profile data constructed:", newUserProfile);
 
         try {
           const newUserDocRef = doc(db, "users", user.uid);
@@ -135,7 +135,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           });
           setUserProfile(newUserProfile);
           profileSet = true; // Mark profile as created and set
-          console.log("fetchAndSetUserProfile: New user profile created and state updated for user:", user.uid);
+          // console.log("fetchAndSetUserProfile: New user profile created and state updated for user:", user.uid);
         } catch (createError) {
           console.error("fetchAndSetUserProfile: Error creating new user profile:", createError);
           toast({
@@ -172,7 +172,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       profileSet = false; // Explicitly mark as not set
     } finally {
       setProfileLoading(false); // Profile fetch/create attempt is complete
-      console.log("fetchAndSetUserProfile: Finished for user:", user?.uid, "Profile Set:", profileSet);
+      // console.log("fetchAndSetUserProfile: Finished for user:", user?.uid, "Profile Set:", profileSet);
     }
     return profileSet; // Return status
     // Dependencies for useCallback: Only toast is needed as userProfile check uses current state.
@@ -251,12 +251,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // --- Effect to listen for Auth State Changes (Handles initial load AND redirect result) ---
   useEffect(() => {
-    console.log("AuthProvider: Setting up onAuthStateChanged listener.");
+    // console.log("AuthProvider: Setting up onAuthStateChanged listener.");
     setLoading(true); // Ensure loading is true when the listener setup starts
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => { // Make callback async
-      console.log("onAuthStateChanged: Auth state changed. User:", user?.uid);
+      // console.log("onAuthStateChanged: Auth state changed. User:", user?.uid);
       setCurrentUser(user); // Update the user state immediately
+      setLoading(false); // <<< SET LOADING FALSE HERE - Auth check complete
 
       // Removed check for existing userProfile here.
       // fetchAndSetUserProfile already has an internal check (line ~72)
@@ -267,26 +268,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setUsersLoading(true);
 
       if (user) {
-        console.log("onAuthStateChanged: User detected. Fetching profile and users...");
-        try {
-          // Fetch profile and users concurrently
-          await Promise.all([
-            fetchAndSetUserProfile(user),
-            fetchAllUsers()
-            // Categories/Locations are handled by their own effects which depend on currentUser
-          ]);
-          console.log("onAuthStateChanged: Data fetching complete for user.");
-        } catch (error) {
-          console.error("onAuthStateChanged: Error during data fetch:", error);
-          // Handle error appropriately? Maybe sign out?
-          // For now, we'll still proceed to set loading false.
-        } finally {
-           // Set loading false *after* all async operations for a logged-in user are done
-           setLoading(false);
-           console.log("onAuthStateChanged: Loading set to false (user processed).");
-        }
+        // console.log("onAuthStateChanged: User detected. Fetching profile and users...");
+        // Fetch the essential user profile first
+        const profileFetched = await fetchAndSetUserProfile(user);
+        // console.log("onAuthStateChanged: Profile fetch completed. Status:", profileFetched);
+
+        // Loading state is now set earlier
+        // console.log("onAuthStateChanged: Loading was set to false earlier (user profile processed).");
+
+        // Fetch all users in the background (don't await here)
+        fetchAllUsers().then(() => {
+          // console.log("onAuthStateChanged: Background fetchAllUsers completed.");
+        }).catch(error => {
+           console.error("onAuthStateChanged: Background fetchAllUsers failed:", error);
+           // Optionally show a non-blocking toast notification here
+        });
+        // Categories/Locations are handled by their own effects which depend on currentUser
       } else {
-        console.log("onAuthStateChanged: No user detected. Resetting state.");
+        // console.log("onAuthStateChanged: No user detected. Resetting state.");
         // Reset states if user logs out or is initially null
         setUserProfile(null);
         setAllUsers([]);
@@ -294,15 +293,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUsersLoading(false);
         // Categories/Locations effects will clear their state due to currentUser being null
 
-        // Set loading false *after* confirming no user and resetting state
-        setLoading(false);
-        console.log("onAuthStateChanged: Loading set to false (no user).");
+        // Loading state is now set earlier
+        // console.log("onAuthStateChanged: Loading was set to false earlier (no user).");
       }
     });
 
     // Cleanup function
     return () => {
-      console.log("AuthProvider: Cleaning up onAuthStateChanged listener.");
+      // console.log("AuthProvider: Cleaning up onAuthStateChanged listener.");
       unsubscribe();
     };
     // Dependencies: None needed, listener should run once on mount.

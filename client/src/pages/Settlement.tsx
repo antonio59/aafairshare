@@ -14,6 +14,7 @@ import { getCurrentMonth, formatCurrency, getPreviousMonth, formatDate } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog"; // Import ResponsiveDialog
+import { DialogFooter } from "@/components/ui/dialog"; // Import DialogFooter from base dialog
 import {
   AlertDialogAction, // Keep Action for button styling if needed
   AlertDialogCancel, // Keep Cancel for button styling if needed
@@ -503,8 +504,8 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
               );
             })
           )}
-        </div>
-      </div>
+        </div> {/* Closes inner grid from line 473 */}
+      </div> {/* Closes outer grid from line 401 */}
 
       {/* Settlement history */}
       <SettlementHistory
@@ -514,34 +515,25 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
         users={users} // Pass users for name lookup
       />
 
-      {/* Confirm settlement dialog using ResponsiveDialog */}
+      {/* Confirmation Dialog - Placed inside the main div */}
       <ResponsiveDialog
         open={isDialogOpen}
         onOpenChange={setIsDialogOpen}
         title="Confirm Settlement"
-        description="Are you sure you want to mark this settlement as complete?"
+        description={`Are you sure you want to mark this month as settled? This action will record a settlement of ${formatCurrency(settlementAmount)} from ${fromUserName} to ${toUserName}.`}
       >
-        {/* Main content including conditional description and footer */}
-        <div className="mt-2"> {/* Add margin if needed */}
-          {/* Use settlementAmount state */}
-          {settlementAmount > 0 && settlementDirection && (
-            <p className="text-sm text-muted-foreground font-medium"> {/* Use paragraph and standard text style */}
-              {fromUserName} will pay {toUserName} {formatCurrency(settlementAmount)}
-            </p>
-          )}
-        </div>
-
-        {/* Footer content */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4">
-          <AlertDialogCancel onClick={() => setIsDialogOpen(false)}>Cancel</AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleSettlement}
-            disabled={isSettling} // Disable confirm button while settling
-          >
-            {isSettling ? "Settling..." : "Confirm Settlement"}
+        <DialogFooter>
+          <AlertDialogCancel asChild>
+             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+          </AlertDialogCancel>
+          <AlertDialogAction asChild>
+            <Button type="button" onClick={handleSettlement} disabled={isSettling}>
+              {isSettling ? "Settling..." : "Confirm Settlement"}
+            </Button>
           </AlertDialogAction>
-        </div>
+        </DialogFooter>
       </ResponsiveDialog>
-    </div>
-  );
+
+    </div> // Closing tag for the main div
+  ); // Closing parenthesis for the component return
 }

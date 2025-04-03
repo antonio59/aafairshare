@@ -466,6 +466,7 @@ export default function Expenses() {
       <Dialog open={isExpenseFormOpen} onOpenChange={setIsExpenseFormOpen}>
         <DialogContent
           className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto"
+          aria-labelledby={dialogTitleId} // Add this line
           aria-describedby={dialogDescriptionId}
         >
           <DialogHeader>

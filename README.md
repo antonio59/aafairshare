@@ -71,7 +71,7 @@ A modern, mobile-first application for managing household expenses between two u
 ### Project Structure
 
 - `/client`: Frontend React application
-- `/server`: Backend Express API
+- `/functions`: Backend Cloud Functions (or similar, adjust description if needed)
 - `/shared`: Shared types and schemas
 - `/.github`: GitHub Actions workflows and configuration
 

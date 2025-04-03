@@ -1,4 +1,4 @@
-console.log("--- firebase.ts module executing ---"); // Add this log
+// console.log("--- firebase.ts module executing ---"); // Add this log
 /// <reference types="vite/client" />
 import { initializeApp, FirebaseApp } from "firebase/app";
 import { getAuth, Auth, setPersistence, browserLocalPersistence } from "firebase/auth"; // Revert to getAuth and setPersistence
@@ -28,12 +28,12 @@ if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
 const app: FirebaseApp = initializeApp(firebaseConfig);
 
 const auth: Auth = getAuth(app);
-console.log("--- Firebase Auth object initialized (getAuth):", auth); // Updated log
+// console.log("--- Firebase Auth object initialized (getAuth):", auth); // Updated log
 
 // Configure auth persistence and settings asynchronously
 setPersistence(auth, browserLocalPersistence)
   .then(() => {
-    console.log("Firebase auth persistence set to browserLocalPersistence.");
+    // console.log("Firebase auth persistence set to browserLocalPersistence.");
   })
   .catch((error) => {
     console.error("!!!!!!!!!! FAILED TO SET FIREBASE AUTH PERSISTENCE !!!!!!!!!!", error);

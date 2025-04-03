@@ -8,13 +8,16 @@ public/
 vite.config.ts.*
 *.tar.gz
 complete_export_*.json
-
+functions/lib/
+.vite/
+coverage/
 # OS generated files
 .DS_Store
 
 # Sensitive / Environment-specific
 serviceAccountKey.json
 client/.env.local
+.env # Root environment variables
 .firebaserc
 
 # Firebase CLI cache
@@ -23,3 +26,7 @@ client/.env.local
 # Editor directories and files
 .vscode/
 client/.vscode/
+
+# Logs
+*.log
+firebase-debug.log* # Firebase debug logs
