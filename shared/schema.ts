@@ -23,6 +23,7 @@ export type Category = {
 export type Location = {
   id: string; // Firestore document ID
   name: string;
+  color?: string; // Add optional color field
   // originalId?: number | null; // Removed originalId
 };
 

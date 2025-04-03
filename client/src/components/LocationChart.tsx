@@ -124,11 +124,14 @@ export default function LocationChart({ summary, isLoading = false }: LocationCh
               {summary.locationTotals.map((locationTotal) => (
                 <div key={locationTotal.location.id} className="flex items-center justify-between py-1.5">
                   <div className="flex items-center max-w-[65%]">
-                    <div
-                      className={cn("h-3.5 w-3.5 rounded-full flex-shrink-0")}
-                      style={{ backgroundColor: stringToColor(locationTotal.location.name) }}
-                    ></div>
-                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300 truncate">{locationTotal.location.name}</span>
+                    {/* Color box removed */}
+                    <span
+                      className="ml-2 text-sm truncate font-medium" // Added font-medium
+                      // Use stored color if available, otherwise generate one
+                      style={{ color: locationTotal.location.color || stringToColor(locationTotal.location.name) }}
+                    >
+                      {locationTotal.location.name}
+                    </span>
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-medium text-gray-800 dark:text-gray-200 financial-value">

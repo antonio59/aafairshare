@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-// Removed useToast import
+import { CATEGORY_COLORS } from "@/lib/constants"; // Import colors
 import { MapPin } from "lucide-react";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 // Removed Firestore imports
@@ -70,9 +70,25 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
     // onError is handled by the hook's default toast
   });
 
-  // Wrapper function to match react-hook-form's expected signature
+  // Simple hash function for color selection
+  const simpleHash = (str: string): number => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0; // Convert to 32bit integer
+    }
+    return Math.abs(hash);
+  };
+
+  // Wrapper function to add color before submitting
   const onSubmit = (data: FormData) => {
-    handleFirestoreSubmit(data); // Call the hook's submit handler
+    // Only assign color if it's a new location (no location prop passed)
+    const dataWithColor = location ? data : {
+      ...data,
+      color: CATEGORY_COLORS[simpleHash(data.name) % CATEGORY_COLORS.length]
+    };
+    handleFirestoreSubmit(dataWithColor); // Pass data with color to the hook
   };
 
 

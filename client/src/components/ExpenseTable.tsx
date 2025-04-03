@@ -191,12 +191,17 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
 
               {/* Bottom Row: PaidBy/Split/Date and Actions */}
               <div className="flex justify-between items-center text-xs text-muted-foreground border-t pt-1.5 mt-1.5">
-                <div>
-                  <span>Paid by: {expense.paidByUser?.username ?? "-"}</span>
-                  <span className="mx-1.5">•</span> {/* Separator */}
-                  <span>Split: {expense.splitType || "50/50"}</span>
-                  <span className="mx-1.5">•</span> {/* Separator */}
-                  <span>{formatDate(expense.date)}</span> {/* Moved Date here */}
+                <div className="flex flex-col"> {/* Make this div a column */}
+                  {/* Div for Paid by and Split */}
+                  <div>
+                    <span>Paid by: {expense.paidByUser?.username ?? "-"}</span>
+                    <span className="mx-1.5">•</span> {/* Separator */}
+                    <span>Split: {expense.splitType || "50/50"}</span>
+                  </div>
+                  {/* Div for Date on new line */}
+                  <div>
+                    <span>{formatDate(expense.date)}</span>
+                  </div>
                 </div>
                 <div className="flex space-x-0.5"> {/* Added small space for buttons */}
                   <Button

@@ -123,11 +123,13 @@ export default function CategoryChart({ summary, isLoading = false }: CategoryCh
               {summary.categoryTotals.map((categoryTotal) => (
                 <div key={categoryTotal.category.id} className="flex items-center justify-between py-1.5">
                   <div className="flex items-center max-w-[65%]">
-                    <div
-                      className={cn("h-3.5 w-3.5 rounded-full flex-shrink-0")}
-                      style={{ backgroundColor: categoryTotal.category.color }}
-                    ></div>
-                    <span className="ml-2 text-sm text-gray-700 dark:text-gray-300 truncate">{categoryTotal.category.name}</span>
+                    {/* Color box removed */}
+                    <span
+                      className="ml-2 text-sm truncate font-medium" // Added font-medium
+                      style={{ color: categoryTotal.category.color }} // Apply color to text
+                    >
+                      {categoryTotal.category.name}
+                    </span>
                   </div>
                   <div className="text-right">
                     <span className="text-sm font-medium text-gray-800 dark:text-gray-200 financial-value">

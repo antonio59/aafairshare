@@ -268,7 +268,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                     variant="outline"
                     value={field.value}
                     onValueChange={field.onChange}
-                    className="grid grid-cols-3 sm:grid-cols-5 gap-2 pt-1" // Adjust grid columns as needed
+                    className="grid grid-cols-3 sm:grid-cols-5 gap-3 pt-1" // Increased gap from 2 to 3
                   >
                     {categories.map((category) => {
                       // Use the icon field from the category data, fallback to placeholder
