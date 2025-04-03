@@ -222,7 +222,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
       >
         {/* Header div removed */}
         {/* Title moved before scrollable area */}
-        <h2 className="text-xl font-semibold text-center pt-4 px-4">Add Expense</h2> {/* Added padding directly */}
+        <h2 className="text-xl font-semibold text-center pt-2 px-4">Add Expense</h2> {/* Reduced top padding */}
 
         {/* Scrollable Content Area */}
         <div ref={scrollContainerRef} className="flex-grow overflow-y-auto p-4 space-y-6">
@@ -354,8 +354,8 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                          "hover:bg-gray-50 text-left" // Align text left
                        )}
                     >
-                       <span className="font-semibold">Owned</span>
-                       <span className="text-xs text-gray-500 data-[state=on]:text-blue-600">100% owned by the other user</span>
+                       <span className="font-semibold">Percent</span>
+                       <span className="text-xs text-gray-500 data-[state=on]:text-blue-600">100% owed by the other user</span>
                     </ToggleGroupItem>
                   </ToggleGroup>
                 </FormControl>
@@ -390,10 +390,10 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Description <span className="text-gray-500">(optional)</span></FormLabel>
+                <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
                 <FormControl>
                   <Textarea
-                    placeholder="Enter description (optional)"
+                    placeholder="Enter description"
                     className="min-h-[80px] text-base" // Basic styling for textarea
                     {...field}
                   />
@@ -419,7 +419,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
           <Button
             type="submit"
             disabled={isSubmitting}
-            className="flex-1 h-12 text-base bg-blue-600 hover:bg-blue-700 text-white" // Adjusted styling
+            className="flex-1 h-12 text-base bg-primary hover:bg-primary/90 text-primary-foreground" // Use primary color from theme
           >
             {isSubmitting ? "Saving..." : "Save Expense"}
           </Button>

@@ -392,9 +392,6 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
                   <p className="text-sm text-amber-600 mt-1">The previous month hasn't been settled yet.</p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" className="border-amber-200 text-amber-700 hover:bg-amber-100 w-full sm:w-auto" onClick={() => handleMonthChange(previousMonth)}>
-                View Previous Month
-              </Button>
             </div>
           </CardContent>
         </Card>
