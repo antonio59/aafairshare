@@ -126,17 +126,18 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
       }
     },
     plugins: {
+      legend: {
+        display: false // Disable the default legend with colored boxes
+      },
       tooltip: {
         callbacks: {
-          // Changed 'any' to 'TooltipItem<'line'>'
           label: function(context: TooltipItem<'line'>): string {
             const label = context.dataset.label || '';
             const value = context.parsed.y;
-            // Ensure value is a number before formatting
             if (typeof value === 'number') {
-              return `${label}: ${formatCurrency(value)}`; // Use formatCurrency
+              return `${label}: ${formatCurrency(value)}`;
             }
-            return `${label}: ${value}`; // Fallback if value is not a number
+            return `${label}: ${value}`;
           }
         }
       }

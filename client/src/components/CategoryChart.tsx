@@ -110,6 +110,7 @@ export default function CategoryChart({ summary, isLoading = false }: CategoryCh
 
   return (
     <Card className="overflow-hidden">
+      {/* Header for Category Distribution Card */}
       <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-800">
         <CardTitle className="text-xl">Category Distribution</CardTitle>
       </CardHeader>
