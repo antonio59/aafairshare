@@ -170,6 +170,19 @@ export const onSettlementCreated = functions
 
       const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
 
+      // Calculate totals paid by each user
+      const userTotals: Record<string, number> = {
+        [fromUserId]: 0,
+        [toUserId]: 0,
+      };
+      expenses.forEach((exp) => {
+        if (exp.paidByUserId === fromUserId) {
+          userTotals[fromUserId] += exp.amount;
+        } else if (exp.paidByUserId === toUserId) {
+          userTotals[toUserId] += exp.amount;
+        }
+      });
+
       // 5. Generate CSV
       const csvParser = new Parser({
         fields: [
@@ -195,55 +208,106 @@ export const onSettlementCreated = functions
         },
       };
       const printer = new PdfPrinter(fonts);
+      // Define Brand Color
+      const brandColor = "#0F172A"; // Approx. HSL(222.2, 47.4%, 11.2%)
+
       const pdfContent: Content = [
+        // Header with Text Logo
+        {text: "AAFairShare", style: "logoHeader", color: brandColor},
         {text: `Settlement Report - ${month}`, style: "header"},
+        // User Totals Summary
+        {
+          text: `${fromUserName} Paid: ` +
+                `${formatCurrency(userTotals[fromUserId])}`,
+          style: "summary",
+        },
+        {
+          text: `${toUserName} Paid: ${formatCurrency(userTotals[toUserId])}`,
+          style: "summary",
+        },
         {
           text: `Total Expenses: ${formatCurrency(totalExpenses)}`,
-          style: "subheader",
+          style: "summary", bold: true,
         },
+        // Settlement Details
         {
-          text: `Settlement: ${fromUserName} paid ${toUserName} ${
-            formatCurrency(amount)
-          }`,
-          style: "subheader",
+          text: `Settlement: ${fromUserName} paid ${toUserName} ` +
+                `${formatCurrency(amount)}`,
+          style: "subheader", margin: [0, 5, 0, 10], // Add margin
         },
-        {text: " ", margin: [0, 10]}, // Spacer
         {
           style: "tableExample",
           table: {
             headerRows: 1,
-            // Adjust widths as needed
             widths: ["auto", "*", "auto", "auto", "auto", "auto"],
             body: [
-              // Header Row
+              // Header Row - Apply brand color
               [
                 "Date", "Description", "Category",
                 "Location", "Amount", "Paid By",
-              ].map((h) => ({text: h, style: "tableHeader"})),
+              ].map((h) => ({
+                text: h, style: "tableHeader",
+                fillColor: brandColor, color: "white",
+              })),
               // Data Rows
-              ...reportData.map((row) => [
-                row.Date || "", // Ensure defined string
-                row.Description || "", // Ensure defined string
-                row.Category || "", // Ensure defined string
-                row.Location || "", // Ensure defined string
-                row.Amount || "", // Ensure defined string
-                row["Paid By"] || "", // Ensure defined string
-              ]),
+              ...reportData.map((row, index) => {
+                // Define the row structure first
+                const rowCells = [
+                  row.Date || "",
+                  row.Description || "",
+                  row.Category || "",
+                  row.Location || "",
+                  {text: row.Amount || "", alignment: "right" as const},
+                  // Align amount right
+                  row["Paid By"] || "",
+                ];
+                // Now map each cell, checking its type
+                return rowCells.map((cell) => {
+                  const isObject = typeof cell === "object" && cell !== null;
+                  return {
+                    // Use text property if object, else use the string directly
+                    text: isObject ? cell.text : cell,
+                    // Use alignment if object, else default left
+                    alignment: isObject ? cell.alignment : "left",
+                    // Light gray fill
+                    fillColor: index % 2 === 0 ? "#F3F4F6" : undefined,
+                  };
+                });
+              }),
             ],
           },
-          layout: "lightHorizontalLines", // Optional table styling
+          // layout: 'lightHorizontalLines'
+          // Remove default lines for cleaner look
+          layout: { // Custom layout for better spacing and borders
+            // Top, header bottom, bottom borders
+            hLineWidth: (i, node) => (
+              i === 0 || i === 1 || i === node.table.body.length ? 1 : 0
+            ),
+            vLineWidth: () => 0, // No vertical lines
+            // Brand color for header lines
+            hLineColor: (i) => (i === 0 || i === 1 ? brandColor : "#E5E7EB"),
+            paddingTop: () => 6,
+            paddingBottom: () => 6,
+            paddingLeft: () => 8,
+            paddingRight: () => 8,
+          },
         },
       ];
+
 
       const docDefinition: TDocumentDefinitions = {
         content: pdfContent,
         styles: {
-          header: {fontSize: 18, bold: true, margin: [0, 0, 0, 10]},
-          subheader: {fontSize: 14, bold: true, margin: [0, 5, 0, 5]},
-          tableExample: {margin: [0, 5, 0, 15]},
-          tableHeader: {bold: true, fontSize: 11, color: "black"},
+          logoHeader: {fontSize: 20, bold: true, margin: [0, 0, 0, 5]},
+          header: {fontSize: 16, bold: true, margin: [0, 0, 0, 10]},
+          subheader: {fontSize: 14, bold: true}, // Margin applied directly
+          summary: {fontSize: 11, margin: [0, 1, 0, 1]},
+          // Smaller font size for table
+          tableExample: {margin: [0, 5, 0, 15], fontSize: 9},
+          // Slightly larger header font
+          tableHeader: {bold: true, fontSize: 10},
         },
-        defaultStyle: {font: "Roboto"}, // Ensure font is applied
+        defaultStyle: {font: "Roboto"},
       };
 
       const pdfDoc = printer.createPdfKitDocument(docDefinition);
@@ -262,18 +326,32 @@ export const onSettlementCreated = functions
       // 7. Create Email Document for Trigger Email Extension
       const emailSubject = `FairShare Settlement Report - ${month}`;
       const emailBody = `
-        <p>Hi ${fromUserName} and ${toUserName},</p>
-        <p>Attached is the expense report and settlement summary for ${
-  month
-}.</p>
-        <p>Total expenses for the month: ${formatCurrency(totalExpenses)}</p>
-        <p>Settlement amount: ${fromUserName} paid ${toUserName} ${
-  formatCurrency(amount)
-}.</p>
-        <p>Please find the detailed CSV and PDF reports attached.</p>
-        <br/>
-        <p>Thanks,</p>
-        <p>FairShare App</p>
+        <div style="font-family: sans-serif; max-width: 600px; margin: auto; ` +
+              `border: 1px solid #ddd; padding: 20px;">
+          <h1 style="color: ${brandColor}; margin-bottom: 20px;">` +
+              `AAFairShare</h1>
+          <h2 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">` +
+              `Settlement Report - ${month}</h2>
+          <p>Hi ${fromUserName} and ${toUserName},</p>
+          <p>Here's the settlement summary for <strong>${month}</strong>:</p>
+          <div style="background-color: #f9f9f9; padding: 10px; ` +
+                `border-radius: 5px; margin-bottom: 15px;">
+            <p style="margin: 5px 0;">${fromUserName} Paid: ` +
+                `<strong>${formatCurrency(userTotals[fromUserId])}</strong></p>
+            <p style="margin: 5px 0;">${toUserName} Paid: ` +
+                `<strong>${formatCurrency(userTotals[toUserId])}</strong></p>
+            <p style="margin: 5px 0;">Total Expenses: ` +
+                `<strong>${formatCurrency(totalExpenses)}</strong></p>
+            <hr style="border: none; border-top: 1px solid #eee; ` +
+                `margin: 10px 0;">
+            <p style="margin: 5px 0;">Settlement: <strong>${fromUserName} ` +
+                `paid ${toUserName} ${formatCurrency(amount)}</strong></p>
+          </div>
+          <p>Please find the detailed CSV and PDF reports attached.</p>
+          <br/>
+          <p>Thanks,</p>
+          <p><strong>The AAFairShare Team</strong></p>
+        </div>
       `;
 
       const emailData = {
