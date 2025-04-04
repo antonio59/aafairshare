@@ -11,6 +11,25 @@
         "source": "**",
         "destination": "/index.html"
       }
+    ],
+    "redirects": [
+      {
+        "source": "/:path*",
+        "destination": "https://aafairshare.online/:path*",
+        "type": 301,
+        "hostname": "aafairshare-37271.web.app"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "X-Robots-Tag",
+            "value": "noindex, nofollow"
+          }
+        ]
+      }
     ]
   },
   "firestore": {

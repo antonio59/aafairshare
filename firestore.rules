@@ -7,9 +7,10 @@ rules_version = '2';
 // DO NOT use these rules for applications with standard multi-user permissions.
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Allow read/write access to any document if the user is authenticated
+    // Allow read/write access only if the user is one of the two authorized UIDs
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if request.auth != null &&
+                           request.auth.uid in ['7dCjpZWVqyROVvhGig4gwhCwnEa2', 'AOm7vJnYaQRKZ6bPoTvikz0ZnQ23'];
     }
   }
 }
