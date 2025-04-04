@@ -6,7 +6,7 @@ import SettlementHistory from "@/components/SettlementHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
-import { Tooltip } from "@/components/ui/tooltip"; // Corrected Tooltip import
+import { Tooltip } from "@/components/ui/tooltip"; // Import Tooltip
 import { Check, CalendarClock, X } from "lucide-react";
 import { Settlement as SettlementType, User, Expense } from "@shared/schema"; // Import correct types (MonthSummary removed as it's not fully used here)
 import { getCurrentMonth, formatCurrency, getPreviousMonth, formatDate } from "@/lib/utils"; // Added formatDate
@@ -513,60 +513,56 @@ return (
           </CardContent>
         </Card>
 
-        {/* User summaries - Changed to grid layout */}
-        <div className="grid grid-cols-2 gap-4"> {/* Changed from space-y-4 to grid */}
+        {/* User summaries - Applying fixes */}
+        <div className="grid grid-cols-2 gap-4">
           {summaryLoading || usersLoading ? (
             <>
-              <Skeleton className="h-20 w-full" />
-              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-24 w-full" /> {/* Adjusted skeleton height */}
+              <Skeleton className="h-24 w-full" />
             </>
           ) : (
             users.map((user) => {
               // Access amount from the userExpenses record using the user's Firestore ID
-              // Use the specific summary type here
               const amountPaid = summary?.userExpenses?.[user.id] ?? 0;
-              // Removed unused variable isCurrentUser
-              // const isCurrentUser = user.id === currentUser?.uid; // Check if it's the logged-in user
+              const userName = getUserName(user.id); // Get username once
 
-              return (
-                {(() => {
-                  // Define the card content JSX
-                  const userCardContent = (
-                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 overflow-hidden"> {/* Added overflow-hidden */}
-                      <div className="flex items-center">
-                        <Avatar className="h-10 w-10 flex-shrink-0"> {/* Added flex-shrink-0 */}
-                          <AvatarImage src={user.photoURL} alt={getUserName(user.id)} />
-                          <AvatarFallback>
-                            {getUserName(user.id)?.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                        {/* Added flex-1 and min-w-0 to allow text block to grow and prevent overflow */}
-                        <div className="ml-3 flex-1 min-w-0">
-                          {/* Hide text on small screens (mobile), show on sm and up. Added truncate */}
-                          <p className="text-sm font-medium text-gray-500 hidden sm:block truncate">{getUserName(user.id)} Paid</p>
-                          {/* Added truncate to amount */}
-                          <p className="text-xl font-semibold text-gray-800 truncate">{formatCurrency(amountPaid)}</p>
-                        </div>
+              // Define the card content JSX first
+              const userCardContent = (
+                <Card className="border-gray-200 overflow-hidden"> {/* Use Card, add overflow */}
+                  <CardContent className="pt-6">
+                    <div className="flex items-center space-x-3">
+                      <Avatar className="h-8 w-8 flex-shrink-0"> {/* Added flex-shrink-0 */}
+                        <AvatarImage src={user.photoURL} alt={userName} />
+                        <AvatarFallback>{userName.charAt(0).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex flex-col flex-1 min-w-0"> {/* Added flex-1 and min-w-0 */}
+                        {/* Hide text on small screens (mobile), show on sm and up. Added truncate */}
+                        <p className="text-sm font-medium text-gray-700 hidden sm:block truncate">{userName} Paid</p>
+                        {/* Added truncate */}
+                        <p className="text-lg font-semibold text-gray-900 truncate">{formatCurrency(amountPaid)}</p>
                       </div>
                     </div>
-                  );
+                  </CardContent>
+                </Card>
+              );
 
-                  // Conditionally wrap with Tooltip only on mobile
-                  return isMobile ? (
-                    <Tooltip key={user.id} content={`${getUserName(user.id)} Paid`} position="bottom">
-                      {userCardContent}
-                    </Tooltip>
-                  ) : (
-                    <div key={user.id}> {/* Add key to the outer element when not using Tooltip */}
-                      {userCardContent}
-                    </div>
-                  );
-                })()}
+              // Return the content, conditionally wrapped with Tooltip only on mobile
+              // Ensure the key is on the outermost element returned in each branch
+              return isMobile ? (
+                <Tooltip key={user.id} content={`${userName} Paid`} position="bottom">
+                  {userCardContent}
+                </Tooltip>
+              ) : (
+                 // Use React.Fragment or just the content if no wrapper needed, but key must be on the top element
+                 // Using Fragment here to ensure key is applied correctly
+                <React.Fragment key={user.id}>
+                  {userCardContent}
+                </React.Fragment>
               );
             })
           )}
-        </div> {/* Closes inner grid from line 473 */}
-      </div> {/* Closes outer grid from line 401 */}
+        </div> {/* Closes inner grid */}
+      </div> {/* Closes outer grid */}
 
       {/* Settlement history */}
       <SettlementHistory
