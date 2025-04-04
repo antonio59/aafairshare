@@ -358,16 +358,6 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
   const previousMonthIsSettled = !previousMonthSettlementsLoading && previousMonthSettlements && previousMonthSettlements.length > 0;
   const hasPreviousMonthExpenses = !previousMonthExpensesLoading && previousMonthExpenses && previousMonthExpenses.length > 0;
   const showUnsettledWarning = (!previousMonthIsSettled && hasPreviousMonthExpenses);
-// --- DEBUG LOGGING ---
-console.log("Rendering Settlement Component:", {
-  isSettled,
-  settlementAmount, // Calculated amount needed if unsettled
-  settlementRecordAmount: settlements[0]?.amount, // Amount from actual settlement record
-  settlementsLength: settlements.length,
-  currentMonth,
-});
-// --- END DEBUG LOGGING ---
-
 return (
     <div className="space-y-6 px-2 sm:px-4 pb-24">
       <div className="flex items-center justify-between mb-4">
