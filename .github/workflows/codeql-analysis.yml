@@ -24,7 +24,7 @@ jobs:
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4 # Use latest major version
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3 # Update to v3
@@ -32,17 +32,13 @@ jobs:
         languages: ${{ matrix.language }}
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3 # Correct indentation
-      with: # Correct indentation
-        node-version: '18'
+      uses: actions/setup-node@v4 # Use latest major version
+      with:
+        node-version: '20' # Match other workflows
         cache: 'npm' # Restore cache
 
-    - name: Install dependencies (clean & force public registry) # Correct indentation
-      run: |
-        npm config set registry https://registry.npmjs.org/
-        npm cache clean --force
-        rm -f package-lock.json
-        npm install # Use install after removing lockfile
+    - name: Install dependencies
+      run: npm ci # Use npm ci for reproducible installs
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v3 # Update to v3

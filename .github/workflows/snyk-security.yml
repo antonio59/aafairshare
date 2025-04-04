@@ -14,20 +14,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Use latest major version
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3 # Correct indentation
+        uses: actions/setup-node@v4 # Use latest major version
         with: # Correct indentation
           node-version: '20'
           cache: 'npm' # Restore cache
 
-      - name: Install dependencies (clean & force public registry) # Correct indentation
-        run: |
-          npm config set registry https://registry.npmjs.org/
-          npm cache clean --force
-          rm -f package-lock.json
-          npm install # Use install after removing lockfile
+      - name: Install dependencies
+        run: npm ci # Use npm ci for reproducible installs
 
       - name: Setup Snyk CLI
         uses: snyk/actions/setup@master # Try @master instead of @v1
