@@ -55,7 +55,7 @@ export default function Settlement() {
   const [settlementsLoading, setSettlementsLoading] = useState(true);
   // Use the new specific type for summary state
   const [summary, setSummary] = useState<SettlementPageSummary | null>(null);
-  const [summaryLoading, setSummaryLoading] = useState(true);
+  // Removed summaryLoading state, will derive from expensesLoading and usersLoading
   const [previousMonthSettlements, setPreviousMonthSettlements] = useState<SettlementType[]>([]);
   const [previousMonthSettlementsLoading, setPreviousMonthSettlementsLoading] = useState(true);
   const [previousMonthExpenses, setPreviousMonthExpenses] = useState<Expense[]>([]);
@@ -193,17 +193,19 @@ export default function Settlement() {
   const [settlementDirection, setSettlementDirection] = useState<{ fromUserId: string; toUserId: string } | null>(null);
 
   useEffect(() => {
-    if (expensesLoading || usersLoading || settlementsLoading || !currentUser || users.length < 2) {
-      setSummaryLoading(true); return;
+    // Check if essential data is loading or missing
+    if (expensesLoading || usersLoading || !currentUser || users.length < 2) {
+       // Removed setSummaryLoading(true)
+       return; // Exit early if data isn't ready
     }
-    setSummaryLoading(true);
+    // Removed setSummaryLoading(true)
     // Match current user by document ID
     const user1 = users.find(u => u.id === currentUser.uid);
     const user2 = users.find(u => u.id !== currentUser.uid);
 
     if (!user1 || !user2) {
         console.error("Could not find both users. User1:", user1, "User2:", user2);
-        setSummaryLoading(false);
+        // Removed setSummaryLoading(false)
         setSummary(null);
         setSettlementAmount(0);
         setSettlementDirection(null);
@@ -287,9 +289,9 @@ export default function Settlement() {
     setSettlementAmount(calculatedSettlementAmount);
     setSettlementDirection(calculatedSettlementDirection);
 
-    setSummaryLoading(false);
+    // Removed setSummaryLoading(false)
     // Added currentMonth to dependency array
-  }, [expenses, users, currentUser, expensesLoading, usersLoading, currentMonth]); // Removed settlements & settlementsLoading
+  }, [expenses, users, currentUser, expensesLoading, usersLoading, currentMonth]); // Dependencies remain the same
 
 
   const handleMonthChange = (month: string) => {
@@ -420,7 +422,8 @@ return (
         <Card className="border-gray-200"> {/* Added border class */}
           <CardHeader><CardTitle>Current Month Settlement</CardTitle></CardHeader>
           <CardContent>
-            {summaryLoading || usersLoading ? (
+            {/* Derive loading state directly */}
+            {(expensesLoading || usersLoading) ? (
               <Skeleton className="h-32 w-full" />
             ) : (
               <>
@@ -484,7 +487,8 @@ return (
                 </div>
 
                  {/* Use settlementAmount state */}
-                {!isSettled && settlementAmount > 0 && !summaryLoading && ( // Added !summaryLoading check
+                {/* Check derived loading state */}
+                {!isSettled && settlementAmount > 0 && !(expensesLoading || usersLoading) && (
                   <Button
                     variant="default"
                     className="w-full"
@@ -515,7 +519,7 @@ return (
 
         {/* User summaries - Applying fixes */}
         <div className="grid grid-cols-2 gap-4">
-          {summaryLoading || usersLoading ? (
+          {(expensesLoading || usersLoading) ? ( // Derive loading state directly
             <>
               <Skeleton className="h-24 w-full" /> {/* Adjusted skeleton height */}
               <Skeleton className="h-24 w-full" />
