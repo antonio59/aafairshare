@@ -7,6 +7,9 @@ on:
     branches: [ main ]
   schedule:
     - cron: '0 0 * * 1' # Run every Monday at midnight
+permissions:
+  contents: read        # Needed to checkout the code
+  security-events: write # Needed by Snyk action to upload results
 
 jobs:
   security:
