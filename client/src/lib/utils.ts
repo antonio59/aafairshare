@@ -72,3 +72,47 @@ export function getInitials(name: string): string {
     .join('')
     .toUpperCase();
 }
+
+// --- Category Color Utilities ---
+
+// Returns Tailwind CSS classes for category TEXT color (light/dark mode aware)
+export const getCategoryColorClass = (categoryName?: string): string => {
+  switch (categoryName?.toLowerCase()) {
+    case 'groceries':
+      return 'text-green-700 dark:text-green-400';
+    case 'utilities':
+      return 'text-blue-700 dark:text-blue-400';
+    case 'rent':
+      return 'text-purple-700 dark:text-purple-400';
+    case 'transport':
+      return 'text-orange-700 dark:text-orange-400';
+    case 'entertainment':
+      return 'text-pink-700 dark:text-pink-400';
+    case 'food & drink':
+       return 'text-red-700 dark:text-red-400';
+    // Add more categories here as needed
+    default:
+      return 'text-gray-600 dark:text-gray-400'; // Default/Uncategorized
+  }
+};
+
+// Returns Tailwind CSS classes for category BACKGROUND color swatches (light/dark mode aware)
+export const getCategoryBackgroundColorClass = (categoryName?: string): string => {
+  switch (categoryName?.toLowerCase()) {
+    case 'groceries':
+      return 'bg-green-100 dark:bg-green-800 border-green-300 dark:border-green-600';
+    case 'utilities':
+      return 'bg-blue-100 dark:bg-blue-800 border-blue-300 dark:border-blue-600';
+    case 'rent':
+      return 'bg-purple-100 dark:bg-purple-800 border-purple-300 dark:border-purple-600';
+    case 'transport':
+      return 'bg-orange-100 dark:bg-orange-800 border-orange-300 dark:border-orange-600';
+    case 'entertainment':
+      return 'bg-pink-100 dark:bg-pink-800 border-pink-300 dark:border-pink-600';
+    case 'food & drink':
+       return 'bg-red-100 dark:bg-red-800 border-red-300 dark:border-red-600';
+    // Add more categories here as needed
+    default:
+      return 'bg-gray-100 dark:bg-gray-700 border-gray-300 dark:border-gray-500'; // Default/Uncategorized
+  }
+};

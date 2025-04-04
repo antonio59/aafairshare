@@ -3,7 +3,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"; // Import Input
 import { Pencil, Trash2, Search } from "lucide-react"; // Import Search icon
-import { formatDate, formatCurrency } from "@/lib/utils";
+import { formatDate, formatCurrency, getCategoryColorClass } from "@/lib/utils"; // Import getCategoryColorClass
 import { type ExpenseWithDetails, type User } from "@shared/schema";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -13,6 +13,7 @@ interface ExpenseTableProps {
   onEdit: (expense: ExpenseWithDetails) => void;
   onDelete: (expense: ExpenseWithDetails) => void;
   isLoading: boolean;
+  isMonthSettled?: boolean; // Make optional for backward compatibility if needed, but required is better
 }
 
 // Skeleton Card for loading state on mobile (Updated Layout v2)
@@ -40,7 +41,8 @@ const ExpenseCardSkeleton = () => (
   </div>
 );
 
-export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseTableProps) {
+
+export function ExpenseTable({ expenses, onEdit, onDelete, isLoading, isMonthSettled = false }: ExpenseTableProps) { // Default to false
   const [filterText, setFilterText] = useState("");
 
   const filteredExpenses = useMemo(() => {
@@ -106,10 +108,7 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
                   <TableCell className="py-2 px-3 text-xs">{formatDate(expense.date)}</TableCell>
                   <TableCell className="py-2 px-3 text-xs">
                     <div className="flex flex-col gap-0.5">
-                      <span
-                        style={{ color: expense.category?.color || 'inherit' }}
-                        className="text-xs font-medium"
-                      >
+                      <span className={`text-xs font-medium ${getCategoryColorClass(expense.category?.name)}`}>
                         {expense.category?.name || "Uncategorized"}
                       </span>
                       <span className="text-xs text-muted-foreground">
@@ -132,16 +131,22 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
                         size="icon"
                         onClick={() => onEdit(expense)}
                         className="h-7 w-7 hover:bg-background"
+                        disabled={isMonthSettled} // Disable if month is settled
+                        aria-label={isMonthSettled ? "Cannot edit settled expense" : "Edit"}
                       >
                         <Pencil className="h-3.5 w-3.5" />
+                        <span className="sr-only">{isMonthSettled ? "Cannot edit settled expense" : "Edit"}</span>
                       </Button>
                       <Button
                         variant="ghost"
                         size="icon"
                         onClick={() => onDelete(expense)}
                         className="h-7 w-7 hover:bg-background text-destructive hover:text-destructive"
+                        disabled={isMonthSettled} // Disable if month is settled
+                        aria-label={isMonthSettled ? "Cannot delete settled expense" : "Delete"}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
+                        <span className="sr-only">{isMonthSettled ? "Cannot delete settled expense" : "Delete"}</span>
                       </Button>
                     </div>
                   </TableCell>
@@ -174,7 +179,7 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
               {/* Top Row: Category/Location and Amount */}
               <div className="flex justify-between items-start mb-1">
                 <div className="flex flex-col text-xs">
-                  <span style={{ color: expense.category?.color || 'inherit' }} className="font-medium text-sm text-foreground"> {/* Made category stand out */}
+                  <span className={`font-medium text-sm ${getCategoryColorClass(expense.category?.name)}`}> {/* Use Tailwind class */}
                     {expense.category?.name || "Uncategorized"}
                   </span>
                   <span className="text-muted-foreground">{expense.location?.name || "-"}</span>
@@ -209,6 +214,8 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
                     size="icon"
                     onClick={() => onEdit(expense)}
                     className="h-7 w-7"
+                    disabled={isMonthSettled} // Disable if month is settled
+                    aria-label={isMonthSettled ? "Cannot edit settled expense" : "Edit"}
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     <span className="sr-only">Edit</span>
@@ -218,6 +225,8 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading }: ExpenseT
                     size="icon"
                     onClick={() => onDelete(expense)}
                     className="h-7 w-7 text-destructive hover:text-destructive"
+                    disabled={isMonthSettled} // Disable if month is settled
+                    aria-label={isMonthSettled ? "Cannot delete settled expense" : "Delete"}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                     <span className="sr-only">Delete</span>

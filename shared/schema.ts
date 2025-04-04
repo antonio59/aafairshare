@@ -14,8 +14,7 @@ export type Category = {
   id: string; // Firestore document ID
   name: string;
   icon?: string; // Keep optional icon field
-  color: string; // Re-add color field
-  // color: string; // Remove color field
+  // color: string; // Color removed - handled by frontend CSS/Tailwind
   // originalId?: number | null; // Removed originalId
 };
 

@@ -208,25 +208,52 @@ export default function Settlement() {
         return;
     }
 
-    let total = 0;
+    let totalExpenses = 0; // Keep total for display if needed
+    let totalSplitExpenses = 0;
     const userExpensesPaid: Record<string, number> = { [user1.id]: 0, [user2.id]: 0 };
+    let user1_paid_50_50 = 0;
+    let user1_paid_100_owed_by_other = 0; // User1 paid, User2 owes User1
+    let user2_paid_100_owed_by_other = 0; // User2 paid, User1 owes User2
 
-    // Calculate expenses paid by each user
     expenses.forEach(exp => {
       const amount = Number(exp.amount) || 0;
-      total += amount;
-      // Use Firestore document ID (user1.id, user2.id) for matching paidByUserId
+      totalExpenses += amount; // Still calculate total overall expenses
+
+      // Track who paid what
       if (exp.paidByUserId === user1.id) userExpensesPaid[user1.id] += amount;
       else if (exp.paidByUserId === user2.id) userExpensesPaid[user2.id] += amount;
+
+      // Handle different split types for balance calculation
+      // Default to "50/50" if splitType is missing or null
+      const splitType = exp.splitType || "50/50";
+
+      if (splitType === "50/50") {
+        totalSplitExpenses += amount;
+        if (exp.paidByUserId === user1.id) {
+           user1_paid_50_50 += amount;
+         }
+      } else if (splitType === "100%") {
+        // Assumption: If split is 100%, the person who *didn't* pay owes the full amount.
+        if (exp.paidByUserId === user1.id) {
+          // User1 paid, so User2 owes User1 this amount
+          user1_paid_100_owed_by_other += amount;
+        } else if (exp.paidByUserId === user2.id) {
+          // User2 paid, so User1 owes User2 this amount
+          user2_paid_100_owed_by_other += amount;
+        }
+      }
+      // Add handling for other split types if they exist
     });
 
-    const fairShare = total / 2;
-    // Calculate initial balance based on expenses
-    const user1InitialBalance = userExpensesPaid[user1.id] - fairShare;
+    const fairShare = totalSplitExpenses / 2;
 
-    // Calculate final balance based only on expenses for the current month display
-    // Settlements for the current month are handled by the 'isSettled' flag
-    const finalBalance = user1InitialBalance;
+    // Calculate User1's balance relative to the fair share and 100% splits
+    // Positive balance means User2 owes User1
+    // Negative balance means User1 owes User2
+    const user1Balance = user1_paid_50_50 - fairShare + user1_paid_100_owed_by_other - user2_paid_100_owed_by_other;
+
+    // Use user1Balance to determine settlement direction and amount
+    const finalBalance = user1Balance; // Use the correctly calculated balance
 
     // Determine settlement amount and direction based on final balance
     let calculatedSettlementAmount = 0;
@@ -248,7 +275,7 @@ export default function Settlement() {
     // Create the summary object using the new specific type
     const calculatedSummary: SettlementPageSummary = {
       month: currentMonth, // Use currentMonth here
-      totalExpenses: total,
+      totalExpenses: totalExpenses, // Use the overall total here
       userExpenses: userExpensesPaid,
     };
     // Set the state without type assertion
@@ -260,7 +287,7 @@ export default function Settlement() {
 
     setSummaryLoading(false);
     // Added currentMonth to dependency array
-  }, [expenses, settlements, users, currentUser, expensesLoading, usersLoading, settlementsLoading, currentMonth]);
+  }, [expenses, users, currentUser, expensesLoading, usersLoading, currentMonth]); // Removed settlements & settlementsLoading
 
 
   const handleMonthChange = (month: string) => {
@@ -448,7 +475,7 @@ return (
                       </p>
                       <p className={`text-3xl font-bold mt-1 ${settlementAmount > 0 ? 'text-primary' : 'text-green-600'}`}>
                          {/* Display calculated amount needed to settle */}
-                        {formatCurrency(settlementAmount)}
+                        {formatCurrency(Math.floor(settlementAmount * 100) / 100)}
                       </p>
                     </>
                   )}

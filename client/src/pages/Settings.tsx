@@ -10,13 +10,22 @@ import { Skeleton } from "@/components/ui/skeleton";
 import CategoryForm from "@/components/CategoryForm"; // Keep form imports
 import LocationForm from "@/components/LocationForm"; // Keep form imports
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog"; // Import ResponsiveDialog
+import { getCategoryBackgroundColorClass } from "@/lib/utils"; // Import background color utility
 import {
-  AlertDialogAction, // Keep Action for button styling
-  AlertDialogCancel, // Keep Cancel for button styling
-} from "@/components/ui/alert-dialog"; // Keep parts needed for buttons
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  // AlertDialogTrigger, // Not needed if triggered programmatically
+} from "@/components/ui/alert-dialog";
 import { db } from "@/lib/firebase"; // Import Firestore instance
 import { collection, query, orderBy, onSnapshot, deleteDoc, doc } from "firebase/firestore";
 import { CATEGORY_ICONS, CategoryIconName } from "@/lib/constants"; // Import icons
+
 
 export default function Settings() {
   const [activeTab, setActiveTab] = useState("categories");
@@ -137,7 +146,7 @@ export default function Settings() {
                         <CardContent className="flex items-center justify-between p-3 sm:p-4">
                           <div className="flex items-center space-x-3 sm:space-x-4">
                             {/* Color Swatch */}
-                            <div className="h-5 w-5 rounded-full border" style={{ backgroundColor: category.color || '#ccc' }}></div>
+                            <div className={`h-5 w-5 rounded-full border ${getCategoryBackgroundColorClass(category.name)}`}></div>
                             {/* Icon */}
                             <IconComponent className="h-5 w-5 text-gray-600" />
                             <span>{category.name}</span>
@@ -218,18 +227,22 @@ export default function Settings() {
       />
 
       {/* Delete Confirmation Dialog using ResponsiveDialog */}
-      <ResponsiveDialog
-        open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
-        title="Are you sure?"
-        description={`This will permanently delete this ${itemToDelete?.type}. This action cannot be undone.`}
-      >
-        {/* Footer content goes inside the component */}
-        <div className="flex flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 mt-4">
-          <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
-          <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">Delete</AlertDialogAction>
-        </div>
-      </ResponsiveDialog>
+      {/* Delete Confirmation Dialog using AlertDialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        {/* <AlertDialogTrigger>Open</AlertDialogTrigger> // Optional: If triggered by a button */}
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this {itemToDelete?.type}. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-red-500 hover:bg-red-600">Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

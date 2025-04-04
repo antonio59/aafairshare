@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react"; // Import useState
 // Removed format import from date-fns
 import { Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -24,9 +25,18 @@ interface DatePickerProps {
 export const DatePicker = React.forwardRef<
   HTMLButtonElement, // The type of the element the ref will point to (the Button)
   DatePickerProps
->(({ value, onChange, className, id, name }, ref) => { // Accept ref as second argument
+>(({ value, onChange, className, id, name }, ref) => {
+  const [isOpen, setIsOpen] = useState(false); // Add state for popover
+
+  const handleSelect = (date: Date | undefined) => {
+    onChange(date); // Call original onChange
+    if (date) {
+      setIsOpen(false); // Close popover if a date is selected
+    }
+  };
+
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}> {/* Control popover state */}
       <PopoverTrigger asChild>
         <Button
           ref={ref} // Pass the ref to the Button
@@ -47,7 +57,7 @@ export const DatePicker = React.forwardRef<
         <Calendar
           mode="single"
           selected={value} // Use value
-          onSelect={onChange} // Use onChange
+          onSelect={handleSelect} // Use the new handler
           initialFocus
         />
       </PopoverContent>

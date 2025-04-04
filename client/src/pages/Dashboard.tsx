@@ -11,7 +11,7 @@ import { formatCurrency, getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthContext"; // Use the updated AuthContext
 import { db } from "@/lib/firebase";
-import { collection, query, where, orderBy, Timestamp, doc, getDocs, deleteDoc, getDoc } from "firebase/firestore"; // Removed onSnapshot, added getDoc
+import { collection, query, where, orderBy, Timestamp, doc, getDocs, deleteDoc, getDoc, limit } from "firebase/firestore"; // Added limit
 // Removed ResponsiveDialog import
 // import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
 // Import standard Dialog components
@@ -54,6 +54,8 @@ export default function Dashboard() {
   // Removed useState for expenses and expensesLoading
   const [summary, setSummary] = useState<MonthSummary | null>(null);
   const [summaryLoading, setSummaryLoading] = useState(true);
+  const [isCurrentMonthSettled, setIsCurrentMonthSettled] = useState(false);
+  const [settlementLoading, setSettlementLoading] = useState(true);
 
   // --- Mobile Add Expense Event Listener ---
   useEffect(() => {
@@ -170,6 +172,40 @@ export default function Dashboard() {
     setSummaryLoading(false);
   // Recalculate when expenses array changes, or users/context data changes
   }, [expenses, allUsers, currentUser, expensesLoading, usersLoading, categoriesLoading, locationsLoading, currentMonth]);
+  
+    // --- Fetch Settlement Status ---
+    useEffect(() => {
+      if (!currentUser) return;
+      setSettlementLoading(true);
+      const settlementsCol = collection(db, "settlements");
+      // Query for any settlement document for the current month
+      const q = query(settlementsCol, where("month", "==", currentMonth), limit(1));
+  
+      // Use getDocs for a one-time fetch is sufficient here unless we expect real-time changes often
+      getDocs(q).then((snapshot) => {
+        setIsCurrentMonthSettled(!snapshot.empty); // True if any settlement doc exists
+        setSettlementLoading(false);
+      }).catch((error) => {
+        console.error("Error fetching settlement status:", error);
+        toast({ title: "Error", description: "Could not check settlement status.", variant: "destructive" });
+        setIsCurrentMonthSettled(false); // Assume not settled on error
+        setSettlementLoading(false);
+      });
+  
+      // If real-time updates are needed, use onSnapshot instead:
+      /*
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        setIsCurrentMonthSettled(!snapshot.empty);
+        setSettlementLoading(false);
+      }, (error) => {
+        console.error("Error fetching settlement status:", error);
+        toast({ title: "Error", description: "Could not check settlement status.", variant: "destructive" });
+        setIsCurrentMonthSettled(false); // Assume not settled on error
+        setSettlementLoading(false);
+      });
+      return () => unsubscribe();
+      */
+    }, [currentMonth, currentUser, toast]);
 
   const handleMonthChange = (month: string) => { setCurrentMonth(month); };
   const handleAddExpense = () => { setSelectedExpense(undefined); setIsExpenseFormOpen(true); };
@@ -239,9 +275,18 @@ export default function Dashboard() {
                    <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
                  </DropdownMenuContent>
                </DropdownMenu>
-                <Button onClick={handleAddExpense} variant="outline" size="icon" className="rounded-full w-9 h-9">
-                  <PlusIcon className="h-4 w-4" /> <span className="sr-only">Add Expense</span>
-               </Button>
+                {/* Disable Add Expense button if month is settled */}
+                <Button
+                  onClick={handleAddExpense}
+                  variant="outline"
+                  size="icon"
+                  className="rounded-full w-9 h-9"
+                  disabled={isCurrentMonthSettled || settlementLoading} // Disable if settled or loading status
+                  aria-label={isCurrentMonthSettled ? "Cannot add expense to settled month" : "Add Expense"}
+                >
+                  <PlusIcon className="h-4 w-4" />
+                  <VisuallyHidden>{isCurrentMonthSettled ? "Cannot add expense to settled month" : "Add Expense"}</VisuallyHidden>
+                </Button>
             </div>
           </div>
         </div>
@@ -251,14 +296,20 @@ export default function Dashboard() {
           <div> <SummaryCard title="Total" value={formatCurrency(summary?.totalExpenses || 0)} icon={PoundSterling} variant="total" isLoading={summaryLoading} /> </div>
           <div> <SummaryCard title={`${user1Name || 'User 1'} Paid`} value={formatCurrency(user1Id ? summary?.userExpenses?.[user1Id] || 0 : 0)} icon={Users} variant="user1" isLoading={summaryLoading} tooltip={user1Name ? `Amount paid by ${user1Name}` : 'Amount paid by User 1'} photoURL={user1?.photoURL || undefined} email={user1?.email || undefined} /> </div>
           <div> <SummaryCard title={`${user2Name || 'User 2'} Paid`} value={formatCurrency(user2Id ? summary?.userExpenses?.[user2Id] || 0 : 0)} icon={Users} variant="user2" isLoading={summaryLoading} tooltip={user2Name ? `Amount paid by ${user2Name}` : 'Amount paid by User 2'} photoURL={user2Data?.photoURL || undefined} email={user2Data?.email || undefined} /> </div>
-          <div> <SummaryCard title={balanceTitle} value={formatCurrency(summary?.settlementAmount ?? 0)} icon={WalletCards} variant="balance" isNegative={owingUserId === user1Id} isLoading={summaryLoading} tooltip={balanceTooltip} photoURL={owingUser?.photoURL || undefined} email={owingUser?.email || undefined} /> </div>
+          <div> <SummaryCard title={balanceTitle} value={formatCurrency(Math.floor((summary?.settlementAmount ?? 0) * 100) / 100)} icon={WalletCards} variant="balance" isNegative={owingUserId === user1Id} isLoading={summaryLoading} tooltip={balanceTooltip} photoURL={owingUser?.photoURL || undefined} email={owingUser?.email || undefined} /> </div>
         </div>
 
         {/* Expenses Section */}
         <div>
            <h2 className="text-xl font-semibold mb-4">Expenses</h2>
            {/* Pass expenses from useQuery result */}
-           <ExpenseTable expenses={expenses} onEdit={handleEditExpense} onDelete={handleDeleteExpense} isLoading={expensesLoading || usersLoading || categoriesLoading || locationsLoading} />
+           <ExpenseTable
+             expenses={expenses}
+             onEdit={handleEditExpense}
+             onDelete={handleDeleteExpense}
+             isLoading={expensesLoading || usersLoading || categoriesLoading || locationsLoading || settlementLoading} // Include settlementLoading
+             isMonthSettled={isCurrentMonthSettled} // Pass settlement status
+           />
         </div>
       </div>
 
@@ -266,7 +317,7 @@ export default function Dashboard() {
       <Dialog open={isExpenseFormOpen} onOpenChange={setIsExpenseFormOpen}>
         <DialogContent className="sm:max-w-[600px] w-[90vw] max-w-[90vw] rounded-lg p-0"> {/* Remove padding from content */}
            {/* Add DialogHeader, Title, and Description for Accessibility */}
-           <DialogHeader className="p-6 pb-0"> {/* Add padding to header */}
+           <DialogHeader> {/* Removed padding */}
              <DialogTitle>
                <VisuallyHidden>{dialogTitle}</VisuallyHidden> {/* Hide visually */}
              </DialogTitle>

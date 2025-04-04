@@ -6,7 +6,7 @@ import { z } from "zod";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { CATEGORY_COLORS, CATEGORY_ICONS, CATEGORY_ICON_NAMES, CategoryIconName } from "@/lib/constants"; // Import icons AND colors
+import { CATEGORY_ICONS, CATEGORY_ICON_NAMES, CategoryIconName } from "@/lib/constants"; // Import icons
 // Removed duplicate import below
 import { cn } from "@/lib/utils";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog";
@@ -22,8 +22,7 @@ interface CategoryFormProps {
 // Updated Zod schema with icon and color
 const formSchema = z.object({
   name: z.string().min(1, "Category name is required"),
-  icon: z.string().min(1, "Please select an icon"),
-  color: z.string().min(1, "Please select a color") // Re-added color
+  icon: z.string().min(1, "Please select an icon")
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -32,16 +31,13 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
 
   const defaultIcon = CATEGORY_ICON_NAMES[0]; // Default to the first icon
 
-  // Form setup
-  const defaultColor = CATEGORY_COLORS[0]; // Default color
 
   // Form setup
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: category?.name || "",
-      icon: category?.icon || defaultIcon, // Use icon, default to first icon
-      color: category?.color || defaultColor // Re-added color
+      icon: category?.icon || defaultIcon // Use icon, default to first icon
     }
   });
 
@@ -49,23 +45,21 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
   useEffect(() => {
     if (open) {
       if (category) {
-        form.reset({ // Reset with color
+        form.reset({
           name: category.name,
-          icon: category.icon || defaultIcon, // Ensure icon has a default
-          color: category.color // Add color
+          icon: category.icon || defaultIcon // Ensure icon has a default
         });
       } else {
-        form.reset({ // Reset with color
+        form.reset({
           name: "",
-          icon: defaultIcon,
-          color: defaultColor // Add color
+          icon: defaultIcon
         });
       }
     } else {
        // Optionally reset when closing if desired, or keep last state
        // form.reset({ name: "", icon: defaultIcon });
     }
-  }, [category, form, open, defaultIcon, defaultColor]); // Add defaultColor dependency
+  }, [category, form, open, defaultIcon]);
 
   // Use the custom hook for submission logic
   const { handleSubmit: handleFirestoreSubmit, isSubmitting } = useFirestoreFormSubmit({
@@ -180,38 +174,6 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
             )}
           />
 
-          {/* Color Field - Re-added */}
-          <FormField
-            control={form.control}
-            name="color"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Color</FormLabel>
-                <FormControl>
-                  <div className="grid grid-cols-5 sm:grid-cols-8 gap-3 pt-1"> {/* Adjust grid columns */}
-                    {CATEGORY_COLORS.map(color => (
-                      <Button
-                        key={color}
-                        type="button"
-                        variant="outline"
-                        className={cn(
-                          "h-8 w-8 rounded-full p-0 relative border", // Adjusted size
-                          field.value === color && "ring-2 ring-offset-2 ring-blue-500" // Use ring for selection
-                        )}
-                        style={{ backgroundColor: color }}
-                        onClick={() => field.onChange(color)}
-                      >
-                        {/* Checkmark can be added inside if needed */}
-                        <span className="sr-only">Select color {color}</span>
-                      </Button>
-                    ))}
-                  </div>
-                </FormControl>
-                <FormDescription>Select a color for display in lists/charts.</FormDescription>
-                <FormMessage className="text-xs text-red-600" />
-              </FormItem>
-            )}
-          />
         </form>
       </Form>
     </ResponsiveDialog>

@@ -222,7 +222,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
       >
         {/* Header div removed */}
         {/* Title moved before scrollable area */}
-        <h2 className="text-xl font-semibold text-center pt-2 px-4">Add Expense</h2> {/* Reduced top padding */}
+        <h2 className="text-xl font-semibold text-center px-4">Add Expense</h2> {/* Removed top padding */}
 
         {/* Scrollable Content Area */}
         <div ref={scrollContainerRef} className="flex-grow overflow-y-auto p-4 space-y-6">
