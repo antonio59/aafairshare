@@ -19,24 +19,18 @@ import type {EmailTemplate} from "./types.ts"; // Assuming types are in ./types
 admin.initializeApp();
 const db = admin.firestore();
 
-// Define fonts and printer globally for pdfmake server-side usage
-const fonts = {
-  Roboto: {
-    // Assuming standard node_modules structure relative to function execution
-    normal: "node_modules/pdfmake/build/fonts/Roboto/Roboto-Regular.ttf",
-    bold: "node_modules/pdfmake/build/fonts/Roboto/Roboto-Medium.ttf",
-    italics: "node_modules/pdfmake/build/fonts/Roboto/Roboto-Italic.ttf",
-    bolditalics:
-      "node_modules/pdfmake/build/fonts/Roboto/Roboto-MediumItalic.ttf",
-  },
-};
-const printer = new PdfPrinter(fonts);
+// Printer will be instantiated inside the try block if fonts load
 
 // Helper function to format currency (basic example)
-const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency", currency: "USD",
-  }).format(amount);
+const formatCurrency = (amount: number | undefined | null): string => {
+  // Handle potential null/undefined/NaN inputs gracefully
+  const numAmount = Number(amount);
+  if (isNaN(numAmount)) {
+    return "£NaN"; // Or return "£0.00" or some other indicator
+  }
+  return new Intl.NumberFormat("en-GB", { // Use en-GB locale
+    style: "currency", currency: "GBP", // Use GBP currency
+  }).format(numAmount);
   // TODO: Consider making currency configurable or detecting from user settings
 };
 
@@ -217,7 +211,18 @@ export const onSettlementCreated = functions
           "Date", "Description", "Category", "Location", "Amount", "Paid By",
         ],
       });
-      const csv = csvParser.parse(reportData);
+      // Add summary rows to the data before parsing to CSV
+      const csvSummaryRows = [
+        {}, // Empty row for spacing
+        {"Date": "Summary", "Description": ""},
+        {"Date": `${fromUserName} Paid:`, "Description": formatCurrency(userTotals[fromUserId])},
+        {"Date": `${toUserName} Paid:`, "Description": formatCurrency(userTotals[toUserId])},
+        {"Date": "Total Expenses:", "Description": formatCurrency(totalExpenses)},
+        {"Date": "Settlement Amount:", "Description": `${fromUserName} paid ${toUserName} ${formatCurrency(amount)}`},
+      ];
+      // Combine report data and summary rows
+      const csvDataWithSummary = [...reportData, ...csvSummaryRows];
+      const csv = csvParser.parse(csvDataWithSummary);
       const csvBase64 = Buffer.from(csv).toString("base64");
       functions.logger.log("CSV generated successfully.");
 
@@ -226,9 +231,30 @@ export const onSettlementCreated = functions
       let pdfBase64: string | null = null; // Initialize pdfBase64
 
       try {
-        functions.logger.log("Attempting PDF generation...");
+        functions.logger.log("Attempting PDF generation using vfs_fonts...");
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pdfFonts = require("pdfmake/build/vfs_fonts.js");
 
-        // Define PDF content (styles reference 'Roboto' defined globally)
+        // Explicit check for loaded vfs data
+        if (!pdfFonts || !pdfFonts.vfs || !pdfFonts.vfs["Roboto-Regular.ttf"]) {
+          throw new Error("Failed to load pdfmake vfs_fonts or required Roboto font.");
+        }
+        functions.logger.log("vfs_fonts loaded successfully.");
+
+        // Define fonts using loaded vfs data
+        const fonts = {
+          Roboto: {
+            normal: Buffer.from(pdfFonts.vfs["Roboto-Regular.ttf"], "base64"),
+            bold: Buffer.from(pdfFonts.vfs["Roboto-Medium.ttf"], "base64"),
+            italics: Buffer.from(pdfFonts.vfs["Roboto-Italic.ttf"], "base64"),
+            bolditalics: Buffer.from(
+              pdfFonts.vfs["Roboto-MediumItalic.ttf"], "base64"
+            ),
+          },
+        };
+        const printer = new PdfPrinter(fonts); // Instantiate printer here
+
+        // Define PDF content
         const pdfContent: Content = [
           {text: "AAFairShare", style: "logoHeader", color: brandColor},
           {text: `Settlement Report - ${month}`, style: "header"},
@@ -308,10 +334,10 @@ export const onSettlementCreated = functions
             tableExample: {margin: [0, 5, 0, 15], fontSize: 9},
             tableHeader: {bold: true, fontSize: 10},
           },
-          defaultStyle: {font: "Roboto"}, // References font defined globally
+          defaultStyle: {font: "Roboto"},
         };
 
-        // Use the globally defined printer instance
+        // Use the locally instantiated printer
         const pdfDoc = printer.createPdfKitDocument(docDefinition);
 
         // Convert PDF stream to Base64
