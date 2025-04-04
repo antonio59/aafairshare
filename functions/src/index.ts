@@ -19,9 +19,18 @@ import type {EmailTemplate} from "./types.ts"; // Assuming types are in ./types
 admin.initializeApp();
 const db = admin.firestore();
 
-// Font definition moved inside handler
-
-// Moved printer instantiation into the function handler
+// Define fonts and printer globally for pdfmake server-side usage
+const fonts = {
+  Roboto: {
+    // Assuming standard node_modules structure relative to function execution
+    normal: "node_modules/pdfmake/build/fonts/Roboto/Roboto-Regular.ttf",
+    bold: "node_modules/pdfmake/build/fonts/Roboto/Roboto-Medium.ttf",
+    italics: "node_modules/pdfmake/build/fonts/Roboto/Roboto-Italic.ttf",
+    bolditalics:
+      "node_modules/pdfmake/build/fonts/Roboto/Roboto-MediumItalic.ttf",
+  },
+};
+const printer = new PdfPrinter(fonts);
 
 // Helper function to format currency (basic example)
 const formatCurrency = (amount: number): string => {
@@ -213,134 +222,135 @@ export const onSettlementCreated = functions
       functions.logger.log("CSV generated successfully.");
 
       // 6. Generate PDF
-      // Define fonts and instantiate printer inside the handler
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const pdfFonts = require("pdfmake/build/vfs_fonts.js");
-      const fonts = {
-        Roboto: {
-          normal: Buffer.from(pdfFonts.vfs["Roboto-Regular.ttf"], "base64"),
-          bold: Buffer.from(pdfFonts.vfs["Roboto-Medium.ttf"], "base64"),
-          italics: Buffer.from(pdfFonts.vfs["Roboto-Italic.ttf"], "base64"),
-          bolditalics: Buffer.from(
-            pdfFonts.vfs["Roboto-MediumItalic.ttf"], "base64"
-          ),
-        },
-      };
-      const printer = new PdfPrinter(fonts);
-      // Define Brand Color
-      const brandColor = "#0F172A"; // Approx. HSL(222.2, 47.4%, 11.2%)
+      const brandColor = "#0F172A"; // Define Brand Color
+      let pdfBase64: string | null = null; // Initialize pdfBase64
 
-      const pdfContent: Content = [
-        // Header with Text Logo
-        {text: "AAFairShare", style: "logoHeader", color: brandColor},
-        {text: `Settlement Report - ${month}`, style: "header"},
-        // User Totals Summary
-        {
-          text: `${fromUserName} Paid: ` +
-                `${formatCurrency(userTotals[fromUserId])}`,
-          style: "summary",
-        },
-        {
-          text: `${toUserName} Paid: ${formatCurrency(userTotals[toUserId])}`,
-          style: "summary",
-        },
-        {
-          text: `Total Expenses: ${formatCurrency(totalExpenses)}`,
-          style: "summary", bold: true,
-        },
-        // Settlement Details
-        {
-          text: `Settlement: ${fromUserName} paid ${toUserName} ` +
-                `${formatCurrency(amount)}`,
-          style: "subheader", margin: [0, 5, 0, 10], // Add margin
-        },
-        {
-          style: "tableExample",
-          table: {
-            headerRows: 1,
-            widths: ["auto", "*", "auto", "auto", "auto", "auto"],
-            body: [
-              // Header Row - Apply brand color
-              [
-                "Date", "Description", "Category",
-                "Location", "Amount", "Paid By",
-              ].map((h) => ({
-                text: h, style: "tableHeader",
-                fillColor: brandColor, color: "white",
-              })),
-              // Data Rows
-              ...reportData.map((row, index) => {
-                // Define the row structure first
-                const rowCells = [
-                  row.Date || "",
-                  row.Description || "",
-                  row.Category || "",
-                  row.Location || "",
-                  {text: row.Amount || "", alignment: "right" as const},
-                  // Align amount right
-                  row["Paid By"] || "",
-                ];
-                // Now map each cell, checking its type
-                return rowCells.map((cell) => {
-                  const isObject = typeof cell === "object" && cell !== null;
-                  return {
-                    // Use text property if object, else use the string directly
-                    text: isObject ? cell.text : cell,
-                    // Use alignment if object, else default left
-                    alignment: isObject ? cell.alignment : "left",
-                    // Light gray fill
-                    fillColor: index % 2 === 0 ? "#F3F4F6" : undefined,
-                  };
-                });
-              }),
-            ],
+      try {
+        functions.logger.log("Attempting PDF generation...");
+
+        // Define PDF content (styles reference 'Roboto' defined globally)
+        const pdfContent: Content = [
+          {text: "AAFairShare", style: "logoHeader", color: brandColor},
+          {text: `Settlement Report - ${month}`, style: "header"},
+          {
+            text: `${fromUserName} Paid: ` +
+                  `${formatCurrency(userTotals[fromUserId])}`,
+            style: "summary",
           },
-          // layout: 'lightHorizontalLines'
-          // Remove default lines for cleaner look
-          layout: { // Custom layout for better spacing and borders
-            // Top, header bottom, bottom borders
-            hLineWidth: (i, node) => (
-              i === 0 || i === 1 || i === node.table.body.length ? 1 : 0
-            ),
-            vLineWidth: () => 0, // No vertical lines
-            // Brand color for header lines
-            hLineColor: (i) => (i === 0 || i === 1 ? brandColor : "#E5E7EB"),
-            paddingTop: () => 6,
-            paddingBottom: () => 6,
-            paddingLeft: () => 8,
-            paddingRight: () => 8,
+          {
+            text: `${toUserName} Paid: ${formatCurrency(userTotals[toUserId])}`,
+            style: "summary",
           },
+          {
+            text: `Total Expenses: ${formatCurrency(totalExpenses)}`,
+            style: "summary", bold: true,
+          },
+          {
+            text: `Settlement: ${fromUserName} paid ${toUserName} ` +
+                  `${formatCurrency(amount)}`,
+            style: "subheader", margin: [0, 5, 0, 10],
+          },
+          {
+            style: "tableExample",
+            table: {
+              headerRows: 1,
+              widths: ["auto", "*", "auto", "auto", "auto", "auto"],
+              body: [
+                [
+                  "Date", "Description", "Category",
+                  "Location", "Amount", "Paid By",
+                ].map((h) => ({
+                  text: h, style: "tableHeader",
+                  fillColor: brandColor, color: "white",
+                })),
+                ...reportData.map((row, index) => {
+                  const rowCells = [
+                    row.Date || "",
+                    row.Description || "",
+                    row.Category || "",
+                    row.Location || "",
+                    {text: row.Amount || "", alignment: "right" as const},
+                    row["Paid By"] || "",
+                  ];
+                  return rowCells.map((cell) => {
+                    const isObject = typeof cell === "object" && cell !== null;
+                    return {
+                      text: isObject ? cell.text : cell,
+                      alignment: isObject ? cell.alignment : "left",
+                      fillColor: index % 2 === 0 ? "#F3F4F6" : undefined,
+                    };
+                  });
+                }),
+              ],
+            },
+            layout: {
+              hLineWidth: (i, node) => (
+                i === 0 || i === 1 || i === node.table.body.length ? 1 : 0
+              ),
+              vLineWidth: () => 0,
+              hLineColor: (i) => (i === 0 || i === 1 ? brandColor : "#E5E7EB"),
+              paddingTop: () => 6,
+              paddingBottom: () => 6,
+              paddingLeft: () => 8,
+              paddingRight: () => 8,
+            },
+          },
+        ];
+
+        // Define PDF document structure
+        const docDefinition: TDocumentDefinitions = {
+          content: pdfContent,
+          styles: {
+            logoHeader: {fontSize: 20, bold: true, margin: [0, 0, 0, 5]},
+            header: {fontSize: 16, bold: true, margin: [0, 0, 0, 10]},
+            subheader: {fontSize: 14, bold: true},
+            summary: {fontSize: 11, margin: [0, 1, 0, 1]},
+            tableExample: {margin: [0, 5, 0, 15], fontSize: 9},
+            tableHeader: {bold: true, fontSize: 10},
+          },
+          defaultStyle: {font: "Roboto"}, // References font defined globally
+        };
+
+        // Use the globally defined printer instance
+        const pdfDoc = printer.createPdfKitDocument(docDefinition);
+
+        // Convert PDF stream to Base64
+        const chunks: Buffer[] = [];
+        await new Promise<void>((resolve, reject) => {
+          pdfDoc.on("data", (chunk) => chunks.push(chunk));
+          pdfDoc.on("end", () => resolve());
+          pdfDoc.on("error", (err) => reject(err));
+          pdfDoc.end();
+        });
+        pdfBase64 = Buffer.concat(chunks).toString("base64");
+        functions.logger.log("PDF generated successfully.");
+      } catch (pdfError) {
+        functions.logger.error("Error during PDF generation:", pdfError);
+        pdfBase64 = null; // Ensure pdfBase64 is null if any error occurs
+      }
+
+      // --- Adjust Email Attachment Logic ---
+      // Prepare attachments, excluding PDF if pdfBase64 is null
+      const attachments = [
+        {
+          filename: `Settlement-Report-${month}.csv`,
+          content: csvBase64,
+          encoding: "base64",
+          contentType: "text/csv",
         },
       ];
 
-
-      const docDefinition: TDocumentDefinitions = {
-        content: pdfContent,
-        styles: {
-          logoHeader: {fontSize: 20, bold: true, margin: [0, 0, 0, 5]},
-          header: {fontSize: 16, bold: true, margin: [0, 0, 0, 10]},
-          subheader: {fontSize: 14, bold: true}, // Margin applied directly
-          summary: {fontSize: 11, margin: [0, 1, 0, 1]},
-          // Smaller font size for table
-          tableExample: {margin: [0, 5, 0, 15], fontSize: 9},
-          // Slightly larger header font
-          tableHeader: {bold: true, fontSize: 10},
-        },
-        defaultStyle: {font: "Roboto"},
-      };
-
-      const pdfDoc = printer.createPdfKitDocument(docDefinition);
-
-      // Convert PDF stream to Base64
-      const chunks: Buffer[] = [];
-      await new Promise<void>((resolve, reject) => {
-        pdfDoc.on("data", (chunk) => chunks.push(chunk));
-        pdfDoc.on("end", () => resolve());
-        pdfDoc.on("error", (err) => reject(err));
-        pdfDoc.end();
-      });
-      const pdfBase64 = Buffer.concat(chunks).toString("base64");
-      functions.logger.log("PDF generated successfully.");
+      // Conditionally add PDF attachment
+      if (pdfBase64) {
+        attachments.push({
+          filename: `Settlement-Report-${month}.pdf`,
+          content: pdfBase64,
+          encoding: "base64",
+          contentType: "application/pdf",
+        });
+      } else {
+        functions.logger.warn("PDF skipped; font loading error.");
+      }
 
       // 7. Ensure Email Template Exists and Fetch It
       const templateId = "settlementNotification";
@@ -452,7 +462,7 @@ body { font-family: sans-serif; line-height: 1.6; color: #333; }
         toUserTotalFormatted: formatCurrency(userTotals[toUserId]),
         totalExpensesFormatted: formatCurrency(totalExpenses),
         settlementAmountFormatted: formatCurrency(amount),
-        brandColor: brandColor, // Pass brand color if used in template
+        brandColor: brandColor, // Pass brand color (defined earlier)
       };
 
       const emailSubject = populateTemplate(template.subject, templateData);
@@ -470,20 +480,8 @@ body { font-family: sans-serif; line-height: 1.6; color: #333; }
           subject: emailSubject,
           text: emailTextBody, // Use populated text body
           html: emailHtmlBody, // Use populated HTML body
-          attachments: [
-            {
-              filename: `Settlement-Report-${month}.csv`,
-              content: csvBase64,
-              encoding: "base64",
-              contentType: "text/csv",
-            },
-            {
-              filename: `Settlement-Report-${month}.pdf`,
-              content: pdfBase64,
-              encoding: "base64",
-              contentType: "application/pdf",
-            },
-          ],
+          // Use the conditionally prepared attachments array
+          attachments: attachments,
         },
       };
 
