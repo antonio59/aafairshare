@@ -342,20 +342,105 @@ export const onSettlementCreated = functions
       const pdfBase64 = Buffer.concat(chunks).toString("base64");
       functions.logger.log("PDF generated successfully.");
 
-      // 7. Fetch Email Template
-      // Note: Using getData which has caching. Consider if template updates
-      // require cache invalidation or a dedicated fetch function.
-      const template = await getData<EmailTemplate>(
-        "templates", "settlementNotification"
-      );
+      // 7. Ensure Email Template Exists and Fetch It
+      const templateId = "settlementNotification";
+      const templateRef = db.collection("templates").doc(templateId);
+      let templateSnap = await templateRef.get();
+
+      if (!templateSnap.exists) {
+        functions.logger.warn(
+          `Template '${templateId}' not found. Creating default template.`
+        );
+        const defaultTemplateData = {
+          subject: "AAFairShare: Settlement Report for {{month}}",
+          textBody: `
+Hi there,
+
+The settlement for {{month}} has been completed.
+
+Summary:
+- {{fromUserName}} Paid: {{fromUserTotalFormatted}}
+- {{toUserName}} Paid: {{toUserTotalFormatted}}
+- Total Expenses: {{totalExpensesFormatted}}
+- Settlement Amount: {{fromUserName}} paid {{toUserName}} \
+{{settlementAmountFormatted}}
+
+The detailed expense report is attached in CSV and PDF formats.
+
+Thanks,
+AAFairShare Bot
+          `.trim(),
+          htmlBody: `<!DOCTYPE html>
+<html>
+<head>
+<style>
+body { font-family: sans-serif; line-height: 1.6; color: #333; }
+.container {
+  padding: 20px; border: 1px solid #ddd; border-radius: 5px;
+  max-width: 600px; margin: 20px auto;
+}
+.header {
+  font-size: 1.2em; font-weight: bold; color: {{brandColor}};
+  margin-bottom: 15px;
+} /* Use brandColor */
+.summary-item { margin-bottom: 5px; }
+.footer { margin-top: 20px; font-size: 0.9em; color: #777; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">Settlement Report for {{month}}</div>
+  <p>Hi there,</p>
+  <p>The settlement for <strong>{{month}}</strong> has been completed.</p>
+  <div class="summary">
+    <div class="summary-item">
+      <strong>{{fromUserName}} Paid:</strong> {{fromUserTotalFormatted}}
+    </div>
+    <div class="summary-item">
+      <strong>{{toUserName}} Paid:</strong> {{toUserTotalFormatted}}
+    </div>
+    <div class="summary-item">
+      <strong>Total Expenses:</strong> {{totalExpensesFormatted}}
+    </div>
+    <div class="summary-item">
+      <strong>Settlement:</strong> {{fromUserName}} paid {{toUserName}}
+      <strong>{{settlementAmountFormatted}}</strong>
+    </div>
+  </div>
+  <p>The detailed expense report is attached in CSV and PDF formats.</p>
+  <div class="footer">
+    Thanks,<br/>
+    AAFairShare Bot
+  </div>
+</div>
+</body>
+</html>`.trim(),
+        };
+        try {
+          await templateRef.set(defaultTemplateData);
+          functions.logger.log(`Default template '${templateId}' created.`);
+          // Invalidate cache for this specific template if using getData cache
+          delete dataCache[`templates-${templateId}`];
+          // Re-fetch after creation
+          templateSnap = await templateRef.get();
+        } catch (createError) {
+          functions.logger.error(
+            `Failed to create default template '${templateId}':`, createError
+          );
+          // Exit if template cannot be created or fetched
+          return;
+        }
+      }
+
+      // Fetch the template data (either existing or newly created)
+      // Using .data() directly as we have the snapshot now
+      const template = templateSnap.data() as EmailTemplate | undefined;
 
       if (!template) {
         functions.logger.error(
-          "Email template 'settlementNotification' not found."
+          `Failed to load template '${templateId}' even after check/create.`
         );
-        // Decide how to handle: fallback to hardcoded, log error and exit?
-        // For now, log and exit to prevent sending incomplete emails.
-        return;
+        return; // Exit if template still not available
       }
 
       // 8. Prepare Template Data and Populate Email Content

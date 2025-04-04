@@ -224,17 +224,9 @@ export default function Settlement() {
     // Calculate initial balance based on expenses
     const user1InitialBalance = userExpensesPaid[user1.id] - fairShare;
 
-    // Adjust balance based on settlements
-    let netSettlementFromUser1ToUser2 = 0;
-    settlements.forEach(settle => {
-      const amount = Number(settle.amount) || 0;
-      // Use Firestore document ID (user1.id, user2.id) for matching settlement users
-      if (settle.fromUserId === user1.id && settle.toUserId === user2.id) netSettlementFromUser1ToUser2 += amount;
-      else if (settle.fromUserId === user2.id && settle.toUserId === user1.id) netSettlementFromUser1ToUser2 -= amount;
-    });
-
-    // Final balance after considering settlements
-    const finalBalance = user1InitialBalance - netSettlementFromUser1ToUser2;
+    // Calculate final balance based only on expenses for the current month display
+    // Settlements for the current month are handled by the 'isSettled' flag
+    const finalBalance = user1InitialBalance;
 
     // Determine settlement amount and direction based on final balance
     let calculatedSettlementAmount = 0;
