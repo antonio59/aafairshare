@@ -358,8 +358,17 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
   const previousMonthIsSettled = !previousMonthSettlementsLoading && previousMonthSettlements && previousMonthSettlements.length > 0;
   const hasPreviousMonthExpenses = !previousMonthExpensesLoading && previousMonthExpenses && previousMonthExpenses.length > 0;
   const showUnsettledWarning = (!previousMonthIsSettled && hasPreviousMonthExpenses);
+// --- DEBUG LOGGING ---
+console.log("Rendering Settlement Component:", {
+  isSettled,
+  settlementAmount, // Calculated amount needed if unsettled
+  settlementRecordAmount: settlements[0]?.amount, // Amount from actual settlement record
+  settlementsLength: settlements.length,
+  currentMonth,
+});
+// --- END DEBUG LOGGING ---
 
-  return (
+return (
     <div className="space-y-6 px-2 sm:px-4 pb-24">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-bold text-gray-900">Settlement</h1>
@@ -399,33 +408,60 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
                 {/* DEBUG LOGS OUTSIDE CONDITION */}
                 {/* Removed console logs */}
                 <div className="flex flex-col items-center text-center mb-4"> {/* Changed layout to flex column */}
-                  {/* Conditionally render Avatar based on settlementDirection */}
-                  {settlementAmount > 0 && settlementDirection && (() => {
-                      const userIdToFind = settlementDirection.fromUserId;
-                      const foundUser = users.find(u => u.id === userIdToFind);
-                      if (!foundUser) return null; // Don't render if user not found yet
-
-                      const photoUrl = foundUser.photoURL;
-                      const name = fromUserName || 'User';
-                      return (
-                        <Avatar className="h-12 w-12 mb-2"> {/* Added margin */}
-                          <AvatarImage src={photoUrl} alt={name} />
-                          <AvatarFallback>
-                            {name.charAt(0).toUpperCase()}
-                          </AvatarFallback>
-                        </Avatar>
-                      );
-                  })()}
-                  <p className="text-sm text-gray-500">
-                    {/* Use settlementAmount state */}
-                    {settlementAmount > 0 && settlementDirection
-                      ? `${fromUserName} owes ${toUserName}`
-                      : "All settled up!"}
-                  </p>
-                  <p className={`text-3xl font-bold mt-1 ${settlementAmount > 0 ? 'text-primary' : 'text-green-600'}`}> {/* Reduced margin top */}
-                     {/* Use settlementAmount state */}
-                    {formatCurrency(settlementAmount)}
-                  </p>
+                  {/* Display logic based on isSettled */}
+                  {isSettled && settlements.length > 0 ? (
+                    // --- Settled State ---
+                    <>
+                      {(() => {
+                        // Show avatar of the user who received payment
+                        const receivingUserId = settlements[0].toUserId;
+                        const receivingUser = users.find(u => u.id === receivingUserId);
+                        const name = receivingUser ? getUserName(receivingUserId) : 'User';
+                        return (
+                          <Avatar className="h-12 w-12 mb-2">
+                            <AvatarImage src={receivingUser?.photoURL} alt={name} />
+                            <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+                          </Avatar>
+                        );
+                      })()}
+                      <p className="text-sm text-gray-500">Month Settled</p>
+                      <p className="text-3xl font-bold mt-1 text-green-600">
+                        {/* Display actual settled amount */}
+                        {formatCurrency(settlements[0].amount)}
+                      </p>
+                    </>
+                  ) : (
+                    // --- Unsettled State ---
+                    <>
+                      {/* Conditionally render Avatar based on who owes */}
+                      {settlementAmount > 0 && settlementDirection && (() => {
+                          // Add null check for settlementDirection
+                          if (!settlementDirection) return null;
+                          const userIdToFind = settlementDirection.fromUserId;
+                          const foundUser = users.find(u => u.id === userIdToFind);
+                          // Add null check for foundUser
+                          if (!foundUser) return null;
+                          const name = fromUserName || 'User';
+                          return (
+                            <Avatar className="h-12 w-12 mb-2">
+                              {/* Add null check for photoURL */}
+                              <AvatarImage src={foundUser.photoURL ?? undefined} alt={name} />
+                              <AvatarFallback>{name.charAt(0).toUpperCase()}</AvatarFallback>
+                            </Avatar>
+                          );
+                      })()}
+                      <p className="text-sm text-gray-500">
+                        {/* Show who owes whom or "All settled up" */}
+                        {settlementAmount > 0 && settlementDirection
+                          ? `${fromUserName} owes ${toUserName}`
+                          : "All settled up!"}
+                      </p>
+                      <p className={`text-3xl font-bold mt-1 ${settlementAmount > 0 ? 'text-primary' : 'text-green-600'}`}>
+                         {/* Display calculated amount needed to settle */}
+                        {formatCurrency(settlementAmount)}
+                      </p>
+                    </>
+                  )}
                 </div>
 
                  {/* Use settlementAmount state */}
