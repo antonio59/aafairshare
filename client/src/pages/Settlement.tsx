@@ -6,12 +6,13 @@ import SettlementHistory from "@/components/SettlementHistory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"; // Import Avatar components
-// Removed unused DollarSign, Users imports
+import { Tooltip } from "@/components/ui/tooltip"; // Corrected Tooltip import
 import { Check, CalendarClock, X } from "lucide-react";
 import { Settlement as SettlementType, User, Expense } from "@shared/schema"; // Import correct types (MonthSummary removed as it's not fully used here)
 import { getCurrentMonth, formatCurrency, getPreviousMonth, formatDate } from "@/lib/utils"; // Added formatDate
 // Removed format import from date-fns
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile"; // Import useIsMobile
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog"; // Import ResponsiveDialog
 import { DialogFooter, DialogClose } from "@/components/ui/dialog"; // Import DialogFooter & DialogClose from base dialog
@@ -43,6 +44,7 @@ export default function Settlement() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const isMobile = useIsMobile(); // Use the hook
 
   // State for Firestore data
   const [users, setUsers] = useState<User[]>([]);
@@ -527,22 +529,39 @@ return (
               // const isCurrentUser = user.id === currentUser?.uid; // Check if it's the logged-in user
 
               return (
-                <div key={user.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                  <div className="flex items-center">
-                    {/* Replace static icon with Avatar */}
-                    <Avatar className="h-10 w-10"> {/* Adjust size as needed */}
-                      <AvatarImage src={user.photoURL} alt={getUserName(user.id)} />
-                      <AvatarFallback>
-                        {getUserName(user.id)?.charAt(0).toUpperCase()}
-                        {/* Simple fallback with first initial */}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="ml-3">
-                      <p className="text-sm font-medium text-gray-500">{getUserName(user.id)} Paid</p>
-                      <p className="text-xl font-semibold text-gray-800">{formatCurrency(amountPaid)}</p>
+                {(() => {
+                  // Define the card content JSX
+                  const userCardContent = (
+                    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 overflow-hidden"> {/* Added overflow-hidden */}
+                      <div className="flex items-center">
+                        <Avatar className="h-10 w-10 flex-shrink-0"> {/* Added flex-shrink-0 */}
+                          <AvatarImage src={user.photoURL} alt={getUserName(user.id)} />
+                          <AvatarFallback>
+                            {getUserName(user.id)?.charAt(0).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        {/* Added flex-1 and min-w-0 to allow text block to grow and prevent overflow */}
+                        <div className="ml-3 flex-1 min-w-0">
+                          {/* Hide text on small screens (mobile), show on sm and up. Added truncate */}
+                          <p className="text-sm font-medium text-gray-500 hidden sm:block truncate">{getUserName(user.id)} Paid</p>
+                          {/* Added truncate to amount */}
+                          <p className="text-xl font-semibold text-gray-800 truncate">{formatCurrency(amountPaid)}</p>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  );
+
+                  // Conditionally wrap with Tooltip only on mobile
+                  return isMobile ? (
+                    <Tooltip key={user.id} content={`${getUserName(user.id)} Paid`} position="bottom">
+                      {userCardContent}
+                    </Tooltip>
+                  ) : (
+                    <div key={user.id}> {/* Add key to the outer element when not using Tooltip */}
+                      {userCardContent}
+                    </div>
+                  );
+                })()}
               );
             })
           )}
