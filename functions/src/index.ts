@@ -13,6 +13,7 @@ import type {
 import type {
   Settlement, Expense, User, Category, Location,
 } from "shared"; // Import from package name
+import type {EmailTemplate} from "./types.ts"; // Assuming types are in ./types
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
@@ -72,6 +73,24 @@ async function getData<T>(
     return null;
   }
 }
+
+// Helper function to replace placeholders like {{variableName}}
+// in a template string
+const populateTemplate = (
+  templateString: string | undefined,
+  data: Record<string, string | number>
+): string => {
+  if (!templateString) return "";
+  let populated = templateString;
+  for (const key in data) {
+    if (Object.prototype.hasOwnProperty.call(data, key)) {
+      // Use a regex to replace all occurrences of {{key}}
+      const regex = new RegExp(`\\{\\{\\s*${key}\\s*\\}\\}`, "g");
+      populated = populated.replace(regex, String(data[key]));
+    }
+  }
+  return populated;
+};
 
 // Cloud Function triggered by the creation of a settlement document
 // Cloud Function triggered by the creation of a settlement document
@@ -323,36 +342,40 @@ export const onSettlementCreated = functions
       const pdfBase64 = Buffer.concat(chunks).toString("base64");
       functions.logger.log("PDF generated successfully.");
 
-      // 7. Create Email Document for Trigger Email Extension
-      const emailSubject = `FairShare Settlement Report - ${month}`;
-      const emailBody = `
-        <div style="font-family: sans-serif; max-width: 600px; margin: auto; ` +
-              `border: 1px solid #ddd; padding: 20px;">
-          <h1 style="color: ${brandColor}; margin-bottom: 20px;">` +
-              `AAFairShare</h1>
-          <h2 style="border-bottom: 1px solid #eee; padding-bottom: 10px;">` +
-              `Settlement Report - ${month}</h2>
-          <p>Hi ${fromUserName} and ${toUserName},</p>
-          <p>Here's the settlement summary for <strong>${month}</strong>:</p>
-          <div style="background-color: #f9f9f9; padding: 10px; ` +
-                `border-radius: 5px; margin-bottom: 15px;">
-            <p style="margin: 5px 0;">${fromUserName} Paid: ` +
-                `<strong>${formatCurrency(userTotals[fromUserId])}</strong></p>
-            <p style="margin: 5px 0;">${toUserName} Paid: ` +
-                `<strong>${formatCurrency(userTotals[toUserId])}</strong></p>
-            <p style="margin: 5px 0;">Total Expenses: ` +
-                `<strong>${formatCurrency(totalExpenses)}</strong></p>
-            <hr style="border: none; border-top: 1px solid #eee; ` +
-                `margin: 10px 0;">
-            <p style="margin: 5px 0;">Settlement: <strong>${fromUserName} ` +
-                `paid ${toUserName} ${formatCurrency(amount)}</strong></p>
-          </div>
-          <p>Please find the detailed CSV and PDF reports attached.</p>
-          <br/>
-          <p>Thanks,</p>
-          <p><strong>The AAFairShare Team</strong></p>
-        </div>
-      `;
+      // 7. Fetch Email Template
+      // Note: Using getData which has caching. Consider if template updates
+      // require cache invalidation or a dedicated fetch function.
+      const template = await getData<EmailTemplate>(
+        "templates", "settlementNotification"
+      );
+
+      if (!template) {
+        functions.logger.error(
+          "Email template 'settlementNotification' not found."
+        );
+        // Decide how to handle: fallback to hardcoded, log error and exit?
+        // For now, log and exit to prevent sending incomplete emails.
+        return;
+      }
+
+      // 8. Prepare Template Data and Populate Email Content
+      const templateData = {
+        month: month,
+        fromUserName: fromUserName,
+        toUserName: toUserName,
+        fromUserTotalFormatted: formatCurrency(userTotals[fromUserId]),
+        toUserTotalFormatted: formatCurrency(userTotals[toUserId]),
+        totalExpensesFormatted: formatCurrency(totalExpenses),
+        settlementAmountFormatted: formatCurrency(amount),
+        brandColor: brandColor, // Pass brand color if used in template
+      };
+
+      const emailSubject = populateTemplate(template.subject, templateData);
+      const emailHtmlBody = populateTemplate(template.htmlBody, templateData);
+      const emailTextBody = populateTemplate(template.textBody, templateData);
+
+
+      // 9. Create Email Document for Trigger Email Extension
 
       const emailData = {
         to: [fromUser.email, toUser.email], // Send to both users
@@ -360,11 +383,8 @@ export const onSettlementCreated = functions
         // replyTo: "Optional: Your configured 'reply-to' address",
         message: {
           subject: emailSubject,
-          // Plain text version
-          text: `Settlement report for ${month} attached. Total: ${
-            formatCurrency(totalExpenses)
-          }. ${fromUserName} paid ${toUserName} ${formatCurrency(amount)}.`,
-          html: emailBody,
+          text: emailTextBody, // Use populated text body
+          html: emailHtmlBody, // Use populated HTML body
           attachments: [
             {
               filename: `Settlement-Report-${month}.csv`,

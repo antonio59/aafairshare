@@ -14,11 +14,8 @@ import { getCurrentMonth, formatCurrency, getPreviousMonth, formatDate } from "@
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ResponsiveDialog } from "@/components/ui/responsive-dialog"; // Import ResponsiveDialog
-import { DialogFooter } from "@/components/ui/dialog"; // Import DialogFooter from base dialog
-import {
-  AlertDialogAction, // Keep Action for button styling if needed
-  AlertDialogCancel, // Keep Cancel for button styling if needed
-} from "@/components/ui/alert-dialog"; // Keep parts if needed for buttons
+import { DialogFooter, DialogClose } from "@/components/ui/dialog"; // Import DialogFooter & DialogClose from base dialog
+// Removed unused AlertDialog imports
 import { useAuth } from "@/context/AuthContext"; // Import useAuth
 import { db } from "@/lib/firebase"; // Import Firestore instance
 import {
@@ -523,14 +520,14 @@ const isSettled = !settlementsLoading && settlements && settlements.length > 0;
         description={`Are you sure you want to mark this month as settled? This action will record a settlement of ${formatCurrency(settlementAmount)} from ${fromUserName} to ${toUserName}.`}
       >
         <DialogFooter>
-          <AlertDialogCancel asChild>
-             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-          </AlertDialogCancel>
-          <AlertDialogAction asChild>
-            <Button type="button" onClick={handleSettlement} disabled={isSettling}>
-              {isSettling ? "Settling..." : "Confirm Settlement"}
-            </Button>
-          </AlertDialogAction>
+          <DialogClose asChild>
+             {/* Use DialogClose for the cancel button */}
+             <Button variant="outline">Cancel</Button>
+          </DialogClose>
+          {/* Remove AlertDialogAction wrapper, keep the Button */}
+          <Button type="button" onClick={handleSettlement} disabled={isSettling}>
+            {isSettling ? "Settling..." : "Confirm Settlement"}
+          </Button>
         </DialogFooter>
       </ResponsiveDialog>
 
