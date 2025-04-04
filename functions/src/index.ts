@@ -215,10 +215,23 @@ export const onSettlementCreated = functions
       const csvSummaryRows = [
         {}, // Empty row for spacing
         {"Date": "Summary", "Description": ""},
-        {"Date": `${fromUserName} Paid:`, "Description": formatCurrency(userTotals[fromUserId])},
-        {"Date": `${toUserName} Paid:`, "Description": formatCurrency(userTotals[toUserId])},
-        {"Date": "Total Expenses:", "Description": formatCurrency(totalExpenses)},
-        {"Date": "Settlement Amount:", "Description": `${fromUserName} paid ${toUserName} ${formatCurrency(amount)}`},
+        { // Break long lines for linter
+          "Date": `${fromUserName} Paid:`,
+          "Description": formatCurrency(userTotals[fromUserId]),
+        },
+        { // Break long lines for linter
+          "Date": `${toUserName} Paid:`,
+          "Description": formatCurrency(userTotals[toUserId]),
+        },
+        { // Break long lines for linter
+          "Date": "Total Expenses:",
+          "Description": formatCurrency(totalExpenses),
+        },
+        { // Break long lines for linter
+          "Date": "Settlement Amount:",
+          "Description": `${fromUserName} paid ${toUserName} ` +
+                         `${formatCurrency(amount)}`,
+        },
       ];
       // Combine report data and summary rows
       const csvDataWithSummary = [...reportData, ...csvSummaryRows];
@@ -237,7 +250,9 @@ export const onSettlementCreated = functions
 
         // Explicit check for loaded vfs data
         if (!pdfFonts || !pdfFonts.vfs || !pdfFonts.vfs["Roboto-Regular.ttf"]) {
-          throw new Error("Failed to load pdfmake vfs_fonts or required Roboto font.");
+          throw new Error(
+            "Failed to load pdfmake vfs_fonts or required Roboto font."
+          );
         }
         functions.logger.log("vfs_fonts loaded successfully.");
 
@@ -248,11 +263,13 @@ export const onSettlementCreated = functions
             bold: Buffer.from(pdfFonts.vfs["Roboto-Medium.ttf"], "base64"),
             italics: Buffer.from(pdfFonts.vfs["Roboto-Italic.ttf"], "base64"),
             bolditalics: Buffer.from(
-              pdfFonts.vfs["Roboto-MediumItalic.ttf"], "base64"
+              pdfFonts.vfs["Roboto-MediumItalic.ttf"],
+              "base64"
             ),
           },
         };
-        const printer = new PdfPrinter(fonts); // Instantiate printer here
+        // Instantiate printer here
+        const printer = new PdfPrinter(fonts);
 
         // Define PDF content
         const pdfContent: Content = [
