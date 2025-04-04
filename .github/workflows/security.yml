@@ -27,7 +27,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18' # Or your project's Node.js version
+          node-version: '20' # Consistent with other workflows
 
       - name: Install dependencies
         run: npm ci # Use 'ci' for faster, deterministic installs in CI
@@ -37,7 +37,7 @@ jobs:
 
       # Snyk Open Source (Dependency Vulnerability Scan)
       - name: Run Snyk to check for vulnerabilities
-        uses: snyk/actions/node@master # Use the official Snyk action
+        uses: snyk/actions/node@master # Reverted to @master as @latest failed
         continue-on-error: true # Optional: Allow workflow to continue even if vulnerabilities are found
         env:
           SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
@@ -49,7 +49,7 @@ jobs:
 
       # Snyk Code (SAST Scan)
       - name: Run Snyk Code analysis
-        uses: snyk/actions/setup@master # Setup Snyk CLI
+        uses: snyk/actions/setup@master # Reverted to @master as @latest failed
 
       - name: Snyk Code test
         run: snyk code test --sarif-file-output=snyk-code.sarif

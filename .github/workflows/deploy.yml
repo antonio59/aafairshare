@@ -25,12 +25,9 @@ jobs:
           node-version: '20' # Use Node.js version 20 or match your project's requirement
           cache: 'npm' # Restore cache
 
-      - name: Install dependencies (clean & force public registry) # Correct indentation
-        run: |
-          npm config set registry https://registry.npmjs.org/
-          npm cache clean --force
-          rm -f package-lock.json
-          npm install # Use install after removing lockfile
+      # Installs dependencies using npm ci for reproducible builds
+      - name: Install dependencies
+        run: npm ci
 
       # - name: List files before build # Removed this ls step
       #   run: ls -la
