@@ -6,6 +6,10 @@ on:
   push:
     branches:
       - main # Corrected branch name
+
+permissions:
+  contents: read # Needed to checkout the code
+
 jobs:
   build_and_deploy:
     runs-on: ubuntu-latest
