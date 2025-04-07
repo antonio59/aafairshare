@@ -190,7 +190,9 @@ export const onSettlementCreated = functions
         };
       });
 
-      const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+      const totalExpenses = expenses.reduce(
+        (sum, exp) => sum + (Number(exp.amount) || 0), 0
+      );
 
       // Calculate totals paid by each user
       const userTotals: Record<string, number> = {
@@ -199,9 +201,9 @@ export const onSettlementCreated = functions
       };
       expenses.forEach((exp) => {
         if (exp.paidByUserId === fromUserId) {
-          userTotals[fromUserId] += exp.amount;
+          userTotals[fromUserId] += (Number(exp.amount) || 0);
         } else if (exp.paidByUserId === toUserId) {
-          userTotals[toUserId] += exp.amount;
+          userTotals[toUserId] += (Number(exp.amount) || 0);
         }
       });
 
@@ -246,7 +248,9 @@ export const onSettlementCreated = functions
       try {
         functions.logger.log("Attempting PDF generation using vfs_fonts...");
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pdfFonts = require("pdfmake/build/vfs_fonts.js");
+        // Load from copied file in lib/
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const pdfFonts = require("./vfs_fonts.js");
 
         // Explicit check for loaded vfs data
         if (!pdfFonts || !pdfFonts.vfs || !pdfFonts.vfs["Roboto-Regular.ttf"]) {
