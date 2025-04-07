@@ -9,6 +9,10 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
+    "baseUrl": ".", // Add baseUrl
+    "paths": {      // Add paths mapping
+      "shared": ["./lib/shared"]
+    }
   },
   "compileOnSave": true,
   "include": [
