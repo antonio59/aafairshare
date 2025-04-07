@@ -15,7 +15,7 @@ A modern, mobile-first application for managing household expenses between two u
 
 ### Prerequisites
 
-- Node.js 18+ and npm
+- Node.js 18+ and pnpm (Note: `pnpm` is required due to an npm bug with optional dependencies on some systems, causing build failures with `npm install`. See [npm issue #4828](https://github.com/npm/cli/issues/4828)).
 
 ### Getting Started
 
@@ -29,12 +29,12 @@ A modern, mobile-first application for managing household expenses between two u
 
 2. Install dependencies:
    ```
-   npm install
+   pnpm install
    ```
 
 3. Start the development server:
    ```
-   npm run dev
+   pnpm run dev
    ```
 
 4. Open your browser and navigate to http://localhost:5000
