@@ -1,5 +1,6 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
+import * as path from "path"; // <-- Add path import
 import {DocumentSnapshot} from "firebase-functions/v1/firestore";
 import {EventContext} from "firebase-functions/v1";
 import {Parser} from "@json2csv/plainjs";
@@ -247,10 +248,11 @@ export const onSettlementCreated = functions
 
       try {
         functions.logger.log("Attempting PDF generation using vfs_fonts...");
+        // Resolve path relative to the compiled file's directory (__dirname)
+        const fontPath = path.resolve(__dirname, "./vfs_fonts.js");
+        functions.logger.log(`Resolved font path: ${fontPath}`);
         // eslint-disable-next-line @typescript-eslint/no-var-requires
-        // Load from copied file in lib/
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pdfFonts = require("./vfs_fonts.js");
+        const pdfFonts = require(fontPath); // <-- Use resolved path
 
         // Explicit check for loaded vfs data
         if (!pdfFonts || !pdfFonts.vfs || !pdfFonts.vfs["Roboto-Regular.ttf"]) {
