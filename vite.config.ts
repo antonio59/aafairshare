@@ -19,9 +19,9 @@ export default defineConfig({
       "@shared": path.resolve(__dirname, "shared"),
     },
   },
-  css: { // Add explicit CSS configuration
-    postcss: './postcss.config.js',
-  },
+  // css: { // Explicit CSS configuration removed - Vite should auto-detect postcss.config.js
+  //   postcss: './postcss.config.js',
+  // },
   server: {
     headers: {
       // Allow popups for OAuth flows using signInWithPopup
