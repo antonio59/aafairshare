@@ -1,9 +1,9 @@
-import tailwindConfig from './tailwind.config.ts'; // Import the config
+// No longer import the config directly
 
 export default {
   plugins: {
-    // Explicitly pass the imported config object to the Tailwind PostCSS plugin
-    '@tailwindcss/postcss': { config: tailwindConfig },
+    // Pass the path to the config file instead of the imported object
+    '@tailwindcss/postcss': { config: './tailwind.config.ts' },
     autoprefixer: {},
   },
 }
