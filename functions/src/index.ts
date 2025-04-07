@@ -6,7 +6,7 @@ import {EventContext} from "firebase-functions/v1";
 import {Parser} from "@json2csv/plainjs";
 import PdfPrinter from "pdfmake";
 import type {
-  TDocumentDefinitions, Content,
+  TDocumentDefinitions, Content, ContentTable, // <-- Remove TableCell
 } from "pdfmake/interfaces"; // Keep this path for CJS
 // Font definition moved inside handler
 // Assuming shared types are correctly mapped in tsconfig.json
@@ -333,11 +333,12 @@ export const onSettlementCreated = functions
               ],
             },
             layout: {
-              hLineWidth: (i, node) => (
+              // Add types for layout function parameters
+              hLineWidth: (i: number, node: ContentTable) => (
                 i === 0 || i === 1 || i === node.table.body.length ? 1 : 0
               ),
               vLineWidth: () => 0,
-              hLineColor: (i) => (i === 0 || i === 1 ? brandColor : "#E5E7EB"),
+              hLineColor: (i: number) => (i === 0 || i === 1 ? brandColor : "#E5E7EB"),
               paddingTop: () => 6,
               paddingBottom: () => 6,
               paddingLeft: () => 8,
@@ -366,9 +367,10 @@ export const onSettlementCreated = functions
         // Convert PDF stream to Base64
         const chunks: Buffer[] = [];
         await new Promise<void>((resolve, reject) => {
-          pdfDoc.on("data", (chunk) => chunks.push(chunk));
+          // Add types for event listener callbacks
+          pdfDoc.on("data", (chunk: Buffer) => chunks.push(chunk));
           pdfDoc.on("end", () => resolve());
-          pdfDoc.on("error", (err) => reject(err));
+          pdfDoc.on("error", (err: Error) => reject(err));
           pdfDoc.end();
         });
         pdfBase64 = Buffer.concat(chunks).toString("base64");
