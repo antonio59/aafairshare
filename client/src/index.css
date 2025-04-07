@@ -1,5 +1,6 @@
 @import url('https://rsms.me/inter/inter.css');
-@import 'tailwindcss'; /* Replaced the three @tailwind directives */
+@import "tailwindcss/preflight";
+@tailwind utilities;
 
 /*
   NOTE: All `@apply` directives have been removed from the layers below
