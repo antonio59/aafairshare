@@ -117,6 +117,37 @@ Due to the project structure and TypeScript path aliases, deploying the Cloud Fu
     firebase deploy --only functions
     ```
 
+## Troubleshooting
+
+### Build Failures on macOS ARM64 (Apple Silicon) with Tailwind CSS v4
+
+**Issue:**
+
+The build process (`npm run build`) may fail with errors related to missing native modules, such as:
+
+-   `Cannot find module '../lightningcss.darwin-arm64.node'`
+-   `Cannot find module '@tailwindcss/oxide-darwin-arm64'`
+
+This occurs because `npm` sometimes fails to automatically download and install the optional native dependencies required by Tailwind CSS v4 (and its underlying engine, Lightning CSS) for the macOS ARM64 architecture.
+
+**Solution:**
+
+Explicitly install the required optional dependencies for your platform:
+
+```bash
+npm install lightningcss-darwin-arm64@<version> --save-dev
+npm install @tailwindcss/oxide-darwin-arm64@<version> --save-dev
+```
+
+Replace `<version>` with the specific version matching your installed `lightningcss` and `tailwindcss` packages respectively (check `package.json`). For example, if using `lightningcss@1.29.2` and `tailwindcss@4.1.3`:
+
+```bash
+npm install lightningcss-darwin-arm64@1.29.2 --save-dev
+npm install @tailwindcss/oxide-darwin-arm64@4.1.3 --save-dev
+```
+
+After installing these packages, the `npm run build` command should succeed.
+
 ## Automated Workflows
 
 This project uses GitHub Actions for CI/CD and other automated tasks:
@@ -125,7 +156,7 @@ This project uses GitHub Actions for CI/CD and other automated tasks:
 
 - **Workflow file**: `.github/workflows/ci.yml`
 - **Trigger**: On push to main branch or pull requests
-- **Functions**: 
+- **Functions**:
   - Linting with ESLint
   - TypeScript type checking
 
@@ -133,7 +164,7 @@ This project uses GitHub Actions for CI/CD and other automated tasks:
 
 - **Workflow file**: `.github/workflows/snyk-security.yml`
 - **Trigger**: On push to main, pull requests, or weekly schedule
-- **Functions**: 
+- **Functions**:
   - Scans for vulnerabilities in dependencies
   - Alerts on high-severity issues
 
@@ -141,7 +172,7 @@ This project uses GitHub Actions for CI/CD and other automated tasks:
 
 - **Workflow file**: `.github/workflows/codeql-analysis.yml`
 - **Trigger**: On push to main, pull requests, or weekly schedule
-- **Functions**: 
+- **Functions**:
   - Static code analysis for security vulnerabilities
   - Detects common coding errors
 
@@ -149,7 +180,7 @@ This project uses GitHub Actions for CI/CD and other automated tasks:
 
 - **Workflow file**: `.github/workflows/deploy.yml`
 - **Trigger**: On push to main or manual trigger
-- **Functions**: 
+- **Functions**:
   - Builds the application
   - Deploys to the hosting environment
 
@@ -157,7 +188,7 @@ This project uses GitHub Actions for CI/CD and other automated tasks:
 
 - **Workflow file**: `.github/workflows/docker.yml`
 - **Trigger**: On push to main branch or tags, and pull requests
-- **Functions**: 
+- **Functions**:
   - Builds Docker image using the Dockerfile
   - Pushes to GitHub Container Registry (ghcr.io)
   - Tags images with semantic versioning and git SHA
@@ -166,14 +197,14 @@ This project uses GitHub Actions for CI/CD and other automated tasks:
 
 - **Workflow file**: `.github/workflows/issue-triage.yml`
 - **Trigger**: When issues are opened or reopened
-- **Functions**: 
+- **Functions**:
   - Automatically adds "needs-triage" label
   - Adds a welcome comment for the issue creator
 
 ### 7. Dependabot
 
 - **Configuration file**: `.github/dependabot.yml`
-- **Functions**: 
+- **Functions**:
   - Automatically creates PRs for outdated dependencies
   - Checks for updates to GitHub Actions workflows
 
