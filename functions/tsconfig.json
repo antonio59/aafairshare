@@ -1,8 +1,9 @@
 {
   "compilerOptions": {
-    "module": "NodeNext",
+    "module": "CommonJS", // Change module type
     "esModuleInterop": true,
-    "moduleResolution": "nodenext",
+    "allowSyntheticDefaultImports": true, // Often helpful with esModuleInterop
+    "moduleResolution": "node", // Change resolution strategy
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "outDir": "lib",

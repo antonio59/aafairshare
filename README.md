@@ -15,7 +15,7 @@ A modern, mobile-first application for managing household expenses between two u
 
 ### Prerequisites
 
-- Node.js 18+ and pnpm (Note: `pnpm` is required due to an npm bug with optional dependencies on some systems, causing build failures with `npm install`. See [npm issue #4828](https://github.com/npm/cli/issues/4828)).
+- Node.js 18+ and npm
 
 ### Getting Started
 
@@ -29,12 +29,12 @@ A modern, mobile-first application for managing household expenses between two u
 
 2. Install dependencies:
    ```
-   pnpm install
+   npm install
    ```
 
 3. Start the development server:
    ```
-   pnpm run dev
+   npm run dev
    ```
 
 4. Open your browser and navigate to http://localhost:5000
@@ -74,6 +74,48 @@ A modern, mobile-first application for managing household expenses between two u
 - `/functions`: Backend Cloud Functions (or similar, adjust description if needed)
 - `/shared`: Shared types and schemas
 - `/.github`: GitHub Actions workflows and configuration
+
+### Cloud Functions Deployment
+
+Due to the project structure and TypeScript path aliases, deploying the Cloud Functions requires a specific manual build step before running the Firebase deployment command. The standard Firebase `predeploy` hooks may not correctly build the functions in this setup.
+
+**Ensure `firebase.json` does NOT run the build command in `predeploy`.** The `predeploy` array for functions should ideally only contain linting steps, or be empty:
+```json
+// firebase.json
+...
+"functions": [
+  {
+    "source": "functions",
+    "codebase": "default",
+    "ignore": [...],
+    "predeploy": [
+      // "npm --prefix \"$RESOURCE_DIR\" run build" // <-- Ensure this line is removed or commented out
+      "npm --prefix \"$RESOURCE_DIR\" run lint"
+    ]
+  }
+],
+...
+```
+
+**Deployment Steps:**
+
+1.  **Install/Update Function Dependencies:**
+    ```bash
+    cd functions
+    npm install
+    ```
+
+2.  **Manually Build Functions:** This step compiles the TypeScript code and adjusts the output directory structure.
+    ```bash
+    # Still inside the 'functions' directory
+    npm run build
+    ```
+
+3.  **Deploy from Project Root:** Navigate back to the project root directory and run the Firebase deploy command.
+    ```bash
+    cd ..
+    firebase deploy --only functions
+    ```
 
 ## Automated Workflows
 
