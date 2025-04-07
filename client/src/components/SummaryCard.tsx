@@ -47,15 +47,17 @@ export default function SummaryCard({
   const getBgColor = () => {
     switch (variant) {
       case 'total':
-        return 'bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400';
+        return 'bg-blue-50/80 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400';
       case 'user1':
-        return 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600 dark:text-emerald-400';
+        return 'bg-green-50/80 dark:bg-green-900/20 text-green-600 dark:text-green-400';
       case 'user2':
-        return 'bg-purple-50 dark:bg-purple-900/10 text-purple-600 dark:text-purple-400';
+        return 'bg-purple-50/80 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400';
       case 'balance':
-        return 'bg-amber-50 dark:bg-amber-900/10 text-amber-600 dark:text-amber-400';
+        return isNegative 
+          ? 'bg-red-50/80 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+          : 'bg-emerald-50/80 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400';
       default:
-        return 'bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400';
+        return 'bg-muted';
     }
   };
 
