@@ -2,7 +2,7 @@
   "name": "functions",
   "scripts": {
     "lint": "eslint --ext .js,.ts .",
-    "build": "rimraf lib/ && tsc && cpy node_modules/pdfmake/build/vfs_fonts.js lib/",
+    "build": "rimraf lib/ && cpy ../shared lib/shared --parents && tsc && cpy node_modules/pdfmake/build/vfs_fonts.js lib/",
     "build:watch": "tsc --watch",
     "serve": "npm run build && firebase emulators:start --only functions",
     "shell": "npm run build && firebase functions:shell",
@@ -31,7 +31,7 @@
     "eslint-plugin-import": "^2.25.4",
     "firebase-functions-test": "^3.1.0",
     "rimraf": "^6.0.1",
-    "shared": "file:../shared",
+    "shared": "file:./lib/shared",
     "typescript": "^5.8.2"
   },
   "private": true
