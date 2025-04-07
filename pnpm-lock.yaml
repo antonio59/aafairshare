@@ -315,8 +315,8 @@ importers:
         specifier: ^6.0.1
         version: 6.0.1
       shared:
-        specifier: file:../shared
-        version: link:../shared
+        specifier: file:./lib/shared
+        version: file:functions/lib/shared
       typescript:
         specifier: ^5.8.2
         version: 5.8.3
@@ -4944,6 +4944,9 @@ packages:
 
   setprototypeof@1.2.0:
     resolution: {integrity: sha512-E5LDX7Wrp85Kil5bhZv46j8jOeboKq5JMmYM3gVGdGH8xFpPWXUMsNrlODCrkoxMEeNi/XZIwuRvY4XNwYMJpw==}
+
+  shared@file:functions/lib/shared:
+    resolution: {directory: functions/lib/shared, type: directory}
 
   shebang-command@2.0.0:
     resolution: {integrity: sha512-kHxr2zZpYtdmrN1qDjrrX/Z1rR1kG8Dx+gkpK1G4eXmvXswmcE1hTWBWYUzlraYw1/yZp6YuDY77YtvbN0dmDA==}
@@ -11090,6 +11093,8 @@ snapshots:
       es-object-atoms: 1.1.1
 
   setprototypeof@1.2.0: {}
+
+  shared@file:functions/lib/shared: {}
 
   shebang-command@2.0.0:
     dependencies:
