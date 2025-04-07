@@ -338,7 +338,9 @@ export const onSettlementCreated = functions
                 i === 0 || i === 1 || i === node.table.body.length ? 1 : 0
               ),
               vLineWidth: () => 0,
-              hLineColor: (i: number) => (i === 0 || i === 1 ? brandColor : "#E5E7EB"),
+              // Break long line for linter
+              hLineColor: (i: number) =>
+                (i === 0 || i === 1 ? brandColor : "#E5E7EB"),
               paddingTop: () => 6,
               paddingBottom: () => 6,
               paddingLeft: () => 8,
