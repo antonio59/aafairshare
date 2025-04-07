@@ -11,7 +11,7 @@
     "target": "es2017",
     "baseUrl": ".", // Add baseUrl
     "paths": {      // Add paths mapping
-      "shared": ["./lib/shared"]
+      "shared": ["../shared"] // Point to source relative to baseUrl
     }
   },
   "compileOnSave": true,
