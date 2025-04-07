@@ -74,8 +74,6 @@
     "zod-validation-error": "^3.4.0"
   },
   "devDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.39.0",
-    "@tailwindcss/oxide-darwin-arm64": "^4.1.3",
     "@tailwindcss/postcss": "^4.1.3",
     "@tailwindcss/typography": "^0.5.15",
     "@testing-library/jest-dom": "^6.6.3",
@@ -96,7 +94,6 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "html2canvas": "^1.4.1",
     "jsdom": "^26.0.0",
-    "lightningcss-darwin-arm64": "^1.29.2",
     "postcss": "^8.5.3",
     "tailwindcss": "^4.1.3",
     "typescript": "5.8.3",
@@ -104,6 +101,8 @@
     "vitest": "^3.1.1"
   },
   "optionalDependencies": {
-    "@rollup/rollup-darwin-arm64": "^4.39.0"
+    "@rollup/rollup-darwin-arm64": "^4.39.0",
+    "@tailwindcss/oxide-darwin-arm64": "^4.1.3",
+    "lightningcss-darwin-arm64": "^1.29.2"
   }
 }
