@@ -1,214 +1,51 @@
-@import url('https://rsms.me/inter/inter.css');
-@import "tailwindcss/preflight";
+@tailwind base;
+@tailwind components;
 @tailwind utilities;
 
-/*
-  NOTE: All `@apply` directives have been removed from the layers below
-  due to incompatibilities with Tailwind CSS v4.
-  Custom classes previously defined here (e.g., .px-mobile, .mobile-container, .form-footer)
-  will no longer work. You MUST apply the corresponding utility classes
-  directly in your component's HTML/JSX markup.
-*/
+/* Define CSS variables */
+:root {
+  --background: hsl(0 0% 100%); /* Default light background */
+  --foreground: hsl(222.2 47.4% 11.2%); /* Using primary from theme.json as foreground */
+  --card: hsl(0 0% 100%);
+  --card-foreground: hsl(222.2 47.4% 11.2%);
+  --popover: hsl(0 0% 100%);
+  --popover-foreground: hsl(222.2 47.4% 11.2%);
+  --primary: hsl(222.2 47.4% 11.2%); /* From theme.json */
+  --primary-foreground: hsl(210 40% 98%); /* Default light primary text */
+  --secondary: hsl(210 40% 96.1%); /* Default light secondary */
+  --secondary-foreground: hsl(222.2 47.4% 11.2%);
+  --muted: hsl(210 40% 96.1%);
+  --muted-foreground: hsl(210 40% 46.1%); /* Lighter muted text */
+  --accent: hsl(210 40% 96.1%);
+  --accent-foreground: hsl(222.2 47.4% 11.2%);
+  --destructive: hsl(0 84.2% 60.2%); /* Default destructive */
+  --destructive-foreground: hsl(210 40% 98%);
+  --border: hsl(220 13% 91%); /* Lighter border (gray-200) to match Settlement page */
+  --input: hsl(214.3 31.8% 91.4%);
+  --ring: hsl(222.2 47.4% 11.2%); /* Using primary from theme.json */
 
+  --radius: 0.5rem; /* From theme.json (converted to rem) */
+}
+
+/* Add .dark class definitions if dark mode is needed */
+/* .dark { ... } */
+
+
+/* Apply base styles */
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-    /* Chart colors */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    /* Sidebar specific colors */
-    --sidebar-background: 220 15% 96%;
-    --sidebar-foreground: 222.2 47.4% 11.2%;
-    --sidebar-primary: 222.2 47.4% 11.2%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 210 40% 92%;
-    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
-    --sidebar-border: 214.3 31.8% 88%;
-    --sidebar-ring: 222.2 84% 4.9%;
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
-    /* Chart colors */
-    --chart-1: 210 70% 80%;
-    --chart-2: 160 60% 75%;
-    --chart-3: 30 80% 75%;
-    --chart-4: 280 65% 80%;
-    --chart-5: 340 75% 75%;
-    /* Sidebar specific colors */
-    --sidebar-background: 222.2 80% 6.9%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 210 40% 98%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 22.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 20.5%;
-    --sidebar-ring: 212.7 26.8% 83.9%;
-  }
-
-  /* Base styles using direct CSS */
-  *, ::before, ::after {
-    box-sizing: border-box;
-    border-width: 0;
-    border-style: solid;
+  * {
     border-color: hsl(var(--border));
-  }
-  html {
-    font-family: system-ui, sans-serif;
-    line-height: 1.5;
-    -webkit-text-size-adjust: 100%;
-    -moz-tab-size: 4;
-    tab-size: 4;
-    -webkit-tap-highlight-color: transparent;
-    max-width: 100vw;
   }
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
-    margin: 0;
-    line-height: inherit;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    min-height: 100vh;
-    touch-action: manipulation;
-    max-width: 100vw;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
-  hr { height: 0; color: inherit; border-top-width: 1px; margin: 0; }
-  h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
-  a { color: inherit; text-decoration: inherit; }
-  b, strong { font-weight: bolder; }
-  code, kbd, samp, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 1em; }
-  small { font-size: 80%; }
-  sub, sup { font-size: 75%; line-height: 0; position: relative; vertical-align: baseline; }
-  sub { bottom: -0.25em; }
-  sup { top: -0.5em; }
-  table { text-indent: 0; border-color: inherit; border-collapse: collapse; }
-  button, input, optgroup, select, textarea { font-family: inherit; font-feature-settings: inherit; font-variation-settings: inherit; font-size: 100%; font-weight: inherit; line-height: inherit; color: inherit; margin: 0; padding: 0; }
-  button, select { text-transform: none; }
-  button, [type='button'], [type='reset'], [type='submit'] { -webkit-appearance: button; appearance: button; background-color: transparent; background-image: none; cursor: pointer; }
-  :-moz-focusring { outline: auto; }
-  :-moz-ui-invalid { box-shadow: none; }
-  progress { vertical-align: baseline; }
-  ::-webkit-inner-spin-button, ::-webkit-outer-spin-button { height: auto; }
-  [type='search'] { -webkit-appearance: textfield; appearance: textfield; outline-offset: -2px; }
-  ::-webkit-search-decoration { -webkit-appearance: none; }
-  ::-webkit-file-upload-button { -webkit-appearance: button; appearance: button; font: inherit; } /* Added appearance: button here too for consistency */
-  summary { display: list-item; }
-  blockquote, dl, dd, h1, h2, h3, h4, h5, h6, hr, figure, p, pre { margin: 0; }
-  fieldset { margin: 0; padding: 0; }
-  legend { padding: 0; }
-  ol, ul, menu { list-style: none; margin: 0; padding: 0; }
-  dialog { padding: 0; }
-  textarea { resize: vertical; }
-  input::placeholder, textarea::placeholder { opacity: 1; color: #9ca3af; }
-  button, [role="button"] { cursor: pointer; }
-  :disabled { cursor: default; }
-  img, svg, video, canvas, audio, iframe, embed, object { display: block; } /* Removed vertical-align: middle */
-  img, video { max-width: 100%; height: auto; }
-  [hidden] { display: none; }
 
-  /* Specific overrides/additions */
-  input, textarea, button, select {
-    font-size: 16px; /* Prevents iOS zoom on focus */
+  /* Ensure popovers are always on top */
+  [data-radix-popper-content-wrapper] {
+    z-index: 100 !important;
   }
-  /* Safe areas */
-  .safe-top { padding-top: env(safe-area-inset-top, 0px); }
-  .pt-safe { padding-top: env(safe-area-inset-top, 0px); }
-  .pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
-  /* Overscroll */
-  .overscroll-contain { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+
+
 }
-
-/* Keep non-@apply rules */
-.dark .financial-text { color: #ffffff; }
-.financial-value { font-weight: 500; }
-.dark .financial-value { color: #ffffff; font-weight: 600; }
-
-/* Keep media query structure but remove @apply rules */
-@media (max-width: 640px) {
-  /* Styles previously using @apply need to be applied via utility classes in components */
-  .mobile-full { width: 100%; }
-  .mobile-stack { flex-direction: column; }
-  .mobile-pad { padding: 0.75rem 1rem; }
-  .mobile-table-cell { padding: 0.75rem; }
-  .mobile-card-grid { display: grid; gap: 0.75rem; }
-  .mobile-chart-container { max-height: 300px; padding: 0.5rem; }
-  .analytics-card { padding: 0.75rem; border-radius: 0.5rem; box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
-  .chart-container-mobile { height: 250px; }
-  .list-item-mobile { padding: 0.5rem 0.75rem; }
-  .button-mobile { height: 3rem; min-width: 44px; }
-  .chart-label-mobile { font-size: 0.75rem; line-height: 1rem; }
-  .login-screen-mobile { display: flex; flex-direction: column; min-height: 100vh; }
-  .login-screen-mobile .login-header { margin-bottom: 0.75rem; }
-  .login-screen-mobile .login-card { border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
-  .form-label-enhanced { font-size: 0.875rem; line-height: 1.25rem; font-weight: 500; margin-bottom: 0.375rem; }
-  .modal-form-container { padding: 1rem; }
-  .color-selector-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1rem; padding: 0.5rem 0; }
-  .color-selector-item { height: 2.75rem; width: 2.75rem; border-radius: 9999px; transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; display: flex; align-items: center; justify-content: center; }
-  .modal-footer-buttons { display: flex; width: 100%; }
-  .modal-button { flex: 1 1 0%; height: 2.75rem; transition-property: all; transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1); transition-duration: 150ms; }
-  .modal-button:active { transform: scale(0.98); }
-  canvas { max-height: 300px; width: 100% !important; }
-  .overflow-y-auto, .overflow-x-auto, .overflow-scroll { -webkit-overflow-scrolling: touch; }
-  .dark canvas { filter: brightness(1.05); }
-  .card { border-radius: 14px; margin-bottom: 16px; overflow: hidden; width: 100%; box-sizing: border-box; }
-  html, body { max-width: 100vw; overflow-x: hidden; }
-  .mobile-truncate { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-  button, a { min-height: 44px; min-width: 44px; }
-  td, th { max-width: 40vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .mobile-fixed-container { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-  .mobile-scrollable-content { flex: 1; overflow-y: auto; overflow-x: hidden; padding: 16px; padding-bottom: 80px; }
-  input, select, textarea { width: 100%; box-sizing: border-box; }
-}
-
-/* Mobile container for responsive layouts (keep as is) */
-.mobile-container { width: 100%; max-width: 100%; overflow-x: hidden; padding-left: 16px; padding-right: 16px; }
-/* Mobile card view for better UI on small screens (keep as is) */
-.mobile-card-view { display: flex; flex-direction: column; width: 100%; border-radius: 12px; padding: 16px; margin-bottom: 16px; overflow: hidden; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05); }
-/* Hide scrollbars while allowing scrolling (keep as is) */
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-.no-scrollbar::-webkit-scrollbar { display: none; }
-/* Tooltip styles (keep as is) */
-.tooltip-trigger { position: relative; cursor: pointer; text-decoration: none; }
-/* Custom tooltip arrow (keep as is) */
-.tooltip-arrow { width: 0; height: 0; }
