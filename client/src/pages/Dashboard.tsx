@@ -289,11 +289,7 @@ export default function Dashboard() {
       queryClient.invalidateQueries({ queryKey: ['users'] })
     ]);
 
-    // Show toast notification
-    toast({
-      title: "Refreshed",
-      description: "Latest data has been loaded",
-    });
+    // Toast notification removed to improve mobile usability
   };
 
   return (
