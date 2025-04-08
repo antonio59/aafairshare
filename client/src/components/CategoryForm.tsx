@@ -88,14 +88,14 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
         variant="outline"
         onClick={() => onOpenChange(false)}
         disabled={isSubmitting}
-        className="flex-1 h-12 text-base border-gray-300 text-gray-700" // Match ExpenseForm style
+        className="flex-1 h-12 text-base border-gray-300 dark:border-gray-700 text-foreground" // Updated for dark mode
       >
         Cancel
       </Button>
       <Button
         type="submit"
         disabled={isSubmitting}
-        className="flex-1 h-12 text-base bg-blue-600 hover:bg-blue-700 text-white" // Match ExpenseForm style
+        className="flex-1 h-12 text-base bg-primary hover:bg-primary/90 text-primary-foreground" // Use theme colors
         form="category-form" // Link to form
       >
         {isSubmitting ? "Saving..." : category ? "Update Category" : "Save Category"}
@@ -120,7 +120,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
             name="name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Name</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Name</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="e.g., Groceries, Dining"
@@ -129,7 +129,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
                   />
                 </FormControl>
                 {/* <FormDescription>Optional: Add a description if needed.</FormDescription> */}
-                <FormMessage className="text-xs text-red-600" />
+                <FormMessage className="text-xs text-destructive" />
               </FormItem>
             )}
           />
@@ -140,7 +140,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
             name="icon"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Icon</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Icon</FormLabel>
                 <FormControl>
                   <ToggleGroup
                     type="single"
@@ -157,8 +157,8 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
                           value={iconName}
                           aria-label={iconName}
                           className={cn(
-                            "flex flex-col items-center justify-center h-16 rounded-lg border data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
-                            "hover:bg-gray-50"
+                            "flex flex-col items-center justify-center h-16 rounded-lg border border-gray-200 dark:border-gray-700 data-[state=on]:bg-blue-100 dark:data-[state=on]:bg-blue-900/30 data-[state=on]:border-blue-500 dark:data-[state=on]:border-blue-700 data-[state=on]:text-blue-700 dark:data-[state=on]:text-blue-300",
+                            "hover:bg-gray-50 dark:hover:bg-gray-800"
                           )}
                         >
                           <IconComponent className="w-5 h-5 mb-1" />
@@ -169,7 +169,7 @@ export default function CategoryForm({ open, onOpenChange, category }: CategoryF
                   </ToggleGroup>
                 </FormControl>
                  <FormDescription>Select an icon to represent this category.</FormDescription>
-                <FormMessage className="text-xs text-red-600" />
+                <FormMessage className="text-xs text-destructive" />
               </FormItem>
             )}
           />

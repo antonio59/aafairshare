@@ -13,7 +13,7 @@ interface SimpleTrendChartProps {
 export default function SimpleTrendChart({ trendData, isLoading = false }: SimpleTrendChartProps) {
   if (isLoading) {
     return (
-      <Card className="border-gray-200">
+      <Card className="border-gray-200 dark:border-gray-700">
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
@@ -26,7 +26,7 @@ export default function SimpleTrendChart({ trendData, isLoading = false }: Simpl
 
   if (!trendData || trendData.months.length === 0) {
     return (
-      <Card className="border-gray-200">
+      <Card className="border-gray-200 dark:border-gray-700">
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
@@ -44,7 +44,7 @@ export default function SimpleTrendChart({ trendData, isLoading = false }: Simpl
 
   // Create a simple table-based visualization
   return (
-    <Card className="overflow-hidden border-gray-200">
+    <Card className="overflow-hidden border-gray-200 dark:border-gray-700">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl">Expense Trends Over Time</CardTitle>
       </CardHeader>
@@ -55,7 +55,7 @@ export default function SimpleTrendChart({ trendData, isLoading = false }: Simpl
             <TabsTrigger value="categories" className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-3">By Category</TabsTrigger>
             <TabsTrigger value="locations" className="text-xs sm:text-sm h-9 sm:h-10 px-2 sm:px-3">By Location</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="total" className="pt-2 sm:pt-4">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -76,7 +76,7 @@ export default function SimpleTrendChart({ trendData, isLoading = false }: Simpl
               </table>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="categories" className="pt-2 sm:pt-4">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -107,7 +107,7 @@ export default function SimpleTrendChart({ trendData, isLoading = false }: Simpl
               </table>
             </div>
           </TabsContent>
-          
+
           <TabsContent value="locations" className="pt-2 sm:pt-4">
             <div className="overflow-x-auto">
               <table className="w-full border-collapse">
@@ -124,11 +124,11 @@ export default function SimpleTrendChart({ trendData, isLoading = false }: Simpl
                 <tbody>
                   {trendData.months.map((month, monthIndex) => (
                     <tr key={month}>
-                      <td className="border border-gray-200 p-2">{formatMonthYear(month)}</td>
+                      <td className="border border-gray-200 dark:border-gray-700 p-2">{formatMonthYear(month)}</td>
                       {Object.entries(trendData.locationsData)
                         .filter(([_, values]) => values.some(value => value > 0))
                         .map(([location, values]) => (
-                          <td key={`${month}-${location}`} className="border border-gray-200 p-2">
+                          <td key={`${month}-${location}`} className="border border-gray-200 dark:border-gray-700 p-2">
                             {formatCurrency(values[monthIndex])}
                           </td>
                         ))}

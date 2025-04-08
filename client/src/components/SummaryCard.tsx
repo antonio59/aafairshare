@@ -34,7 +34,7 @@ export default function SummaryCard({
   if (isLoading) {
     // Skeleton adjusted to match reduced sizes
     return (
-      <div className="bg-card p-3 rounded-lg border border-gray-200 h-full flex items-center"> {/* Reduced padding */}
+      <div className="bg-card p-3 rounded-lg border border-gray-200 dark:border-gray-700 h-full flex items-center"> {/* Reduced padding */}
         <div className="h-12 w-12 rounded-md bg-muted animate-pulse shrink-0 mr-3" /> {/* Reduced size and margin */}
         <div className="flex-1 grid grid-rows-2 gap-0 items-center min-w-0 overflow-hidden"> {/* Added overflow-hidden */}
           <div className="h-5 w-3/4 bg-muted rounded animate-pulse" /> {/* Adjusted height */}
@@ -47,15 +47,15 @@ export default function SummaryCard({
   const getBgColor = () => {
     switch (variant) {
       case 'total':
-        return 'bg-blue-50/80 text-blue-600';
+        return 'bg-blue-50/80 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400';
       case 'user1':
-        return 'bg-green-50/80 text-green-600';
+        return 'bg-green-50/80 dark:bg-green-900/20 text-green-600 dark:text-green-400';
       case 'user2':
-        return 'bg-purple-50/80 text-purple-600';
+        return 'bg-purple-50/80 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400';
       case 'balance':
         return isNegative
-          ? 'bg-red-50/80 text-red-600'
-          : 'bg-emerald-50/80 text-emerald-600';
+          ? 'bg-red-50/80 dark:bg-red-900/20 text-red-600 dark:text-red-400'
+          : 'bg-emerald-50/80 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400';
       default:
         return 'bg-muted';
     }
@@ -63,7 +63,7 @@ export default function SummaryCard({
 
   return (
     // Reduced padding
-    <div className="bg-card p-3 rounded-lg border border-gray-200 h-full flex items-center">
+    <div className="bg-card p-3 rounded-lg border border-gray-200 dark:border-gray-700 h-full flex items-center">
       {/* Icon/Avatar Container: Reduced size, reduced margin-right */}
       <div className="shrink-0 mr-3"> {/* Reduced margin */}
         {((typeof photoURL === 'string' && photoURL) || (isCurrentUserCard && currentUser?.photoURL)) ? (
@@ -98,7 +98,7 @@ export default function SummaryCard({
         {/* Value paragraph - Kept reduced base font size */}
         <p className={cn(
           "text-sm sm:text-base font-semibold whitespace-normal break-words no-underline truncate", /* Reduced font size */
-          isNegative ? "text-red-500" : "text-foreground"
+          isNegative ? "text-red-500 dark:text-red-400" : "text-foreground"
         )}>
           {value}
         </p>

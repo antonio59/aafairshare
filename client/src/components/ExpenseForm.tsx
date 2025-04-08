@@ -218,11 +218,11 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
       <form
         ref={formRef}
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col h-full bg-white" // Assuming white background
+        className="flex flex-col h-full bg-background" // Using theme background color
       >
         {/* Header div removed */}
         {/* Title moved before scrollable area */}
-        <h2 className="text-xl font-semibold text-center px-4">Add Expense</h2> {/* Removed top padding */}
+        <h2 className="text-xl font-semibold text-center px-4 text-foreground">{expense ? "Edit Expense" : "Add Expense"}</h2> {/* Added text-foreground */}
 
         {/* Scrollable Content Area */}
         <div ref={scrollContainerRef} className="flex-grow overflow-y-auto p-4 space-y-6">
@@ -233,11 +233,11 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             name="amount"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Amount</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Amount</FormLabel>
                 <FormControl>
                   <div className="relative">
                      <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                       <span className="text-gray-500 sm:text-sm">£</span>
+                       <span className="text-gray-500 dark:text-gray-400 sm:text-sm">£</span>
                      </div>
                      <Input
                        type="number"
@@ -260,7 +260,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             name="categoryId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Category</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Category</FormLabel>
                 <FormControl>
                   {/* Using ToggleGroup for single selection visually similar to buttons */}
                   <ToggleGroup
@@ -281,8 +281,8 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                           value={category.id}
                           aria-label={category.name}
                           className={cn(
-                            "flex flex-col items-center justify-center h-20 rounded-lg border border-gray-200 data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
-                            "hover:bg-gray-50" // Basic hover effect
+                            "flex flex-col items-center justify-center h-20 rounded-lg border border-gray-200 dark:border-gray-700 data-[state=on]:bg-blue-100 dark:data-[state=on]:bg-blue-900/30 data-[state=on]:border-blue-500 dark:data-[state=on]:border-blue-700 data-[state=on]:text-blue-700 dark:data-[state=on]:text-blue-300",
+                            "hover:bg-gray-50 dark:hover:bg-gray-800" // Basic hover effect with dark mode
                           )}
                         >
                           <IconComponent className="w-6 h-6 mb-1" />
@@ -303,7 +303,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             name="locationId" // Use locationId
             render={({ field }) => (
               <FormItem className="flex flex-col"> {/* Ensure proper layout for Combobox */}
-                 <FormLabel className="text-sm font-medium text-gray-700">Location</FormLabel>
+                 <FormLabel className="text-sm font-medium text-foreground">Location</FormLabel>
                  <FormControl>
                    <Combobox
                      items={locationItems}
@@ -316,7 +316,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                      {...field} // Spread field props (value, onChange, etc.)
                    />
                  </FormControl>
-                 <FormMessage className="text-xs text-red-600" />
+                 <FormMessage className="text-xs text-destructive" />
               </FormItem>
             )}
           />
@@ -327,7 +327,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             name="splitType"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Split Type</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Split Type</FormLabel>
                 <FormControl>
                   <ToggleGroup
                     type="single"
@@ -339,27 +339,27 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                       value="Equal"
                       aria-label="Split equally"
                       className={cn(
-                        "flex flex-col items-start justify-center h-auto p-3 rounded-lg border border-gray-200 data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
-                        "hover:bg-gray-50 text-left" // Align text left
+                        "flex flex-col items-start justify-center h-auto p-3 rounded-lg border border-gray-200 dark:border-gray-700 data-[state=on]:bg-blue-100 dark:data-[state=on]:bg-blue-900/30 data-[state=on]:border-blue-500 dark:data-[state=on]:border-blue-700 data-[state=on]:text-blue-700 dark:data-[state=on]:text-blue-300",
+                        "hover:bg-gray-50 dark:hover:bg-gray-800 text-left" // Align text left with dark mode
                       )}
                     >
                       <span className="font-semibold">Equal</span>
-                      <span className="text-xs text-gray-500 data-[state=on]:text-blue-600">Split equally among all</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 data-[state=on]:text-blue-600 dark:data-[state=on]:text-blue-400">Split equally among all</span>
                     </ToggleGroupItem>
                     <ToggleGroupItem
                        value="Owned"
                        aria-label="Owned by other user"
                        className={cn(
-                         "flex flex-col items-start justify-center h-auto p-3 rounded-lg border border-gray-200 data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
-                         "hover:bg-gray-50 text-left" // Align text left
+                         "flex flex-col items-start justify-center h-auto p-3 rounded-lg border border-gray-200 dark:border-gray-700 data-[state=on]:bg-blue-100 dark:data-[state=on]:bg-blue-900/30 data-[state=on]:border-blue-500 dark:data-[state=on]:border-blue-700 data-[state=on]:text-blue-700 dark:data-[state=on]:text-blue-300",
+                         "hover:bg-gray-50 dark:hover:bg-gray-800 text-left" // Align text left with dark mode
                        )}
                     >
                        <span className="font-semibold">Percent</span>
-                       <span className="text-xs text-gray-500 data-[state=on]:text-blue-600">100% owed by the other user</span>
+                       <span className="text-xs text-gray-500 dark:text-gray-400 data-[state=on]:text-blue-600 dark:data-[state=on]:text-blue-400">100% owed by the other user</span>
                     </ToggleGroupItem>
                   </ToggleGroup>
                 </FormControl>
-                <FormMessage className="text-xs text-red-600" />
+                <FormMessage className="text-xs text-destructive" />
               </FormItem>
             )}
           />
@@ -370,7 +370,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             name="date"
             render={({ field }) => (
               <FormItem className="flex flex-col">
-                <FormLabel className="text-sm font-medium text-gray-700">Date</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Date</FormLabel>
                 <FormControl>
                   {/* Using Shadcn DatePicker, assuming it's styled appropriately or can be */}
                   <DatePicker
@@ -379,7 +379,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                     className="h-12 text-base w-full" // Ensure full width and height
                    />
                 </FormControl>
-                <FormMessage className="text-xs text-red-600" />
+                <FormMessage className="text-xs text-destructive" />
               </FormItem>
             )}
           />
@@ -390,7 +390,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             name="description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-sm font-medium text-gray-700">Description</FormLabel>
+                <FormLabel className="text-sm font-medium text-foreground">Description</FormLabel>
                 <FormControl>
                   <Textarea
                     placeholder="Enter description"
@@ -398,7 +398,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                     {...field}
                   />
                 </FormControl>
-                <FormMessage className="text-xs text-red-600" />
+                <FormMessage className="text-xs text-destructive" />
               </FormItem>
             )}
           />
@@ -406,13 +406,13 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
         </div> {/* End Scrollable Content Area */}
 
         {/* Sticky Buttons Container */}
-        <div className="flex justify-between gap-3 p-4 border-t border-gray-200 sticky bottom-0 bg-white">
+        <div className="flex justify-between gap-3 p-4 border-t border-gray-200 dark:border-gray-700 sticky bottom-0 bg-background">
           <Button
             type="button"
             variant="outline" // Style based on image
             onClick={() => onClose(false)}
             disabled={isSubmitting}
-            className="flex-1 h-12 text-base border-gray-200 text-gray-700" // Updated border color to match other elements
+            className="flex-1 h-12 text-base border-gray-200 dark:border-gray-700 text-foreground" // Updated for dark mode
           >
             Cancel
           </Button>

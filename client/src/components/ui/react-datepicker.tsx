@@ -39,7 +39,7 @@ export const DatePicker = React.forwardRef<
         variant={"outline"}
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "w-full justify-start text-left font-normal h-12 text-base border-gray-200",
+          "w-full justify-start text-left font-normal h-12 text-base border-gray-200 dark:border-gray-700",
           !value && "text-muted-foreground",
           className
         )}
@@ -55,7 +55,7 @@ export const DatePicker = React.forwardRef<
             inline
             filterDate={disabled}
             onClickOutside={() => setIsOpen(false)}
-            calendarClassName="border border-gray-200 bg-white rounded-md shadow-md"
+            calendarClassName="border border-gray-200 dark:border-gray-700 bg-background rounded-md shadow-md"
             dayClassName={() => "text-center"}
           />
         </div>
