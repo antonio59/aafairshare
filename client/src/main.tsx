@@ -1,6 +1,6 @@
 // Ensure React is imported first
-import * as React from 'react';
-import * as ReactDOM from "react-dom/client";
+import React from 'react';
+import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { AuthProvider } from './context/AuthContext';
@@ -29,7 +29,7 @@ const renderApp = () => {
   }
 
   // Create root and render app
-  const root = ReactDOM.createRoot(container);
+  const root = createRoot(container);
   root.render(
   // <React.StrictMode> {/* Temporarily removed for debugging Firebase redirect */}
     <AuthProvider>
