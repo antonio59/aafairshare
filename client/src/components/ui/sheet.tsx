@@ -4,6 +4,7 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { X } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 const Sheet = SheetPrimitive.Root
 
@@ -54,22 +55,69 @@ interface SheetContentProps
 const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
->(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
-    <SheetOverlay />
-    <SheetPrimitive.Content
-      ref={ref}
-      className={cn(sheetVariants({ side }), className)}
-      {...props}
-    >
-      {children}
-      <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
-        <X className="h-4 w-4" />
-        <span className="sr-only">Close</span>
-      </SheetPrimitive.Close>
-    </SheetPrimitive.Content>
-  </SheetPortal>
-))
+>(({ side = "right", className, children, ...props }, ref) => {
+  // Generate a stable ID for accessibility if not provided
+  const defaultTitleId = React.useId();
+  const titleId = props["aria-labelledby"] || defaultTitleId;
+  const descriptionId = props["aria-describedby"];
+
+  // Check if children contain SheetTitle
+  const [hasTitle, setHasTitle] = React.useState(false);
+
+  // Use effect to check for SheetTitle in children
+  React.useEffect(() => {
+    // Function to check if children contain SheetTitle
+    const checkForTitle = (children: React.ReactNode): boolean => {
+      if (!children) return false;
+
+      if (Array.isArray(children)) {
+        return children.some(child => checkForTitle(child));
+      }
+
+      if (React.isValidElement(children)) {
+        // Check if the child is SheetTitle
+        if (children.type === SheetTitle ||
+            (children.type && typeof children.type !== 'string' &&
+             (children.type as any).displayName === SheetPrimitive.Title.displayName)) {
+          return true;
+        }
+
+        // Check children of this element
+        if (children.props && children.props.children) {
+          return checkForTitle(children.props.children);
+        }
+      }
+
+      return false;
+    };
+
+    setHasTitle(checkForTitle(children));
+  }, [children]);
+
+  return (
+    <SheetPortal>
+      <SheetOverlay />
+      <SheetPrimitive.Content
+        ref={ref}
+        className={cn(sheetVariants({ side }), className)}
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        {...props}
+      >
+        {!hasTitle && (
+          <SheetPrimitive.Title id={titleId} className="sr-only">
+            <VisuallyHidden>Sheet</VisuallyHidden>
+          </SheetPrimitive.Title>
+        )}
+        {children}
+        <SheetPrimitive.Close className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-secondary">
+          <X className="h-4 w-4" />
+          <span className="sr-only">Close</span>
+        </SheetPrimitive.Close>
+      </SheetPrimitive.Content>
+    </SheetPortal>
+  );
+})
 SheetContent.displayName = SheetPrimitive.Content.displayName
 
 const SheetHeader = ({

@@ -19,13 +19,14 @@ interface DatePickerProps {
   className?: string;
   id?: string;
   name?: string;
+  disabled?: (date: Date) => boolean;
 }
 
 // Wrap with forwardRef
 export const DatePicker = React.forwardRef<
   HTMLButtonElement, // The type of the element the ref will point to (the Button)
   DatePickerProps
->(({ value, onChange, className, id, name }, ref) => {
+>(({ value, onChange, className, id, name, disabled }, ref) => {
   const [isOpen, setIsOpen] = useState(false); // Add state for popover
 
   const handleSelect = (date: Date | undefined) => {
@@ -53,12 +54,14 @@ export const DatePicker = React.forwardRef<
           {value ? formatDate(value) : <span>Pick a date</span>} {/* Use formatDate */}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
+      <PopoverContent className="w-auto p-0 border-gray-200" align="start">
         <Calendar
           mode="single"
           selected={value} // Use value
           onSelect={handleSelect} // Use the new handler
+          disabled={disabled}
           initialFocus
+          className="rounded-md border-gray-200"
         />
       </PopoverContent>
     </Popover>

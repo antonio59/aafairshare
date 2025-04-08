@@ -8,17 +8,17 @@ import { ThemeProvider } from "./context/ThemeContext";
 import MainLayout from "@/components/layouts/MainLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { LiveRegionAnnouncer } from "@/components/LiveRegion";
-import { InstallPrompt } from "@/components/InstallPrompt";
+// InstallPrompt removed as requested
 import { MobileToastProvider } from "@/components/ui/mobile-toast";
 
 // Lazy load page components
-const NotFound = lazy(() => import("@/pages/not-found"));
-const Dashboard = lazy(() => import("@/pages/Dashboard"));
-const Analytics = lazy(() => import("@/pages/Analytics"));
-const Settlement = lazy(() => import("@/pages/Settlement"));
-const RecurringExpenses = lazy(() => import("@/pages/RecurringExpenses"));
-const Settings = lazy(() => import("@/pages/Settings"));
-const Login = lazy(() => import("@/pages/Login"));
+const NotFound = lazy(() => import("./pages/not-found"));
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Analytics = lazy(() => import("./pages/Analytics"));
+const Settlement = lazy(() => import("./pages/Settlement"));
+const RecurringExpenses = lazy(() => import("./pages/RecurringExpenses"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Login = lazy(() => import("./pages/Login"));
 
 // Simple loading fallback component
 const LoadingFallback = () => (
@@ -114,7 +114,7 @@ function App() {
         </ErrorBoundary>
         <Toaster />
         <LiveRegionAnnouncer />
-        <InstallPrompt />
+        {/* InstallPrompt removed as requested */}
         </MobileToastProvider>
       </ThemeProvider>
     </QueryClientProvider>

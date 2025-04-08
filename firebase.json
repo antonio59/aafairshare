@@ -1,29 +1,82 @@
 {
-  "hosting": {
-    "public": "dist",
-    "ignore": [
-      "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
-    ],
-    "rewrites": [
-      {
-        "source": "/[!.]*",
-        "destination": "/index.html"
-      }
-    ],
-    "headers": [
-      {
-        "source": "**",
-        "headers": [
-          {
-            "key": "X-Robots-Tag",
-            "value": "noindex, nofollow"
-          }
-        ]
-      }
-    ]
-  },
+  "hosting": [
+    {
+      "site": "aafairshare-37271",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/[!.]*",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "site": "aafairshare-online",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*",
+        "**/node_modules/**"
+      ],
+      "rewrites": [
+        {
+          "source": "/[!.]*",
+          "destination": "/index.html"
+        }
+      ],
+      "headers": [
+        {
+          "source": "**",
+          "headers": [
+            {
+              "key": "X-Robots-Tag",
+              "value": "noindex, nofollow"
+            },
+            {
+              "key": "Access-Control-Allow-Origin",
+              "value": "*"
+            },
+            {
+              "key": "Access-Control-Allow-Methods",
+              "value": "GET, OPTIONS"
+            },
+            {
+              "key": "Access-Control-Allow-Headers",
+              "value": "Content-Type"
+            }
+          ]
+        }
+      ]
+    }
+  ],
   "firestore": {
     "rules": "firestore.rules",
     "indexes": "firestore.indexes.json"

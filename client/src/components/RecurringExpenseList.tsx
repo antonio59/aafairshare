@@ -6,6 +6,7 @@ import { Pencil, Trash2, AlertCircle, Calendar, RefreshCw } from "lucide-react";
 import { RecurringExpenseWithDetails, Category, Location, User } from "@shared/schema";
 import { formatCurrency } from "@/lib/utils";
 import { format } from "date-fns";
+import { Timestamp } from "firebase/firestore";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -101,6 +102,29 @@ export function RecurringExpenseList({
     }
   };
 
+  // Helper function to safely format dates from Firestore
+  const safeFormatDate = (dateValue: any): string => {
+    if (!dateValue) return "Not set";
+
+    try {
+      // Handle Firestore Timestamp
+      if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
+        return format(new Date(dateValue.seconds * 1000), "PP");
+      }
+
+      // Handle Date objects
+      if (dateValue instanceof Date) {
+        return format(dateValue, "PP");
+      }
+
+      // Handle string or number timestamps
+      return format(new Date(dateValue), "PP");
+    } catch (error) {
+      console.error("Error formatting date:", error, dateValue);
+      return "Invalid date";
+    }
+  };
+
   if (isLoading) {
     return (
       <Card>
@@ -185,9 +209,10 @@ export function RecurringExpenseList({
                   <div className="flex items-center text-xs text-muted-foreground mt-1">
                     <Calendar className="h-3 w-3 mr-1" />
                     <span>
-                      Starts: {format(new Date(recurringExpense.startDate), "PP")}
-                      {recurringExpense.endDate &&
-                        ` • Ends: ${format(new Date(recurringExpense.endDate), "PP")}`}
+                      Starts: {safeFormatDate(recurringExpense.startDate)}
+                      {recurringExpense.endDate && (
+                        <> • Ends: {safeFormatDate(recurringExpense.endDate)}</>
+                      )}
                     </span>
                   </div>
                 </div>

@@ -21,7 +21,9 @@ import {
   Drawer,
   DrawerContent,
   DrawerTrigger,
-  // DrawerHeader, DrawerTitle, DrawerDescription // Not needed for this use case
+  DrawerHeader,
+  DrawerTitle,
+  DrawerDescription
 } from "@/components/ui/drawer"
 import { useIsMobile } from "@/hooks/use-mobile" // Correct hook name
 
@@ -265,6 +267,10 @@ export const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(({
   };
 
   if (isMobile) {
+    // Generate stable IDs for accessibility
+    const titleId = `${id || 'combobox'}-drawer-title`;
+    const descriptionId = `${id || 'combobox'}-drawer-description`;
+
     return (
       <Drawer open={open} onOpenChange={setOpen}>
         <DrawerTrigger asChild>
@@ -281,7 +287,14 @@ export const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(({
             <ChevronsUpDown className="ml-2 h-5 w-5 shrink-0 opacity-50" />
           </Button>
         </DrawerTrigger>
-        <DrawerContent>
+        <DrawerContent
+          aria-labelledby={titleId}
+          aria-describedby={descriptionId}
+        >
+          <DrawerHeader className="sr-only">
+            <DrawerTitle id={titleId}>{placeholder}</DrawerTitle>
+            <DrawerDescription id={descriptionId}>Select from available options</DrawerDescription>
+          </DrawerHeader>
           {/* Add padding/margin as needed for drawer layout */}
           <div className="mt-4 border-t p-2">
             <ComboboxContent {...contentProps} />
