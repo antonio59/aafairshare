@@ -13,6 +13,11 @@ on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
+# Define permissions needed for this workflow (principle of least privilege)
+permissions:
+  contents: read # Needed to checkout the code
+  actions: read # Needed to read workflow runs
+
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   # This job runs the tests
