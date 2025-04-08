@@ -11,9 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 // Import chart components
-import EnhancedTrendChart from "@/components/EnhancedTrendChart";
-import EnhancedDataChart from "@/components/EnhancedDataChart";
 import ChartErrorBoundary from "@/components/ChartErrorBoundary";
+import LazyChartWrapper, { LazyEnhancedTrendChart, LazyEnhancedDataChart } from "@/components/LazyChartWrapper";
 import SimpleTrendChart from "@/components/SimpleTrendChart";
 import SimpleDataTable from "@/components/SimpleDataTable";
 import { useAuth } from "@/context/AuthContext";
@@ -531,17 +530,21 @@ export default function Analytics() {
                     />
                   }
                 >
-                  <EnhancedDataChart
+                  <LazyChartWrapper
                     title="User Expense Comparison"
-                    data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
-                      name: getUsernameById(userId),
-                      value: amount,
-                    }))}
-                    valueFormatter={formatCurrency}
-                    height={300}
-                    isLoading={false}
-                    // Use the getUserColor function to get consistent colors for all users
-                    customColorFunction={getUserColor}
+                    component={LazyEnhancedDataChart}
+                    props={{
+                      title: "User Expense Comparison",
+                      data: Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+                        name: getUsernameById(userId),
+                        value: amount,
+                      })),
+                      valueFormatter: formatCurrency,
+                      height: 300,
+                      isLoading: false,
+                      // Use the getUserColor function to get consistent colors for all users
+                      customColorFunction: getUserColor
+                    }}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -591,18 +594,22 @@ export default function Analytics() {
                     />
                   }
                 >
-                  <EnhancedDataChart
+                  <LazyChartWrapper
                     title="Expenses by Category"
-                    data={summary.categoryTotals.map(item => ({
-                      name: item.category.name,
-                      value: item.amount,
-                      percentage: item.percentage,
-                    }))}
-                    valueFormatter={formatCurrency}
-                    height={300}
-                    isLoading={false}
-                    // Use the getCategoryColor function for consistent category colors
-                    customColorFunction={getCategoryColor}
+                    component={LazyEnhancedDataChart}
+                    props={{
+                      title: "Expenses by Category",
+                      data: summary.categoryTotals.map(item => ({
+                        name: item.category.name,
+                        value: item.amount,
+                        percentage: item.percentage,
+                      })),
+                      valueFormatter: formatCurrency,
+                      height: 300,
+                      isLoading: false,
+                      // Use the getCategoryColor function for consistent category colors
+                      customColorFunction: getCategoryColor
+                    }}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -653,18 +660,22 @@ export default function Analytics() {
                     />
                   }
                 >
-                  <EnhancedDataChart
+                  <LazyChartWrapper
                     title="Expenses by Location"
-                    data={summary.locationTotals.map(item => ({
-                      name: item.location.name,
-                      value: item.amount,
-                      percentage: item.percentage,
-                    }))}
-                    valueFormatter={formatCurrency}
-                    height={300}
-                    isLoading={false}
-                    // Use the getLocationColor function for consistent location colors
-                    customColorFunction={getLocationColor}
+                    component={LazyEnhancedDataChart}
+                    props={{
+                      title: "Expenses by Location",
+                      data: summary.locationTotals.map(item => ({
+                        name: item.location.name,
+                        value: item.amount,
+                        percentage: item.percentage,
+                      })),
+                      valueFormatter: formatCurrency,
+                      height: 300,
+                      isLoading: false,
+                      // Use the getLocationColor function for consistent location colors
+                      customColorFunction: getLocationColor
+                    }}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -704,7 +715,14 @@ export default function Analytics() {
             <ChartErrorBoundary
               fallback={<SimpleTrendChart trendData={trendData} isLoading={false} />}
             >
-              <EnhancedTrendChart trendData={trendData} isLoading={false} />
+              <LazyChartWrapper
+              title="Monthly Expense Trends"
+              component={LazyEnhancedTrendChart}
+              props={{
+                trendData: trendData,
+                isLoading: false
+              }}
+            />
             </ChartErrorBoundary>
           ) : (
             <SimpleTrendChart trendData={trendData} isLoading={false} />
