@@ -539,6 +539,11 @@ export default function Analytics() {
                     valueFormatter={formatCurrency}
                     height={300}
                     isLoading={false}
+                    customColors={{
+                      // Use blue and purple tones for users to differentiate from red/orange in other charts
+                      'Antonio': '#3b82f6', // Blue
+                      'Andres': '#8b5cf6'   // Purple
+                    }}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -550,6 +555,10 @@ export default function Analytics() {
                   }))}
                   valueFormatter={formatCurrency}
                   height={300}
+                  customColors={{
+                    'Antonio': '#3b82f6', // Blue
+                    'Andres': '#8b5cf6'   // Purple
+                  }}
                 />
               )
             ) : (
@@ -596,6 +605,13 @@ export default function Analytics() {
                     valueFormatter={formatCurrency}
                     height={300}
                     isLoading={false}
+                    customColors={{
+                      'Utilities': '#ef4444', // Red
+                      'Groceries': '#f97316', // Orange
+                      'Dining': '#eab308',    // Yellow
+                      'Transport': '#84cc16',  // Lime
+                      'Entertainment': '#06b6d4' // Cyan
+                    }}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -608,6 +624,13 @@ export default function Analytics() {
                   }))}
                   valueFormatter={formatCurrency}
                   height={300}
+                  customColors={{
+                    'Utilities': '#ef4444', // Red
+                    'Groceries': '#f97316', // Orange
+                    'Dining': '#eab308',    // Yellow
+                    'Transport': '#84cc16',  // Lime
+                    'Entertainment': '#06b6d4' // Cyan
+                  }}
                 />
               )
             ) : (
@@ -654,6 +677,13 @@ export default function Analytics() {
                     valueFormatter={formatCurrency}
                     height={300}
                     isLoading={false}
+                    customColors={{
+                      'Tower Hamlets Council Tax': '#dc2626', // Darker red
+                      'Ovo Energy': '#ea580c',               // Darker orange
+                      'Goods': '#ca8a04',                    // Darker yellow
+                      'Thames Water': '#65a30d',             // Darker lime
+                      'Hyperoptic': '#0891b2'                // Darker cyan
+                    }}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -666,6 +696,13 @@ export default function Analytics() {
                   }))}
                   valueFormatter={formatCurrency}
                   height={300}
+                  customColors={{
+                    'Tower Hamlets Council Tax': '#dc2626', // Darker red
+                    'Ovo Energy': '#ea580c',               // Darker orange
+                    'Goods': '#ca8a04',                    // Darker yellow
+                    'Thames Water': '#65a30d',             // Darker lime
+                    'Hyperoptic': '#0891b2'                // Darker cyan
+                  }}
                 />
               )
             ) : (
