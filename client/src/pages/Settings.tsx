@@ -123,7 +123,7 @@ export default function Settings() {
         </TabsList>
 
         <TabsContent value="categories">
-          <Card>
+          <Card className="border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Categories</CardTitle>
@@ -142,7 +142,7 @@ export default function Settings() {
                     // Get the icon component, default to a placeholder if not found
                     const IconComponent = category.icon ? CATEGORY_ICONS[category.icon as CategoryIconName] || (() => <span className="text-xs">?</span>) : (() => <span className="text-xs">?</span>);
                     return (
-                      <Card key={category.id}>
+                      <Card key={category.id} className="border-gray-200">
                         <CardContent className="flex items-center justify-between p-3 sm:p-4">
                           <div className="flex items-center space-x-3 sm:space-x-4">
                             {/* Color Swatch */}
@@ -172,7 +172,7 @@ export default function Settings() {
         </TabsContent>
 
         <TabsContent value="locations">
-          <Card>
+          <Card className="border-gray-200">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Locations</CardTitle>
@@ -189,7 +189,7 @@ export default function Settings() {
               ) : locations.length > 0 ? (
                  <div className="space-y-4"> {/* Reverted to vertical stack */}
                   {locations.map((location) => (
-                    <Card key={location.id}>
+                    <Card key={location.id} className="border-gray-200">
                       <CardContent className="flex items-center justify-between p-3 sm:p-4"> {/* Adjusted Padding */}
                         <span>{location.name}</span>
                         <div className="flex space-x-1 sm:space-x-2"> {/* Adjusted Spacing */}

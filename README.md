@@ -16,6 +16,7 @@ A modern, mobile-first application for managing household expenses between two u
 ### Prerequisites
 
 - Node.js 18+ and npm
+- Tailwind CSS v3.4.x (see [CSS Framework](#css-framework) section for details)
 
 ### Getting Started
 
@@ -117,9 +118,56 @@ Due to the project structure and TypeScript path aliases, deploying the Cloud Fu
     firebase deploy --only functions
     ```
 
+## CSS Framework
+
+### Tailwind CSS
+
+This project uses Tailwind CSS v3 for styling. We've tested Tailwind CSS v4 (beta) but encountered compatibility issues with our current setup.
+
+#### Tailwind CSS v3
+
+The project is currently configured to use Tailwind CSS v3, which provides stable functionality and good compatibility with our development environment.
+
+#### Tailwind CSS v4 Compatibility
+
+We've attempted to upgrade to Tailwind CSS v4 (beta) but encountered several issues:
+
+1. **Integration with Vite**: The new `@import "tailwindcss"` syntax in v4 has compatibility issues with our Vite setup.
+2. **PostCSS Configuration**: The v4 PostCSS plugin (`@tailwindcss/postcss`) requires different configuration that conflicts with our current setup.
+3. **CSS Directives**: The v4 directives and configuration approach differ significantly from v3.
+
+We plan to revisit the upgrade when Tailwind CSS v4 reaches a stable release.
+
+### Attempting Tailwind CSS v4 Upgrade
+
+If you want to experiment with Tailwind CSS v4, follow these steps with caution:
+
+1. **Update dependencies**:
+   ```bash
+   npm install tailwindcss@latest @tailwindcss/postcss @tailwindcss/oxide-darwin-arm64
+   ```
+
+2. **Update PostCSS configuration** (postcss.config.cjs):
+   ```js
+   module.exports = {
+     plugins: {
+       '@tailwindcss/postcss': {},
+       'autoprefixer': {}
+     }
+   }
+   ```
+
+3. **Update CSS imports** (index.css):
+   ```css
+   @import "tailwindcss";
+   @config "../../tailwind.config.ts";
+   ```
+
+**Note**: This configuration may not work as expected due to the beta status of Tailwind CSS v4.
+
 ## Troubleshooting
 
-### Build Failures on macOS ARM64 (Apple Silicon) with Tailwind CSS v4
+### Build Failures on macOS ARM64 (Apple Silicon) with Tailwind CSS
 
 **Issue:**
 
@@ -128,7 +176,7 @@ The build process (`npm run build`) may fail with errors related to missing nati
 -   `Cannot find module '../lightningcss.darwin-arm64.node'`
 -   `Cannot find module '@tailwindcss/oxide-darwin-arm64'`
 
-This occurs because `npm` sometimes fails to automatically download and install the optional native dependencies required by Tailwind CSS v4 (and its underlying engine, Lightning CSS) for the macOS ARM64 architecture.
+This occurs because `npm` sometimes fails to automatically download and install the optional native dependencies required by Tailwind CSS (and its underlying engine, Lightning CSS) for the macOS ARM64 architecture.
 
 **Solution:**
 
@@ -136,10 +184,14 @@ Explicitly install the required optional dependencies for your platform:
 
 ```bash
 npm install lightningcss-darwin-arm64@<version> --save-dev
+```
+
+If using Tailwind CSS v4:
+```bash
 npm install @tailwindcss/oxide-darwin-arm64@<version> --save-dev
 ```
 
-Replace `<version>` with the specific version matching your installed `lightningcss` and `tailwindcss` packages respectively (check `package.json`). For example, if using `lightningcss@1.29.2` and `tailwindcss@4.1.3`:
+Replace `<version>` with the specific version matching your installed packages (check `package.json`). For example:
 
 ```bash
 npm install lightningcss-darwin-arm64@1.29.2 --save-dev

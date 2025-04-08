@@ -172,7 +172,7 @@ export default function Dashboard() {
     setSummaryLoading(false);
   // Recalculate when expenses array changes, or users/context data changes
   }, [expenses, allUsers, currentUser, expensesLoading, usersLoading, categoriesLoading, locationsLoading, currentMonth]);
-  
+
     // --- Fetch Settlement Status ---
     useEffect(() => {
       if (!currentUser) return;
@@ -180,7 +180,7 @@ export default function Dashboard() {
       const settlementsCol = collection(db, "settlements");
       // Query for any settlement document for the current month
       const q = query(settlementsCol, where("month", "==", currentMonth), limit(1));
-  
+
       // Use getDocs for a one-time fetch is sufficient here unless we expect real-time changes often
       getDocs(q).then((snapshot) => {
         setIsCurrentMonthSettled(!snapshot.empty); // True if any settlement doc exists
@@ -191,7 +191,7 @@ export default function Dashboard() {
         setIsCurrentMonthSettled(false); // Assume not settled on error
         setSettlementLoading(false);
       });
-  
+
       // If real-time updates are needed, use onSnapshot instead:
       /*
       const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -255,7 +255,7 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="flex flex-col gap-6"> {/* Removed bg-red-500 */}
+      <div className="flex flex-col gap-6">
         {/* Header Section */}
         <div className="flex flex-col gap-4">
           <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -315,7 +315,7 @@ export default function Dashboard() {
 
       {/* Standard Dialog for Expense Form */}
       <Dialog open={isExpenseFormOpen} onOpenChange={setIsExpenseFormOpen}>
-        <DialogContent className="sm:max-w-[600px] w-[90vw] max-w-[90vw] rounded-lg p-0"> {/* Remove padding from content */}
+        <DialogContent className="sm:max-w-[600px] w-[90vw] max-w-[90vw] rounded-lg p-0 border-gray-200"> {/* Remove padding from content */}
            {/* Add DialogHeader, Title, and Description for Accessibility */}
            <DialogHeader> {/* Removed padding */}
              <DialogTitle>

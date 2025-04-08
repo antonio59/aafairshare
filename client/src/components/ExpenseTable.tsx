@@ -18,7 +18,7 @@ interface ExpenseTableProps {
 
 // Skeleton Card for loading state on mobile (Updated Layout v2)
 const ExpenseCardSkeleton = () => (
-  <div className="block border rounded-md p-3 mb-3 md:hidden">
+  <div className="block border border-gray-200 rounded-md p-3 mb-3 md:hidden">
     <div className="space-y-2">
       <div className="flex justify-between items-start">
         <Skeleton className="h-4 w-28" /> {/* Category */}
@@ -82,7 +82,7 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading, isMonthSet
       )}
 
       {/* Desktop Table View (hidden on small screens) */}
-      <div className="hidden md:block border rounded-md overflow-hidden">
+      <div className="hidden md:block border border-gray-200 rounded-md overflow-hidden bg-background">
         <Table>
           <TableHeader className="bg-muted/50">
             <TableRow>
@@ -175,7 +175,7 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading, isMonthSet
           Array.from({ length: 5 }).map((_, index) => <ExpenseCardSkeleton key={index} />)
         ) : hasFilteredExpenses ? (
           filteredExpenses.map((expense) => (
-            <div key={expense.id} className="block border rounded-md p-3">
+            <div key={expense.id} className="block border border-gray-200 rounded-md p-3 bg-background">
               {/* Top Row: Category/Location and Amount */}
               <div className="flex justify-between items-start mb-1">
                 <div className="flex flex-col text-xs">
