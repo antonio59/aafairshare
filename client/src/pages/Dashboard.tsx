@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query"; // Import useQuery
+import { queryClient } from "@/lib/queryClient";
 import MonthSelector from "@/components/MonthSelector";
 import SummaryCard from "@/components/SummaryCard";
 import { ExpenseTable } from "@/components/ExpenseTable";
 import ExpenseForm from "@/components/ExpenseForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, PoundSterling, Users, WalletCards, Download, ArrowRight } from "lucide-react"; // Added ArrowRight
+import { PullToRefresh } from "@/components/PullToRefresh";
 import { ExpenseWithDetails, MonthSummary, User, Category, Location, Expense } from "@shared/schema";
 import { formatCurrency, getCurrentMonth } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
@@ -140,19 +142,21 @@ export default function Dashboard() {
   const expenses = expensesData ?? [];
 
   // --- Calculate Summary (depends on expenses from useQuery) ---
-  useEffect(() => {
-    // Depend on expensesLoading from useQuery and other context loadings
+  // Use useMemo for expensive calculations
+  const calculatedSummary = useMemo(() => {
+    // Return null if data isn't ready
     if (expensesLoading || usersLoading || categoriesLoading || locationsLoading || !currentUser || allUsers.length < 2) {
-      setSummaryLoading(true);
-      return; // Exit if data isn't ready
+      return null;
     }
-    setSummaryLoading(true);
+
     const user1 = allUsers.find(u => u.id === currentUser.uid);
     const user2 = allUsers.find(u => u.id !== currentUser.uid);
-    if (!user1 || !user2) { setSummaryLoading(false); setSummary(null); return; }
+    if (!user1 || !user2) return null;
+
     let totalExpenses = 0, totalSplitExpenses = 0;
     const userExpenses: Record<string, number> = { [user1.id]: 0, [user2.id]: 0 };
     let user1_paid_50_50 = 0, user1_paid_100_owed_by_other = 0, user2_paid_100_owed_by_other = 0;
+
     expenses.forEach(exp => {
       const amount = Number(exp.amount) || 0;
       totalExpenses += amount;
@@ -161,17 +165,39 @@ export default function Dashboard() {
       if (exp.splitType === "50/50") { totalSplitExpenses += amount; if (exp.paidByUserId === user1.id) user1_paid_50_50 += amount; }
       else if (exp.splitType === "100%") { if (exp.paidByUserId === user1.id) user1_paid_100_owed_by_other += amount; else if (exp.paidByUserId === user2.id) user2_paid_100_owed_by_other += amount; }
     });
+
     const fairShare = totalSplitExpenses / 2;
     let user1Balance = user1_paid_50_50 - fairShare + user1_paid_100_owed_by_other - user2_paid_100_owed_by_other;
     let settlementAmount = Math.abs(user1Balance);
     let settlementDirection = { fromUserId: "", toUserId: "" };
+
     if (user1Balance < 0) settlementDirection = { fromUserId: user1.id, toUserId: user2.id };
     else if (user1Balance > 0) settlementDirection = { fromUserId: user2.id, toUserId: user1.id };
-    const calculatedSummary: MonthSummary = { month: currentMonth, totalExpenses, userExpenses, settlementAmount, settlementDirection, categoryTotals: [], locationTotals: [], splitTypeTotals: {}, dateDistribution: {} };
-    setSummary(calculatedSummary);
-    setSummaryLoading(false);
-  // Recalculate when expenses array changes, or users/context data changes
+
+    return {
+      month: currentMonth,
+      totalExpenses,
+      userExpenses,
+      settlementAmount,
+      settlementDirection,
+      categoryTotals: [],
+      locationTotals: [],
+      splitTypeTotals: {},
+      dateDistribution: {}
+    } as MonthSummary;
   }, [expenses, allUsers, currentUser, expensesLoading, usersLoading, categoriesLoading, locationsLoading, currentMonth]);
+
+  // Update summary state based on calculated value
+  useEffect(() => {
+    setSummaryLoading(true);
+    if (calculatedSummary) {
+      setSummary(calculatedSummary);
+      setSummaryLoading(false);
+    } else {
+      setSummary(null);
+      setSummaryLoading(false);
+    }
+  }, [calculatedSummary]);
 
     // --- Fetch Settlement Status ---
     useEffect(() => {
@@ -253,9 +279,27 @@ export default function Dashboard() {
   const dialogTitle = selectedExpense ? "Edit Expense" : "Add New Expense";
   const dialogDescription = "Enter the expense details below. All fields marked with * are required.";
 
+  // Function to handle refresh
+  const handleRefresh = async () => {
+    // Invalidate and refetch all queries
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['expenses', currentMonth] }),
+      queryClient.invalidateQueries({ queryKey: ['categories'] }),
+      queryClient.invalidateQueries({ queryKey: ['locations'] }),
+      queryClient.invalidateQueries({ queryKey: ['users'] })
+    ]);
+
+    // Show toast notification
+    toast({
+      title: "Refreshed",
+      description: "Latest data has been loaded",
+    });
+  };
+
   return (
     <>
-      <div className="flex flex-col gap-6">
+      <PullToRefresh onRefresh={handleRefresh}>
+        <div className="flex flex-col gap-6">
         {/* Header Section */}
         <div className="flex flex-col gap-4">
           <h1 className="text-2xl font-semibold">Dashboard</h1>
@@ -344,6 +388,7 @@ export default function Dashboard() {
           {/* </DialogFooter> */}
         </DialogContent>
       </Dialog>
+      </PullToRefresh>
     </>
   );
 }

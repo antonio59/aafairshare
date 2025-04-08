@@ -13,7 +13,8 @@
     "baseUrl": ".", // Add baseUrl
     "paths": {      // Add paths mapping
       "shared": ["../shared"] // Point to source relative to baseUrl
-    }
+    },
+    "rootDir": "src"
   },
   "compileOnSave": true,
   "include": [

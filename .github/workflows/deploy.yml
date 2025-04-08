@@ -4,6 +4,12 @@ on:
   push:
     branches:
       - main # Or your default branch
+  workflow_dispatch: # Allow manual triggering
+
+# Define explicit permissions needed for this workflow (principle of least privilege)
+permissions:
+  contents: read # Needed to checkout the code
+  id-token: write # Needed for Firebase deployment authentication
 
 jobs:
   build_and_deploy:
@@ -11,17 +17,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with: # Explicitly set path (though '.' is default)
-          path: '.'
-
-      # - name: Verify checkout directory and list files # Removed debug step
-      #   run: |
-      #     pwd
-      #     ls -la
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4 # Correct indentation
-        with: # Correct indentation
+        uses: actions/setup-node@v4
+        with:
           node-version: '20' # Use Node.js version 20 or match your project's requirement
 
       # Install pnpm
@@ -50,9 +49,6 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      # - name: List files before build # Removed this ls step
-      #   run: ls -la
-
       - name: Build project
         run: pnpm run build
         env: # Add Firebase config secrets as env vars for the build
@@ -64,18 +60,10 @@ jobs:
           VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ secrets.VITE_FIREBASE_MESSAGING_SENDER_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
 
-      # - name: List build output directory # Removed debug step
-      #   run: ls -la client/dist
-
-      # - name: List files before deploy # Removed debug step
-      #   run: ls -la
-
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
-          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_AAFAIRSHARE_37271 }}' # Use the specific service account secret if available
+          firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_AAFAIRSHARE_37271 }}'
           channelId: live # Deploy to the live channel
           projectId: aafairshare-37271 # Use project ID from .firebaserc
-        env:
-          FIREBASE_CLI_PREVIEWS: hostingchannels # Enable hosting channels feature if needed

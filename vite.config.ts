@@ -29,7 +29,6 @@ export default defineConfig({
    optimizeDeps: {
      include: ['jspdf'],
    },
-   // root: path.resolve(__dirname, "client"), // REMOVED - Vite root is now project root
    build: {
     // Input is implicitly index.html at project root
     outDir: path.resolve(__dirname, "dist"), // Output relative to project root

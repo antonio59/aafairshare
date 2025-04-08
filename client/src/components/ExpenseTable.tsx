@@ -45,18 +45,26 @@ const ExpenseCardSkeleton = () => (
 export function ExpenseTable({ expenses, onEdit, onDelete, isLoading, isMonthSettled = false }: ExpenseTableProps) { // Default to false
   const [filterText, setFilterText] = useState("");
 
+  // Filter expenses based on search text - optimized with useMemo
   const filteredExpenses = useMemo(() => {
+    // Quick return if no filter is applied
     if (!filterText) {
       return expenses;
     }
+
+    // Only lowercase the filter text once
     const lowerCaseFilter = filterText.toLowerCase();
+
+    // Create a single filter function that checks all relevant fields
     return expenses.filter(exp => {
-      // const descriptionMatch = exp.description?.toLowerCase().includes(lowerCaseFilter); // Removed
+      // Check each field that should be searchable
       const categoryMatch = exp.category?.name?.toLowerCase().includes(lowerCaseFilter);
-      const locationMatch = exp.location?.name?.toLowerCase().includes(lowerCaseFilter); // Added
+      const locationMatch = exp.location?.name?.toLowerCase().includes(lowerCaseFilter);
       const paidByMatch = exp.paidByUser?.username?.toLowerCase().includes(lowerCaseFilter);
-      // const amountMatch = exp.amount.toString().includes(lowerCaseFilter); // Removed
-      return categoryMatch || locationMatch || paidByMatch; // Updated return condition
+      const descriptionMatch = exp.description?.toLowerCase().includes(lowerCaseFilter);
+
+      // Return true if any field matches
+      return categoryMatch || locationMatch || paidByMatch || descriptionMatch;
     });
   }, [expenses, filterText]);
 
@@ -104,7 +112,7 @@ export function ExpenseTable({ expenses, onEdit, onDelete, isLoading, isMonthSet
               </TableRow>
             ) : hasFilteredExpenses ? (
               filteredExpenses.map((expense) => (
-                <TableRow key={expense.id}>
+                <TableRow key={expense.id} className="border-b border-gray-200">
                   <TableCell className="py-2 px-3 text-xs">{formatDate(expense.date)}</TableCell>
                   <TableCell className="py-2 px-3 text-xs">
                     <div className="flex flex-col gap-0.5">

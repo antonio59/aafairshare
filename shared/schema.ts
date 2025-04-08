@@ -1,5 +1,8 @@
 // Note: Removed Drizzle ORM and Zod definitions. These are plain TypeScript types for Firestore.
 
+// Re-export formatting utilities
+export * from './formatting';
+
 // User type (Reflecting Firebase Auth and Firestore user profile)
 export type User = {
   id: string; // Firestore document ID
@@ -37,6 +40,7 @@ export type Expense = {
   categoryId: string; // Firestore document ID of category
   locationId: string; // Firestore document ID of location
   month: string; // YYYY-MM format
+  recurringExpenseId?: string; // Reference to recurring expense if this was generated from one
   // originalId?: number | null; // Removed originalId
   // Add fields for specific split details if needed, e.g., shares for exact splits
 };
@@ -99,4 +103,33 @@ export type TrendData = {
   totalsByMonth: number[];
   categoriesData: Record<string, number[]>; // Key is category ID (string) or name
   locationsData: Record<string, number[]>; // Key is location ID (string) or name
+};
+
+// Recurring expense frequency
+export type RecurringFrequency = "daily" | "weekly" | "biweekly" | "monthly" | "quarterly" | "yearly";
+
+// Recurring expense type
+export type RecurringExpense = {
+  id: string;
+  title: string;
+  amount: number;
+  description?: string;
+  categoryId: string;
+  locationId: string;
+  paidByUserId: string;
+  splitType: string; // Same as Expense splitType
+  frequency: RecurringFrequency;
+  startDate: Date; // Store as Firestore Timestamp
+  endDate?: Date; // Optional end date
+  lastGeneratedDate?: Date; // Track the last date an expense was generated
+  isActive: boolean;
+  createdAt?: Date;
+  updatedAt?: Date;
+};
+
+// Recurring expense with related data
+export type RecurringExpenseWithDetails = RecurringExpense & {
+  category?: Category;
+  location?: Location;
+  paidByUser?: User;
 };

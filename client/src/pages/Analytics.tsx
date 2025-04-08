@@ -1,22 +1,31 @@
-import React, { useState, useRef, useCallback, useEffect } from "react";
+import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import MonthSelector from "@/components/MonthSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthSummary, User, TrendData, Expense, Settlement, Category, Location } from "@shared/schema"; // Import necessary types
 import { getCurrentMonth, formatCurrency, getMonthFromDate } from "@/lib/utils"; // Added getMonthFromDate
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import CategoryChart from "@/components/CategoryChart";
-import LocationChart from "@/components/LocationChart";
-// Removed SplitTypeChart import
+import { EnhancedChart } from "@/components/EnhancedChart";
+import { ComparisonChart } from "@/components/ComparisonChart";
+import { announce } from "@/components/LiveRegion";
+
 import TrendChart from "@/components/TrendChart";
 import { Bar } from "react-chartjs-2";
 import { Chart, registerables } from "chart.js";
 import { useAuth } from "@/context/AuthContext"; // Import useAuth
+
 import { db } from "@/lib/firebase"; // Import Firestore instance
 // Removed unused getDocs, limit, startAt, endAt imports
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+
 // Removed unused format, endOfMonth imports
 import { subMonths, startOfMonth } from "date-fns"; // Import date-fns helpers
+
+// Color palette for charts
+const COLORS = [
+  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
+  '#82CA9D', '#FF6B6B', '#6A7FDB', '#61DAFB', '#F28482',
+];
 
 Chart.register(...registerables);
 
@@ -325,6 +334,8 @@ export default function Analytics() {
       };
       setSummary(calculatedSummary);
       setSummaryLoading(false);
+      // Announce to screen readers when summary data is loaded
+      announce(`Summary data loaded for ${currentMonth} with total expenses of ${formatCurrency(totalExpenses)}`, true);
     } catch (error) {
       console.error("Error calculating summary:", error);
       toast({
@@ -337,18 +348,18 @@ export default function Analytics() {
     // Depend on all data sources and the current user
   }, [currentUser, currentMonthExpensesLoading, usersLoading, currentMonthSettlementsLoading, categoriesLoading, locationsLoading, users, currentMonthExpenses, currentMonthSettlements, toast, categories, locations, currentMonth]);
 
-  // Calculate Trend Data
-  useEffect(() => {
-      // Ensure user is logged in and required data is loaded
+  // Calculate Trend Data using useMemo for better performance
+  const calculatedTrendData = useMemo(() => {
+      // Return null if data isn't ready
       if (!currentUser || trendExpensesLoading || categoriesLoading || locationsLoading) {
-          setTrendDataLoading(true); return;
+          return null;
       }
-      setTrendDataLoading(true);
 
       const monthlyTotals: Record<string, number> = {};
       const categoryMonthly: Record<string, Record<string, number>> = {};
       const locationMonthly: Record<string, Record<string, number>> = {};
 
+      // Process all expenses to calculate totals
       trendExpenses.forEach(exp => {
           const month = getMonthFromDate(exp.date);
           const amount = Number(exp.amount) || 0;
@@ -362,35 +373,50 @@ export default function Analytics() {
           locationMonthly[exp.locationId][month] = (locationMonthly[exp.locationId][month] || 0) + amount;
       });
 
+      // Sort months chronologically
       const months = Object.keys(monthlyTotals).sort();
       const totalsByMonth = months.map(month => monthlyTotals[month]);
 
+      // Create maps for efficient lookups
       const categoryMap = new Map(categories.map(c => [c.id, c.name]));
       const locationMap = new Map(locations.map(l => [l.id, l.name]));
 
+      // Process category data
       const categoriesData: Record<string, number[]> = {};
       for (const catId in categoryMonthly) {
           const catName = categoryMap.get(catId) || `Unknown (${catId.substring(0,4)})`;
           categoriesData[catName] = months.map(month => categoryMonthly[catId][month] || 0);
       }
 
+      // Process location data
       const locationsData: Record<string, number[]> = {};
-       for (const locId in locationMonthly) {
-           const locName = locationMap.get(locId) || `Unknown (${locId.substring(0,4)})`;
-           locationsData[locName] = months.map(month => locationMonthly[locId][month] || 0);
-       }
+      for (const locId in locationMonthly) {
+          const locName = locationMap.get(locId) || `Unknown (${locId.substring(0,4)})`;
+          locationsData[locName] = months.map(month => locationMonthly[locId][month] || 0);
+      }
 
-      const calculatedTrendData: TrendData = {
+      // Return the calculated trend data
+      return {
           months,
           totalsByMonth,
           categoriesData,
           locationsData,
-      };
+      } as TrendData;
+  }, [currentUser, trendExpenses, categories, locations, trendExpensesLoading, categoriesLoading, locationsLoading]);
 
-      setTrendData(calculatedTrendData);
-      setTrendDataLoading(false);
-
-  }, [currentUser, trendExpenses, categories, locations, trendExpensesLoading, categoriesLoading, locationsLoading]); // Depend on user and data sources
+  // Update state based on calculated data
+  useEffect(() => {
+      setTrendDataLoading(true);
+      if (calculatedTrendData) {
+          setTrendData(calculatedTrendData);
+          setTrendDataLoading(false);
+          // Announce to screen readers when data is loaded
+          announce(`Trend data loaded with ${calculatedTrendData.months.length} months of data`);
+      } else {
+          setTrendData(null);
+          setTrendDataLoading(false);
+      }
+  }, [calculatedTrendData]);
 
 
   // --- Event Handlers ---
@@ -480,23 +506,137 @@ export default function Analytics() {
         </Card>
 
         {/* User comparison chart */}
-        <Card className="overflow-hidden border-gray-200">
-          <CardHeader className="pb-3"><CardTitle className="text-xl">User Expense Comparison</CardTitle></CardHeader>
-          <CardContent>
-            {isLoading ? <Skeleton className="h-64 w-full" /> : (summary && Object.keys(summary.userExpenses).length > 0 ? (
-              <div className="h-[250px] sm:h-64">
-                <Bar data={userExpenseData} options={{ responsive: true, maintainAspectRatio: false, /* ... other options */ }} />
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
+          <EnhancedChart
+            title="User Expense Comparison"
+            data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+              name: getUsernameById(userId),
+              value: amount,
+            }))}
+            dataKey="value"
+            nameKey="name"
+            valueFormatter={formatCurrency}
+            initialChartType="bar"
+            height={350}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>User Expense Comparison</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">No user expense data available.</p>
               </div>
-            ) : <div className="p-8 text-center"><p className="text-gray-600 dark:text-gray-400">No expense comparison data.</p></div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )
 
-        {/* Other Charts - Pass undefined if summary/trendData is null */}
-        <CategoryChart summary={summary || undefined} isLoading={isLoading} />
-        <LocationChart summary={summary || undefined} isLoading={isLoading} />
-        {/* Removed SplitTypeChart component */}
-        <TrendChart trendData={trendData || undefined} isLoading={isLoading} />
+        {/* Category Chart */}
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : summary && summary.categoryTotals && summary.categoryTotals.length > 0 ? (
+          <EnhancedChart
+            title="Expenses by Category"
+            data={summary.categoryTotals.map(item => ({
+              name: item.category.name,
+              value: item.amount,
+              percentage: item.percentage,
+            }))}
+            dataKey="value"
+            nameKey="name"
+            valueFormatter={formatCurrency}
+            categoryColors={summary.categoryTotals.reduce((acc, item) => {
+              acc[item.category.name] = item.category.color || '#' + Math.floor(Math.random()*16777215).toString(16);
+              return acc;
+            }, {} as Record<string, string>)}
+            initialChartType="pie"
+            height={350}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Expenses by Category</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">No category data available.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Location Chart */}
+        {isLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : summary && summary.locationTotals && summary.locationTotals.length > 0 ? (
+          <EnhancedChart
+            title="Expenses by Location"
+            data={summary.locationTotals.map(item => ({
+              name: item.location.name,
+              value: item.amount,
+              percentage: item.percentage,
+            }))}
+            dataKey="value"
+            nameKey="name"
+            valueFormatter={formatCurrency}
+            initialChartType="bar"
+            height={350}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Expenses by Location</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">No location data available.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Trend Chart */}
+        {isLoading || trendDataLoading ? (
+          <Skeleton className="h-[400px] w-full" />
+        ) : trendData && trendData.months && trendData.months.length > 0 ? (
+          <ComparisonChart
+            title="Monthly Expense Trends"
+            data={trendData.months.map((month, index) => ({
+              month,
+              total: trendData.totalsByMonth[index],
+              ...Object.entries(trendData.categoriesData).reduce((acc, [category, values]) => {
+                acc[`cat_${category}`] = values[index] || 0;
+                return acc;
+              }, {} as Record<string, number>),
+            }))}
+            xAxisKey="month"
+            series={[
+              { name: 'Total', dataKey: 'total', color: '#3B82F6' },
+              ...Object.keys(trendData.categoriesData).slice(0, 5).map((category, index) => ({
+                name: category,
+                dataKey: `cat_${category}`,
+                color: COLORS[index % COLORS.length],
+              })),
+            ]}
+            valueFormatter={formatCurrency}
+            initialChartType="line"
+            height={400}
+          />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Monthly Expense Trends</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-8 text-center">
+                <p className="text-gray-600 dark:text-gray-400">No trend data available.</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );

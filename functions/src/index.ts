@@ -12,38 +12,15 @@ import type {
 // Assuming shared types are correctly mapped in tsconfig.json
 // Import shared types from the installed 'shared' package
 import type {
-  Settlement, Expense, User, Category, Location,
+  Settlement, Expense, User, Category, Location, RecurringExpense, RecurringFrequency,
+  // Import shared formatting utilities
+  formatCurrency, formatDate
 } from "shared"; // Import from package name
 import type {EmailTemplate} from "./types.ts"; // Assuming types are in ./types
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 const db = admin.firestore();
-
-// Printer will be instantiated inside the try block if fonts load
-
-// Helper function to format currency (basic example)
-const formatCurrency = (amount: number | undefined | null): string => {
-  // Handle potential null/undefined/NaN inputs gracefully
-  const numAmount = Number(amount);
-  if (isNaN(numAmount)) {
-    return "£NaN"; // Or return "£0.00" or some other indicator
-  }
-  return new Intl.NumberFormat("en-GB", { // Use en-GB locale
-    style: "currency", currency: "GBP", // Use GBP currency
-  }).format(numAmount);
-  // TODO: Consider making currency configurable or detecting from user settings
-};
-
-// Helper function to format date (basic example)
-const formatDate = (date: Date | admin.firestore.Timestamp): string => {
-  const jsDate = date instanceof admin.firestore.Timestamp ?
-    date.toDate() :
-    date;
-  // Example: DD/MM/YYYY
-  return jsDate.toLocaleDateString("en-GB");
-  // TODO: Consider making date format configurable
-};
 
 // Helper function to fetch data with caching/memoization for efficiency
 // Simple in-memory cache (using unknown for better type safety than any)
@@ -248,16 +225,42 @@ export const onSettlementCreated = functions
 
       try {
         functions.logger.log("Attempting PDF generation using vfs_fonts...");
-        // Resolve path relative to the compiled file's directory (__dirname)
-        const fontPath = path.resolve(__dirname, "./vfs_fonts.js");
-        functions.logger.log(`Resolved font path: ${fontPath}`);
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const pdfFonts = require(fontPath); // <-- Use resolved path
+        // Try multiple possible paths for vfs_fonts.js
+        let pdfFonts;
+        const possiblePaths = [
+          path.resolve(__dirname, "./vfs_fonts.js"),
+          path.resolve(__dirname, "../vfs_fonts.js"),
+          path.resolve(__dirname, "../node_modules/pdfmake/build/vfs_fonts.js"),
+          path.resolve(__dirname, "../../node_modules/pdfmake/build/vfs_fonts.js")
+        ];
+
+        let fontPath = "";
+        let fontLoadError = null;
+
+        // Try each path until we find one that works
+        for (const tryPath of possiblePaths) {
+          try {
+            functions.logger.log(`Trying font path: ${tryPath}`);
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            pdfFonts = require(tryPath);
+            fontPath = tryPath;
+            functions.logger.log(`Successfully loaded fonts from: ${fontPath}`);
+            break;
+          } catch (err) {
+            fontLoadError = err;
+            functions.logger.warn(`Failed to load fonts from ${tryPath}: ${err instanceof Error ? err.message : String(err)}`);
+          }
+        }
+
+        // If we couldn't load from any path, throw an error
+        if (!pdfFonts) {
+          throw new Error(`Failed to load vfs_fonts.js from any path: ${fontLoadError instanceof Error ? fontLoadError.message : String(fontLoadError)}`);
+        }
 
         // Explicit check for loaded vfs data
-        if (!pdfFonts || !pdfFonts.vfs || !pdfFonts.vfs["Roboto-Regular.ttf"]) {
+        if (!pdfFonts.vfs || !pdfFonts.vfs["Roboto-Regular.ttf"]) {
           throw new Error(
-            "Failed to load pdfmake vfs_fonts or required Roboto font."
+            "Failed to load required Roboto font from vfs_fonts."
           );
         }
         functions.logger.log("vfs_fonts loaded successfully.");
@@ -553,3 +556,175 @@ body { font-family: sans-serif; line-height: 1.6; color: #333; }
       // Optional: Add error reporting (e.g., write to an errors collection)
     }
   });
+
+// Scheduled function to generate expenses from recurring expenses
+// Runs every day at midnight
+export const generateRecurringExpenses = functions.pubsub
+  .schedule("0 0 * * *")
+  .timeZone("UTC")
+  .onRun(async (context) => {
+    try {
+      functions.logger.log("Starting recurring expense generation");
+
+      // Get all active recurring expenses
+      const recurringExpensesSnapshot = await db
+        .collection("recurringExpenses")
+        .where("isActive", "==", true)
+        .get();
+
+      if (recurringExpensesSnapshot.empty) {
+        functions.logger.log("No active recurring expenses found");
+        return null;
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0); // Normalize to start of day
+
+      const batch = db.batch();
+      let expensesGenerated = 0;
+
+      // Process each recurring expense
+      for (const doc of recurringExpensesSnapshot.docs) {
+        const recurringExpense = doc.data() as RecurringExpense;
+
+        // Skip if start date is in the future
+        const startDate = recurringExpense.startDate instanceof admin.firestore.Timestamp
+          ? recurringExpense.startDate.toDate()
+          : new Date(recurringExpense.startDate);
+
+        if (startDate > today) {
+          continue;
+        }
+
+        // Skip if end date is in the past
+        if (recurringExpense.endDate) {
+          const endDate = recurringExpense.endDate instanceof admin.firestore.Timestamp
+            ? recurringExpense.endDate.toDate()
+            : new Date(recurringExpense.endDate);
+
+          if (endDate < today) {
+            continue;
+          }
+        }
+
+        // Get the last generated date or use start date if none
+        let lastGeneratedDate = startDate;
+        if (recurringExpense.lastGeneratedDate) {
+          lastGeneratedDate = recurringExpense.lastGeneratedDate instanceof admin.firestore.Timestamp
+            ? recurringExpense.lastGeneratedDate.toDate()
+            : new Date(recurringExpense.lastGeneratedDate);
+        }
+
+        // Check if we need to generate a new expense based on frequency
+        const shouldGenerate = shouldGenerateExpense(
+          recurringExpense.frequency,
+          lastGeneratedDate,
+          today
+        );
+
+        if (shouldGenerate) {
+          // Create a new expense
+          const expenseRef = db.collection("expenses").doc();
+          const month = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}`;
+
+          const newExpense: Omit<Expense, "id"> = {
+            description: recurringExpense.description || recurringExpense.title,
+            amount: recurringExpense.amount,
+            date: admin.firestore.Timestamp.fromDate(today),
+            paidByUserId: recurringExpense.paidByUserId,
+            splitType: recurringExpense.splitType,
+            categoryId: recurringExpense.categoryId,
+            locationId: recurringExpense.locationId,
+            month: month,
+            recurringExpenseId: doc.id,
+          };
+
+          batch.set(expenseRef, newExpense);
+
+          // Update the last generated date
+          batch.update(doc.ref, {
+            lastGeneratedDate: admin.firestore.Timestamp.fromDate(today),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+
+          expensesGenerated++;
+        }
+      }
+
+      if (expensesGenerated > 0) {
+        await batch.commit();
+        functions.logger.log(`Generated ${expensesGenerated} expenses from recurring expenses`);
+      } else {
+        functions.logger.log("No expenses needed to be generated today");
+      }
+
+      return null;
+    } catch (error) {
+      functions.logger.error("Error generating recurring expenses:", error);
+      return null;
+    }
+  });
+
+// Helper function to determine if an expense should be generated based on frequency
+function shouldGenerateExpense(
+  frequency: RecurringFrequency,
+  lastGenerated: Date,
+  today: Date
+): boolean {
+  // Normalize dates to start of day for comparison
+  const lastDate = new Date(lastGenerated);
+  lastDate.setHours(0, 0, 0, 0);
+
+  const currentDate = new Date(today);
+  currentDate.setHours(0, 0, 0, 0);
+
+  // If they're the same day, don't generate
+  if (lastDate.getTime() === currentDate.getTime()) {
+    return false;
+  }
+
+  const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  switch (frequency) {
+    case "daily":
+      return diffDays >= 1;
+
+    case "weekly":
+      return diffDays >= 7;
+
+    case "biweekly":
+      return diffDays >= 14;
+
+    case "monthly":
+      // Check if it's been a month (approximately)
+      const lastMonth = lastDate.getMonth();
+      const currentMonth = currentDate.getMonth();
+      const lastYear = lastDate.getFullYear();
+      const currentYear = currentDate.getFullYear();
+
+      if (currentYear > lastYear) {
+        return (currentMonth + 12) - lastMonth >= 1;
+      }
+      return currentMonth - lastMonth >= 1;
+
+    case "quarterly":
+      // Check if it's been 3 months (approximately)
+      const lastQuarter = Math.floor(lastDate.getMonth() / 3);
+      const currentQuarter = Math.floor(currentDate.getMonth() / 3);
+      const lastQuarterYear = lastDate.getFullYear();
+      const currentQuarterYear = currentDate.getFullYear();
+
+      if (currentQuarterYear > lastQuarterYear) {
+        return (currentQuarter + 4) - lastQuarter >= 1;
+      }
+      return currentQuarter - lastQuarter >= 1;
+
+    case "yearly":
+      // Check if it's been a year
+      return currentDate.getFullYear() - lastDate.getFullYear() >= 1;
+
+    default:
+      return false;
+  }
+}
