@@ -29,11 +29,34 @@ jobs:
         with:
           node-version: '20' # Consistent with other workflows
 
+      # Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+
+      # Get pnpm store directory
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      # Setup pnpm cache
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # Install dependencies
       - name: Install dependencies
-        run: npm ci # Use 'ci' for faster, deterministic installs in CI
+        run: pnpm install
 
       - name: Run TypeScript Check
-        run: npm run check # Runs 'tsc' for type checking
+        run: pnpm run check # Runs 'tsc' for type checking
 
       # Snyk Open Source (Dependency Vulnerability Scan)
       - name: Run Snyk to check for vulnerabilities
