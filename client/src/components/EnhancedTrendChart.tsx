@@ -35,8 +35,8 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameT
         <div className="mt-2 space-y-1">
           {payload.map((entry, index) => (
             <div key={`tooltip-${index}`} className="flex items-center">
-              <div 
-                className="w-3 h-3 mr-2 rounded-full" 
+              <div
+                className="w-3 h-3 mr-2 rounded-full"
                 style={{ backgroundColor: entry.color }}
               />
               <span className="text-gray-700 dark:text-gray-300">{entry.name}: </span>
@@ -53,9 +53,9 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameT
 // Format Y-axis ticks
 const formatYAxis = (value: number) => {
   if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}k`;
+    return `£${(value / 1000).toFixed(0)}k`;
   }
-  return `$${value}`;
+  return `£${value}`;
 };
 
 export default function EnhancedTrendChart({ trendData, isLoading = false }: EnhancedTrendChartProps) {
@@ -268,14 +268,14 @@ export default function EnhancedTrendChart({ trendData, isLoading = false }: Enh
                 <tr key={month}>
                   <td className="border border-gray-200 dark:border-gray-700 p-2">{formatMonthYear(month)}</td>
                   {items.map(item => {
-                    const key = item.dataKey.startsWith('cat_') 
-                      ? item.name 
+                    const key = item.dataKey.startsWith('cat_')
+                      ? item.name
                       : item.name;
-                    
+
                     const values = item.dataKey.startsWith('cat_')
                       ? trendData.categoriesData[item.name]
                       : trendData.locationsData[item.name];
-                    
+
                     return (
                       <td key={`${month}-${key}`} className="border border-gray-200 dark:border-gray-700 p-2">
                         {formatCurrency(values[monthIndex])}

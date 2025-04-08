@@ -42,8 +42,8 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameT
         <p className="font-medium text-gray-900 dark:text-gray-100">{payload[0].name}</p>
         <div className="mt-2 space-y-1">
           <div className="flex items-center">
-            <div 
-              className="w-3 h-3 mr-2 rounded-full" 
+            <div
+              className="w-3 h-3 mr-2 rounded-full"
               style={{ backgroundColor: payload[0].color }}
             />
             <span className="text-gray-700 dark:text-gray-300">Amount: </span>
@@ -66,9 +66,9 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<ValueType, NameT
 // Format Y-axis ticks
 const formatYAxis = (value: number) => {
   if (value >= 1000) {
-    return `$${(value / 1000).toFixed(0)}k`;
+    return `£${(value / 1000).toFixed(0)}k`;
   }
-  return `$${value}`;
+  return `£${value}`;
 };
 
 // Custom label for pie chart
@@ -79,11 +79,11 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   const y = cy + radius * Math.sin(-midAngle * RADIAN);
 
   return percent > 0.05 ? (
-    <text 
-      x={x} 
-      y={y} 
-      fill="#fff" 
-      textAnchor={x > cx ? 'start' : 'end'} 
+    <text
+      x={x}
+      y={y}
+      fill="#fff"
+      textAnchor={x > cx ? 'start' : 'end'}
       dominantBaseline="central"
       fontSize={12}
     >
@@ -92,12 +92,12 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   ) : null;
 };
 
-export default function EnhancedDataChart({ 
-  title, 
-  data, 
-  valueFormatter, 
-  height = 350,
-  isLoading = false 
+export default function EnhancedDataChart({
+  title,
+  data,
+  valueFormatter,
+  height = 300,
+  isLoading = false
 }: EnhancedDataChartProps) {
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
@@ -114,7 +114,7 @@ export default function EnhancedDataChart({
   const sortedData = [...data].sort((a, b) => b.value - a.value);
 
   // Generate colors for chart items
-  const COLORS = sortedData.map((_, index) => 
+  const COLORS = sortedData.map((_, index) =>
     `hsl(${(index * 25) % 360}, 70%, 50%)`
   );
 

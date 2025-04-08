@@ -509,13 +509,39 @@ export default function Analytics() {
           </CardContent>
         </Card>
 
-        {/* User comparison chart */}
-        {isLoading ? (
-          <Skeleton className="h-[400px] w-full" />
-        ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
-          flags.enableCharts ? (
-            <ChartErrorBoundary
-              fallback={
+        {/* Comparison Charts Row */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* User comparison chart */}
+          <div>
+            {isLoading ? (
+              <Skeleton className="h-[400px] w-full" />
+            ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
+              flags.enableCharts ? (
+                <ChartErrorBoundary
+                  fallback={
+                    <SimpleDataTable
+                      title="User Expense Comparison"
+                      data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+                        name: getUsernameById(userId),
+                        value: amount,
+                      }))}
+                      valueFormatter={formatCurrency}
+                      height={300}
+                    />
+                  }
+                >
+                  <EnhancedDataChart
+                    title="User Expense Comparison"
+                    data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+                      name: getUsernameById(userId),
+                      value: amount,
+                    }))}
+                    valueFormatter={formatCurrency}
+                    height={300}
+                    isLoading={false}
+                  />
+                </ChartErrorBoundary>
+              ) : (
                 <SimpleDataTable
                   title="User Expense Comparison"
                   data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
@@ -523,52 +549,56 @@ export default function Analytics() {
                     value: amount,
                   }))}
                   valueFormatter={formatCurrency}
-                  height={350}
+                  height={300}
                 />
-              }
-            >
-              <EnhancedDataChart
-                title="User Expense Comparison"
-                data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
-                  name: getUsernameById(userId),
-                  value: amount,
-                }))}
-                valueFormatter={formatCurrency}
-                height={350}
-                isLoading={false}
-              />
-            </ChartErrorBoundary>
-          ) : (
-            <SimpleDataTable
-              title="User Expense Comparison"
-              data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
-                name: getUsernameById(userId),
-                value: amount,
-              }))}
-              valueFormatter={formatCurrency}
-              height={350}
-            />
-          )
-        ) : (
-          <Card className="border-gray-200 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle>User Expense Comparison</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="p-8 text-center">
-                <p className="text-gray-600 dark:text-gray-400">No user expense data available.</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )
+            ) : (
+              <Card className="border-gray-200 dark:border-gray-700 h-full">
+                <CardHeader>
+                  <CardTitle>User Expense Comparison</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-8 text-center">
+                    <p className="text-gray-600 dark:text-gray-400">No user expense data available.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-        {/* Category Chart */}
-        {isLoading ? (
-          <Skeleton className="h-[400px] w-full" />
-        ) : summary && summary.categoryTotals && summary.categoryTotals.length > 0 ? (
-          flags.enableCharts ? (
-            <ChartErrorBoundary
-              fallback={
+          {/* Category Chart */}
+          <div>
+            {isLoading ? (
+              <Skeleton className="h-[400px] w-full" />
+            ) : summary && summary.categoryTotals && summary.categoryTotals.length > 0 ? (
+              flags.enableCharts ? (
+                <ChartErrorBoundary
+                  fallback={
+                    <SimpleDataTable
+                      title="Expenses by Category"
+                      data={summary.categoryTotals.map(item => ({
+                        name: item.category.name,
+                        value: item.amount,
+                        percentage: item.percentage,
+                      }))}
+                      valueFormatter={formatCurrency}
+                      height={300}
+                    />
+                  }
+                >
+                  <EnhancedDataChart
+                    title="Expenses by Category"
+                    data={summary.categoryTotals.map(item => ({
+                      name: item.category.name,
+                      value: item.amount,
+                      percentage: item.percentage,
+                    }))}
+                    valueFormatter={formatCurrency}
+                    height={300}
+                    isLoading={false}
+                  />
+                </ChartErrorBoundary>
+              ) : (
                 <SimpleDataTable
                   title="Expenses by Category"
                   data={summary.categoryTotals.map(item => ({
@@ -577,54 +607,56 @@ export default function Analytics() {
                     percentage: item.percentage,
                   }))}
                   valueFormatter={formatCurrency}
-                  height={350}
+                  height={300}
                 />
-              }
-            >
-              <EnhancedDataChart
-                title="Expenses by Category"
-                data={summary.categoryTotals.map(item => ({
-                  name: item.category.name,
-                  value: item.amount,
-                  percentage: item.percentage,
-                }))}
-                valueFormatter={formatCurrency}
-                height={350}
-                isLoading={false}
-              />
-            </ChartErrorBoundary>
-          ) : (
-            <SimpleDataTable
-              title="Expenses by Category"
-              data={summary.categoryTotals.map(item => ({
-                name: item.category.name,
-                value: item.amount,
-                percentage: item.percentage,
-              }))}
-              valueFormatter={formatCurrency}
-              height={350}
-            />
-          )
-        ) : (
-          <Card className="border-gray-200 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle>Expenses by Category</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="p-8 text-center">
-                <p className="text-gray-600 dark:text-gray-400">No category data available.</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )
+            ) : (
+              <Card className="border-gray-200 dark:border-gray-700 h-full">
+                <CardHeader>
+                  <CardTitle>Expenses by Category</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-8 text-center">
+                    <p className="text-gray-600 dark:text-gray-400">No category data available.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
 
-        {/* Location Chart */}
-        {isLoading ? (
-          <Skeleton className="h-[400px] w-full" />
-        ) : summary && summary.locationTotals && summary.locationTotals.length > 0 ? (
-          flags.enableCharts ? (
-            <ChartErrorBoundary
-              fallback={
+          {/* Location Chart */}
+          <div>
+            {isLoading ? (
+              <Skeleton className="h-[400px] w-full" />
+            ) : summary && summary.locationTotals && summary.locationTotals.length > 0 ? (
+              flags.enableCharts ? (
+                <ChartErrorBoundary
+                  fallback={
+                    <SimpleDataTable
+                      title="Expenses by Location"
+                      data={summary.locationTotals.map(item => ({
+                        name: item.location.name,
+                        value: item.amount,
+                        percentage: item.percentage,
+                      }))}
+                      valueFormatter={formatCurrency}
+                      height={300}
+                    />
+                  }
+                >
+                  <EnhancedDataChart
+                    title="Expenses by Location"
+                    data={summary.locationTotals.map(item => ({
+                      name: item.location.name,
+                      value: item.amount,
+                      percentage: item.percentage,
+                    }))}
+                    valueFormatter={formatCurrency}
+                    height={300}
+                    isLoading={false}
+                  />
+                </ChartErrorBoundary>
+              ) : (
                 <SimpleDataTable
                   title="Expenses by Location"
                   data={summary.locationTotals.map(item => ({
@@ -633,46 +665,23 @@ export default function Analytics() {
                     percentage: item.percentage,
                   }))}
                   valueFormatter={formatCurrency}
-                  height={350}
+                  height={300}
                 />
-              }
-            >
-              <EnhancedDataChart
-                title="Expenses by Location"
-                data={summary.locationTotals.map(item => ({
-                  name: item.location.name,
-                  value: item.amount,
-                  percentage: item.percentage,
-                }))}
-                valueFormatter={formatCurrency}
-                height={350}
-                isLoading={false}
-              />
-            </ChartErrorBoundary>
-          ) : (
-            <SimpleDataTable
-              title="Expenses by Location"
-              data={summary.locationTotals.map(item => ({
-                name: item.location.name,
-                value: item.amount,
-                percentage: item.percentage,
-              }))}
-              valueFormatter={formatCurrency}
-              height={350}
-            />
-          )
-        ) : (
-          <Card className="border-gray-200 dark:border-gray-700">
-            <CardHeader>
-              <CardTitle>Expenses by Location</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="p-8 text-center">
-                <p className="text-gray-600 dark:text-gray-400">No location data available.</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+              )
+            ) : (
+              <Card className="border-gray-200 dark:border-gray-700 h-full">
+                <CardHeader>
+                  <CardTitle>Expenses by Location</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="p-8 text-center">
+                    <p className="text-gray-600 dark:text-gray-400">No location data available.</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
 
         {/* Trend Chart */}
         {isLoading || trendDataLoading ? (
