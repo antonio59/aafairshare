@@ -4,7 +4,7 @@ dist
 
 # Build output / Generated files
 server/public
-public/
+# public/ - We need these files for deployment
 vite.config.ts.*
 *.tar.gz
 complete_export_*.json
