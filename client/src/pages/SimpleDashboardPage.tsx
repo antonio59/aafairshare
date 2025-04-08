@@ -36,7 +36,7 @@ export default function SimpleDashboardPage() {
       // Fetch expenses for the current month
       const expensesQuery = query(
         collection(db, "expenses"),
-        where("householdId", "==", currentUser.householdId),
+        // Remove householdId filter as it's not in the schema
         where("date", ">=", startTimestamp),
         where("date", "<=", endTimestamp),
         orderBy("date", "desc")
@@ -52,15 +52,25 @@ export default function SimpleDashboardPage() {
       // Fetch summary for the current month
       const summaryQuery = query(
         collection(db, "summaries"),
-        where("householdId", "==", currentUser.householdId),
+        // Remove householdId filter as it's not in the schema
         where("month", "==", currentMonth)
       );
 
       const summarySnapshot = await getDocs(summaryQuery);
       if (!summarySnapshot.empty) {
+        // Convert to MonthSummary with proper type handling
+        const summaryDoc = summarySnapshot.docs[0];
         const summaryData = {
-          id: summarySnapshot.docs[0].id,
-          ...summarySnapshot.docs[0].data()
+          id: summaryDoc.id,
+          month: summaryDoc.data().month || currentMonth,
+          totalExpenses: summaryDoc.data().totalExpenses || 0,
+          userExpenses: summaryDoc.data().userExpenses || {},
+          settlementAmount: summaryDoc.data().settlementAmount || 0,
+          settlementDirection: summaryDoc.data().settlementDirection || { fromUserId: "", toUserId: "" },
+          categoryTotals: summaryDoc.data().categoryTotals || [],
+          locationTotals: summaryDoc.data().locationTotals || [],
+          splitTypeTotals: summaryDoc.data().splitTypeTotals || {},
+          dateDistribution: summaryDoc.data().dateDistribution || {}
         } as MonthSummary;
         setSummary(summaryData);
       } else {

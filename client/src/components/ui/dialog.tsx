@@ -60,8 +60,8 @@ const DialogContent = React.forwardRef<
         }
 
         // Check children of this element
-        if (children.props && children.props.children) {
-          return checkForTitle(children.props.children);
+        if (children.props && typeof children.props === 'object' && 'children' in children.props) {
+          return checkForTitle(children.props.children as React.ReactNode);
         }
       }
 
