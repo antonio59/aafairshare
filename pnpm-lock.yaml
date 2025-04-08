@@ -12,7 +12,7 @@ importers:
         specifier: ^7.11.0
         version: 7.11.0
       '@grpc/grpc-js':
-        specifier: ^1.13.2
+        specifier: ^1.9.15
         version: 1.13.2
       '@hookform/resolvers':
         specifier: ^5.0.0
@@ -182,6 +182,9 @@ importers:
       tailwindcss-animate:
         specifier: ^1.0.7
         version: 1.0.7(tailwindcss@3.4.17)
+      undici:
+        specifier: ^6.21.0
+        version: 6.21.2
       vaul:
         specifier: ^1.1.0
         version: 1.1.2(@types/react-dom@19.1.1(@types/react@19.1.0))(@types/react@19.1.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -4030,6 +4033,10 @@ packages:
 
   undici@6.19.7:
     resolution: {integrity: sha512-HR3W/bMGPSr90i8AAp2C4DM3wChFdJPLrWYpIS++LxS8K+W535qftjt+4MyjNYHeWabMj1nvtmLIi7l++iq91A==}
+    engines: {node: '>=18.17'}
+
+  undici@6.21.2:
+    resolution: {integrity: sha512-uROZWze0R0itiAKVPsYhFov9LxrPMHLMEQFszeI2gCN6bnIIZ8twzBCJcN2LJrBBLfrP0t1FW0g+JmKVl8Vk1g==}
     engines: {node: '>=18.17'}
 
   update-browserslist-db@1.1.3:
@@ -8580,6 +8587,8 @@ snapshots:
   undici-types@6.21.0: {}
 
   undici@6.19.7: {}
+
+  undici@6.21.2: {}
 
   update-browserslist-db@1.1.3(browserslist@4.24.4):
     dependencies:
