@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendData } from "@shared/schema";
@@ -62,6 +62,17 @@ export default function EnhancedTrendChart({ trendData, isLoading = false }: Enh
   const [chartType, setChartType] = useState<'line' | 'bar'>('line');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
   const [chartError, setChartError] = useState<string | null>(null);
+  const chartInitialized = useRef<boolean>(false);
+
+  // Initialize chart only after component is mounted
+  useEffect(() => {
+    chartInitialized.current = true;
+
+    // Cleanup function to prevent memory leaks
+    return () => {
+      chartInitialized.current = false;
+    };
+  }, []);
 
   // Reset error state when trendData changes
   useEffect(() => {
@@ -150,8 +161,8 @@ export default function EnhancedTrendChart({ trendData, isLoading = false }: Enh
 
   // Render the chart component based on the current tab and chart type
   const renderChart = (dataKey: string, items: Array<{ name: string; dataKey: string; color: string }>) => {
-    if (viewMode === 'table') {
-      return null; // Table view is handled separately
+    if (viewMode === 'table' || !chartInitialized.current) {
+      return null; // Table view is handled separately or chart not initialized yet
     }
 
     try {

@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
@@ -106,6 +106,21 @@ export default function EnhancedDataChart({
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
   const [chartError, setChartError] = useState<string | null>(null);
+  const chartInitialized = useRef<boolean>(false);
+
+  // Initialize chart only after component is mounted
+  useEffect(() => {
+    // Small delay to ensure DOM is fully ready
+    const timer = setTimeout(() => {
+      chartInitialized.current = true;
+    }, 100);
+
+    // Cleanup function
+    return () => {
+      clearTimeout(timer);
+      chartInitialized.current = false;
+    };
+  }, []);
 
   // Error handler for chart rendering
   const handleChartError = useCallback((error: Error) => {
@@ -155,8 +170,8 @@ export default function EnhancedDataChart({
 
   // Render the chart based on the selected type
   const renderChart = () => {
-    if (viewMode === 'table') {
-      return null; // Table view is handled separately
+    if (viewMode === 'table' || !chartInitialized.current) {
+      return null; // Table view is handled separately or chart not initialized yet
     }
 
     try {

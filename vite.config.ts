@@ -88,7 +88,16 @@ export default defineConfig({
     }
    },
    optimizeDeps: {
-     include: ['jspdf'],
+     include: [
+       'jspdf',
+       'recharts',
+       'recharts/types/component/DefaultTooltipContent',
+       'd3-shape',
+       'd3-scale',
+       'd3-array'
+     ],
+     // Force prebundling of these dependencies
+     force: true
    },
    build: {
     // Input is implicitly index.html at project root
@@ -97,14 +106,20 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
-        // Disable manual chunking for charting libraries to avoid initialization issues
+        // Improved chunking strategy
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('/react/') || id.includes('/react-dom/')) {
-              return 'vendor-core';
+              return 'vendor-react';
             }
-            // Let Vite handle the chunking for charting libraries automatically
-            // This should help avoid initialization order issues
+            if (id.includes('recharts') || id.includes('d3-')) {
+              return 'vendor-charts';
+            }
+            if (id.includes('firebase')) {
+              return 'vendor-firebase';
+            }
+            // Default vendor chunk for other dependencies
+            return 'vendor';
           }
         },
       },

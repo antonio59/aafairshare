@@ -10,6 +10,9 @@
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
   <link rel="manifest" href="manifest.json?v=6">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Preload critical vendor bundles -->
+  <link rel="modulepreload" href="/assets/vendor-react.js">
+  <link rel="modulepreload" href="/assets/vendor-charts.js">
   <!-- iOS specific meta tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,6 +20,16 @@
 </head>
 <body>
   <div id="root"></div>
+  <!-- Ensure React is loaded before any chart initialization -->
   <script type="module" src="/client/src/main.tsx"></script>
+  <!-- Prevent flash of unstyled content -->
+  <script>
+    // Apply dark mode immediately based on user preference
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
 </body>
 </html>
