@@ -38,6 +38,17 @@ self.addEventListener('activate', event => {
 
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', event => {
+  // Early check for non-HTTP/HTTPS requests (like chrome-extension:// URLs)
+  try {
+    const url = new URL(event.request.url);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      // Skip service worker for non-HTTP/HTTPS requests
+      return;
+    }
+  } catch (e) {
+    console.error('Invalid URL in initial fetch check:', e);
+    return;
+  }
   // Skip for Firebase auth and Firestore requests
   // Use URL object for safer parsing and validation
   try {
@@ -109,9 +120,15 @@ self.addEventListener('fetch', event => {
               caches.open(CACHE_NAME)
                 .then(cache => {
                   // Additional security check before caching
-                  if (requestUrl.protocol === 'https:' || requestUrl.hostname === 'localhost') {
+                  // Only cache http/https URLs (not chrome-extension, file, etc.)
+                  const validProtocols = ['http:', 'https:'];
+                  if (validProtocols.includes(requestUrl.protocol) &&
+                      (requestUrl.protocol === 'https:' || requestUrl.hostname === 'localhost')) {
                     cache.put(event.request, responseToCache);
                   }
+                }).catch(error => {
+                  console.error('Cache put error:', error);
+                  // Continue without caching
                 });
 
               return response;
