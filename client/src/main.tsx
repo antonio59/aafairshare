@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App";
 import "./index.css";
 import { AuthProvider } from './context/AuthContext'; // Import AuthProvider
+import { FeatureFlagProvider } from './context/FeatureFlagContext'; // Import FeatureFlagProvider
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
@@ -18,11 +19,13 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Wrap App with AuthProvider
+// Wrap App with providers
 createRoot(document.getElementById("root")!).render(
   // <React.StrictMode> {/* Temporarily removed for debugging Firebase redirect */}
     <AuthProvider>
-      <App />
+      <FeatureFlagProvider>
+        <App />
+      </FeatureFlagProvider>
     </AuthProvider>
   // </React.StrictMode>
 );
