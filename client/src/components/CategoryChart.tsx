@@ -87,7 +87,7 @@ export default function CategoryChart({ summary, isLoading = false }: CategoryCh
 
   if (isLoading) {
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-gray-200">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl">Category Distribution</CardTitle>
         </CardHeader>
@@ -108,7 +108,7 @@ export default function CategoryChart({ summary, isLoading = false }: CategoryCh
 
   if (!summary || summary.categoryTotals.length === 0) {
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-gray-200">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl">Category Distribution</CardTitle>
         </CardHeader>
@@ -122,7 +122,7 @@ export default function CategoryChart({ summary, isLoading = false }: CategoryCh
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-gray-200">
       {/* Header for Category Distribution Card */}
       <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-800">
         <CardTitle className="text-xl">Category Distribution</CardTitle>

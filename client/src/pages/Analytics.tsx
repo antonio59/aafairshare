@@ -462,7 +462,7 @@ export default function Analytics() {
 
       <div ref={printRef} className="space-y-6">
         {/* Summary Card */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden border-gray-200">
           <CardHeader className="pb-4"><CardTitle className="text-xl">Monthly Summary</CardTitle></CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-24 w-full" /> : (
@@ -480,7 +480,7 @@ export default function Analytics() {
         </Card>
 
         {/* User comparison chart */}
-        <Card className="overflow-hidden">
+        <Card className="overflow-hidden border-gray-200">
           <CardHeader className="pb-3"><CardTitle className="text-xl">User Expense Comparison</CardTitle></CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-64 w-full" /> : (summary && Object.keys(summary.userExpenses).length > 0 ? (

@@ -281,7 +281,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                           value={category.id}
                           aria-label={category.name}
                           className={cn(
-                            "flex flex-col items-center justify-center h-20 rounded-lg border data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
+                            "flex flex-col items-center justify-center h-20 rounded-lg border border-gray-200 data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
                             "hover:bg-gray-50" // Basic hover effect
                           )}
                         >
@@ -339,7 +339,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                       value="Equal"
                       aria-label="Split equally"
                       className={cn(
-                        "flex flex-col items-start justify-center h-auto p-3 rounded-lg border data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
+                        "flex flex-col items-start justify-center h-auto p-3 rounded-lg border border-gray-200 data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
                         "hover:bg-gray-50 text-left" // Align text left
                       )}
                     >
@@ -350,7 +350,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
                        value="Owned"
                        aria-label="Owned by other user"
                        className={cn(
-                         "flex flex-col items-start justify-center h-auto p-3 rounded-lg border data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
+                         "flex flex-col items-start justify-center h-auto p-3 rounded-lg border border-gray-200 data-[state=on]:bg-blue-100 data-[state=on]:border-blue-500 data-[state=on]:text-blue-700",
                          "hover:bg-gray-50 text-left" // Align text left
                        )}
                     >
@@ -412,7 +412,7 @@ export default function ExpenseForm({ expense, onClose, categories, locations, u
             variant="outline" // Style based on image
             onClick={() => onClose(false)}
             disabled={isSubmitting}
-            className="flex-1 h-12 text-base border-gray-300 text-gray-700" // Adjusted styling
+            className="flex-1 h-12 text-base border-gray-200 text-gray-700" // Updated border color to match other elements
           >
             Cancel
           </Button>

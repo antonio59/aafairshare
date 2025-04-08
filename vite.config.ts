@@ -1,7 +1,7 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vitest/config'; // Use defineConfig from vitest/config
+import { defineConfig } from 'vitest/config';
 import react from "@vitejs/plugin-react";
-import basicSsl from '@vitejs/plugin-basic-ssl'; // Import the SSL plugin
+import basicSsl from '@vitejs/plugin-basic-ssl';
 import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -11,56 +11,48 @@ const __dirname = dirname(__filename);
 export default defineConfig({
   plugins: [
     react(),
-    basicSsl(), // Re-enable SSL plugin
+    basicSsl(),
   ],
   resolve: {
     alias: {
+      // Alias paths are now relative to project root
       "@": path.resolve(__dirname, "client", "src"),
       "@shared": path.resolve(__dirname, "shared"),
     },
   },
-  // css: { // Explicit CSS configuration removed - Vite should auto-detect postcss.config.js
-  //   postcss: './postcss.config.js',
-  // },
   server: {
     headers: {
-      // Allow popups for OAuth flows using signInWithPopup
       "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
-      // Keep COEP relaxed for now unless specific features require 'require-corp'
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     }
    },
-   optimizeDeps: { // Add optimizeDeps
-     include: ['jspdf'], // Pre-bundle jspdf, removed xlsx
+   optimizeDeps: {
+     include: ['jspdf'],
    },
-   root: path.resolve(__dirname, "client"), // Keep root as client
+   // root: path.resolve(__dirname, "client"), // REMOVED - Vite root is now project root
    build: {
-    outDir: path.resolve(__dirname, "client/dist"), // Output directly to client/dist for Firebase
+    // Input is implicitly index.html at project root
+    outDir: path.resolve(__dirname, "dist"), // Output relative to project root
     emptyOutDir: true,
-    chunkSizeWarningLimit: 700, // Increase warning limit to 700 kB
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Group node_modules into specific chunks
           if (id.includes('node_modules')) {
-            if (id.includes('/react/') || id.includes('/react-dom/')) { // More specific check for react/react-dom
-              return 'vendor-core'; // Core React libs
+            if (id.includes('/react/') || id.includes('/react-dom/')) {
+              return 'vendor-core';
             } else if (id.includes('recharts') || id.includes('chart.js')) {
-              return 'vendor-charting'; // Charting libs
+              return 'vendor-charting';
             }
-            // Let Rollup handle Firebase and other dependencies automatically
-            // Other node_modules will be implicitly grouped by Rollup
           }
         },
       },
     },
   },
-  // Add Vitest configuration
   test: {
-    globals: true, // Use Vitest global APIs
-    environment: 'jsdom', // Simulate browser environment for React components
-    setupFiles: './client/src/setupTests.ts', // Path to setup file (relative to root)
-    // Optional: Configure CSS handling if needed (e.g., for CSS Modules)
-    // css: true,
+    globals: true,
+    environment: 'jsdom',
+    // Path is relative to project root
+    setupFiles: './client/src/setupTests.ts',
   },
 });

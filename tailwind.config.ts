@@ -1,12 +1,13 @@
 import type { Config } from "tailwindcss";
 import defaultTheme from 'tailwindcss/defaultTheme';
+import typography from "@tailwindcss/typography";
 
 const config: Config = {
   darkMode: "class",
   content: [
     "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
-    "../../node_modules/@radix-ui/**/*.{js,jsx,ts,tsx}"
+    "./client/src/**/*.{js,jsx,ts,tsx}",
+    "./node_modules/@radix-ui/**/*.{js,jsx,ts,tsx}"
   ],
   theme: {
     fontFamily: {
@@ -44,6 +45,7 @@ const config: Config = {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
+        border: "hsl(var(--border))",
       },
       borderRadius: {
         lg: "var(--radius)",
@@ -52,7 +54,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("@tailwindcss/typography")],
+  plugins: [typography],
 };
 
 export default config;

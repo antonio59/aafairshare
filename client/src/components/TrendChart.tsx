@@ -20,7 +20,7 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="border-gray-200">
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
@@ -33,7 +33,7 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
 
   if (!trendData || trendData.months.length === 0) {
     return (
-      <Card>
+      <Card className="border-gray-200">
         <CardHeader>
           <CardTitle>Expense Trends</CardTitle>
         </CardHeader>
@@ -145,7 +145,7 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-gray-200">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl">Expense Trends Over Time</CardTitle>
       </CardHeader>

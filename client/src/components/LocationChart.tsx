@@ -75,7 +75,7 @@ export default function LocationChart({ summary, isLoading = false }: LocationCh
 
   if (isLoading) {
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-gray-200">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl">Location Distribution</CardTitle>
         </CardHeader>
@@ -96,7 +96,7 @@ export default function LocationChart({ summary, isLoading = false }: LocationCh
 
   if (!summary || summary.locationTotals.length === 0) {
     return (
-      <Card className="overflow-hidden">
+      <Card className="overflow-hidden border-gray-200">
         <CardHeader className="pb-3">
           <CardTitle className="text-xl">Location Distribution</CardTitle>
         </CardHeader>
@@ -110,7 +110,7 @@ export default function LocationChart({ summary, isLoading = false }: LocationCh
   }
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="overflow-hidden border-gray-200">
       <CardHeader className="pb-3 border-b border-gray-200 dark:border-gray-800">
         <CardTitle className="text-xl">Location Distribution</CardTitle>
       </CardHeader>
