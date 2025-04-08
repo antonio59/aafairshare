@@ -5,36 +5,29 @@ import { MonthSummary, User, TrendData, Expense, Settlement, Category, Location 
 import { getCurrentMonth, formatCurrency, getMonthFromDate } from "@/lib/utils"; // Added getMonthFromDate
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-// import { EnhancedChart } from "@/components/EnhancedChart";
-// import { ComparisonChart } from "@/components/ComparisonChart";
 import { announce } from "@/components/LiveRegion";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
-// import TrendChart from "@/components/TrendChart";
+// Import chart components
+import EnhancedTrendChart from "@/components/EnhancedTrendChart";
+import EnhancedDataChart from "@/components/EnhancedDataChart";
+import ChartErrorBoundary from "@/components/ChartErrorBoundary";
 import SimpleTrendChart from "@/components/SimpleTrendChart";
 import SimpleDataTable from "@/components/SimpleDataTable";
-// Remove Chart.js imports as we're using Recharts
-import { useAuth } from "@/context/AuthContext"; // Import useAuth
+import { useAuth } from "@/context/AuthContext";
+import { useFeatureFlags } from "@/context/FeatureFlagContext";
 
-import { db } from "@/lib/firebase"; // Import Firestore instance
-// Removed unused getDocs, limit, startAt, endAt imports
+import { db } from "@/lib/firebase";
 import { collection, query, where, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
-
-// Removed unused format, endOfMonth imports
-import { subMonths, startOfMonth } from "date-fns"; // Import date-fns helpers
-
-// Color palette for charts
-const COLORS = [
-  '#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8',
-  '#82CA9D', '#FF6B6B', '#6A7FDB', '#61DAFB', '#F28482',
-];
-
-// Chart.js initialization removed
+import { subMonths, startOfMonth } from "date-fns";
 
 export default function Analytics() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
   const { toast } = useToast();
   const printRef = useRef<HTMLDivElement>(null); // Keep printRef if PDF export via print is still desired elsewhere or potentially later
   const { currentUser, loading: authLoading } = useAuth(); // Removed initialized, added loading alias
+  const { flags, toggleFlag } = useFeatureFlags();
 
   // State for Firestore data
   const [users, setUsers] = useState<User[]>([]);
@@ -475,6 +468,16 @@ export default function Analytics() {
     <div className="space-y-6 px-4 md:px-6 pb-24"> {/* Changed padding here */}
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-50">Analytics</h1>
+        <div className="flex items-center space-x-2">
+          <Switch
+            id="charts-toggle"
+            checked={flags.enableCharts}
+            onCheckedChange={() => toggleFlag('enableCharts')}
+          />
+          <Label htmlFor="charts-toggle" className="text-sm text-gray-600 dark:text-gray-400">
+            {flags.enableCharts ? 'Charts Enabled' : 'Charts Disabled'}
+          </Label>
+        </div>
       </div>
 
       <div className="flex flex-col gap-4">
@@ -510,15 +513,42 @@ export default function Analytics() {
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
-          <SimpleDataTable
-            title="User Expense Comparison"
-            data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
-              name: getUsernameById(userId),
-              value: amount,
-            }))}
-            valueFormatter={formatCurrency}
-            height={350}
-          />
+          flags.enableCharts ? (
+            <ChartErrorBoundary
+              fallback={
+                <SimpleDataTable
+                  title="User Expense Comparison"
+                  data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+                    name: getUsernameById(userId),
+                    value: amount,
+                  }))}
+                  valueFormatter={formatCurrency}
+                  height={350}
+                />
+              }
+            >
+              <EnhancedDataChart
+                title="User Expense Comparison"
+                data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+                  name: getUsernameById(userId),
+                  value: amount,
+                }))}
+                valueFormatter={formatCurrency}
+                height={350}
+                isLoading={false}
+              />
+            </ChartErrorBoundary>
+          ) : (
+            <SimpleDataTable
+              title="User Expense Comparison"
+              data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+                name: getUsernameById(userId),
+                value: amount,
+              }))}
+              valueFormatter={formatCurrency}
+              height={350}
+            />
+          )
         ) : (
           <Card className="border-gray-200 dark:border-gray-700">
             <CardHeader>
@@ -536,16 +566,45 @@ export default function Analytics() {
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : summary && summary.categoryTotals && summary.categoryTotals.length > 0 ? (
-          <SimpleDataTable
-            title="Expenses by Category"
-            data={summary.categoryTotals.map(item => ({
-              name: item.category.name,
-              value: item.amount,
-              percentage: item.percentage,
-            }))}
-            valueFormatter={formatCurrency}
-            height={350}
-          />
+          flags.enableCharts ? (
+            <ChartErrorBoundary
+              fallback={
+                <SimpleDataTable
+                  title="Expenses by Category"
+                  data={summary.categoryTotals.map(item => ({
+                    name: item.category.name,
+                    value: item.amount,
+                    percentage: item.percentage,
+                  }))}
+                  valueFormatter={formatCurrency}
+                  height={350}
+                />
+              }
+            >
+              <EnhancedDataChart
+                title="Expenses by Category"
+                data={summary.categoryTotals.map(item => ({
+                  name: item.category.name,
+                  value: item.amount,
+                  percentage: item.percentage,
+                }))}
+                valueFormatter={formatCurrency}
+                height={350}
+                isLoading={false}
+              />
+            </ChartErrorBoundary>
+          ) : (
+            <SimpleDataTable
+              title="Expenses by Category"
+              data={summary.categoryTotals.map(item => ({
+                name: item.category.name,
+                value: item.amount,
+                percentage: item.percentage,
+              }))}
+              valueFormatter={formatCurrency}
+              height={350}
+            />
+          )
         ) : (
           <Card className="border-gray-200 dark:border-gray-700">
             <CardHeader>
@@ -563,16 +622,45 @@ export default function Analytics() {
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : summary && summary.locationTotals && summary.locationTotals.length > 0 ? (
-          <SimpleDataTable
-            title="Expenses by Location"
-            data={summary.locationTotals.map(item => ({
-              name: item.location.name,
-              value: item.amount,
-              percentage: item.percentage,
-            }))}
-            valueFormatter={formatCurrency}
-            height={350}
-          />
+          flags.enableCharts ? (
+            <ChartErrorBoundary
+              fallback={
+                <SimpleDataTable
+                  title="Expenses by Location"
+                  data={summary.locationTotals.map(item => ({
+                    name: item.location.name,
+                    value: item.amount,
+                    percentage: item.percentage,
+                  }))}
+                  valueFormatter={formatCurrency}
+                  height={350}
+                />
+              }
+            >
+              <EnhancedDataChart
+                title="Expenses by Location"
+                data={summary.locationTotals.map(item => ({
+                  name: item.location.name,
+                  value: item.amount,
+                  percentage: item.percentage,
+                }))}
+                valueFormatter={formatCurrency}
+                height={350}
+                isLoading={false}
+              />
+            </ChartErrorBoundary>
+          ) : (
+            <SimpleDataTable
+              title="Expenses by Location"
+              data={summary.locationTotals.map(item => ({
+                name: item.location.name,
+                value: item.amount,
+                percentage: item.percentage,
+              }))}
+              valueFormatter={formatCurrency}
+              height={350}
+            />
+          )
         ) : (
           <Card className="border-gray-200 dark:border-gray-700">
             <CardHeader>
@@ -590,7 +678,15 @@ export default function Analytics() {
         {isLoading || trendDataLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : trendData && trendData.months && trendData.months.length > 0 ? (
-          <SimpleTrendChart trendData={trendData} isLoading={false} />
+          flags.enableCharts ? (
+            <ChartErrorBoundary
+              fallback={<SimpleTrendChart trendData={trendData} isLoading={false} />}
+            >
+              <EnhancedTrendChart trendData={trendData} isLoading={false} />
+            </ChartErrorBoundary>
+          ) : (
+            <SimpleTrendChart trendData={trendData} isLoading={false} />
+          )
         ) : (
           <Card>
             <CardHeader>
