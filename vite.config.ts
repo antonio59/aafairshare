@@ -101,10 +101,22 @@ export default defineConfig({
        'recharts/types/component/DefaultTooltipContent',
        'd3-shape',
        'd3-scale',
-       'd3-array'
+       'd3-array',
+       'firebase',
+       'firebase/app',
+       'firebase/auth',
+       'firebase/firestore'
      ],
      // Force prebundling of these dependencies
-     force: true
+     force: true,
+     // Ensure proper resolution of ESM/CJS modules
+     esbuildOptions: {
+       resolveExtensions: ['.js', '.jsx', '.ts', '.tsx'],
+       format: 'esm',
+       target: 'es2020',
+       // Needed for Firebase 9
+       mainFields: ['browser', 'module', 'main']
+     }
    },
    build: {
     // Input is implicitly index.html at project root
@@ -122,6 +134,12 @@ export default defineConfig({
         drop_console: false,
       },
     },
+    // Ensure proper CommonJS/ESM interop
+    commonjsOptions: {
+      include: [/node_modules/],
+      transformMixedEsModules: true,
+      requireReturnsDefault: 'auto'
+    },
     rollupOptions: {
       output: {
         // Ensure proper file naming for cache busting
@@ -132,7 +150,8 @@ export default defineConfig({
         manualChunks: {
           'vendor-react': ['/react/', '/react-dom/'],
           'vendor-charts': ['recharts', 'd3-shape', 'd3-scale', 'd3-array'],
-          'vendor-firebase': ['firebase'],
+          // Don't chunk Firebase to avoid resolution issues
+          // 'vendor-firebase': ['firebase'],
         },
       },
     },
