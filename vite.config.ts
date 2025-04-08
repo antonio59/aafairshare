@@ -90,7 +90,8 @@ export default defineConfig({
   },
   server: {
     headers: {
-      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      // Allow popups to be closed by the opener
+      "Cross-Origin-Opener-Policy": "unsafe-none",
       "Cross-Origin-Embedder-Policy": "unsafe-none",
     }
    },
