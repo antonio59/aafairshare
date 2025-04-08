@@ -23,10 +23,32 @@ jobs:
         uses: actions/setup-node@v4 # Use latest major version
         with: # Correct indentation
           node-version: '20'
-          cache: 'npm' # Restore cache
 
+      # Install pnpm
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+          run_install: false
+
+      # Get pnpm store directory
+      - name: Get pnpm store directory
+        shell: bash
+        run: |
+          echo "STORE_PATH=$(pnpm store path --silent)" >> $GITHUB_ENV
+
+      # Setup pnpm cache
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ env.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      # Install dependencies
       - name: Install dependencies
-        run: npm ci # Use npm ci for reproducible installs
+        run: pnpm install
 
       - name: Setup Snyk CLI
         uses: snyk/actions/setup@master # Try @master instead of @v1
