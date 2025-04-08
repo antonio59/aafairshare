@@ -42,45 +42,89 @@ self.addEventListener('fetch', event => {
   // Use URL object for safer parsing and validation
   try {
     const url = new URL(event.request.url);
-    // Check against specific domains using hostname property
-    if (url.hostname.endsWith('firebaseapp.com') ||
-        url.hostname.endsWith('googleapis.com')) {
-      return;
+
+    // Define an allowlist of trusted domains that should bypass the cache
+    const bypassCacheDomains = [
+      'firebaseapp.com',
+      'googleapis.com',
+      'firebase-settings.crashlytics.com',
+      'firebase.google.com',
+      'firestore.googleapis.com'
+    ];
+
+    // Check if the hostname matches any of our trusted domains
+    const shouldBypassCache = bypassCacheDomains.some(domain => {
+      // Use exact domain matching or proper subdomain checking
+      return url.hostname === domain || url.hostname.endsWith(`.${domain}`);
+    });
+
+    if (shouldBypassCache) {
+      return; // Skip caching for these domains
     }
   } catch (e) {
     console.error('Invalid URL in fetch handler:', e);
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Cache hit - return response
-        if (response) {
-          return response;
-        }
+  // Only handle GET requests - other methods shouldn't be cached
+  if (event.request.method !== 'GET') {
+    return;
+  }
 
-        // Clone the request
-        const fetchRequest = event.request.clone();
+  // Additional URL validation for the request we're about to cache/fetch
+  try {
+    const requestUrl = new URL(event.request.url);
 
-        return fetch(fetchRequest).then(
-          response => {
-            // Check if valid response
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
+    // Only cache same-origin requests to prevent potential security issues
+    const isSameOrigin = requestUrl.origin === self.location.origin;
 
-            // Clone the response
-            const responseToCache = response.clone();
+    // Only proceed with caching for same-origin requests or specific allowed external resources
+    if (!isSameOrigin) {
+      // You could add exceptions here for CDNs or other trusted external resources
+      // For now, we'll just skip caching for non-same-origin requests
+      return fetch(event.request);
+    }
 
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
+    event.respondWith(
+      caches.match(event.request)
+        .then(response => {
+          // Cache hit - return response
+          if (response) {
             return response;
           }
-        );
-      })
-  );
+
+          // Clone the request
+          const fetchRequest = event.request.clone();
+
+          return fetch(fetchRequest).then(
+            response => {
+              // Check if valid response
+              if (!response || response.status !== 200 || response.type !== 'basic') {
+                return response;
+              }
+
+              // Clone the response
+              const responseToCache = response.clone();
+
+              caches.open(CACHE_NAME)
+                .then(cache => {
+                  // Additional security check before caching
+                  if (requestUrl.protocol === 'https:' || requestUrl.hostname === 'localhost') {
+                    cache.put(event.request, responseToCache);
+                  }
+                });
+
+              return response;
+            }
+          ).catch(error => {
+            console.error('Fetch failed:', error);
+            // You could return a custom offline page here
+            return new Response('Network error occurred', { status: 503, statusText: 'Service Unavailable' });
+          });
+        })
+    );
+  } catch (e) {
+    console.error('Error in fetch handler:', e);
+    return;
+  }
 });
