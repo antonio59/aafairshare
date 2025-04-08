@@ -2,7 +2,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils";
-import { MonthSummary, Expense } from "@shared/schema";
+import { MonthSummary, Expense, ExpenseWithDetails } from "@shared/schema";
 
 interface SimpleDashboardProps {
   summary?: MonthSummary;
@@ -11,9 +11,9 @@ interface SimpleDashboardProps {
   currentMonth: string;
 }
 
-export default function SimpleDashboard({ 
-  summary, 
-  expenses, 
+export default function SimpleDashboard({
+  summary,
+  expenses,
   isLoading,
   currentMonth
 }: SimpleDashboardProps) {
@@ -46,7 +46,7 @@ export default function SimpleDashboard({
                 {summary ? formatCurrency(summary.totalExpenses) : "$0.00"}
               </p>
             </Card>
-            
+
             <Card className="border-gray-200 p-4">
               <h3 className="text-lg font-medium mb-2">Settlement Amount</h3>
               <p className="text-2xl font-bold text-primary">
@@ -54,7 +54,7 @@ export default function SimpleDashboard({
               </p>
             </Card>
           </div>
-          
+
           <h3 className="text-lg font-medium mb-4">Recent Expenses</h3>
           {expenses && expenses.length > 0 ? (
             <div className="overflow-x-auto">
@@ -72,12 +72,14 @@ export default function SimpleDashboard({
                   {expenses.slice(0, 5).map((expense) => (
                     <tr key={expense.id}>
                       <td className="border border-gray-200 p-2">
-                        {new Date(expense.date.seconds * 1000).toLocaleDateString()}
+                        {expense.date instanceof Date
+                          ? expense.date.toLocaleDateString()
+                          : new Date((expense.date as any)?.seconds * 1000).toLocaleDateString()}
                       </td>
                       <td className="border border-gray-200 p-2">{expense.description}</td>
                       <td className="border border-gray-200 p-2">{formatCurrency(expense.amount)}</td>
-                      <td className="border border-gray-200 p-2">{expense.category?.name || 'Uncategorized'}</td>
-                      <td className="border border-gray-200 p-2">{expense.paidBy?.username || expense.paidBy?.email?.split('@')[0] || 'Unknown'}</td>
+                      <td className="border border-gray-200 p-2">{(expense as any).category?.name || 'Uncategorized'}</td>
+                      <td className="border border-gray-200 p-2">{(expense as ExpenseWithDetails).paidByUser?.username || (expense as ExpenseWithDetails).paidByUser?.email?.split('@')[0] || 'Unknown'}</td>
                     </tr>
                   ))}
                 </tbody>

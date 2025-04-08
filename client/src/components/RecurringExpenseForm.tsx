@@ -32,7 +32,7 @@ const formSchema = z.object({
   startDate: z.date(),
   endDate: z.date().optional().nullable(),
   frequency: z.enum(["daily", "weekly", "biweekly", "monthly", "quarterly", "yearly"]),
-  isActive: z.boolean().default(true),
+  isActive: z.boolean(), // Make isActive required without default
   // Title is derived from description in the submit handler
 });
 
@@ -63,7 +63,7 @@ export default function RecurringExpenseForm({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // React Hook Form Setup with Zod validation
-  const form = useForm<RecurringExpenseFormData>({
+  const form = useForm<RecurringExpenseFormData, any, RecurringExpenseFormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       amount: initialData?.amount ?? undefined,
@@ -240,7 +240,7 @@ export default function RecurringExpenseForm({
     <Form {...form}>
       <form
         ref={formRef}
-        onSubmit={form.handleSubmit(onSubmit)}
+        onSubmit={form.handleSubmit(onSubmit as any)}
         className="flex flex-col h-full bg-white"
       >
         <h2 className="text-xl font-semibold text-center px-4">
@@ -456,7 +456,7 @@ export default function RecurringExpenseForm({
                 </div>
                 <FormControl>
                   <DatePicker
-                    value={field.value}
+                    value={field.value || undefined}
                     onChange={field.onChange}
                     className="h-12 text-base w-full"
                     disabled={(date) => {
