@@ -8,31 +8,12 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Chrome } from "lucide-react";
+// Removed Chrome icon import
 import { useToast } from "@/hooks/use-toast";
 // Reverting back to signInWithPopup
 import { signInWithPopup, GoogleAuthProvider } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useAuth } from "@/context/AuthContext"; // Import useAuth
-
-// Simple Logo Component (Replace with actual SVG or Image if available)
-const AppLogo = () => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className="h-12 w-12 text-primary mx-auto" // Increased size and used primary color
-  >
-    {/* Simple abstract shape representing sharing/fairness */}
-    <path d="M12 2 L18 7 L18 17 L12 22 L6 17 L6 7 Z" />
-    <path d="M6 7 L12 12 L18 7" />
-    <path d="M12 12 L12 22" />
-  </svg>
-);
 
 
 export default function Login() {
@@ -76,7 +57,7 @@ export default function Login() {
   // Show loading indicator while auth state is being determined
   if (authLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+      <div className="flex min-h-screen items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
           <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Checking Status...</h2>
@@ -93,49 +74,45 @@ export default function Login() {
 
   // If not loading and no user, show the login form
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 sm:p-6 lg:p-8">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-background p-4 sm:p-6 lg:p-8">
       {/* Branding Area */}
-      <div className="mb-8 text-center space-y-4">
-         <AppLogo /> {/* Using the SVG Logo component */}
-         <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
+      <div className="mb-10 text-center space-y-3">
+         <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
            AAFairShare
          </h1>
-         <p className="text-muted-foreground">Split expenses fairly and easily.</p>
+         <p className="text-muted-foreground text-lg">Split expenses fairly and easily.</p>
       </div>
 
-      {/* Login Card - Adjusted width and added subtle shadow */}
-      <Card className="w-full max-w-md shadow-lg dark:bg-gray-850"> {/* Increased max-width */}
-        <CardHeader className="text-center"> {/* Centered Header Text */}
-          <CardTitle className="text-2xl font-semibold">Welcome Back!</CardTitle>
-          <CardDescription>
-            Sign in with your Google account to access your dashboard.
+      {/* Login Card - Refined design */}
+      <Card className="w-full max-w-md border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow duration-300">
+        <CardHeader className="text-center pb-4">
+          <CardTitle className="text-2xl font-semibold">Welcome Back</CardTitle>
+          <CardDescription className="text-base">
+            Sign in with your Google account to continue
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-6 p-6"> {/* Increased gap and padding */}
+        <CardContent className="grid gap-6 p-6 pt-2">
           <Button
             variant="outline"
-            size="lg" // Larger button size
-            className="w-full flex items-center justify-center gap-2 transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700" // Added hover effect
+            size="lg"
+            className="w-full flex items-center justify-center py-6 text-base font-medium transition-all duration-200 hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-700"
             onClick={handleGoogleLogin}
             disabled={loadingGoogle}
           >
             {loadingGoogle ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-current mr-2"></div>
-                Signing in...
+                <span>Signing in...</span>
               </>
             ) : (
-              <>
-                <Chrome className="h-5 w-5" /> {/* Slightly larger icon */}
-                <span>Sign in with Google</span>
-              </>
+              <span>Sign in with Google</span>
             )}
           </Button>
         </CardContent>
       </Card>
 
-      {/* Optional Footer */}
-      <footer className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
+      {/* Footer */}
+      <footer className="mt-12 text-center text-sm text-gray-500 dark:text-gray-400">
         &copy; {new Date().getFullYear()} AAFairShare. All rights reserved.
       </footer>
     </div>
