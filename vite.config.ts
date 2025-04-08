@@ -47,7 +47,19 @@ function copyPublicFiles(): Plugin {
         const srcPath = path.resolve(publicDir, file);
         const destPath = path.resolve(distDir, file);
         if (fs.existsSync(srcPath)) {
-          fs.copyFileSync(srcPath, destPath);
+          try {
+            fs.copyFileSync(srcPath, destPath);
+            // Validate JSON files
+            if (file.endsWith('.json')) {
+              const content = fs.readFileSync(destPath, 'utf8');
+              JSON.parse(content); // This will throw if JSON is invalid
+              console.log(`✅ Validated ${file}`);
+            }
+          } catch (error) {
+            console.error(`❌ Error processing ${file}:`, error);
+          }
+        } else {
+          console.warn(`⚠️ File not found: ${srcPath}`);
         }
       }
 
@@ -85,13 +97,14 @@ export default defineConfig({
     chunkSizeWarningLimit: 700,
     rollupOptions: {
       output: {
+        // Disable manual chunking for charting libraries to avoid initialization issues
         manualChunks(id) {
           if (id.includes('node_modules')) {
             if (id.includes('/react/') || id.includes('/react-dom/')) {
               return 'vendor-core';
-            } else if (id.includes('recharts') || id.includes('chart.js')) {
-              return 'vendor-charting';
             }
+            // Let Vite handle the chunking for charting libraries automatically
+            // This should help avoid initialization order issues
           }
         },
       },

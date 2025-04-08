@@ -1,14 +1,19 @@
 import { stringToColor } from "./utils";
 import { CATEGORY_COLORS } from "./constants";
 
+// Define types with index signatures
+type ColorMap = {
+  [key: string]: string;
+};
+
 // Define a consistent color palette for charts
 export const CHART_COLORS = {
   // User colors (blue/purple tones)
   users: {
     'Antonio': '#3b82f6', // Blue
     'Andres': '#8b5cf6',  // Purple
-  },
-  
+  } as ColorMap,
+
   // Category colors (rainbow spectrum)
   categories: {
     'Utilities': '#ef4444',     // Red
@@ -21,8 +26,8 @@ export const CHART_COLORS = {
     'Subscriptions': '#6366f1', // Indigo
     'Gifts': '#d946ef',         // Fuchsia
     'Holidays': '#f472b6',      // Rose
-  },
-  
+  } as ColorMap,
+
   // Location colors (slightly darker versions of category colors)
   locations: {
     'Tower Hamlets Council Tax': '#dc2626', // Darker red
@@ -35,7 +40,7 @@ export const CHART_COLORS = {
     'Netflix': '#4f46e5',                  // Darker indigo
     'Etsy': '#c026d3',                     // Darker fuchsia
     'Airbnb': '#e11d48',                   // Darker rose
-  }
+  } as ColorMap
 };
 
 /**
@@ -53,7 +58,7 @@ export function getUserColor(username: string): string {
  * @returns A hex color code
  */
 export function getCategoryColor(categoryName: string): string {
-  return CHART_COLORS.categories[categoryName] || 
+  return CHART_COLORS.categories[categoryName] ||
     // If not in our predefined map, use the category colors array in a deterministic way
     CATEGORY_COLORS[Math.abs(hashString(categoryName)) % CATEGORY_COLORS.length];
 }
@@ -64,7 +69,7 @@ export function getCategoryColor(categoryName: string): string {
  * @returns A hex color code
  */
 export function getLocationColor(locationName: string): string {
-  return CHART_COLORS.locations[locationName] || 
+  return CHART_COLORS.locations[locationName] ||
     // If not in our predefined map, use a darker version of the category color
     darkenColor(getCategoryColor(locationName), 0.2);
 }
@@ -92,17 +97,17 @@ function hashString(str: string): number {
 function darkenColor(color: string, amount: number): string {
   // Remove the # if it exists
   color = color.replace('#', '');
-  
+
   // Parse the hex values
   let r = parseInt(color.substring(0, 2), 16);
   let g = parseInt(color.substring(2, 4), 16);
   let b = parseInt(color.substring(4, 6), 16);
-  
+
   // Darken each component
   r = Math.max(0, Math.floor(r * (1 - amount)));
   g = Math.max(0, Math.floor(g * (1 - amount)));
   b = Math.max(0, Math.floor(b * (1 - amount)));
-  
+
   // Convert back to hex
   return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
 }
