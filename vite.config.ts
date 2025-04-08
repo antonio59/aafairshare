@@ -95,65 +95,31 @@ export default defineConfig({
     }
    },
    optimizeDeps: {
+     // Simplified dependency optimization
      include: [
-       'jspdf',
-       'recharts',
-       'recharts/types/component/DefaultTooltipContent',
-       'd3-shape',
-       'd3-scale',
-       'd3-array',
+       'react',
+       'react-dom',
        'firebase',
        'firebase/app',
        'firebase/auth',
        'firebase/firestore'
      ],
+     exclude: ['recharts'],
      // Force prebundling of these dependencies
-     force: true,
-     // Ensure proper resolution of ESM/CJS modules
-     esbuildOptions: {
-       resolveExtensions: ['.js', '.jsx', '.ts', '.tsx'],
-       format: 'esm',
-       target: 'es2020',
-       // Needed for Firebase 9
-       mainFields: ['browser', 'module', 'main']
-     }
+     force: true
    },
    build: {
     // Input is implicitly index.html at project root
     outDir: path.resolve(__dirname, "dist"), // Output relative to project root
     emptyOutDir: true,
     chunkSizeWarningLimit: 700,
-    // Ensure sourcemaps are generated for easier debugging
-    sourcemap: true,
-    // Minify the output for production
-    minify: 'terser',
-    terserOptions: {
-      compress: {
-        // Avoid issues with React in production
-        pure_funcs: ['console.log', 'console.debug'],
-        drop_console: false,
-      },
-    },
+    // Simplified build configuration for maximum compatibility
+    sourcemap: false,
+    minify: true,
     // Ensure proper CommonJS/ESM interop
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
-      requireReturnsDefault: 'auto'
-    },
-    rollupOptions: {
-      output: {
-        // Ensure proper file naming for cache busting
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]',
-        // Improved chunking strategy - simpler to avoid issues
-        manualChunks: {
-          'vendor-react': ['/react/', '/react-dom/'],
-          'vendor-charts': ['recharts', 'd3-shape', 'd3-scale', 'd3-array'],
-          // Don't chunk Firebase to avoid resolution issues
-          // 'vendor-firebase': ['firebase'],
-        },
-      },
     },
   },
   test: {
