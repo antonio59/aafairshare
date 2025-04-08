@@ -489,7 +489,7 @@ export default function Analytics() {
 
       <div ref={printRef} className="space-y-6">
         {/* Summary Card */}
-        <Card className="overflow-hidden border-gray-200">
+        <Card className="overflow-hidden border-gray-200 dark:border-gray-700">
           <CardHeader className="pb-4"><CardTitle className="text-xl">Monthly Summary</CardTitle></CardHeader>
           <CardContent>
             {isLoading ? <Skeleton className="h-24 w-full" /> : (
@@ -520,7 +520,7 @@ export default function Analytics() {
             height={350}
           />
         ) : (
-          <Card>
+          <Card className="border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle>User Expense Comparison</CardTitle>
             </CardHeader>
@@ -547,7 +547,7 @@ export default function Analytics() {
             height={350}
           />
         ) : (
-          <Card>
+          <Card className="border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle>Expenses by Category</CardTitle>
             </CardHeader>
@@ -574,7 +574,7 @@ export default function Analytics() {
             height={350}
           />
         ) : (
-          <Card>
+          <Card className="border-gray-200 dark:border-gray-700">
             <CardHeader>
               <CardTitle>Expenses by Location</CardTitle>
             </CardHeader>

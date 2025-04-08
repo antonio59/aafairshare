@@ -419,7 +419,7 @@ return (
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Current settlement card */}
-        <Card className="border-gray-200"> {/* Added border class */}
+        <Card className="border-gray-200 dark:border-gray-700">
           <CardHeader><CardTitle>Current Month Settlement</CardTitle></CardHeader>
           <CardContent>
             {/* Derive loading state directly */}

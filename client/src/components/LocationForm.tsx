@@ -95,10 +95,10 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
   // Create footer buttons (uses isSubmitting from the hook)
   const formFooter = (
     <>
-      <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="flex-1 h-11 min-w-[120px] transition-all hover:bg-muted/80 active:scale-[0.98]">
+      <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting} className="flex-1 h-11 min-w-[120px] transition-all hover:bg-muted/80 active:scale-[0.98] border-gray-200 dark:border-gray-700 text-foreground">
         Cancel
       </Button>
-      <Button type="submit" disabled={isSubmitting} className="flex-1 h-11 min-w-[120px] transition-all hover:brightness-105 active:scale-[0.98]" form="location-form">
+      <Button type="submit" disabled={isSubmitting} className="flex-1 h-11 min-w-[120px] transition-all hover:brightness-105 active:scale-[0.98] bg-primary text-primary-foreground hover:bg-primary/90" form="location-form">
         {isSubmitting ? "Saving..." : location ? "Update" : "Save"}
       </Button>
     </>
@@ -114,8 +114,8 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
     >
       <div className="py-2">
         <div className="flex items-center justify-center mb-4">
-          <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-            <MapPin className="h-8 w-8 text-primary" />
+          <div className="w-16 h-16 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
+            <MapPin className="h-8 w-8 text-primary dark:text-primary-foreground" />
           </div>
         </div>
 
@@ -126,9 +126,9 @@ export default function LocationForm({ open, onOpenChange, location }: LocationF
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="text-base font-medium">Location Name</FormLabel>
+                  <FormLabel className="text-base font-medium text-foreground">Location Name</FormLabel>
                   <FormControl>
-                    <Input {...field} placeholder="Enter location name" className="h-11 transition-all focus:ring-2 focus:ring-primary/25" />
+                    <Input {...field} placeholder="Enter location name" className="h-11 transition-all focus:ring-2 focus:ring-primary/25 border-gray-200 dark:border-gray-700" />
                   </FormControl>
                   <FormDescription className="text-xs text-muted-foreground">Examples: Grocery Store, Restaurant, Online Shop</FormDescription>
                   <FormMessage />

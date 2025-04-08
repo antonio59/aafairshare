@@ -45,7 +45,7 @@ export const DatePicker = React.forwardRef<
           name={name}
           variant={"outline"}
           className={cn(
-            "w-full justify-start text-left font-normal h-12 text-base border-gray-200",
+            "w-full justify-start text-left font-normal h-12 text-base border-gray-200 dark:border-gray-700",
             !value && "text-muted-foreground", // Use value
             className
           )}
@@ -54,14 +54,14 @@ export const DatePicker = React.forwardRef<
           {value ? formatDate(value) : <span>Pick a date</span>} {/* Use formatDate */}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0 border-gray-200" align="start">
+      <PopoverContent className="w-auto p-0 border-gray-200 dark:border-gray-700" align="start">
         <Calendar
           mode="single"
           selected={value} // Use value
           onSelect={handleSelect} // Use the new handler
           disabled={disabled}
           initialFocus
-          className="rounded-md border-gray-200"
+          className="rounded-md border-gray-200 dark:border-gray-700"
         />
       </PopoverContent>
     </Popover>
