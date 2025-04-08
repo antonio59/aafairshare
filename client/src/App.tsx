@@ -1,18 +1,22 @@
-import React, { lazy, Suspense, ComponentType } from "react"; // Removed useEffect
-// Removed unused useLocation import
+import React, { lazy, Suspense, ComponentType } from "react";
 import { Switch, Route, Redirect } from "wouter";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { queryClient } from "./lib/queryClient";
 import { Toaster } from "@/components/ui/toaster";
 import { useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import MainLayout from "@/components/layouts/MainLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { LiveRegionAnnouncer } from "@/components/LiveRegion";
+import { InstallPrompt } from "@/components/InstallPrompt";
+import { MobileToastProvider } from "@/components/ui/mobile-toast";
 
 // Lazy load page components
 const NotFound = lazy(() => import("@/pages/not-found"));
 const Dashboard = lazy(() => import("@/pages/Dashboard"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Settlement = lazy(() => import("@/pages/Settlement"));
+const RecurringExpenses = lazy(() => import("@/pages/RecurringExpenses"));
 const Settings = lazy(() => import("@/pages/Settings"));
 const Login = lazy(() => import("@/pages/Login"));
 
@@ -85,27 +89,34 @@ function ProtectedRoute<P extends object>({ component: Component, ...rest }: Pro
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <Suspense fallback={<LoadingFallback />}>
-          <Switch>
-            {/* Public route */}
-            <Route path="/login" component={Login} />
+      <ThemeProvider>
+        <MobileToastProvider>
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingFallback />}>
+            <Switch>
+              {/* Public route */}
+              <Route path="/login" component={Login} />
 
-            {/* Protected Routes - No extra props needed for these components */}
-            <ProtectedRoute path="/" component={Dashboard} />
-            <ProtectedRoute path="/analytics" component={Analytics} />
-            <ProtectedRoute path="/settlement" component={Settlement} />
-            <ProtectedRoute path="/settings" component={Settings} />
+              {/* Protected Routes - No extra props needed for these components */}
+              <ProtectedRoute path="/" component={Dashboard} />
+              <ProtectedRoute path="/analytics" component={Analytics} />
+              <ProtectedRoute path="/settlement" component={Settlement} />
+              <ProtectedRoute path="/recurring" component={RecurringExpenses} />
+              <ProtectedRoute path="/settings" component={Settings} />
 
-            {/* Catch-all for 404 - protected as well */}
-            {/* The component={NotFound} expects params, which are passed correctly */}
-            <Route path="/:rest*">
-              {(params) => <ProtectedRoute component={NotFound} params={params} />}
-            </Route>
-          </Switch>
-        </Suspense>
-      </ErrorBoundary>
-      <Toaster />
+              {/* Catch-all for 404 - protected as well */}
+              {/* The component={NotFound} expects params, which are passed correctly */}
+              <Route path="/:rest*">
+                {(params) => <ProtectedRoute component={NotFound} params={params} />}
+              </Route>
+            </Switch>
+          </Suspense>
+        </ErrorBoundary>
+        <Toaster />
+        <LiveRegionAnnouncer />
+        <InstallPrompt />
+        </MobileToastProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

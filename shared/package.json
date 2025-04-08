@@ -2,5 +2,6 @@
   "name": "shared",
   "version": "1.0.0",
   "main": "schema.js",
-  "types": "schema.ts"
+  "types": "schema.ts",
+  "description": "Shared types and utilities for AAFairShare"
 }

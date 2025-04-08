@@ -1,21 +1,23 @@
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { format, parse } from "date-fns";
+// Import shared formatting utilities
+import { formatCurrency, formatDate as sharedFormatDate } from "@shared/schema";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-GB', {
-    style: 'currency',
-    currency: 'GBP',
-  }).format(amount);
-}
+// Re-export the shared formatCurrency function
+export { formatCurrency };
 
+// Use the shared formatDate function but maintain compatibility with existing code
 export function formatDate(date: Date | string): string {
+  // For client-side, we might want to keep the specific format used in the UI
   const dateObj = typeof date === 'string' ? new Date(date) : date;
   return format(dateObj, 'MMM d, yyyy');
+  // Alternatively, use the shared implementation:
+  // return sharedFormatDate(date);
 }
 
 export function formatMonthYear(month: string): string {
@@ -55,13 +57,13 @@ export function stringToColor(str: string): string {
   for (let i = 0; i < str.length; i++) {
     hash = str.charCodeAt(i) + ((hash << 5) - hash);
   }
-  
+
   let color = '#';
   for (let i = 0; i < 3; i++) {
     const value = (hash >> (i * 8)) & 0xFF;
     color += ('00' + value.toString(16)).substr(-2);
   }
-  
+
   return color;
 }
 

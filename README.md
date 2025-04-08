@@ -24,8 +24,8 @@ A modern, mobile-first application for managing household expenses between two u
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/household-expenses.git
-   cd household-expenses
+   git clone https://github.com/yourusername/AAFairShare.git
+   cd AAFairShare
    ```
 
 2. Install dependencies:
@@ -44,8 +44,8 @@ A modern, mobile-first application for managing household expenses between two u
 
 1. Clone the repository:
    ```
-   git clone https://github.com/yourusername/household-expenses.git
-   cd household-expenses
+   git clone https://github.com/yourusername/AAFairShare.git
+   cd AAFairShare
    ```
 
 2. Build and run with Docker Compose:
@@ -59,12 +59,12 @@ A modern, mobile-first application for managing household expenses between two u
 
 1. Pull the Docker image from GitHub Container Registry:
    ```
-   docker pull ghcr.io/yourusername/household-expenses:latest
+   docker pull ghcr.io/yourusername/aafairshare:latest
    ```
 
 2. Run the container:
    ```
-   docker run -p 5000:5000 ghcr.io/yourusername/household-expenses:latest
+   docker run -p 5000:5000 ghcr.io/yourusername/aafairshare:latest
    ```
 
 3. Open your browser and navigate to http://localhost:5000
@@ -124,17 +124,24 @@ Due to the project structure and TypeScript path aliases, deploying the Cloud Fu
 
 This project uses Tailwind CSS v3 for styling. We've tested Tailwind CSS v4 (beta) but encountered compatibility issues with our current setup.
 
-#### Tailwind CSS v3
+#### Tailwind CSS v3 Implementation
 
-The project is currently configured to use Tailwind CSS v3, which provides stable functionality and good compatibility with our development environment.
+The project is currently configured to use Tailwind CSS v3.4.x, which provides stable functionality and good compatibility with our development environment. Key features we're using include:
 
-#### Tailwind CSS v4 Compatibility
+1. **Custom Color Scheme**: We use CSS variables for theming, defined in `client/src/index.css`
+2. **Typography Plugin**: We use `@tailwindcss/typography` for rich text formatting
+3. **Border Styling**: We consistently use `border-gray-200` for card and table borders
+4. **Responsive Design**: Mobile-first approach with responsive breakpoints
+
+#### Tailwind CSS v4 Compatibility Issues
 
 We've attempted to upgrade to Tailwind CSS v4 (beta) but encountered several issues:
 
 1. **Integration with Vite**: The new `@import "tailwindcss"` syntax in v4 has compatibility issues with our Vite setup.
 2. **PostCSS Configuration**: The v4 PostCSS plugin (`@tailwindcss/postcss`) requires different configuration that conflicts with our current setup.
 3. **CSS Directives**: The v4 directives and configuration approach differ significantly from v3.
+4. **Plugin Compatibility**: Some plugins we use haven't been updated for v4 compatibility yet.
+5. **Build Performance**: We experienced slower build times with the v4 beta.
 
 We plan to revisit the upgrade when Tailwind CSS v4 reaches a stable release.
 
