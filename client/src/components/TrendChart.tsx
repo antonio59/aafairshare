@@ -1,13 +1,19 @@
-// Removed unused useState import
-// import { useState } from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendData } from "@shared/schema";
-import { Line } from "react-chartjs-2";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatMonthYear, stringToColor, formatCurrency } from "@/lib/utils"; // Added formatCurrency
-// Import specific types from chart.js
-import { TooltipItem } from 'chart.js';
+import { formatMonthYear, stringToColor, formatCurrency } from "@/lib/utils";
+import {
+  ResponsiveContainer,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend
+} from 'recharts';
 
 interface TrendChartProps {
   trendData?: TrendData;
@@ -49,99 +55,68 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
   // Format month labels (e.g., 2025-03 → Mar 2025)
   const formattedMonths = trendData.months.map(month => formatMonthYear(month));
 
-  // Create the dataset for total expenses
-  const totalExpensesDataset = {
-    label: "Total Expenses",
-    data: trendData.totalsByMonth,
-    borderColor: "#7c3aed",
-    backgroundColor: "rgba(124, 58, 237, 0.1)",
-    borderWidth: 2,
-    tension: 0.4,
-    fill: false
-  };
+  // Prepare data for Recharts
+  const chartData = trendData.months.map((month, index) => {
+    const dataPoint: any = {
+      month: formatMonthYear(month),
+      total: trendData.totalsByMonth[index],
+    };
 
-  // Generate datasets for categories
-  const categoryDatasets = Object.entries(trendData.categoriesData)
-    .filter(([_, values]) => values.some(value => value > 0)) // Only include categories with data
-    .map(([category, values]) => {
-      const color = stringToColor(category);
-      return {
-        label: category,
-        data: values,
-        borderColor: color,
-        backgroundColor: `${color}33`, // Add 20% opacity
-        borderWidth: 2,
-        tension: 0.4,
-        fill: false
-      };
+    // Add category data
+    Object.entries(trendData.categoriesData).forEach(([category, values]) => {
+      if (values[index] > 0) {
+        dataPoint[`cat_${category}`] = values[index];
+      }
     });
 
-  // Generate datasets for locations
-  const locationDatasets = Object.entries(trendData.locationsData)
-    .filter(([_, values]) => values.some(value => value > 0)) // Only include locations with data
-    .map(([location, values]) => {
-      const color = stringToColor(location);
-      return {
-        label: location,
-        data: values,
-        borderColor: color,
-        backgroundColor: `${color}33`, // Add 20% opacity
-        borderWidth: 2,
-        tension: 0.4,
-        fill: false
-      };
+    // Add location data
+    Object.entries(trendData.locationsData).forEach(([location, values]) => {
+      if (values[index] > 0) {
+        dataPoint[`loc_${location}`] = values[index];
+      }
     });
 
-  const totalData = {
-    labels: formattedMonths,
-    datasets: [totalExpensesDataset]
-  };
+    return dataPoint;
+  });
 
-  const categoriesData = {
-    labels: formattedMonths,
-    datasets: categoryDatasets
-  };
+  // Get active categories (those with data)
+  const activeCategories = Object.entries(trendData.categoriesData)
+    .filter(([_, values]) => values.some(value => value > 0))
+    .map(([category]) => ({
+      name: category,
+      dataKey: `cat_${category}`,
+      color: stringToColor(category),
+    }));
 
-  const locationsData = {
-    labels: formattedMonths,
-    datasets: locationDatasets
-  };
+  // Get active locations (those with data)
+  const activeLocations = Object.entries(trendData.locationsData)
+    .filter(([_, values]) => values.some(value => value > 0))
+    .map(([location]) => ({
+      name: location,
+      dataKey: `loc_${location}`,
+      color: stringToColor(location),
+    }));
 
-  const options = {
-    responsive: true,
-    scales: {
-      y: {
-        beginAtZero: true,
-        ticks: {
-          // Format the y-axis values as currency
-          // Changed 'any' to 'unknown' and adjusted return type
-          callback: function(tickValue: unknown): string | number | undefined {
-            if (typeof tickValue === 'number') {
-              return formatCurrency(tickValue); // Use formatCurrency
-            }
-            // Return undefined if not a number to satisfy Chart.js types
-            return undefined;
-          }
-        }
-      }
-    },
-    plugins: {
-      legend: {
-        display: false // Disable the default legend with colored boxes
-      },
-      tooltip: {
-        callbacks: {
-          label: function(context: TooltipItem<'line'>): string {
-            const label = context.dataset.label || '';
-            const value = context.parsed.y;
-            if (typeof value === 'number') {
-              return `${label}: ${formatCurrency(value)}`;
-            }
-            return `${label}: ${value}`;
-          }
-        }
-      }
+  // Custom tooltip formatter
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-white dark:bg-gray-800 p-3 border border-gray-200 dark:border-gray-700 rounded shadow-lg">
+          <p className="font-medium mb-1">{label}</p>
+          {payload.map((entry: any, index: number) => (
+            <p key={`item-${index}`} style={{ color: entry.color }}>
+              {entry.name}: {formatCurrency(entry.value)}
+            </p>
+          ))}
+        </div>
+      );
     }
+    return null;
+  };
+
+  // Format Y axis ticks as currency
+  const formatYAxis = (value: number) => {
+    return formatCurrency(value);
   };
 
   return (
@@ -158,71 +133,71 @@ export default function TrendChart({ trendData, isLoading = false }: TrendChartP
           </TabsList>
           <TabsContent value="total" className="pt-2 sm:pt-4">
             <div className="h-[250px] sm:h-[300px]">
-              <Line
-                data={totalData}
-                options={{
-                  ...options,
-                  scales: {
-                    ...options.scales,
-                    x: {
-                      // Removed incorrect spread of y-axis options onto x-axis
-                      ticks: {
-                        maxRotation: 45,
-                        minRotation: 45,
-                        font: {
-                          size: 10
-                        }
-                      }
-                    }
-                  }
-                }}
-              />
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={formatYAxis} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  <Line
+                    type="monotone"
+                    dataKey="total"
+                    name="Total Expenses"
+                    stroke="#7c3aed"
+                    strokeWidth={2}
+                    activeDot={{ r: 8 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </TabsContent>
           <TabsContent value="categories" className="pt-2 sm:pt-4">
             <div className="h-[250px] sm:h-[300px]">
-              <Line
-                data={categoriesData}
-                options={{
-                  ...options,
-                  scales: {
-                    ...options.scales,
-                    x: {
-                      // Removed incorrect spread of y-axis options onto x-axis
-                      ticks: {
-                        maxRotation: 45,
-                        minRotation: 45,
-                        font: {
-                          size: 10
-                        }
-                      }
-                    }
-                  }
-                }}
-              />
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={formatYAxis} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  {activeCategories.map((category, index) => (
+                    <Line
+                      key={category.dataKey}
+                      type="monotone"
+                      dataKey={category.dataKey}
+                      name={category.name}
+                      stroke={category.color}
+                      strokeWidth={2}
+                      activeDot={{ r: 6 }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </TabsContent>
           <TabsContent value="locations" className="pt-2 sm:pt-4">
             <div className="h-[250px] sm:h-[300px]">
-              <Line
-                data={locationsData}
-                options={{
-                  ...options,
-                  scales: {
-                    ...options.scales,
-                    x: {
-                      // Removed incorrect spread of y-axis options onto x-axis
-                      ticks: {
-                        maxRotation: 45,
-                        minRotation: 45,
-                        font: {
-                          size: 10
-                        }
-                      }
-                    }
-                  }
-                }}
-              />
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="month" />
+                  <YAxis tickFormatter={formatYAxis} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Legend />
+                  {activeLocations.map((location, index) => (
+                    <Line
+                      key={location.dataKey}
+                      type="monotone"
+                      dataKey={location.dataKey}
+                      name={location.name}
+                      stroke={location.color}
+                      strokeWidth={2}
+                      activeDot={{ r: 6 }}
+                    />
+                  ))}
+                </LineChart>
+              </ResponsiveContainer>
             </div>
           </TabsContent>
         </Tabs>

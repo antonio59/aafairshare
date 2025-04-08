@@ -6,10 +6,12 @@ A modern, mobile-first application for managing household expenses between two u
 
 - 🔐 **User Authentication**: Secure login system with protected routes
 - 💸 **Expense Tracking**: Add, edit, and delete expenses with categories and locations
-- 📊 **Analytics Dashboard**: Visualize spending patterns with charts and graphs
+- 📊 **Analytics Dashboard**: Visualize spending patterns with tables and summaries
 - 💼 **Settlement System**: Track who owes whom with automatic calculations
 - 📱 **Mobile-First Design**: Responsive UI that works on all devices
 - 📤 **Export Functionality**: Export expense data to CSV, XLSX, or PDF
+- 🔄 **Recurring Expenses**: Set up and manage recurring expenses
+- 🌙 **Dark Mode Support**: Toggle between light and dark themes
 
 ## Development
 
@@ -75,6 +77,7 @@ A modern, mobile-first application for managing household expenses between two u
 - `/functions`: Backend Cloud Functions (or similar, adjust description if needed)
 - `/shared`: Shared types and schemas
 - `/.github`: GitHub Actions workflows and configuration
+- `/docs`: Project documentation and technical decisions
 
 ### Cloud Functions Deployment
 
@@ -273,6 +276,13 @@ For GitHub Actions to work properly, the following secrets need to be configured
 
 1. `SNYK_TOKEN`: API token for Snyk security scanning
 2. Deployment-specific secrets (depending on your hosting provider)
+
+## Documentation
+
+The project includes documentation in the `/docs` directory:
+
+- [Project Documentation](docs/README.md) - Overview of all documentation
+- [Chart Library Removal](docs/chart-removal.md) - Explanation of why chart libraries were removed from the Analytics page
 
 ## Maintenance Tasks
 

@@ -2,6 +2,7 @@ import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
 
 import { cn } from "@/lib/utils"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 const Drawer = ({
   shouldScaleBackground = true,
@@ -35,22 +36,69 @@ DrawerOverlay.displayName = DrawerPrimitive.Overlay.displayName
 const DrawerContent = React.forwardRef<
   React.ElementRef<typeof DrawerPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DrawerPrimitive.Content>
->(({ className, children, ...props }, ref) => (
-  <DrawerPortal>
-    <DrawerOverlay />
-    <DrawerPrimitive.Content
-      ref={ref}
-      className={cn(
-        "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
-        className
-      )}
-      {...props}
-    >
-      <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
-      {children}
-    </DrawerPrimitive.Content>
-  </DrawerPortal>
-))
+>(({ className, children, ...props }, ref) => {
+  // Generate a stable ID for accessibility if not provided
+  const defaultTitleId = React.useId();
+  const titleId = props["aria-labelledby"] || defaultTitleId;
+  const descriptionId = props["aria-describedby"];
+
+  // Check if children contain DrawerTitle
+  const [hasTitle, setHasTitle] = React.useState(false);
+
+  // Use effect to check for DrawerTitle in children
+  React.useEffect(() => {
+    // Function to check if children contain DrawerTitle
+    const checkForTitle = (children: React.ReactNode): boolean => {
+      if (!children) return false;
+
+      if (Array.isArray(children)) {
+        return children.some(child => checkForTitle(child));
+      }
+
+      if (React.isValidElement(children)) {
+        // Check if the child is DrawerTitle
+        if (children.type === DrawerTitle ||
+            (children.type && typeof children.type !== 'string' &&
+             (children.type as any).displayName === DrawerPrimitive.Title.displayName)) {
+          return true;
+        }
+
+        // Check children of this element
+        if (children.props && children.props.children) {
+          return checkForTitle(children.props.children);
+        }
+      }
+
+      return false;
+    };
+
+    setHasTitle(checkForTitle(children));
+  }, [children]);
+
+  return (
+    <DrawerPortal>
+      <DrawerOverlay />
+      <DrawerPrimitive.Content
+        ref={ref}
+        className={cn(
+          "fixed inset-x-0 bottom-0 z-50 mt-24 flex h-auto flex-col rounded-t-[10px] border bg-background",
+          className
+        )}
+        aria-labelledby={titleId}
+        aria-describedby={descriptionId}
+        {...props}
+      >
+        <div className="mx-auto mt-4 h-2 w-[100px] rounded-full bg-muted" />
+        {!hasTitle && (
+          <DrawerPrimitive.Title id={titleId} className="sr-only">
+            <VisuallyHidden>Drawer</VisuallyHidden>
+          </DrawerPrimitive.Title>
+        )}
+        {children}
+      </DrawerPrimitive.Content>
+    </DrawerPortal>
+  );
+})
 DrawerContent.displayName = "DrawerContent"
 
 const DrawerHeader = ({

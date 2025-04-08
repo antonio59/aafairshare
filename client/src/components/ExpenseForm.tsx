@@ -12,7 +12,7 @@ import { collection, addDoc, updateDoc, doc, serverTimestamp } from "firebase/fi
 import { queryClient } from "@/lib/queryClient";
 import { SPLIT_TYPES, CATEGORY_ICONS, CategoryIconName } from "@/lib/constants"; // Added CATEGORY_ICONS and CategoryIconName
 import { Skeleton } from "@/components/ui/skeleton";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DatePicker } from "@/components/ui/react-datepicker";
 import { Combobox, ComboboxItem } from "@/components/ui/combobox"; // Import Combobox
 import { getMonthFromDate, cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";

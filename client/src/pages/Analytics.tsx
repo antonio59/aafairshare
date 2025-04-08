@@ -5,13 +5,14 @@ import { MonthSummary, User, TrendData, Expense, Settlement, Category, Location 
 import { getCurrentMonth, formatCurrency, getMonthFromDate } from "@/lib/utils"; // Added getMonthFromDate
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
-import { EnhancedChart } from "@/components/EnhancedChart";
-import { ComparisonChart } from "@/components/ComparisonChart";
+// import { EnhancedChart } from "@/components/EnhancedChart";
+// import { ComparisonChart } from "@/components/ComparisonChart";
 import { announce } from "@/components/LiveRegion";
 
-import TrendChart from "@/components/TrendChart";
-import { Bar } from "react-chartjs-2";
-import { Chart, registerables } from "chart.js";
+// import TrendChart from "@/components/TrendChart";
+import SimpleTrendChart from "@/components/SimpleTrendChart";
+import SimpleDataTable from "@/components/SimpleDataTable";
+// Remove Chart.js imports as we're using Recharts
 import { useAuth } from "@/context/AuthContext"; // Import useAuth
 
 import { db } from "@/lib/firebase"; // Import Firestore instance
@@ -27,7 +28,7 @@ const COLORS = [
   '#82CA9D', '#FF6B6B', '#6A7FDB', '#61DAFB', '#F28482',
 ];
 
-Chart.register(...registerables);
+// Chart.js initialization removed
 
 export default function Analytics() {
   const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
@@ -509,16 +510,13 @@ export default function Analytics() {
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
-          <EnhancedChart
+          <SimpleDataTable
             title="User Expense Comparison"
             data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
               name: getUsernameById(userId),
               value: amount,
             }))}
-            dataKey="value"
-            nameKey="name"
             valueFormatter={formatCurrency}
-            initialChartType="bar"
             height={350}
           />
         ) : (
@@ -532,27 +530,20 @@ export default function Analytics() {
               </div>
             </CardContent>
           </Card>
-        )
+        )}
 
         {/* Category Chart */}
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : summary && summary.categoryTotals && summary.categoryTotals.length > 0 ? (
-          <EnhancedChart
+          <SimpleDataTable
             title="Expenses by Category"
             data={summary.categoryTotals.map(item => ({
               name: item.category.name,
               value: item.amount,
               percentage: item.percentage,
             }))}
-            dataKey="value"
-            nameKey="name"
             valueFormatter={formatCurrency}
-            categoryColors={summary.categoryTotals.reduce((acc, item) => {
-              acc[item.category.name] = item.category.color || '#' + Math.floor(Math.random()*16777215).toString(16);
-              return acc;
-            }, {} as Record<string, string>)}
-            initialChartType="pie"
             height={350}
           />
         ) : (
@@ -572,17 +563,14 @@ export default function Analytics() {
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : summary && summary.locationTotals && summary.locationTotals.length > 0 ? (
-          <EnhancedChart
+          <SimpleDataTable
             title="Expenses by Location"
             data={summary.locationTotals.map(item => ({
               name: item.location.name,
               value: item.amount,
               percentage: item.percentage,
             }))}
-            dataKey="value"
-            nameKey="name"
             valueFormatter={formatCurrency}
-            initialChartType="bar"
             height={350}
           />
         ) : (
@@ -602,29 +590,7 @@ export default function Analytics() {
         {isLoading || trendDataLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : trendData && trendData.months && trendData.months.length > 0 ? (
-          <ComparisonChart
-            title="Monthly Expense Trends"
-            data={trendData.months.map((month, index) => ({
-              month,
-              total: trendData.totalsByMonth[index],
-              ...Object.entries(trendData.categoriesData).reduce((acc, [category, values]) => {
-                acc[`cat_${category}`] = values[index] || 0;
-                return acc;
-              }, {} as Record<string, number>),
-            }))}
-            xAxisKey="month"
-            series={[
-              { name: 'Total', dataKey: 'total', color: '#3B82F6' },
-              ...Object.keys(trendData.categoriesData).slice(0, 5).map((category, index) => ({
-                name: category,
-                dataKey: `cat_${category}`,
-                color: COLORS[index % COLORS.length],
-              })),
-            ]}
-            valueFormatter={formatCurrency}
-            initialChartType="line"
-            height={400}
-          />
+          <SimpleTrendChart trendData={trendData} isLoading={false} />
         ) : (
           <Card>
             <CardHeader>

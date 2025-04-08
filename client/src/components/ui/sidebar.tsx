@@ -8,10 +8,11 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
-import { Sheet, SheetContent } from "@/components/ui/sheet"
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 // Correctly import only the exported Tooltip component
 import { Tooltip } from "@/components/ui/tooltip"
+import { VisuallyHidden } from "@/components/ui/visually-hidden"
 
 const SIDEBAR_COOKIE_NAME = "sidebar:state"
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7
@@ -187,6 +188,10 @@ const Sidebar = React.forwardRef<
     }
 
     if (isMobile) {
+      // Generate stable IDs for accessibility
+      const titleId = "sidebar-sheet-title";
+      const descriptionId = "sidebar-sheet-description";
+
       return (
         <Sheet open={openMobile} onOpenChange={setOpenMobile} {...props}>
           <SheetContent
@@ -199,7 +204,13 @@ const Sidebar = React.forwardRef<
               } as React.CSSProperties
             }
             side={side}
+            aria-labelledby={titleId}
+            aria-describedby={descriptionId}
           >
+            <SheetHeader className="sr-only">
+              <SheetTitle id={titleId}>Navigation Sidebar</SheetTitle>
+              <SheetDescription id={descriptionId}>Application navigation menu</SheetDescription>
+            </SheetHeader>
             <div className="flex h-full w-full flex-col">{children}</div>
           </SheetContent>
         </Sheet>
