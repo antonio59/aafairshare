@@ -3,6 +3,7 @@ import MonthSelector from "@/components/MonthSelector";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthSummary, User, TrendData, Expense, Settlement, Category, Location } from "@shared/schema"; // Import necessary types
 import { getCurrentMonth, formatCurrency, getMonthFromDate } from "@/lib/utils"; // Added getMonthFromDate
+import { getUserColor, getCategoryColor, getLocationColor } from "@/lib/chartColors";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import { announce } from "@/components/LiveRegion";
@@ -539,11 +540,8 @@ export default function Analytics() {
                     valueFormatter={formatCurrency}
                     height={300}
                     isLoading={false}
-                    customColors={{
-                      // Use blue and purple tones for users to differentiate from red/orange in other charts
-                      'Antonio': '#3b82f6', // Blue
-                      'Andres': '#8b5cf6'   // Purple
-                    }}
+                    // Use the getUserColor function to get consistent colors for all users
+                    customColorFunction={getUserColor}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -555,10 +553,8 @@ export default function Analytics() {
                   }))}
                   valueFormatter={formatCurrency}
                   height={300}
-                  customColors={{
-                    'Antonio': '#3b82f6', // Blue
-                    'Andres': '#8b5cf6'   // Purple
-                  }}
+                  // Use the getUserColor function for the table view as well
+                  customColorFunction={getUserColor}
                 />
               )
             ) : (
@@ -605,13 +601,8 @@ export default function Analytics() {
                     valueFormatter={formatCurrency}
                     height={300}
                     isLoading={false}
-                    customColors={{
-                      'Utilities': '#ef4444', // Red
-                      'Groceries': '#f97316', // Orange
-                      'Dining': '#eab308',    // Yellow
-                      'Transport': '#84cc16',  // Lime
-                      'Entertainment': '#06b6d4' // Cyan
-                    }}
+                    // Use the getCategoryColor function for consistent category colors
+                    customColorFunction={getCategoryColor}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -624,13 +615,8 @@ export default function Analytics() {
                   }))}
                   valueFormatter={formatCurrency}
                   height={300}
-                  customColors={{
-                    'Utilities': '#ef4444', // Red
-                    'Groceries': '#f97316', // Orange
-                    'Dining': '#eab308',    // Yellow
-                    'Transport': '#84cc16',  // Lime
-                    'Entertainment': '#06b6d4' // Cyan
-                  }}
+                  // Use the getCategoryColor function for the table view as well
+                  customColorFunction={getCategoryColor}
                 />
               )
             ) : (
@@ -677,13 +663,8 @@ export default function Analytics() {
                     valueFormatter={formatCurrency}
                     height={300}
                     isLoading={false}
-                    customColors={{
-                      'Tower Hamlets Council Tax': '#dc2626', // Darker red
-                      'Ovo Energy': '#ea580c',               // Darker orange
-                      'Goods': '#ca8a04',                    // Darker yellow
-                      'Thames Water': '#65a30d',             // Darker lime
-                      'Hyperoptic': '#0891b2'                // Darker cyan
-                    }}
+                    // Use the getLocationColor function for consistent location colors
+                    customColorFunction={getLocationColor}
                   />
                 </ChartErrorBoundary>
               ) : (
@@ -696,13 +677,8 @@ export default function Analytics() {
                   }))}
                   valueFormatter={formatCurrency}
                   height={300}
-                  customColors={{
-                    'Tower Hamlets Council Tax': '#dc2626', // Darker red
-                    'Ovo Energy': '#ea580c',               // Darker orange
-                    'Goods': '#ca8a04',                    // Darker yellow
-                    'Thames Water': '#65a30d',             // Darker lime
-                    'Hyperoptic': '#0891b2'                // Darker cyan
-                  }}
+                  // Use the getLocationColor function for the table view as well
+                  customColorFunction={getLocationColor}
                 />
               )
             ) : (
