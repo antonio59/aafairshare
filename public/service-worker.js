@@ -39,8 +39,16 @@ self.addEventListener('activate', event => {
 // Fetch event - serve from cache or network
 self.addEventListener('fetch', event => {
   // Skip for Firebase auth and Firestore requests
-  if (event.request.url.includes('firebaseapp.com') ||
-      event.request.url.includes('googleapis.com')) {
+  // Use URL object for safer parsing and validation
+  try {
+    const url = new URL(event.request.url);
+    // Check against specific domains using hostname property
+    if (url.hostname.endsWith('firebaseapp.com') ||
+        url.hostname.endsWith('googleapis.com')) {
+      return;
+    }
+  } catch (e) {
+    console.error('Invalid URL in fetch handler:', e);
     return;
   }
 
