@@ -1,9 +1,10 @@
-import React from 'react'; // Import React
-import { createRoot } from "react-dom/client";
+// Ensure React is imported first
+import * as React from 'react';
+import * as ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
-import { AuthProvider } from './context/AuthContext'; // Import AuthProvider
-import { FeatureFlagProvider } from './context/FeatureFlagContext'; // Import FeatureFlagProvider
+import { AuthProvider } from './context/AuthContext';
+import { FeatureFlagProvider } from './context/FeatureFlagContext';
 
 // Register service worker for PWA
 if ('serviceWorker' in navigator) {
@@ -19,8 +20,17 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-// Wrap App with providers
-createRoot(document.getElementById("root")!).render(
+// Wait for DOM to be fully loaded
+const renderApp = () => {
+  const container = document.getElementById("root");
+  if (!container) {
+    console.error("Root element not found!");
+    return;
+  }
+
+  // Create root and render app
+  const root = ReactDOM.createRoot(container);
+  root.render(
   // <React.StrictMode> {/* Temporarily removed for debugging Firebase redirect */}
     <AuthProvider>
       <FeatureFlagProvider>
@@ -28,4 +38,12 @@ createRoot(document.getElementById("root")!).render(
       </FeatureFlagProvider>
     </AuthProvider>
   // </React.StrictMode>
-);
+  );
+};
+
+// Ensure DOM is ready before rendering
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", renderApp);
+} else {
+  renderApp();
+}
