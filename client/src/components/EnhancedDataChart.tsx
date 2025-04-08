@@ -33,6 +33,7 @@ interface EnhancedDataChartProps {
   height?: number;
   isLoading?: boolean;
   customColors?: Record<string, string>;
+  customColorFunction?: (name: string) => string;
 }
 
 // Custom tooltip component for better formatting
@@ -99,7 +100,8 @@ export default function EnhancedDataChart({
   valueFormatter,
   height = 300,
   isLoading = false,
-  customColors = {}
+  customColors = {},
+  customColorFunction
 }: EnhancedDataChartProps) {
   const [chartType, setChartType] = useState<'pie' | 'bar'>('pie');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
@@ -115,10 +117,13 @@ export default function EnhancedDataChart({
   // Sort data by value in descending order
   const sortedData = [...data].sort((a, b) => b.value - a.value);
 
-  // Generate colors for chart items, using customColors if provided
-  const COLORS = sortedData.map((item, index) =>
-    customColors[item.name] || `hsl(${(index * 25) % 360}, 70%, 50%)`
-  );
+  // Generate colors for chart items, using customColorFunction or customColors if provided
+  const COLORS = sortedData.map((item, index) => {
+    if (customColorFunction) {
+      return customColorFunction(item.name);
+    }
+    return customColors[item.name] || `hsl(${(index * 25) % 360}, 70%, 50%)`;
+  });
 
   if (isLoading) {
     return (

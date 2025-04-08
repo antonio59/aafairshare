@@ -7,6 +7,7 @@ interface SimpleDataTableProps {
   valueFormatter: (value: number) => string;
   height?: number;
   customColors?: Record<string, string>;
+  customColorFunction?: (name: string) => string;
 }
 
 export default function SimpleDataTable({
@@ -14,7 +15,8 @@ export default function SimpleDataTable({
   data,
   valueFormatter,
   height = 350,
-  customColors = {}
+  customColors = {},
+  customColorFunction
 }: SimpleDataTableProps) {
   // Sort data by value in descending order
   const sortedData = [...data].sort((a, b) => b.value - a.value);
@@ -40,10 +42,10 @@ export default function SimpleDataTable({
               {sortedData.map((item, index) => (
                 <tr key={`${item.name}-${index}`}>
                   <td className="border border-gray-200 dark:border-gray-700 p-2">
-                    {customColors[item.name] && (
+                    {(customColorFunction || customColors[item.name]) && (
                       <span
                         className="inline-block w-3 h-3 rounded-full mr-2"
-                        style={{ backgroundColor: customColors[item.name] }}
+                        style={{ backgroundColor: customColorFunction ? customColorFunction(item.name) : customColors[item.name] }}
                       />
                     )}
                     {item.name}
