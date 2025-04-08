@@ -48,12 +48,19 @@ function copyPublicFiles(): Plugin {
         const destPath = path.resolve(distDir, file);
         if (fs.existsSync(srcPath)) {
           try {
-            fs.copyFileSync(srcPath, destPath);
-            // Validate JSON files
-            if (file.endsWith('.json')) {
-              const content = fs.readFileSync(destPath, 'utf8');
-              JSON.parse(content); // This will throw if JSON is invalid
-              console.log(`✅ Validated ${file}`);
+            // Special handling for manifest.json
+            if (file === 'manifest.json') {
+              // Read the manifest file
+              const content = fs.readFileSync(srcPath, 'utf8');
+              // Parse and validate JSON
+              const manifestData = JSON.parse(content);
+              // Write the validated JSON with proper formatting
+              fs.writeFileSync(destPath, JSON.stringify(manifestData, null, 2));
+              console.log(`✅ Validated and wrote ${file}`);
+            } else {
+              // Normal file copy for non-manifest files
+              fs.copyFileSync(srcPath, destPath);
+              console.log(`✅ Copied ${file}`);
             }
           } catch (error) {
             console.error(`❌ Error processing ${file}:`, error);
@@ -104,23 +111,28 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist"), // Output relative to project root
     emptyOutDir: true,
     chunkSizeWarningLimit: 700,
+    // Ensure sourcemaps are generated for easier debugging
+    sourcemap: true,
+    // Minify the output for production
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        // Avoid issues with React in production
+        pure_funcs: ['console.log', 'console.debug'],
+        drop_console: false,
+      },
+    },
     rollupOptions: {
       output: {
-        // Improved chunking strategy
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('/react/') || id.includes('/react-dom/')) {
-              return 'vendor-react';
-            }
-            if (id.includes('recharts') || id.includes('d3-')) {
-              return 'vendor-charts';
-            }
-            if (id.includes('firebase')) {
-              return 'vendor-firebase';
-            }
-            // Default vendor chunk for other dependencies
-            return 'vendor';
-          }
+        // Ensure proper file naming for cache busting
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]',
+        // Improved chunking strategy - simpler to avoid issues
+        manualChunks: {
+          'vendor-react': ['/react/', '/react-dom/'],
+          'vendor-charts': ['recharts', 'd3-shape', 'd3-scale', 'd3-array'],
+          'vendor-firebase': ['firebase'],
         },
       },
     },
