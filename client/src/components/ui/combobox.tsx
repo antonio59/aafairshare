@@ -301,7 +301,7 @@ export const Combobox = React.forwardRef<HTMLButtonElement, ComboboxProps>(({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className={cn("w-full justify-between h-12 text-base", className)} // Consistent height
+          className={cn("w-full justify-between h-12 text-base border-gray-200", className)} // Consistent height
           disabled={disabled}
         >
           {selectedItem ? selectedItem.label : placeholder}

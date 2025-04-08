@@ -44,7 +44,7 @@ export const DatePicker = React.forwardRef<
           name={name}
           variant={"outline"}
           className={cn(
-            "w-full justify-start text-left font-normal h-10",
+            "w-full justify-start text-left font-normal h-12 text-base border-gray-200",
             !value && "text-muted-foreground", // Use value
             className
           )}
