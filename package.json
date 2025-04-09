@@ -9,12 +9,12 @@
     "preview": "vite preview",
     "check": "tsc",
     "test": "vitest",
+    "lint": "eslint .",
     "predeploy": "pnpm run build"
   },
   "dependencies": {
     "@google-cloud/firestore": "^7.11.0",
     "@grpc/grpc-js": "^1.9.15",
-    "undici": "^6.21.0",
     "@hookform/resolvers": "^5.0.0",
     "@radix-ui/react-accordion": "^1.2.1",
     "@radix-ui/react-alert-dialog": "^1.1.2",
@@ -71,6 +71,7 @@
     "recharts": "^2.13.0",
     "tailwind-merge": "^3.2.0",
     "tailwindcss-animate": "^1.0.7",
+    "undici": "^7.7.0",
     "vaul": "^1.1.0",
     "wouter": "^3.3.5",
     "zod": "^3.23.8",
@@ -84,7 +85,8 @@
     "@types/node": "^20.16.11",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.29.0",
+    "@typescript-eslint/eslint-plugin": "^8.29.1",
+    "@typescript-eslint/parser": "^8.29.1",
     "@vitejs/plugin-basic-ssl": "^2.0.0",
     "@vitejs/plugin-react": "^4.3.2",
     "autoprefixer": "^10.4.21",
@@ -92,8 +94,9 @@
     "dompurify": "^3.2.4",
     "esbuild": "^0.25.0",
     "eslint-plugin-jsx-a11y": "^6.10.2",
-    "eslint-plugin-react": "^7.37.4",
+    "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
+    "globals": "^16.0.0",
     "html2canvas": "^1.4.1",
     "jsdom": "^26.0.0",
     "lightningcss-darwin-arm64": "^1.29.2",
@@ -106,5 +109,10 @@
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "^4.39.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "undici": "^7.7.0"
+    }
   }
 }

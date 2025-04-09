@@ -1,6 +1,6 @@
 import React, { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import MonthSelector from "@/components/MonthSelector";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
 import { MonthSummary, User, TrendData, Expense, Settlement, Category, Location } from "@shared/schema"; // Import necessary types
 import { getCurrentMonth, formatCurrency, getMonthFromDate } from "@/lib/utils"; // Added getMonthFromDate
 import { getUserColor, getCategoryColor, getLocationColor } from "@/lib/chartColors";
@@ -11,8 +11,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 
 // Import chart components
-import ChartErrorBoundary from "@/components/ChartErrorBoundary";
-import LazyChartWrapper, { LazyEnhancedTrendChart, LazyEnhancedDataChart } from "@/components/LazyChartWrapper";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FixedDataChart, FixedTrendChart } from "@/components/FixedCharts";
 import SimpleTrendChart from "@/components/SimpleTrendChart";
 import SimpleDataTable from "@/components/SimpleDataTable";
 import { useAuth } from "@/context/AuthContext";
@@ -475,7 +475,7 @@ export default function Analytics() {
             onCheckedChange={() => toggleFlag('enableCharts')}
           />
           <Label htmlFor="charts-toggle" className="text-sm text-gray-600 dark:text-gray-400">
-            {flags.enableCharts ? 'Charts Enabled' : 'Charts Disabled'}
+            {flags.enableCharts ? 'Show Charts' : 'Tables Only'}
           </Label>
         </div>
       </div>
@@ -516,50 +516,18 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-[400px] w-full" />
             ) : summary && Object.keys(summary.userExpenses).length > 0 ? (
-              flags.enableCharts ? (
-                <ChartErrorBoundary
-                  fallback={
-                    <SimpleDataTable
-                      title="User Expense Comparison"
-                      data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
-                        name: getUsernameById(userId),
-                        value: amount,
-                      }))}
-                      valueFormatter={formatCurrency}
-                      height={300}
-                    />
-                  }
-                >
-                  <LazyChartWrapper
-                    title="User Expense Comparison"
-                    component={LazyEnhancedDataChart}
-                    props={{
-                      title: "User Expense Comparison",
-                      data: Object.entries(summary.userExpenses).map(([userId, amount]) => ({
-                        name: getUsernameById(userId),
-                        value: amount,
-                      })),
-                      valueFormatter: formatCurrency,
-                      height: 300,
-                      isLoading: false,
-                      // Use the getUserColor function to get consistent colors for all users
-                      customColorFunction: getUserColor
-                    }}
-                  />
-                </ChartErrorBoundary>
-              ) : (
-                <SimpleDataTable
-                  title="User Expense Comparison"
-                  data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
-                    name: getUsernameById(userId),
-                    value: amount,
-                  }))}
-                  valueFormatter={formatCurrency}
-                  height={300}
-                  // Use the getUserColor function for the table view as well
-                  customColorFunction={getUserColor}
-                />
-              )
+              <FixedDataChart
+                title="User Expense Comparison"
+                data={Object.entries(summary.userExpenses).map(([userId, amount]) => ({
+                  name: getUsernameById(userId),
+                  value: amount,
+                }))}
+                valueFormatter={formatCurrency}
+                height={300}
+                isLoading={false}
+                customColorFunction={getUserColor}
+                enableCharts={flags.enableCharts}
+              />
             ) : (
               <Card className="border-gray-200 dark:border-gray-700 h-full">
                 <CardHeader>
@@ -579,53 +547,19 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-[400px] w-full" />
             ) : summary && summary.categoryTotals && summary.categoryTotals.length > 0 ? (
-              flags.enableCharts ? (
-                <ChartErrorBoundary
-                  fallback={
-                    <SimpleDataTable
-                      title="Expenses by Category"
-                      data={summary.categoryTotals.map(item => ({
-                        name: item.category.name,
-                        value: item.amount,
-                        percentage: item.percentage,
-                      }))}
-                      valueFormatter={formatCurrency}
-                      height={300}
-                    />
-                  }
-                >
-                  <LazyChartWrapper
-                    title="Expenses by Category"
-                    component={LazyEnhancedDataChart}
-                    props={{
-                      title: "Expenses by Category",
-                      data: summary.categoryTotals.map(item => ({
-                        name: item.category.name,
-                        value: item.amount,
-                        percentage: item.percentage,
-                      })),
-                      valueFormatter: formatCurrency,
-                      height: 300,
-                      isLoading: false,
-                      // Use the getCategoryColor function for consistent category colors
-                      customColorFunction: getCategoryColor
-                    }}
-                  />
-                </ChartErrorBoundary>
-              ) : (
-                <SimpleDataTable
-                  title="Expenses by Category"
-                  data={summary.categoryTotals.map(item => ({
-                    name: item.category.name,
-                    value: item.amount,
-                    percentage: item.percentage,
-                  }))}
-                  valueFormatter={formatCurrency}
-                  height={300}
-                  // Use the getCategoryColor function for the table view as well
-                  customColorFunction={getCategoryColor}
-                />
-              )
+              <FixedDataChart
+                title="Expenses by Category"
+                data={summary.categoryTotals.map(item => ({
+                  name: item.category.name,
+                  value: item.amount,
+                  percentage: item.percentage,
+                }))}
+                valueFormatter={formatCurrency}
+                height={300}
+                isLoading={false}
+                customColorFunction={getCategoryColor}
+                enableCharts={flags.enableCharts}
+              />
             ) : (
               <Card className="border-gray-200 dark:border-gray-700 h-full">
                 <CardHeader>
@@ -645,53 +579,19 @@ export default function Analytics() {
             {isLoading ? (
               <Skeleton className="h-[400px] w-full" />
             ) : summary && summary.locationTotals && summary.locationTotals.length > 0 ? (
-              flags.enableCharts ? (
-                <ChartErrorBoundary
-                  fallback={
-                    <SimpleDataTable
-                      title="Expenses by Location"
-                      data={summary.locationTotals.map(item => ({
-                        name: item.location.name,
-                        value: item.amount,
-                        percentage: item.percentage,
-                      }))}
-                      valueFormatter={formatCurrency}
-                      height={300}
-                    />
-                  }
-                >
-                  <LazyChartWrapper
-                    title="Expenses by Location"
-                    component={LazyEnhancedDataChart}
-                    props={{
-                      title: "Expenses by Location",
-                      data: summary.locationTotals.map(item => ({
-                        name: item.location.name,
-                        value: item.amount,
-                        percentage: item.percentage,
-                      })),
-                      valueFormatter: formatCurrency,
-                      height: 300,
-                      isLoading: false,
-                      // Use the getLocationColor function for consistent location colors
-                      customColorFunction: getLocationColor
-                    }}
-                  />
-                </ChartErrorBoundary>
-              ) : (
-                <SimpleDataTable
-                  title="Expenses by Location"
-                  data={summary.locationTotals.map(item => ({
-                    name: item.location.name,
-                    value: item.amount,
-                    percentage: item.percentage,
-                  }))}
-                  valueFormatter={formatCurrency}
-                  height={300}
-                  // Use the getLocationColor function for the table view as well
-                  customColorFunction={getLocationColor}
-                />
-              )
+              <FixedDataChart
+                title="Expenses by Location"
+                data={summary.locationTotals.map(item => ({
+                  name: item.location.name,
+                  value: item.amount,
+                  percentage: item.percentage,
+                }))}
+                valueFormatter={formatCurrency}
+                height={300}
+                isLoading={false}
+                customColorFunction={getLocationColor}
+                enableCharts={flags.enableCharts}
+              />
             ) : (
               <Card className="border-gray-200 dark:border-gray-700 h-full">
                 <CardHeader>
@@ -711,22 +611,12 @@ export default function Analytics() {
         {isLoading || trendDataLoading ? (
           <Skeleton className="h-[400px] w-full" />
         ) : trendData && trendData.months && trendData.months.length > 0 ? (
-          flags.enableCharts ? (
-            <ChartErrorBoundary
-              fallback={<SimpleTrendChart trendData={trendData} isLoading={false} />}
-            >
-              <LazyChartWrapper
-              title="Monthly Expense Trends"
-              component={LazyEnhancedTrendChart}
-              props={{
-                trendData: trendData,
-                isLoading: false
-              }}
-            />
-            </ChartErrorBoundary>
-          ) : (
-            <SimpleTrendChart trendData={trendData} isLoading={false} />
-          )
+          <FixedTrendChart
+            title="Monthly Expense Trends"
+            trendData={trendData}
+            isLoading={false}
+            enableCharts={flags.enableCharts}
+          />
         ) : (
           <Card>
             <CardHeader>

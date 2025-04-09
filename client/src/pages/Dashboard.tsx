@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query"; // Import useQuery
 import { queryClient } from "@/lib/queryClient";
-import MonthSelector from "@/components/MonthSelector";
-import SummaryCard from "@/components/SummaryCard";
-import { ExpenseTable } from "@/components/ExpenseTable";
-import ExpenseForm from "@/components/ExpenseForm";
+import { LazyMonthSelector } from "@/components/LazyMonthSelector";
+import { LazySummaryCard } from "@/components/LazySummaryCard";
+import { LazyExpenseTable } from "@/components/LazyExpenseTable";
+import { LazyExpenseForm } from "@/components/LazyExpenseForm";
 import { Button } from "@/components/ui/button";
 import { PlusIcon, PoundSterling, Users, WalletCards, Download, ArrowRight } from "lucide-react"; // Added ArrowRight
 import { PullToRefresh } from "@/components/PullToRefresh";
@@ -301,7 +301,7 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-grow w-full md:w-auto">
-               <MonthSelector value={currentMonth} onChange={handleMonthChange} />
+               <LazyMonthSelector value={currentMonth} onChange={handleMonthChange} />
             </div>
             <div className="flex items-center justify-end gap-3 flex-shrink-0">
                <DropdownMenu>
@@ -333,17 +333,17 @@ export default function Dashboard() {
 
         {/* Summary Cards - Confirmed grid layout */}
         <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <div> <SummaryCard title="Total" value={formatCurrency(summary?.totalExpenses || 0)} icon={PoundSterling} variant="total" isLoading={summaryLoading} /> </div>
-          <div> <SummaryCard title={`${user1Name || 'User 1'} Paid`} value={formatCurrency(user1Id ? summary?.userExpenses?.[user1Id] || 0 : 0)} icon={Users} variant="user1" isLoading={summaryLoading} tooltip={user1Name ? `Amount paid by ${user1Name}` : 'Amount paid by User 1'} photoURL={user1?.photoURL || undefined} email={user1?.email || undefined} /> </div>
-          <div> <SummaryCard title={`${user2Name || 'User 2'} Paid`} value={formatCurrency(user2Id ? summary?.userExpenses?.[user2Id] || 0 : 0)} icon={Users} variant="user2" isLoading={summaryLoading} tooltip={user2Name ? `Amount paid by ${user2Name}` : 'Amount paid by User 2'} photoURL={user2Data?.photoURL || undefined} email={user2Data?.email || undefined} /> </div>
-          <div> <SummaryCard title={balanceTitle} value={formatCurrency(Math.floor((summary?.settlementAmount ?? 0) * 100) / 100)} icon={WalletCards} variant="balance" isNegative={owingUserId === user1Id} isLoading={summaryLoading} tooltip={balanceTooltip} photoURL={owingUser?.photoURL || undefined} email={owingUser?.email || undefined} /> </div>
+          <div> <LazySummaryCard title="Total" value={formatCurrency(summary?.totalExpenses || 0)} icon={PoundSterling} variant="total" isLoading={summaryLoading} /> </div>
+          <div> <LazySummaryCard title={`${user1Name || 'User 1'} Paid`} value={formatCurrency(user1Id ? summary?.userExpenses?.[user1Id] || 0 : 0)} icon={Users} variant="user1" isLoading={summaryLoading} tooltip={user1Name ? `Amount paid by ${user1Name}` : 'Amount paid by User 1'} photoURL={user1?.photoURL || undefined} email={user1?.email || undefined} /> </div>
+          <div> <LazySummaryCard title={`${user2Name || 'User 2'} Paid`} value={formatCurrency(user2Id ? summary?.userExpenses?.[user2Id] || 0 : 0)} icon={Users} variant="user2" isLoading={summaryLoading} tooltip={user2Name ? `Amount paid by ${user2Name}` : 'Amount paid by User 2'} photoURL={user2Data?.photoURL || undefined} email={user2Data?.email || undefined} /> </div>
+          <div> <LazySummaryCard title={balanceTitle} value={formatCurrency(Math.floor((summary?.settlementAmount ?? 0) * 100) / 100)} icon={WalletCards} variant="balance" isNegative={owingUserId === user1Id} isLoading={summaryLoading} tooltip={balanceTooltip} photoURL={owingUser?.photoURL || undefined} email={owingUser?.email || undefined} /> </div>
         </div>
 
         {/* Expenses Section */}
         <div>
            <h2 className="text-xl font-semibold mb-4">Expenses</h2>
            {/* Pass expenses from useQuery result */}
-           <ExpenseTable
+           <LazyExpenseTable
              expenses={expenses}
              onEdit={handleEditExpense}
              onDelete={handleDeleteExpense}
@@ -368,7 +368,7 @@ export default function Dashboard() {
            {/* Scrollable container for the form */}
           {/* Form container - remove padding here as it's in ExpenseForm */}
           <div className="max-h-[70vh] overflow-y-auto">
-            <ExpenseForm
+            <LazyExpenseForm
               expense={selectedExpense}
               onClose={onExpenseFormClose} // Pass close handler
               categories={categories}

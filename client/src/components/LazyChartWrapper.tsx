@@ -62,34 +62,9 @@ export default function LazyChartWrapper({
 
   return (
     <Suspense fallback={fallback || defaultFallback}>
-      <ErrorBoundaryWrapper>
+      <div className="chart-container">
         <Component {...props} />
-      </ErrorBoundaryWrapper>
+      </div>
     </Suspense>
   );
-}
-
-// Simple error boundary wrapper
-class ErrorBoundaryWrapper extends React.Component<{children: React.ReactNode}> {
-  state = { hasError: false };
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error) {
-    console.error('Chart rendering error:', error);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="p-4 border border-red-200 dark:border-red-800 rounded bg-red-50 dark:bg-red-900/20">
-          <p className="text-red-600 dark:text-red-400">Failed to load chart. Please try switching to table view.</p>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
 }
