@@ -7,20 +7,20 @@ try {
     admin.initializeApp();
 }
 catch (e) {
-    console.log("Admin SDK already initialized or initialization failed:", e);
+    console.warn("Admin SDK already initialized or initialization failed:", e);
 }
 const db = admin.firestore();
 const templateId = "settlementNotification";
 const templatesCollection = db.collection("templates");
 async function createSettlementTemplate() {
-    console.log(`Checking for template '${templateId}'...`);
+    console.warn(`Checking for template '${templateId}'...`);
     const templateRef = templatesCollection.doc(templateId);
     const templateSnap = await templateRef.get();
     if (templateSnap.exists) {
-        console.log(`Template '${templateId}' already exists.`);
+        console.warn(`Template '${templateId}' already exists.`);
         return;
     }
-    console.log(`Creating template '${templateId}'...`);
+    console.warn(`Creating template '${templateId}'...`);
     const templateData = {
         subject: "AAFairShare: Settlement Report for {{month}}",
         textBody: `
@@ -75,7 +75,7 @@ AAFairShare Bot
     };
     try {
         await templateRef.set(templateData);
-        console.log(`Successfully created template '${templateId}'.`);
+        console.warn(`Successfully created template '${templateId}'.`);
     }
     catch (error) {
         console.error(`Error creating template '${templateId}':`, error);
