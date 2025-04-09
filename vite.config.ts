@@ -6,11 +6,61 @@ import path, { dirname } from "path";
 import { fileURLToPath } from "url";
 import fs from 'fs';
 import { Plugin, UserConfig } from 'vite';
+import { createFilter } from '@rollup/pluginutils';
+import lodashPlugin from './lodash-plugin.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
+// Custom plugin to handle lodash imports
+function fixLodashImports(): Plugin {
+  const filter = createFilter(/\.jsx?$|\.tsx?$/);
 
+  return {
+    name: 'fix-lodash-imports',
+    transform(code, id) {
+      if (!filter(id)) return null;
+
+      // Check if the file imports from lodash/get or similar
+      if (code.includes("from 'lodash/") || code.includes('from "lodash/')) {
+        // Replace imports like: import get from 'lodash/get'
+        // With: import { get } from 'lodash'
+        const newCode = code.replace(/import\s+([\w$]+)\s+from\s+['"]lodash\/([\w$]+)['"];?/g,
+          'import { $2 as $1 } from "lodash";');
+
+        if (newCode !== code) {
+          return {
+            code: newCode,
+            map: null
+          };
+        }
+      }
+      return null;
+    }
+  };
+}
+
+// Custom plugin to handle react-is imports
+function fixReactIsImports(): Plugin {
+  const filter = createFilter(/\.jsx?$|\.tsx?$/);
+
+  return {
+    name: 'fix-react-is-imports',
+    transform(code, id) {
+      if (!filter(id)) return null;
+
+      // Check if the file imports from react-is
+      if (code.includes("from 'react-is'") || code.includes('from "react-is"')) {
+        // Make sure named imports are properly handled
+        return {
+          code,
+          map: null
+        };
+      }
+      return null;
+    }
+  };
+}
 
 // Custom plugin to copy files from public to dist
 function copyPublicFiles(): Plugin {
@@ -78,19 +128,23 @@ function copyPublicFiles(): Plugin {
 }
 
 export default defineConfig({
-  // Use relative paths for assets
-  base: '',
+  // Use default base URL
+  base: '/',
   plugins: [
     react(),
     basicSsl(),
     copyPublicFiles(),
-
   ],
   resolve: {
     alias: {
       // Alias paths are now relative to project root
       "@": path.resolve(__dirname, "client", "src"),
       "@shared": path.resolve(__dirname, "shared"),
+      // Direct aliases for problematic lodash modules
+      "lodash/upperFirst": path.resolve(__dirname, "lodash-shims", "upperFirst.js"),
+      "lodash/isNaN": path.resolve(__dirname, "lodash-shims", "isNaN.js"),
+      "lodash/flatMap": path.resolve(__dirname, "lodash-shims", "flatMap.js"),
+      "lodash/get": path.resolve(__dirname, "lodash-shims", "get.js"),
     },
   },
   server: {
@@ -105,14 +159,22 @@ export default defineConfig({
      include: [
        'react',
        'react-dom',
+       'react-is',
        'firebase',
        'firebase/app',
        'firebase/auth',
-       'firebase/firestore'
+       'firebase/firestore',
+       'lodash'
      ],
      exclude: ['recharts'],
      // Force prebundling of these dependencies
-     force: true
+     force: true,
+     esbuildOptions: {
+       // Node.js global to browser globalThis
+       define: {
+         global: 'globalThis'
+       }
+     }
    },
   build: {
     // Input is implicitly index.html at project root
@@ -126,60 +188,62 @@ export default defineConfig({
     commonjsOptions: {
       include: [/node_modules/],
       transformMixedEsModules: true,
+      // Fix for lodash submodule imports
+      extensions: ['.js', '.jsx', '.ts', '.tsx'],
+      // Explicitly handle lodash submodules
+      strictRequires: true,
     },
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          // Create a chunk for each lazy-loaded component
-          if (id.includes('LazyExpenseTable.tsx') || id.includes('LazyExpenseForm.tsx') ||
-              id.includes('LazyMonthSelector.tsx') || id.includes('LazySummaryCard.tsx')) {
-            return 'lazy-components';
-          }
-
-          // Create a chunk for React and related libraries
-          if (id.includes('node_modules/react') ||
-              id.includes('node_modules/react-dom') ||
-              id.includes('node_modules/react-router-dom') ||
-              id.includes('node_modules/react-hook-form')) {
-            return 'vendor-react';
-          }
-
-          // Create a chunk for Firebase
-          if (id.includes('node_modules/firebase')) {
-            return 'vendor-firebase';
-          }
-
-          // Create a chunk for UI components
-          if (id.includes('node_modules/@radix-ui') ||
-              id.includes('node_modules/class-variance-authority') ||
-              id.includes('node_modules/clsx') ||
-              id.includes('node_modules/tailwind-merge')) {
-            return 'vendor-ui';
-          }
-
-          // Create a chunk for date handling libraries
-          if (id.includes('node_modules/date-fns') ||
-              id.includes('node_modules/react-day-picker')) {
-            return 'vendor-date';
-          }
-
-          // Create a chunk for chart libraries
-          if (id.includes('node_modules/recharts') ||
-              id.includes('node_modules/d3')) {
-            return 'vendor-charts';
-          }
-
-          // Create a chunk for chart components
-          if (id.includes('EnhancedDataChart.tsx') ||
-              id.includes('EnhancedTrendChart.tsx')) {
-            return 'chart-components';
-          }
-
-          // Create a chunk for export utilities
-          if (id.includes('node_modules/jspdf') ||
-              id.includes('node_modules/html2canvas')) {
-            return 'vendor-export';
-          }
+        manualChunks: {
+          // Split React and related libraries into a separate chunk
+          'vendor-react': [
+            'react',
+            'react-dom',
+            'react-router-dom',
+            'react-hook-form',
+            '@hookform/resolvers',
+            'react-is'
+          ],
+          // Firebase chunk
+          'vendor-firebase': [
+            'firebase',
+            'firebase/app',
+            'firebase/auth',
+            'firebase/firestore'
+          ],
+          // UI components and libraries
+          'vendor-ui': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-label',
+            '@radix-ui/react-popover',
+            '@radix-ui/react-select',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-toast',
+            'class-variance-authority',
+            'clsx',
+            'tailwind-merge',
+            'tailwindcss-animate'
+          ],
+          // Date handling libraries
+          'vendor-date': [
+            'date-fns',
+            'react-day-picker'
+          ],
+          // Chart and visualization libraries
+          'vendor-charts': [
+            'recharts',
+            'd3-array',
+            'd3-scale',
+            'd3-shape'
+          ],
+          // Export utilities
+          'vendor-export': [
+            'jspdf',
+            'jspdf-autotable',
+            'html2canvas'
+          ]
         },
         // Ensure chunks have consistent names between builds
         chunkFileNames: 'assets/[name]-[hash].js',

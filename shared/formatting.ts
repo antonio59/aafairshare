@@ -10,11 +10,11 @@
 export function formatCurrency(amount: number | undefined | null): string {
   // Handle potential null/undefined/NaN inputs gracefully
   const numAmount = Number(amount);
-  if (isNaN(numAmount)) {
+  if (Number.isNaN(numAmount)) {
     return "£NaN"; // Or return "£0.00" or some other indicator
   }
-  return new Intl.NumberFormat("en-GB", { 
-    style: "currency", 
+  return new Intl.NumberFormat("en-GB", {
+    style: "currency",
     currency: "GBP",
   }).format(numAmount);
 }
@@ -29,10 +29,10 @@ export function formatDate(date: Date | string | any): string {
   if (date && typeof date === 'object' && 'toDate' in date && typeof date.toDate === 'function') {
     date = date.toDate();
   }
-  
+
   // Handle string dates
   const dateObj = typeof date === 'string' ? new Date(date) : date;
-  
+
   // Use locale date string for consistent formatting
   return dateObj.toLocaleDateString("en-GB", {
     day: 'numeric',
