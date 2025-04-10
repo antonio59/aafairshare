@@ -379,120 +379,12 @@ export default function Index() {
 
   return (
     <MainLayout>
-      <div className="flex flex-col gap-6">
-        {/* Header Section */}
-        <div className="flex flex-col gap-4">
-          <h1 className="text-2xl font-semibold">Dashboard</h1>
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div className="flex-grow w-full md:w-auto">
-              <MonthSelector value={currentMonth} onChange={handleMonthChange} />
-            </div>
-            <div className="flex items-center justify-end gap-3 flex-shrink-0">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" className="rounded-full w-9 h-9">
-                    <Download className="h-4 w-4" /> <span className="sr-only">Export Options</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleExport('csv')}>Export as CSV</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleExport('pdf')}>Export as PDF</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {/* Disable Add Expense button if month is settled */}
-              <Button
-                onClick={handleAddExpense}
-                variant="outline"
-                size="icon"
-                className="rounded-full w-9 h-9"
-                disabled={isCurrentMonthSettled || settlementLoading} // Disable if settled or loading status
-                aria-label={isCurrentMonthSettled ? "Cannot add expense to settled month" : "Add Expense"}
-              >
-                <PlusIcon className="h-4 w-4" />
-                <VisuallyHidden>{isCurrentMonthSettled ? "Cannot add expense to settled month" : "Add Expense"}</VisuallyHidden>
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-4 gap-3">
-          <SummaryCard
-            title="Total"
-            value={formatCurrency(summary?.totalExpenses || 0)}
-            icon={PoundSterling}
-            variant="total"
-            isLoading={summaryLoading}
-          />
-          <SummaryCard
-            title={`${user1Name || 'User 1'} Paid`}
-            value={formatCurrency(user1Id ? summary?.userExpenses?.[user1Id] || 0 : 0)}
-            icon={Users}
-            variant="user1"
-            isLoading={summaryLoading}
-            tooltip={user1Name ? `Amount paid by ${user1Name}` : 'Amount paid by User 1'}
-            photoURL={user1?.photoURL}
-            email={user1?.email ?? undefined}
-          />
-          <SummaryCard
-            title={`${user2Name || 'User 2'} Paid`}
-            value={formatCurrency(user2Id ? summary?.userExpenses?.[user2Id] || 0 : 0)}
-            icon={Users}
-            variant="user2"
-            isLoading={summaryLoading}
-            tooltip={user2Name ? `Amount paid by ${user2Name}` : 'Amount paid by User 2'}
-            photoURL={user2Data?.photoURL}
-            email={user2Data?.email ?? undefined}
-          />
-          <SummaryCard
-            title={balanceTitle}
-            value={formatCurrency(summary?.settlementAmount ?? 0)}
-            icon={WalletCards}
-            variant="balance"
-            isNegative={owingUserId === user1Id}
-            isLoading={summaryLoading}
-            tooltip={balanceTooltip}
-            photoURL={owingUser?.photoURL}
-            email={owingUser?.email ?? undefined}
-          />
-        </div>
-
-        {/* Expenses Section */}
-        <div>
-          <h2 className="text-xl font-semibold mb-4">Expenses</h2>
-          <ExpenseTable
-            expenses={expenses}
-            isLoading={expensesLoading || usersLoading || categoriesLoading || locationsLoading || settlementLoading}
-            currentUserId={currentUser?.uid}
-            onEdit={handleEditExpense}
-            onDelete={handleDeleteExpense}
-          />
-        </div>
-
-        {/* Expense Form Dialog */}
-        <Dialog open={isExpenseFormOpen} onOpenChange={setIsExpenseFormOpen}>
-          <DialogContent className="sm:max-w-[600px] w-[90vw] max-w-[90vw] rounded-lg p-0 border-gray-200">
-            <DialogHeader>
-              <DialogTitle>
-                <VisuallyHidden>{dialogTitle}</VisuallyHidden>
-              </DialogTitle>
-              <DialogDescription>
-                <VisuallyHidden>{dialogDescription}</VisuallyHidden>
-              </DialogDescription>
-            </DialogHeader>
-            <div className="max-h-[70vh] overflow-y-auto">
-              <ExpenseForm
-                expense={selectedExpense}
-                categories={categories}
-                locations={locations}
-                users={allUsers}
-                currentUserId={currentUser?.uid || ''}
-                onSuccess={() => setIsExpenseFormOpen(false)}
-                onCancel={() => setIsExpenseFormOpen(false)}
-              />
-            </div>
-          </DialogContent>
-        </Dialog>
+      {/* Temporarily simplified content for debugging */}
+      <div className="p-4">
+        <h1 className="text-2xl font-semibold">Dashboard (Simplified)</h1>
+        <p>Current Month: {currentMonth}</p>
+        <p>Checking if errors persist with minimal content...</p>
+        {/* Add back components one by one if this works */}
       </div>
     </MainLayout>
   );
