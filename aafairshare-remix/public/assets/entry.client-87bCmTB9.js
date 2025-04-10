@@ -1,0 +1,33 @@
+import{E as R,m as g,c as v,a as y,r as o,b as C,j as l}from"./index-DKmAOi_X.js";import{i as S,d as M,c as b,s as F,g as P,a as A,b as I,u as k,R as D,e as H,f as B,r as T}from"./components-CKpw0IfN.js";/**
+ * @remix-run/react v2.16.5
+ *
+ * Copyright (c) Remix Software Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE.md file in the root directory of this source tree.
+ *
+ * @license MIT
+ */function j(e){if(!e)return null;let t=Object.entries(e),s={};for(let[i,r]of t)if(r&&r.__type==="RouteErrorResponse")s[i]=new R(r.status,r.statusText,r.data,r.internal===!0);else if(r&&r.__type==="Error"){if(r.__subType){let n=window[r.__subType];if(typeof n=="function")try{let d=new n(r.message);d.stack=r.stack,s[i]=d}catch{}}if(s[i]==null){let n=new Error(r.message);n.stack=r.stack,s[i]=n}}else s[i]=r;return s}/**
+ * @remix-run/react v2.16.5
+ *
+ * Copyright (c) Remix Software Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE.md file in the root directory of this source tree.
+ *
+ * @license MIT
+ */let u,a,p=!1,h;new Promise(e=>{h=e}).catch(()=>{});function z(e){if(!a){if(window.__remixContext.future.v3_singleFetch){if(!u){let w=window.__remixContext.stream;S(w,"No stream found for single fetch decoding"),window.__remixContext.stream=void 0,u=M(w,window).then(c=>{window.__remixContext.state=c.value,u.value=!0}).catch(c=>{u.error=c})}if(u.error)throw u.error;if(!u.value)throw u}let n=b(window.__remixManifest.routes,window.__remixRouteModules,window.__remixContext.state,window.__remixContext.future,window.__remixContext.isSpaMode),d;if(!window.__remixContext.isSpaMode){d={...window.__remixContext.state,loaderData:{...window.__remixContext.state.loaderData}};let w=g(n,window.location,window.__remixContext.basename);if(w)for(let c of w){let _=c.route.id,m=window.__remixRouteModules[_],f=window.__remixManifest.routes[_];m&&F(f,m,window.__remixContext.isSpaMode)&&(m.HydrateFallback||!f.hasLoader)?d.loaderData[_]=void 0:f&&!f.hasLoader&&(d.loaderData[_]=null)}d&&d.errors&&(d.errors=j(d.errors))}a=v({routes:n,history:y(),basename:window.__remixContext.basename,future:{v7_normalizeFormMethod:!0,v7_fetcherPersist:window.__remixContext.future.v3_fetcherPersist,v7_partialHydration:!0,v7_prependBasename:!0,v7_relativeSplatPath:window.__remixContext.future.v3_relativeSplatPath,v7_skipActionErrorRevalidation:window.__remixContext.future.v3_singleFetch===!0},hydrationData:d,mapRouteProperties:C,dataStrategy:window.__remixContext.future.v3_singleFetch&&!window.__remixContext.isSpaMode?A(window.__remixManifest,window.__remixRouteModules,()=>a):void 0,patchRoutesOnNavigation:P(window.__remixManifest,window.__remixRouteModules,window.__remixContext.future,window.__remixContext.isSpaMode,window.__remixContext.basename)}),a.state.initialized&&(p=!0,a.initialize()),a.createRoutesForHMR=I,window.__remixRouter=a,h&&h(a)}let[t,s]=o.useState(void 0),[i,r]=o.useState(a.state.location);return o.useLayoutEffect(()=>{p||(p=!0,a.initialize())},[]),o.useLayoutEffect(()=>a.subscribe(n=>{n.location!==i&&r(n.location)}),[i]),k(a,window.__remixManifest,window.__remixRouteModules,window.__remixContext.future,window.__remixContext.isSpaMode),o.createElement(o.Fragment,null,o.createElement(D.Provider,{value:{manifest:window.__remixManifest,routeModules:window.__remixRouteModules,future:window.__remixContext.future,criticalCss:t,isSpaMode:window.__remixContext.isSpaMode}},o.createElement(H,{location:i},o.createElement(B,{router:a,fallbackElement:null,future:{v7_startTransition:!0}}))),window.__remixContext.future.v3_singleFetch?o.createElement(o.Fragment,null):null)}var x={},E;function O(){if(E)return x;E=1;var e=T();return x.createRoot=e.createRoot,x.hydrateRoot=e.hydrateRoot,x}var L=O();typeof window<"u"&&!window.ENV&&(window.ENV={FIREBASE_API_KEY:"",FIREBASE_AUTH_DOMAIN:"",FIREBASE_PROJECT_ID:"",FIREBASE_STORAGE_BUCKET:"",FIREBASE_MESSAGING_SENDER_ID:"",FIREBASE_APP_ID:""});typeof window<"u"&&window.__remixContext&&!window.__remixContext.future&&(window.__remixContext.future={v3_fetcherPersist:!0,v3_relativeSplatPath:!0,v3_throwAbortReason:!0,v3_singleFetch:!0,v3_lazyRouteDiscovery:!0});function N({children:e}){const[t,s]=o.useState(!1),[i,r]=o.useState(null);if(o.useEffect(()=>{t&&i&&typeof window<"u"&&window.handleReactError&&window.handleReactError(i)},[t,i]),t)return l.jsxs("div",{style:{padding:"20px",margin:"20px",border:"1px solid red",borderRadius:"5px",backgroundColor:"#fff8f8"},children:[l.jsx("h2",{children:"Something went wrong"}),l.jsx("p",{children:"An error occurred while loading the application."}),i&&l.jsx("pre",{style:{whiteSpace:"pre-wrap",overflow:"auto",maxHeight:"200px",padding:"10px",backgroundColor:"#f5f5f5"},children:i.message})]});try{return l.jsx(l.Fragment,{children:e})}catch(n){return r(n instanceof Error?n:new Error(String(n))),s(!0),null}}typeof window<"u"&&!window.handleReactError&&(window.handleReactError=e=>{console.error("React Error Handler:",e);const t=document.getElementById("root-error-messages")||document.createElement("div");t.id||(t.id="root-error-messages",t.style.padding="20px",t.style.margin="20px",t.style.border="1px solid red",t.style.borderRadius="5px",t.style.backgroundColor="#fff8f8",document.body.appendChild(t));const s=document.createElement("div");s.innerHTML=`
+      <h3 style="margin-top: 10px; color: red;">Error:</h3>
+      <pre style="white-space: pre-wrap; overflow: auto; max-height: 200px; padding: 10px; background-color: #f5f5f5;">
+        ${e.message}
+        ${e.stack||""}
+      </pre>
+    `,t.appendChild(s)});function q(){return l.jsx(N,{children:l.jsx(z,{})})}try{console.log("Starting hydration..."),o.startTransition(()=>{try{L.hydrateRoot(document,l.jsx(o.StrictMode,{children:l.jsx(q,{})})),console.log("Hydration complete")}catch(e){console.error("Hydration error:",e),typeof window<"u"&&window.handleReactError&&window.handleReactError(e instanceof Error?e:new Error(String(e))),document.body.innerHTML=`
+        <div style="padding: 20px; margin: 20px; border: 1px solid red; border-radius: 5px; background-color: #fff8f8;">
+          <h2>Failed to load application</h2>
+          <p>There was an error loading the application. Please try refreshing the page.</p>
+          <pre style="white-space: pre-wrap; overflow: auto; max-height: 200px; padding: 10px; background-color: #f5f5f5;">
+            ${e instanceof Error?e.message:String(e)}
+          </pre>
+        </div>
+      `}})}catch(e){console.error("Fatal error during initialization:",e),typeof window<"u"&&window.handleReactError&&window.handleReactError(e instanceof Error?e:new Error(String(e)))}
