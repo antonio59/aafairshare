@@ -1,141 +1,118 @@
 // CLIENT-SIDE ONLY FIREBASE IMPLEMENTATION
 // This file should only be imported from client components
 
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/firestore';
-import 'firebase/compat/functions';
+// Use modular SDK
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getAuth, setPersistence, browserLocalPersistence, type Auth } from 'firebase/auth';
+import { getFirestore, collection, doc, type Firestore } from 'firebase/firestore';
+import { getFunctions, type Functions } from 'firebase/functions';
+// Global types (ENV, debugInfo) should be defined in a central .d.ts file (e.g., app/types/global.d.ts)
+// Removing duplicate declarations from here.
 
-// Define global types for TypeScript
-declare global {
-  interface Window {
-    firebase: typeof firebase;
-    ENV?: {
-      FIREBASE_API_KEY: string;
-      FIREBASE_AUTH_DOMAIN: string;
-      FIREBASE_PROJECT_ID: string;
-      FIREBASE_STORAGE_BUCKET: string;
-      FIREBASE_MESSAGING_SENDER_ID: string;
-      FIREBASE_APP_ID: string;
-      FIREBASE_MEASUREMENT_ID?: string;
-    };
-    debugInfo?: {
-      timestamp: string;
-      userAgent: string;
-      url: string;
-      errors: string[];
-    };
-  }
-}
+// Firebase services (will be initialized later)
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let functions: Functions;
 
-// Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyAYLQoJRCZ9ynyASEQ0zNWez9GUeNG4qsg",
-  authDomain: "aafairshare-37271.firebaseapp.com",
-  projectId: "aafairshare-37271",
-  storageBucket: "aafairshare-37271.appspot.com",
-  messagingSenderId: "121020031141",
-  appId: "1:121020031141:web:c56c04b654aae5cfd76d4c"
-};
-
-// Define Firebase services
-let app: firebase.app.App;
-let auth: firebase.auth.Auth;
-let db: firebase.firestore.Firestore;
-let functions: firebase.functions.Functions;
-
-// Initialize Firebase - this function can be called multiple times safely
+// Initialize Firebase using modular SDK and window.ENV
+// This function should only be called once ENV is available
 function initializeFirebase() {
-  console.log('Initializing Firebase in client');
+  console.log('Attempting Firebase initialization...');
 
+  // Check if already initialized
+  if (getApps().length > 0) {
+    console.log('Firebase already initialized.');
+    app = getApp(); // Get existing app
+  } else {
+    // Get config from window.ENV
+    const envConfig = window.ENV;
+    if (!envConfig || !envConfig.FIREBASE_API_KEY) {
+      console.error('Firebase ENV config not found on window object.');
+      throw new Error('Firebase ENV config not found.');
+    }
+
+    const firebaseConfig = {
+      apiKey: envConfig.FIREBASE_API_KEY,
+      authDomain: envConfig.FIREBASE_AUTH_DOMAIN,
+      projectId: envConfig.FIREBASE_PROJECT_ID,
+      storageBucket: envConfig.FIREBASE_STORAGE_BUCKET,
+      messagingSenderId: envConfig.FIREBASE_MESSAGING_SENDER_ID,
+      appId: envConfig.FIREBASE_APP_ID,
+      measurementId: envConfig.FIREBASE_MEASUREMENT_ID,
+    };
+
+    console.log('Initializing new Firebase app with ENV config.');
+    app = initializeApp(firebaseConfig);
+  }
+
+  // Initialize services using modular functions
   try {
-    // Check if Firebase is already initialized
-    if (firebase.apps.length > 0) {
-      console.log('Firebase already initialized, using existing app');
-      app = firebase.apps[0];
-    } else {
-      // Initialize Firebase in the browser
-      console.log('Creating new Firebase app');
-      app = firebase.initializeApp(firebaseConfig);
-    }
-
-    // Initialize services
-    auth = app.auth();
-    db = app.firestore();
-    functions = app.functions();
-
-    // Verify services are properly initialized
-    if (!db || typeof db.collection !== 'function') {
-      throw new Error('Firestore db object is not properly initialized');
-    }
-
-    if (!auth || typeof auth.signInWithPopup !== 'function') {
-      throw new Error('Firebase Auth object is not properly initialized');
-    }
+    auth = getAuth(app);
+    db = getFirestore(app);
+    functions = getFunctions(app); // Optional: specify region if needed
 
     // Configure auth persistence
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+    setPersistence(auth, browserLocalPersistence)
       .catch(error => {
         console.error("Failed to set Firebase auth persistence:", error);
       });
 
-    console.log('Firebase services initialized successfully');
+    console.log('Firebase services obtained successfully.');
     return { app, auth, db, functions };
+
   } catch (error) {
-    console.error('Error initializing Firebase:', error);
-    throw error;
+    console.error('Error obtaining Firebase services:', error);
+    // Clean up potentially partially initialized app if services fail
+    // Note: Firebase doesn't have a standard 'deleteApp' in v9+ client SDK easily accessible here
+    // Consider logging the error and letting the app handle the failure state
+    throw error; // Re-throw error after logging
   }
 }
 
-// Helper functions for Firestore operations
+// Helper functions for Firestore operations using modular SDK
 function getCollection(collectionName: string) {
-  if (!db || typeof db.collection !== 'function') {
-    console.error('Firestore not initialized when trying to access collection');
-    // Try to initialize Firebase
+  if (!db) {
+    console.error('Firestore not initialized when trying to access collection:', collectionName);
+    // Attempt to initialize if not already done (e.g., on direct import/use)
     try {
+      console.log('Attempting lazy initialization for getCollection');
       const services = initializeFirebase();
-      db = services.db;
+      db = services.db; // Update local db instance
     } catch (error) {
-      console.error('Failed to initialize Firebase when accessing collection:', error);
+      console.error('Lazy initialization failed for getCollection:', error);
+      // Depending on requirements, you might throw an error or return null/undefined
+      // Returning null here to indicate failure to get the collection ref
       return null;
     }
   }
-
-  return db.collection(collectionName);
+  // Use modular 'collection' function
+  return collection(db, collectionName);
 }
 
-function getDocument(path: string) {
-  if (!db || typeof db.doc !== 'function') {
-    console.error('Firestore not initialized when trying to access document');
-    // Try to initialize Firebase
+function getDocument(documentPath: string) {
+   if (!db) {
+    console.error('Firestore not initialized when trying to access document:', documentPath);
+    // Attempt to initialize if not already done
     try {
+      console.log('Attempting lazy initialization for getDocument');
       const services = initializeFirebase();
-      db = services.db;
+      db = services.db; // Update local db instance
     } catch (error) {
-      console.error('Failed to initialize Firebase when accessing document:', error);
-      return null;
+      console.error('Lazy initialization failed for getDocument:', error);
+      return null; // Indicate failure
     }
   }
-
-  return db.doc(path);
+  // Use modular 'doc' function
+  return doc(db, documentPath);
 }
 
-// Initialize Firebase immediately
-try {
-  const services = initializeFirebase();
-  // Update the global variables with the initialized services
-  app = services.app;
-  auth = services.auth;
-  db = services.db;
-  functions = services.functions;
-  console.log('Firebase initialized on module load');
-} catch (error) {
-  console.error('Failed to initialize Firebase on module load:', error);
-}
+// Remove immediate initialization on module load
+// Initialization should be triggered explicitly when ENV is ready
 
 // Export the initialized services and the initialization function
 export {
-  firebase,
+  // firebase, // Don't export global firebase
   auth,
   db,
   functions,

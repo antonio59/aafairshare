@@ -45,78 +45,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <title>AAFairShare | Household Expenses Management</title>
         <Meta />
         <Links />
-        {/* Firebase SDK - Load before React */}
-        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-        <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js"></script>
-
-        {/* Ensure Firebase is loaded */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          // Check if Firebase SDK is loaded
-          if (typeof firebase === 'undefined') {
-            console.error('Firebase SDK is not loaded!');
-          } else {
-            console.log('Firebase SDK is loaded successfully');
-
-            // Check if Firebase services are available
-            if (typeof firebase.auth !== 'function') {
-              console.error('Firebase Auth is not available!');
-            } else {
-              console.log('Firebase Auth is available');
-            }
-
-            if (typeof firebase.firestore !== 'function') {
-              console.error('Firebase Firestore is not available!');
-            } else {
-              console.log('Firebase Firestore is available');
-            }
-          }
-        ` }}/>
-
-        {/* Initialize Firebase immediately */}
-        <script dangerouslySetInnerHTML={{ __html: `
-          // Initialize Firebase with hardcoded config
-          try {
-            if (typeof firebase !== 'undefined') {
-              const firebaseConfig = {
-                apiKey: "AIzaSyAYLQoJRCZ9ynyASEQ0zNWez9GUeNG4qsg",
-                authDomain: "aafairshare-37271.firebaseapp.com",
-                projectId: "aafairshare-37271",
-                storageBucket: "aafairshare-37271.appspot.com",
-                messagingSenderId: "121020031141",
-                appId: "1:121020031141:web:c56c04b654aae5cfd76d4c"
-              };
-
-              // Check if Firebase is already initialized
-              if (!firebase.apps || !firebase.apps.length) {
-                try {
-                  window.firebase = firebase;
-                  firebase.initializeApp(firebaseConfig);
-                  console.log('Firebase initialized in head script');
-
-                  // Verify Firebase services are available
-                  if (typeof firebase.auth !== 'function') {
-                    console.error('Firebase Auth is not available');
-                  }
-
-                  if (typeof firebase.firestore !== 'function') {
-                    console.error('Firebase Firestore is not available');
-                  }
-
-                } catch (initError) {
-                  console.error('Error initializing Firebase in head script:', initError);
-                }
-              } else {
-                console.log('Firebase already initialized');
-              }
-            } else {
-              console.error('Firebase SDK not loaded');
-            }
-          } catch (error) {
-            console.error('Error in Firebase initialization script:', error);
-          }
-        ` }}/>
+        {/* Firebase will be initialized via client-side imports */}
       </head>
       <body>
         {children}
@@ -190,28 +119,18 @@ export default function App() {
       console.log('Root component mounted');
       setIsClient(true);
 
-      // Check if Firebase is available globally
-      if (typeof window !== 'undefined') {
-        // Log debugging info if available
-        if (window.debugInfo) {
-          console.log('Debug info:', window.debugInfo);
-        }
-
-        if (window.firebase) {
-          console.log('Firebase is available globally');
-          setFirebaseInitialized(true);
-        } else {
-          console.error('Firebase is NOT available globally - this will cause issues');
-          setInitError(new Error('Firebase is not available globally'));
-        }
-      }
+      // Client is ready
+      console.log('Client is ready');
+      // Firebase initialization state will be managed by AuthProvider or similar
+      // For now, assume initialized if client is ready (will refine later)
+      setFirebaseInitialized(true);
     } catch (error) {
       console.error('Error in root component initialization:', error);
       setInitError(error instanceof Error ? error : new Error(String(error)));
     }
   }, []); // Empty dependency array - run once on mount
 
-  // Second effect: Handle ENV setup, Firebase initialization, and service worker
+  // Second effect: Handle ENV setup and service worker
   useEffect(() => {
     if (!isClient) return; // Only run on client
 
@@ -220,54 +139,12 @@ export default function App() {
       if (data && data.ENV && typeof window !== 'undefined' && !window.ENV) {
         window.ENV = data.ENV;
         console.log('ENV set from loader data');
-
-        // Initialize Firebase with the ENV variables
-        if (window.firebase && !firebase.apps.length) {
-          try {
-            const firebaseConfig = {
-              apiKey: data.ENV.FIREBASE_API_KEY,
-              authDomain: data.ENV.FIREBASE_AUTH_DOMAIN,
-              projectId: data.ENV.FIREBASE_PROJECT_ID,
-              storageBucket: data.ENV.FIREBASE_STORAGE_BUCKET,
-              messagingSenderId: data.ENV.FIREBASE_MESSAGING_SENDER_ID,
-              appId: data.ENV.FIREBASE_APP_ID,
-              measurementId: data.ENV.FIREBASE_MEASUREMENT_ID
-            };
-
-            window.firebase.initializeApp(firebaseConfig);
-            console.log('Firebase initialized with ENV variables');
-            setFirebaseInitialized(true);
-          } catch (firebaseError) {
-            console.error('Failed to initialize Firebase with ENV variables:', firebaseError);
-            window.debugInfo.errors.push('Failed to initialize Firebase with ENV: ' + String(firebaseError));
-          }
-        }
       } else if (typeof window !== 'undefined' && window.ENV) {
         console.log('ENV already set in window');
       } else if (data && !data.ENV) {
         console.error('ENV data is missing in loader data');
-        setInitError(new Error('ENV data is missing in loader data'));
-      }
-
-      // Initialize Firebase with hardcoded config if not already initialized
-      if (window.firebase && !firebase.apps.length && !window.firebase.apps.length) {
-        try {
-          const firebaseConfig = {
-            apiKey: "AIzaSyAYLQoJRCZ9ynyASEQ0zNWez9GUeNG4qsg",
-            authDomain: "aafairshare-37271.firebaseapp.com",
-            projectId: "aafairshare-37271",
-            storageBucket: "aafairshare-37271.appspot.com",
-            messagingSenderId: "121020031141",
-            appId: "1:121020031141:web:c56c04b654aae5cfd76d4c"
-          };
-
-          window.firebase.initializeApp(firebaseConfig);
-          console.log('Firebase initialized with hardcoded config as fallback');
-          setFirebaseInitialized(true);
-        } catch (firebaseError) {
-          console.error('Failed to initialize Firebase with hardcoded config:', firebaseError);
-          window.debugInfo.errors.push('Failed to initialize Firebase with hardcoded config: ' + String(firebaseError));
-        }
+        // Consider setting an error state here if ENV is critical
+        // setInitError(new Error('ENV data is missing in loader data'));
       }
 
       // Register service worker only in production
@@ -283,10 +160,10 @@ export default function App() {
         });
       }
     } catch (error) {
-      console.error('Error in ENV setup:', error);
+      console.error('Error in root useEffect:', error);
       setInitError(error instanceof Error ? error : new Error(String(error)));
     }
-  }, [data, isClient]);
+  }, [data, isClient]); // Removed Firebase initialization logic
 
   // Add a simple fallback component
   const FallbackComponent = ({ error }: { error?: Error | null }) => (

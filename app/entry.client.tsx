@@ -7,29 +7,12 @@
 import { RemixBrowser, useLocation, useMatches } from "@remix-run/react";
 import { startTransition, StrictMode, useState, useEffect } from "react";
 import { hydrateRoot } from "react-dom/client";
+import { initializeFirebase } from "~/lib/firebase.client"; // Import Firebase initializer
 
-// Define the future configuration to prevent errors
-if (typeof window !== 'undefined' && !window.ENV) {
-  window.ENV = {
-    FIREBASE_API_KEY: '',
-    FIREBASE_AUTH_DOMAIN: '',
-    FIREBASE_PROJECT_ID: '',
-    FIREBASE_STORAGE_BUCKET: '',
-    FIREBASE_MESSAGING_SENDER_ID: '',
-    FIREBASE_APP_ID: '',
-  };
-}
+// Remove problematic ENV polyfill - ENV should be populated by root loader
 
-// Add a polyfill for the missing future property
-if (typeof window !== 'undefined' && window.__remixContext && !window.__remixContext.future) {
-  window.__remixContext.future = {
-    v3_fetcherPersist: true,
-    v3_relativeSplatPath: true,
-    v3_throwAbortReason: true,
-    v3_singleFetch: true,
-    v3_lazyRouteDiscovery: true,
-  };
-}
+// Remove potentially problematic future flags polyfill
+// Future flags should be handled by Remix context based on remix.config.js
 
 // Add error boundary component
 function ErrorBoundary({ children }: { children: React.ReactNode }) {
@@ -71,25 +54,7 @@ function ErrorBoundary({ children }: { children: React.ReactNode }) {
   }
 }
 
-// Define the window.ENV and window.firebase types
-declare global {
-  interface Window {
-    ENV: {
-      FIREBASE_API_KEY: string;
-      FIREBASE_AUTH_DOMAIN: string;
-      FIREBASE_PROJECT_ID: string;
-      FIREBASE_STORAGE_BUCKET: string;
-      FIREBASE_MESSAGING_SENDER_ID: string;
-      FIREBASE_APP_ID: string;
-      FIREBASE_MEASUREMENT_ID?: string;
-    };
-    firebase: any; // Using any for simplicity
-    handleReactError: (error: Error) => void;
-    debugInfo?: any;
-    queryClient?: any;
-    __remixContext?: any; // Add this to handle the future property
-  }
-}
+// Remove duplicate global type declarations - rely on central d.ts file
 
 // Add global error handler to window
 if (typeof window !== 'undefined' && !window.handleReactError) {
@@ -130,6 +95,21 @@ function App() {
 
 // Add error handling to hydration
 try {
+  console.log('Initializing Firebase...');
+  try {
+    initializeFirebase(); // Initialize Firebase before hydration
+    console.log('Firebase initialized successfully.');
+  } catch (error) {
+    console.error('Firebase initialization failed:', error);
+    // Handle critical initialization failure if necessary
+    // Maybe display an error message directly without attempting hydration
+    if (typeof window !== 'undefined' && window.handleReactError) {
+      window.handleReactError(new Error('Critical Firebase initialization failed: ' + (error instanceof Error ? error.message : String(error))));
+    }
+    // Optionally, prevent hydration if Firebase is critical
+    // throw new Error("Stopping hydration due to Firebase init failure");
+  }
+
   console.log('Starting hydration...');
   startTransition(() => {
     try {
