@@ -33,7 +33,8 @@ const db = admin.firestore();
 let expressApp: express.Express;
 try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const server = require("../build/server"); // Adjust path if necessary
+    // Correct relative path from functions/lib/index.js to project_root/build/server/index.js
+    const server = require("../../build/server");
     if (server.default && typeof server.default === 'function') {
         // Assuming the default export is the Express app instance
         expressApp = server.default;
