@@ -101,14 +101,21 @@
     {
       "source": ".",
       "codebase": "default",
+      "runtime": "nodejs22",
       "ignore": [
-        "node_modules",
+        ".firebase",
         ".git",
+        ".github",
+        ".vscode",
+        "node_modules",
+        "functions/node_modules",
         "firebase-debug.log",
         "firebase-debug.*.log",
         "*.local"
       ],
-      "predeploy": []
+      "predeploy": [
+        "npm --prefix \"$RESOURCE_DIR\" run build"
+      ]
     }
   ]
 }
