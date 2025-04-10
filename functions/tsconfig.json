@@ -10,9 +10,9 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
-    "baseUrl": ".", // Add baseUrl
-    "paths": {      // Add paths mapping
-      "shared/*": ["../app/shared/*"] // More explicit path relative to baseUrl
+    "baseUrl": "../", // Base is now project root relative to this file
+    "paths": {
+      "shared/*": ["app/shared/*"] // Path relative to new baseUrl
     },
     // "rootDir": "src" // Removed to allow importing from ../app/shared
   },
