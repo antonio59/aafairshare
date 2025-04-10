@@ -127,15 +127,21 @@ try {
       }
 
       // Fallback to a simple message if hydration fails
-      document.body.innerHTML = `
-        <div style="padding: 20px; margin: 20px; border: 1px solid red; border-radius: 5px; background-color: #fff8f8;">
-          <h2>Failed to load application</h2>
-          <p>There was an error loading the application. Please try refreshing the page.</p>
-          <pre style="white-space: pre-wrap; overflow: auto; max-height: 200px; padding: 10px; background-color: #f5f5f5;">
-            ${error instanceof Error ? error.message : String(error)}
-          </pre>
-        </div>
-      `;
+      // Check if document.body exists before modifying it
+      if (document.body) {
+        document.body.innerHTML = `
+          <div style="padding: 20px; margin: 20px; border: 1px solid red; border-radius: 5px; background-color: #fff8f8;">
+            <h2>Failed to load application</h2>
+            <p>There was an error loading the application. Please try refreshing the page.</p>
+            <pre style="white-space: pre-wrap; overflow: auto; max-height: 200px; padding: 10px; background-color: #f5f5f5;">
+              ${error instanceof Error ? error.message : String(error)}
+            </pre>
+          </div>
+        `;
+      } else {
+        // Log an error if body isn't available for fallback UI
+        console.error("Hydration failed and document.body was not available to display fallback message.");
+      }
     }
   });
 } catch (error) {
