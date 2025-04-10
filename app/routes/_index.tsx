@@ -50,7 +50,7 @@ export const meta: MetaFunction = () => {
 };
 
 export default function Index() {
-  const [currentMonth, setCurrentMonth] = useState(getCurrentMonth());
+  const [currentMonth, setCurrentMonth] = useState<string | null>(null); // Initialize as null
   const [isExpenseFormOpen, setIsExpenseFormOpen] = useState(false);
   const [selectedExpense, setSelectedExpense] = useState<ExpenseWithDetails | undefined>(undefined);
   const { toast } = useToast();
@@ -81,11 +81,11 @@ export default function Index() {
   const calculateSummary = useCallback((expenseList: ExpenseWithDetails[]) => {
     setSummaryLoading(true);
 
-    // Return null if data isn't ready
-    if (!currentUser || allUsers.length < 2) {
+    // Return null if data isn't ready or month isn't set
+    if (!currentUser || allUsers.length < 2 || !currentMonth) {
       setSummary(null);
       setSummaryLoading(false);
-      return;
+      return; // Exit if month is null
     }
 
     const user1 = allUsers.find(u => u.id === currentUser.uid);
@@ -204,6 +204,13 @@ export default function Index() {
       navigate('/login');
     }
   }, [currentUser, authLoading, navigate]);
+
+  // Set initial month only on the client to avoid hydration mismatch
+  useEffect(() => {
+    if (!currentMonth) {
+      setCurrentMonth(getCurrentMonth());
+    }
+  }, [currentMonth]); // Run once when currentMonth is null
 
   // --- Mobile Add Expense Event Listener ---
   useEffect(() => {
@@ -360,6 +367,16 @@ export default function Index() {
   }
 
   // If authenticated, show dashboard
+  // Render loading or main content based on currentMonth
+  if (!currentMonth) {
+    // Render a minimal loading state or null until month is set client-side
+    return (
+       <MainLayout>
+         <div className="flex items-center justify-center h-64">Loading month...</div>
+       </MainLayout>
+    );
+  }
+
   return (
     <MainLayout>
       <div className="flex flex-col gap-6">
@@ -415,7 +432,7 @@ export default function Index() {
             isLoading={summaryLoading}
             tooltip={user1Name ? `Amount paid by ${user1Name}` : 'Amount paid by User 1'}
             photoURL={user1?.photoURL}
-            email={user1?.email}
+            email={user1?.email ?? undefined}
           />
           <SummaryCard
             title={`${user2Name || 'User 2'} Paid`}
@@ -425,7 +442,7 @@ export default function Index() {
             isLoading={summaryLoading}
             tooltip={user2Name ? `Amount paid by ${user2Name}` : 'Amount paid by User 2'}
             photoURL={user2Data?.photoURL}
-            email={user2Data?.email}
+            email={user2Data?.email ?? undefined}
           />
           <SummaryCard
             title={balanceTitle}
@@ -436,7 +453,7 @@ export default function Index() {
             isLoading={summaryLoading}
             tooltip={balanceTooltip}
             photoURL={owingUser?.photoURL}
-            email={owingUser?.email}
+            email={owingUser?.email ?? undefined}
           />
         </div>
 

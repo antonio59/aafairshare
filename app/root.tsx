@@ -62,31 +62,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
           // Add global error handler
           window.handleReactError = function(error) {
             console.error('React Error Handler:', error);
-            // Add error to DOM for visibility
-            var errorContainer = document.getElementById('root-error-messages') || document.createElement('div');
-            if (!errorContainer.id) {
-              errorContainer.id = 'root-error-messages';
-              errorContainer.style.padding = '20px';
-              errorContainer.style.margin = '20px';
-              errorContainer.style.border = '1px solid red';
-              errorContainer.style.borderRadius = '5px';
-              errorContainer.style.backgroundColor = '#fff8f8';
-              document.body.appendChild(errorContainer);
-            }
+            // Get the error container rendered by React's FallbackComponent
+            var errorContainer = document.getElementById('root-error-messages');
+            // Do not create/append the container here; rely on React rendering it.
 
             var errorElement = document.createElement('div');
             errorElement.innerHTML = '<h3 style="margin-top: 10px; color: red;">Error:</h3><pre style="white-space: pre-wrap; overflow: auto; max-height: 200px; padding: 10px; background-color: #f5f5f5;">' + error.message + '\n' + (error.stack || '') + '</pre>';
 
             // Ensure errorContainer exists and is in the DOM before appending
-            if (errorContainer && document.body.contains(errorContainer)) {
-              errorContainer.appendChild(errorElement);
-            } else if (errorContainer) {
-              // If container was created but not appended, append it now
-              document.body.appendChild(errorContainer);
+            // Only append the error message if the container exists
+            if (errorContainer) {
               errorContainer.appendChild(errorElement);
             } else {
-              // Fallback: Log if container couldn't be found/created (should not happen with the || createElement logic)
-              console.error("Could not find or create error container to display message.");
+              // Log if container couldn't be found (React might not have rendered it yet or it failed)
+              console.error("Could not find #root-error-messages container to display message.");
             }
           };
 

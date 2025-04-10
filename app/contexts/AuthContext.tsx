@@ -22,7 +22,7 @@ import {
   serverTimestamp, // For potential future use
   type Firestore // Import Firestore type
 } from 'firebase/firestore';
-import { auth, db, initializeFirebase, getCollection, getDocument, isBrowser } from '~/lib/firebase'; // Keep existing imports for now, might remove db/auth later if context manages them
+import { auth, db, initializeFirebase, getCollection, getDocument } from '~/lib/firebase'; // Removed isBrowser import
 // Remove leftover compat type import
 import { useToast } from '~/hooks/use-toast';
 import { User as FirestoreUserProfile, Category, Location } from '~/shared/schema';
@@ -120,7 +120,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Reusable function to fetch profile and update state
   const fetchAndSetUserProfile = useCallback(async (user: User | null): Promise<boolean> => { // Use modular User type
     // Skip on server-side
-    if (!isBrowser) {
+    if (typeof window === 'undefined') { // Direct check
       console.log('Skipping fetchAndSetUserProfile on server');
       return false;
     }
@@ -244,7 +244,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Fetch All Users
   const fetchAllUsers = useCallback(async () => {
     // Skip on server-side
-    if (!isBrowser) {
+    if (typeof window === 'undefined') { // Direct check
       console.log('Skipping fetchAllUsers on server');
       setUsersLoading(false);
       return;
@@ -271,7 +271,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Fetch Categories (Real-time)
   useEffect(() => {
     // Skip on server-side
-    if (!isBrowser) {
+    if (typeof window === 'undefined') { // Direct check
       console.log('Skipping categories effect on server');
       setCategoriesLoading(false);
       return;
@@ -311,7 +311,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Fetch Locations (Real-time)
   useEffect(() => {
     // Skip on server-side
-    if (!isBrowser) {
+    if (typeof window === 'undefined') { // Direct check
       console.log('Skipping locations effect on server');
       setLocationsLoading(false);
       return;
@@ -350,7 +350,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
   // Listen for auth state changes using modular SDK
   useEffect(() => {
-    if (!isBrowser) {
+    if (typeof window === 'undefined') { // Direct check
       console.log('Skipping auth state listener on server');
       setLoading(false);
       setProfileLoading(false);
