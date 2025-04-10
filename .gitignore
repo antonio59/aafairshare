@@ -5,6 +5,7 @@ node_modules
 /.cache
 /build
 /public/build
+/public/assets
 
 # Environment variables
 .env
