@@ -8,4 +8,16 @@ interface Window {
     FIREBASE_APP_ID: string;
     FIREBASE_MEASUREMENT_ID?: string;
   };
+  // Add definitions for other global properties we removed from other files
+  handleReactError: (error: Error) => void;
+  debugInfo?: {
+    timestamp: string;
+    userAgent: string;
+    url: string;
+    errors: string[];
+  };
+  // Add other potential globals if needed (e.g., firebase if you intended a global instance, though modular is preferred)
+  // firebase?: any;
+  // queryClient?: any;
+  // __remixContext?: any;
 }

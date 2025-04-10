@@ -1,36 +1,37 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback, useMemo } from 'react';
-import firebase from 'firebase/compat/app';
-import { auth, db, initializeFirebase, getCollection, getDocument, isBrowser } from '~/lib/firebase';
+// Use modular imports
+import {
+  getAuth,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+  GoogleAuthProvider,
+  type User // Import User type from modular SDK
+} from 'firebase/auth';
+import {
+  getFirestore,
+  doc,
+  getDoc,
+  setDoc,
+  updateDoc,
+  collection,
+  onSnapshot,
+  query,
+  orderBy,
+  getDocs,
+  serverTimestamp, // For potential future use
+  type Firestore // Import Firestore type
+} from 'firebase/firestore';
+import { auth, db, initializeFirebase, getCollection, getDocument, isBrowser } from '~/lib/firebase'; // Keep existing imports for now, might remove db/auth later if context manages them
+// Remove leftover compat type import
 import { useToast } from '~/hooks/use-toast';
 import { User as FirestoreUserProfile, Category, Location } from '~/shared/schema';
 
-// Ensure window.ENV and window.firebase are defined before using them
-declare global {
-  interface Window {
-    ENV: {
-      FIREBASE_API_KEY: string;
-      FIREBASE_AUTH_DOMAIN: string;
-      FIREBASE_PROJECT_ID: string;
-      FIREBASE_STORAGE_BUCKET: string;
-      FIREBASE_MESSAGING_SENDER_ID: string;
-      FIREBASE_APP_ID: string;
-      FIREBASE_MEASUREMENT_ID?: string;
-    };
-    firebase: typeof firebase;
-    debugInfo: {
-      timestamp: string;
-      userAgent: string;
-      url: string;
-      errors: string[];
-    };
-    handleReactError: (error: Error) => void;
-    __remixRouter?: any;
-  }
-}
+// Remove duplicate global type declarations - rely on central d.ts file
 
 // Context Type
 interface AuthContextType {
-  currentUser: firebase.User | null;
+  currentUser: User | null; // Use modular User type
   userProfile: FirestoreUserProfile | null;
   allUsers: FirestoreUserProfile[];
   categories: Category[];
@@ -74,7 +75,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Add error state for debugging
   const [error, setError] = useState<Error | null>(null);
 
-  const [currentUser, setCurrentUser] = useState<firebase.User | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null); // Use modular User type
   const [userProfile, setUserProfile] = useState<FirestoreUserProfile | null>(null);
   const [allUsers, setAllUsers] = useState<FirestoreUserProfile[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -86,81 +87,29 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [locationsLoading, setLocationsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Initialize Firebase and log initialization
-  useEffect(() => {
-    console.log('AuthProvider initialized');
+  // Remove redundant Firebase initialization - it's handled in entry.client.tsx
 
-    // Try to initialize Firebase if not already initialized
-    if (typeof window !== 'undefined') {
-      try {
-        // Try to initialize Firebase (this is safe to call multiple times)
-        initializeFirebase();
-        console.log('Firebase initialized or already available in AuthProvider');
-      } catch (initError) {
-        console.error('Failed to initialize Firebase in AuthProvider:', initError);
-        setError(initError instanceof Error ? initError : new Error(String(initError)));
-        if (window.debugInfo && Array.isArray(window.debugInfo.errors)) {
-          window.debugInfo.errors.push('Failed to initialize Firebase in AuthProvider: ' + String(initError));
-        }
-      }
-
-      // Check if Firebase is available after initialization attempt
-      if (window.firebase) {
-        console.log('Firebase is available in AuthProvider');
-      } else {
-        console.error('Firebase is STILL NOT available in AuthProvider after initialization attempt');
-        setError(new Error('Firebase is not available after initialization attempt'));
-        if (window.debugInfo && Array.isArray(window.debugInfo.errors)) {
-          window.debugInfo.errors.push('Firebase is not available in AuthProvider after initialization attempt');
-        }
-      }
-    }
-  }, []);
-
-  // Sign in with Google
+  // Sign in with Google using modular SDK
   const signInWithGoogle = async () => {
     try {
-      console.log('Starting Google sign-in process');
-      console.log('Auth object:', auth);
-      console.log('Firebase object:', firebase);
-
-      // Check if auth is properly initialized
-      if (!auth || typeof auth.signInWithPopup !== 'function') {
-        console.error('Auth object is not properly initialized or signInWithPopup is not available');
-        console.log('Attempting to reinitialize Firebase...');
-
-        // Try to reinitialize Firebase
-        const { auth: newAuth } = initializeFirebase();
-
-        if (!newAuth || typeof newAuth.signInWithPopup !== 'function') {
-          throw new Error('Firebase authentication is not properly initialized');
-        }
-
-        // Use the global Firebase instance as a fallback
-        if (window.firebase && typeof window.firebase.auth === 'function') {
-          const provider = new firebase.auth.GoogleAuthProvider();
-          await window.firebase.auth().signInWithPopup(provider);
-          return;
-        }
-
-        throw new Error('Could not initialize Firebase authentication');
-      }
-
-      // Normal flow if auth is properly initialized
-      const provider = new firebase.auth.GoogleAuthProvider();
-      await auth.signInWithPopup(provider);
+      console.log('Starting Google sign-in process using modular SDK');
+      const authInstance = getAuth(); // Get modular auth instance
+      const provider = new GoogleAuthProvider(); // Use modular provider
+      await signInWithPopup(authInstance, provider); // Use modular signInWithPopup
       console.log('Google sign-in successful');
     } catch (error) {
       console.error('Error signing in with Google:', error);
       setError(error instanceof Error ? error : new Error(String(error)));
-      throw error;
+      throw error; // Re-throw error to be handled by caller if necessary
     }
   };
 
   // Logout function
+  // Logout function using modular SDK
   const logout = async () => {
     try {
-      await auth.signOut();
+      const authInstance = getAuth(); // Get modular auth instance
+      await signOut(authInstance); // Use modular signOut
     } catch (error) {
       console.error('Error signing out:', error);
       setError(error instanceof Error ? error : new Error(String(error)));
@@ -169,7 +118,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   };
 
   // Reusable function to fetch profile and update state
-  const fetchAndSetUserProfile = useCallback(async (user: firebase.User | null): Promise<boolean> => {
+  const fetchAndSetUserProfile = useCallback(async (user: User | null): Promise<boolean> => { // Use modular User type
     // Skip on server-side
     if (!isBrowser) {
       console.log('Skipping fetchAndSetUserProfile on server');
@@ -191,13 +140,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setProfileLoading(true); // Set profile loading true
 
     try {
-      // Use the getDocument helper
-      const userDocRef = getDocument(`users/${user.uid}`);
-      if (!userDocRef) {
-        throw new Error('Could not get user document reference');
-      }
+      const dbInstance = getFirestore(); // Get modular Firestore instance directly
+      // Use the getDocument helper (which now uses modular 'doc')
+      // const userDocRef = getDocument(`users/${user.uid}`); // getDocument is defined in firebase.client.ts, might be better to do it here
+      // if (!userDocRef) {
+      //   throw new Error('Could not get user document reference');
+      // }
 
-      return await fetchProfileWithDb(db, user);
+      return await fetchProfileWithDb(dbInstance, user); // Pass the modular instance
     } catch (error) {
       console.error("Error during profile fetch/create:", error);
       toast({
@@ -220,14 +170,14 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [toast, userProfile]);
 
   // Helper function to fetch profile with a specific db instance
-  const fetchProfileWithDb = async (dbInstance: firebase.firestore.Firestore, user: firebase.User): Promise<boolean> => {
+  const fetchProfileWithDb = async (dbInstance: Firestore, user: User): Promise<boolean> => { // Use modular Firestore and User types
     let profileSet = false;
 
     try {
-      const userDocRef = dbInstance.doc(`users/${user.uid}`);
-      const userDoc = await userDocRef.get();
+      const userDocRef = doc(dbInstance, `users/${user.uid}`); // Use modular doc()
+      const userDoc = await getDoc(userDocRef); // Use modular getDoc()
 
-      if (userDoc.exists) {
+      if (userDoc.exists()) { // Call exists as a function
         const userData = userDoc.data();
 
         const profileDataToSet: FirestoreUserProfile = {
@@ -240,7 +190,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         // Check if Firestore photoURL needs updating from Firebase Auth
         if ((!userData?.photoURL || userData?.photoURL === '') && user.photoURL) {
           try {
-            await userDocRef.update({ photoURL: user.photoURL });
+            await updateDoc(userDocRef, { photoURL: user.photoURL }); // Use modular updateDoc()
             profileDataToSet.photoURL = user.photoURL; // Update local object too
           } catch (updateError) {
             console.error("Error updating photoURL in Firestore:", updateError);
@@ -259,7 +209,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         };
 
         try {
-          await userDocRef.set({
+          await setDoc(userDocRef, { // Use modular setDoc()
             email: newUserProfile.email,
             username: newUserProfile.username,
             photoURL: newUserProfile.photoURL,
@@ -302,13 +252,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
 
     setUsersLoading(true);
     try {
-      // Use the getCollection helper
-      const usersCol = getCollection("users");
-      if (!usersCol) {
-        throw new Error('Could not get users collection');
-      }
-
-      const snapshot = await usersCol.get();
+      const dbInstance = getFirestore(); // Get modular instance
+      const usersColRef = collection(dbInstance, "users"); // Use modular collection()
+      const snapshot = await getDocs(usersColRef); // Use modular getDocs()
       const fetchedUsers = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -341,14 +287,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setCategoriesLoading(true);
 
     try {
-      // Use the getCollection helper
-      const catCol = getCollection("categories");
-      if (!catCol) {
-        throw new Error('Could not get categories collection');
-      }
-
-      const q = catCol.orderBy("name");
-      const unsubscribe = q.onSnapshot((snapshot) => {
+      const dbInstance = getFirestore(); // Get modular instance
+      const catColRef = collection(dbInstance, "categories"); // Use modular collection()
+      const q = query(catColRef, orderBy("name")); // Use modular query() and orderBy()
+      const unsubscribe = onSnapshot(q, (snapshot) => { // Use modular onSnapshot()
         const fetchedCategories = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
         setCategories(fetchedCategories);
         setCategoriesLoading(false);
@@ -357,7 +299,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         toast({ title: "Error", description: "Could not load categories.", variant: "destructive" });
         setCategoriesLoading(false);
       });
-      return () => unsubscribe(); // Cleanup listener on unmount
+      return () => unsubscribe();
     } catch (error) {
       console.error("Error setting up categories listener:", error);
       toast({ title: "Error", description: "Could not set up categories listener.", variant: "destructive" });
@@ -385,14 +327,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     setLocationsLoading(true);
 
     try {
-      // Use the getCollection helper
-      const locCol = getCollection("locations");
-      if (!locCol) {
-        throw new Error('Could not get locations collection');
-      }
-
-      const q = locCol.orderBy("name");
-      const unsubscribe = q.onSnapshot((snapshot) => {
+      const dbInstance = getFirestore(); // Get modular instance
+      const locColRef = collection(dbInstance, "locations"); // Use modular collection()
+      const q = query(locColRef, orderBy("name")); // Use modular query() and orderBy()
+      const unsubscribe = onSnapshot(q, (snapshot) => { // Use modular onSnapshot()
         const fetchedLocations = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Location));
         setLocations(fetchedLocations);
         setLocationsLoading(false);
@@ -401,7 +339,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         toast({ title: "Error", description: "Could not load locations.", variant: "destructive" });
         setLocationsLoading(false);
       });
-      return () => unsubscribe(); // Cleanup listener on unmount
+      return () => unsubscribe();
     } catch (error) {
       console.error("Error setting up locations listener:", error);
       toast({ title: "Error", description: "Could not set up locations listener.", variant: "destructive" });
@@ -410,12 +348,11 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, [currentUser, toast]);
 
-  // Listen for auth state changes
+  // Listen for auth state changes using modular SDK
   useEffect(() => {
-    // Skip on server-side
     if (!isBrowser) {
       console.log('Skipping auth state listener on server');
-      setLoading(false); // Make sure loading is false on server
+      setLoading(false);
       setProfileLoading(false);
       setUsersLoading(false);
       setCategoriesLoading(false);
@@ -423,80 +360,68 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
       return;
     }
 
-    setLoading(true); // Ensure loading is true when the listener setup starts
+    setLoading(true);
+    let unsubscribe: (() => void) | null = null;
 
     try {
-      console.log('Setting up auth state listener');
-      console.log('Auth object:', auth);
+      const authInstance = getAuth(); // Get modular auth instance
+      console.log('Setting up modular onAuthStateChanged listener');
 
-      // Check if auth is properly initialized
-      if (!auth || typeof auth.onAuthStateChanged !== 'function') {
-        console.error('Auth object is not properly initialized or onAuthStateChanged is not available');
-        setError(new Error('Firebase authentication is not properly initialized'));
-        setLoading(false);
-        return () => {}; // Return empty cleanup function
-      }
-
-      const unsubscribe = auth.onAuthStateChanged(async (user) => {
+      unsubscribe = onAuthStateChanged(authInstance, async (user) => { // Use modular onAuthStateChanged
+        // user object here is already the modular User type
         try {
-          console.log('Auth state changed:', user ? 'User logged in' : 'No user');
-          setCurrentUser(user); // Update the user state immediately
-          setLoading(false); // Auth check complete
+          console.log('Auth state changed:', user ? `User logged in (${user.uid})` : 'No user');
+          setCurrentUser(user); // This should now work correctly
+          setLoading(false);
 
-          // Start specific loading states
           setProfileLoading(true);
           setUsersLoading(true);
 
           if (user) {
-            // Fetch the essential user profile first
             try {
-              const profileFetched = await fetchAndSetUserProfile(user);
+              const profileFetched = await fetchAndSetUserProfile(user); // Pass modular User
               console.log('Profile fetched:', profileFetched);
             } catch (profileError) {
               console.error('Error fetching user profile:', profileError);
               setError(profileError instanceof Error ? profileError : new Error(String(profileError)));
             }
-
-            // Fetch all users in the background (don't await here)
-            fetchAllUsers().then(() => {
-              console.log('All users fetched successfully');
-            }).catch(error => {
+            // Fetch all users (don't await)
+            fetchAllUsers().catch(error => { // Add catch directly
               console.error("Background fetchAllUsers failed:", error);
               setError(error instanceof Error ? error : new Error(String(error)));
             });
-            // Categories/Locations are handled by their own effects which depend on currentUser
           } else {
-            // Reset states if user logs out or is initially null
+            // Reset states on logout
             setUserProfile(null);
             setAllUsers([]);
-            setProfileLoading(false); // Reset specific loading flags
+            setProfileLoading(false);
             setUsersLoading(false);
-            // Categories/Locations effects will clear their state due to currentUser being null
           }
         } catch (innerError) {
           console.error('Error in auth state change handler:', innerError);
           setError(innerError instanceof Error ? innerError : new Error(String(innerError)));
-          setLoading(false); // Ensure loading is set to false even on error
+          setLoading(false);
         }
       }, (authError) => {
-        // This is the error handler for onAuthStateChanged
-        console.error('Auth state change error:', authError);
+        console.error('Auth state change listener error:', authError);
         setError(authError instanceof Error ? authError : new Error(String(authError)));
-        setLoading(false); // Ensure loading is set to false on error
+        setLoading(false);
       });
 
-      // Cleanup function
-      return () => {
-        console.log('Cleaning up auth state listener');
-        unsubscribe();
-      };
     } catch (setupError) {
       console.error('Error setting up auth state listener:', setupError);
       setError(setupError instanceof Error ? setupError : new Error(String(setupError)));
-      setLoading(false); // Ensure loading is set to false on setup error
-      return () => {}; // Return empty cleanup function
+      setLoading(false);
     }
-  }, [fetchAndSetUserProfile, fetchAllUsers]);
+
+    // Cleanup function
+    return () => {
+      if (unsubscribe) {
+        console.log('Cleaning up auth state listener');
+        unsubscribe();
+      }
+    };
+  }, [fetchAndSetUserProfile, fetchAllUsers]); // Dependencies remain the same
 
   // Memoize the context value to prevent unnecessary re-renders of consumers
   const value = useMemo(() => ({
