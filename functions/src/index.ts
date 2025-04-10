@@ -53,7 +53,11 @@ try {
 // Define the ssrServer Cloud Function using the Express app
 export const ssrServer = functions
     .region("europe-west1") // Match region if needed
-    .https.onRequest(expressApp); // Pass the Express app directly
+    .https.onRequest((req, res) => { // Wrap the express app to add logging
+      functions.logger.info(`ssrServer function invoked for URL: ${req.originalUrl}`);
+      // Now delegate to the Express app (which contains the Remix handler)
+      expressApp(req, res);
+    });
 // --- End Remix SSR Handler ---
 
 // Helper function to fetch data with caching/memoization for efficiency
