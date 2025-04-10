@@ -30,26 +30,14 @@ const db = admin.firestore();
 // Import the Express app instance created by your Remix server build
 // Adjust the path based on your actual build output structure relative to 'functions/lib'
 // Assuming the server build entry point is '../build/server/index.js' relative to compiled functions
-let expressApp: express.Express;
-try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    // Correct relative path from functions/lib/index.js to project_root/build/server/index.js
-    const server = require("../../build/server");
-    if (server.default && typeof server.default === 'function') {
-        // Assuming the default export is the Express app instance
-        expressApp = server.default;
-        functions.logger.info("Remix Express app loaded successfully.");
-    } else {
-        throw new Error("Remix server build did not export an Express app instance as default.");
-    }
-} catch (error) {
-    functions.logger.error("Failed to load Remix server build/Express app:", error);
-    // Fallback Express app if build fails to load
-    expressApp = express(); // Now this should work
-    expressApp.all("*", (req, res) => {
-        res.status(500).send("Remix server build failed to load.");
-    });
-}
+// --- Minimal Express App for Debugging ---
+const expressApp = express();
+expressApp.all("*", (req, res) => {
+  functions.logger.info(`ssrServer (Debug Handler) invoked for URL: ${req.originalUrl}`);
+  res.status(200).send("Hello from Simple ssrServer!");
+});
+functions.logger.info("Using minimal debug Express app for ssrServer.");
+// --- End Minimal Express App ---
 
 // Define the ssrServer Cloud Function using the Express app
 export const ssrServer = functions
