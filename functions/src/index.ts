@@ -11,16 +11,50 @@ import type {
 // Font definition moved inside handler
 // Assuming shared types are correctly mapped in tsconfig.json
 // Import shared types from the installed 'shared' package
-import type {
-  Settlement, Expense, User, Category, Location, RecurringExpense, RecurringFrequency,
-  // Import shared formatting utilities
-  formatCurrency, formatDate
-} from "shared"; // Import from package name
-import type {EmailTemplate} from "./types.ts"; // Assuming types are in ./types
+// Import shared types AND values using relative path (adjust if build output differs)
+import {
+  Settlement, Expense, User, Category, Location, RecurringExpense, RecurringFrequency
+} from "shared/schema"; // Use updated path alias
+import {
+  formatCurrency, formatDate // Import functions as values
+} from "shared/formatting"; // Use updated path alias
+import type { EmailTemplate } from "./types"; // Assuming types are in ./types
+
+import express from "express"; // Correct express import for default export
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 const db = admin.firestore();
+
+// --- Remix SSR Handler ---
+// Import the Express app instance created by your Remix server build
+// Adjust the path based on your actual build output structure relative to 'functions/lib'
+// Assuming the server build entry point is '../build/server/index.js' relative to compiled functions
+let expressApp: express.Express;
+try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const server = require("../build/server"); // Adjust path if necessary
+    if (server.default && typeof server.default === 'function') {
+        // Assuming the default export is the Express app instance
+        expressApp = server.default;
+        functions.logger.info("Remix Express app loaded successfully.");
+    } else {
+        throw new Error("Remix server build did not export an Express app instance as default.");
+    }
+} catch (error) {
+    functions.logger.error("Failed to load Remix server build/Express app:", error);
+    // Fallback Express app if build fails to load
+    expressApp = express(); // Now this should work
+    expressApp.all("*", (req, res) => {
+        res.status(500).send("Remix server build failed to load.");
+    });
+}
+
+// Define the ssrServer Cloud Function using the Express app
+export const ssrServer = functions
+    .region("europe-west1") // Match region if needed
+    .https.onRequest(expressApp); // Pass the Express app directly
+// --- End Remix SSR Handler ---
 
 // Helper function to fetch data with caching/memoization for efficiency
 // Simple in-memory cache (using unknown for better type safety than any)
@@ -121,7 +155,7 @@ export const onSettlementCreated = functions
         return;
       }
 
-      const expenses: Expense[] = expensesSnap.docs.map((doc) => ({
+      const expenses: Expense[] = expensesSnap.docs.map((doc: admin.firestore.QueryDocumentSnapshot) => ({ // Add type for doc
         id: doc.id,
         ...doc.data(),
         // Ensure date is a JS Date object for formatting
@@ -588,9 +622,8 @@ export const generateRecurringExpenses = functions.pubsub
         const recurringExpense = doc.data() as RecurringExpense;
 
         // Skip if start date is in the future
-        const startDate = recurringExpense.startDate instanceof admin.firestore.Timestamp
-          ? recurringExpense.startDate.toDate()
-          : new Date(recurringExpense.startDate);
+        // Assuming startDate is already a Date object based on type or previous conversion
+        const startDate = new Date(recurringExpense.startDate);
 
         if (startDate > today) {
           continue;
@@ -598,9 +631,8 @@ export const generateRecurringExpenses = functions.pubsub
 
         // Skip if end date is in the past
         if (recurringExpense.endDate) {
-          const endDate = recurringExpense.endDate instanceof admin.firestore.Timestamp
-            ? recurringExpense.endDate.toDate()
-            : new Date(recurringExpense.endDate);
+          // Assuming endDate is already a Date object
+          const endDate = new Date(recurringExpense.endDate);
 
           if (endDate < today) {
             continue;
@@ -610,9 +642,8 @@ export const generateRecurringExpenses = functions.pubsub
         // Get the last generated date or use start date if none
         let lastGeneratedDate = startDate;
         if (recurringExpense.lastGeneratedDate) {
-          lastGeneratedDate = recurringExpense.lastGeneratedDate instanceof admin.firestore.Timestamp
-            ? recurringExpense.lastGeneratedDate.toDate()
-            : new Date(recurringExpense.lastGeneratedDate);
+          // Assuming lastGeneratedDate is already a Date object
+          lastGeneratedDate = new Date(recurringExpense.lastGeneratedDate);
         }
 
         // Check if we need to generate a new expense based on frequency

@@ -12,9 +12,9 @@
     "target": "es2017",
     "baseUrl": ".", // Add baseUrl
     "paths": {      // Add paths mapping
-      "shared": ["../shared"] // Point to source relative to baseUrl
+      "shared/*": ["../app/shared/*"] // More explicit path relative to baseUrl
     },
-    "rootDir": "src"
+    // "rootDir": "src" // Removed to allow importing from ../app/shared
   },
   "compileOnSave": true,
   "include": [
