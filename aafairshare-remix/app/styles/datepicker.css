@@ -1,0 +1,71 @@
+/* Custom styles for the datepicker */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+.react-datepicker-popper {
+  z-index: 9999 !important;
+}
+
+.react-datepicker {
+  font-family: inherit;
+  border-radius: 0.5rem;
+}
+
+.react-datepicker__triangle {
+  display: none;
+}
+
+.react-datepicker__header {
+  background-color: transparent;
+  border-bottom: 1px solid #e2e8f0;
+  padding-top: 0.5rem;
+}
+
+.react-datepicker__month-container {
+  float: none;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #3b82f6;
+  border-radius: 0.25rem;
+}
+
+.react-datepicker__day:hover {
+  border-radius: 0.25rem;
+}
+
+/* Fix for positioning */
+.react-datepicker-popper[data-placement^="bottom"] {
+  margin-top: 8px;
+}
+
+.react-datepicker-popper[data-placement^="top"] {
+  margin-bottom: 8px;
+}
+
+/* Ensure the datepicker is properly positioned relative to the input */
+.react-datepicker-popper {
+  z-index: 9999 !important;
+  position: absolute;
+}
+
+/* Fix for the datepicker positioning in the form */
+.react-datepicker-wrapper {
+  display: block;
+  width: 100%;
+}
+
+/* Make sure the calendar appears below the input */
+.react-datepicker__input-container {
+  display: block;
+  width: 100%;
+}
+
+/* Ensure the calendar is visible and properly positioned */
+.react-datepicker__month-container {
+  background-color: white;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}

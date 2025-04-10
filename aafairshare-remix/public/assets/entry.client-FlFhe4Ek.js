@@ -1,0 +1,27 @@
+import{E as R,m as v,c as y,a as E,r as t,b as C,j as s}from"./index-DKmAOi_X.js";import{i as M,d as S,c as b,s as F,g as j,a as k,b as P,u as H,R as D,e as z,f as T,r as L}from"./components-CKpw0IfN.js";/**
+ * @remix-run/react v2.16.5
+ *
+ * Copyright (c) Remix Software Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE.md file in the root directory of this source tree.
+ *
+ * @license MIT
+ */function O(e){if(!e)return null;let u=Object.entries(e),d={};for(let[o,r]of u)if(r&&r.__type==="RouteErrorResponse")d[o]=new R(r.status,r.statusText,r.data,r.internal===!0);else if(r&&r.__type==="Error"){if(r.__subType){let i=window[r.__subType];if(typeof i=="function")try{let a=new i(r.message);a.stack=r.stack,d[o]=a}catch{}}if(d[o]==null){let i=new Error(r.message);i.stack=r.stack,d[o]=i}}else d[o]=r;return d}/**
+ * @remix-run/react v2.16.5
+ *
+ * Copyright (c) Remix Software Inc.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE.md file in the root directory of this source tree.
+ *
+ * @license MIT
+ */let l,n,p=!1,h;new Promise(e=>{h=e}).catch(()=>{});function B(e){if(!n){if(window.__remixContext.future.v3_singleFetch){if(!l){let w=window.__remixContext.stream;M(w,"No stream found for single fetch decoding"),window.__remixContext.stream=void 0,l=S(w,window).then(c=>{window.__remixContext.state=c.value,l.value=!0}).catch(c=>{l.error=c})}if(l.error)throw l.error;if(!l.value)throw l}let i=b(window.__remixManifest.routes,window.__remixRouteModules,window.__remixContext.state,window.__remixContext.future,window.__remixContext.isSpaMode),a;if(!window.__remixContext.isSpaMode){a={...window.__remixContext.state,loaderData:{...window.__remixContext.state.loaderData}};let w=v(i,window.location,window.__remixContext.basename);if(w)for(let c of w){let f=c.route.id,m=window.__remixRouteModules[f],_=window.__remixManifest.routes[f];m&&F(_,m,window.__remixContext.isSpaMode)&&(m.HydrateFallback||!_.hasLoader)?a.loaderData[f]=void 0:_&&!_.hasLoader&&(a.loaderData[f]=null)}a&&a.errors&&(a.errors=O(a.errors))}n=y({routes:i,history:E(),basename:window.__remixContext.basename,future:{v7_normalizeFormMethod:!0,v7_fetcherPersist:window.__remixContext.future.v3_fetcherPersist,v7_partialHydration:!0,v7_prependBasename:!0,v7_relativeSplatPath:window.__remixContext.future.v3_relativeSplatPath,v7_skipActionErrorRevalidation:window.__remixContext.future.v3_singleFetch===!0},hydrationData:a,mapRouteProperties:C,dataStrategy:window.__remixContext.future.v3_singleFetch&&!window.__remixContext.isSpaMode?k(window.__remixManifest,window.__remixRouteModules,()=>n):void 0,patchRoutesOnNavigation:j(window.__remixManifest,window.__remixRouteModules,window.__remixContext.future,window.__remixContext.isSpaMode,window.__remixContext.basename)}),n.state.initialized&&(p=!0,n.initialize()),n.createRoutesForHMR=P,window.__remixRouter=n,h&&h(n)}let[u,d]=t.useState(void 0),[o,r]=t.useState(n.state.location);return t.useLayoutEffect(()=>{p||(p=!0,n.initialize())},[]),t.useLayoutEffect(()=>n.subscribe(i=>{i.location!==o&&r(i.location)}),[o]),H(n,window.__remixManifest,window.__remixRouteModules,window.__remixContext.future,window.__remixContext.isSpaMode),t.createElement(t.Fragment,null,t.createElement(D.Provider,{value:{manifest:window.__remixManifest,routeModules:window.__remixRouteModules,future:window.__remixContext.future,criticalCss:u,isSpaMode:window.__remixContext.isSpaMode}},t.createElement(z,{location:o},t.createElement(T,{router:n,fallbackElement:null,future:{v7_startTransition:!0}}))),window.__remixContext.future.v3_singleFetch?t.createElement(t.Fragment,null):null)}var x={},g;function q(){if(g)return x;g=1;var e=L();return x.createRoot=e.createRoot,x.hydrateRoot=e.hydrateRoot,x}var A=q();function I({children:e}){const[u,d]=t.useState(!1),[o,r]=t.useState(null);if(t.useEffect(()=>{u&&o&&typeof window<"u"&&window.handleReactError&&window.handleReactError(o)},[u,o]),u)return s.jsxs("div",{style:{padding:"20px",margin:"20px",border:"1px solid red",borderRadius:"5px",backgroundColor:"#fff8f8"},children:[s.jsx("h2",{children:"Something went wrong"}),s.jsx("p",{children:"An error occurred while loading the application."}),o&&s.jsx("pre",{style:{whiteSpace:"pre-wrap",overflow:"auto",maxHeight:"200px",padding:"10px",backgroundColor:"#f5f5f5"},children:o.message})]});try{return s.jsx(s.Fragment,{children:e})}catch(i){return r(i instanceof Error?i:new Error(String(i))),d(!0),null}}function N(){return s.jsx(I,{children:s.jsx(B,{})})}try{console.log("Starting hydration..."),t.startTransition(()=>{try{A.hydrateRoot(document,s.jsx(t.StrictMode,{children:s.jsx(N,{})})),console.log("Hydration complete")}catch(e){console.error("Hydration error:",e),typeof window<"u"&&window.handleReactError&&window.handleReactError(e instanceof Error?e:new Error(String(e))),document.body.innerHTML=`
+        <div style="padding: 20px; margin: 20px; border: 1px solid red; border-radius: 5px; background-color: #fff8f8;">
+          <h2>Failed to load application</h2>
+          <p>There was an error loading the application. Please try refreshing the page.</p>
+          <pre style="white-space: pre-wrap; overflow: auto; max-height: 200px; padding: 10px; background-color: #f5f5f5;">
+            ${e instanceof Error?e.message:String(e)}
+          </pre>
+        </div>
+      `}})}catch(e){console.error("Fatal error during initialization:",e),typeof window<"u"&&window.handleReactError&&window.handleReactError(e instanceof Error?e:new Error(String(e)))}
