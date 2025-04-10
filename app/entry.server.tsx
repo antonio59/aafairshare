@@ -71,6 +71,7 @@ function handleBotRequest(
           pipe(body);
         },
         onShellError(error: unknown) {
+          console.error("SSR Shell Error:", error); // Log shell errors
           reject(error);
         },
         onError(error: unknown) {
@@ -78,9 +79,8 @@ function handleBotRequest(
           // Log streaming rendering errors from inside the shell.  Don't log
           // errors encountered during initial shell rendering since they'll
           // reject and get logged in handleDocumentRequest.
-          if (shellRendered) {
-            console.error(error);
-          }
+          // Log all errors that occur during streaming
+          console.error("SSR Streaming Error:", error);
         },
       }
     );
@@ -121,6 +121,7 @@ function handleBrowserRequest(
           pipe(body);
         },
         onShellError(error: unknown) {
+          console.error("SSR Shell Error (Browser Request):", error); // Log shell errors
           reject(error);
         },
         onError(error: unknown) {
@@ -128,9 +129,8 @@ function handleBrowserRequest(
           // Log streaming rendering errors from inside the shell.  Don't log
           // errors encountered during initial shell rendering since they'll
           // reject and get logged in handleDocumentRequest.
-          if (shellRendered) {
-            console.error(error);
-          }
+          // Log all errors that occur during streaming
+          console.error("SSR Streaming Error (Browser Request):", error);
         },
       }
     );
