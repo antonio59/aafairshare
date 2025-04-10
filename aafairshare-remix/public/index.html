@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>AAFairShare | Household Expenses Management</title>
+  <meta name="description" content="Split expenses fairly with your household members">
+  <meta name="theme-color" content="#3B82F6">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.json">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Mobile web app meta tags -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AAFairShare">
+  <link rel="stylesheet" href="/assets/root-DKg7nZFl.css">
+  <script type="module" src="/assets/entry.client-BpTUHehV.js"></script>
+</head>
+<body>
+  <div id="root">
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+      <h1>Loading AAFairShare...</h1>
+      <p>If this message persists, there might be an issue with the application.</p>
+      <div id="error-messages" style="color: red; margin-top: 20px;"></div>
+    </div>
+  </div>
+  <!-- Prevent flash of unstyled content -->
+  <script>
+    // Apply dark mode immediately based on user preference
+    if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+
+  <!-- Add error logging first, before any other scripts -->
+  <script>
+    // Global error handler
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error('Global error:', message, 'at', source, lineno, colno, error);
+      const errorDiv = document.getElementById('error-messages');
+      if (errorDiv) {
+        errorDiv.innerHTML += '<div style="margin-bottom: 10px;">Error: ' + message + '</div>';
+      } else {
+        document.body.innerHTML += '<div style="color:red; padding:20px;">Error: ' + message + '</div>';
+      }
+      return false;
+    };
+
+    // Unhandled promise rejection handler
+    window.addEventListener('unhandledrejection', function(event) {
+      console.error('Unhandled promise rejection:', event.reason);
+      const errorDiv = document.getElementById('error-messages');
+      if (errorDiv) {
+        errorDiv.innerHTML += '<div style="margin-bottom: 10px;">Promise Error: ' + (event.reason?.message || event.reason) + '</div>';
+      } else {
+        document.body.innerHTML += '<div style="color:red; padding:20px;">Promise Error: ' + (event.reason?.message || event.reason) + '</div>';
+      }
+    });
+
+    // Add a global error handler for React errors
+    window.handleReactError = function(error) {
+      console.error('React Error:', error);
+      const errorDiv = document.getElementById('error-messages');
+      if (errorDiv) {
+        errorDiv.innerHTML += '<div style="margin-bottom: 10px;">React Error: ' + error.message + '</div>';
+      }
+      if (window.debugInfo) {
+        window.debugInfo.errors.push(error.message);
+      }
+    };
+
+    // Initialize debugging info
+    window.debugInfo = {
+      firebaseInitialized: false,
+      envSet: false,
+      errors: [],
+      loadSteps: ['Script execution started']
+    };
+
+    // Track script loading
+    function trackLoading(step) {
+      console.log(step);
+      if (window.debugInfo) {
+        window.debugInfo.loadSteps.push(step);
+      }
+    }
+
+    trackLoading('Error handlers initialized');
+  </script>
+
+  <!-- Firebase SDK -->
+  <script>
+    trackLoading('Loading Firebase SDK scripts');
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js" onerror="trackLoading('Failed to load firebase-app-compat.js')"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js" onerror="trackLoading('Failed to load firebase-auth-compat.js')"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js" onerror="trackLoading('Failed to load firebase-firestore-compat.js')"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-functions-compat.js" onerror="trackLoading('Failed to load firebase-functions-compat.js')"></script>
+
+  <!-- Initialize Firebase -->
+  <script>
+    trackLoading('Firebase SDK scripts loaded, initializing Firebase');
+
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyAYLQoJRCZ9ynyASEQ0zNWez9GUeNG4qsg",
+      authDomain: "aafairshare-37271.firebaseapp.com",
+      projectId: "aafairshare-37271",
+      storageBucket: "aafairshare-37271.appspot.com",
+      messagingSenderId: "121020031141",
+      appId: "1:121020031141:web:c56c04b654aae5cfd76d4c"
+    };
+
+    try {
+      // Check if Firebase is available
+      if (typeof firebase === 'undefined') {
+        throw new Error('Firebase SDK not loaded');
+      }
+
+      // Initialize Firebase
+      trackLoading('Calling firebase.initializeApp');
+      firebase.initializeApp(firebaseConfig);
+      trackLoading('Firebase initialized successfully');
+
+      // Make Firebase configuration available globally
+      window.ENV = {
+        FIREBASE_API_KEY: firebaseConfig.apiKey,
+        FIREBASE_AUTH_DOMAIN: firebaseConfig.authDomain,
+        FIREBASE_PROJECT_ID: firebaseConfig.projectId,
+        FIREBASE_STORAGE_BUCKET: firebaseConfig.storageBucket,
+        FIREBASE_MESSAGING_SENDER_ID: firebaseConfig.messagingSenderId,
+        FIREBASE_APP_ID: firebaseConfig.appId
+      };
+
+      // Update debugging info
+      window.debugInfo.firebaseInitialized = true;
+      window.debugInfo.envSet = true;
+      trackLoading('ENV set up successfully');
+
+      // Test Firebase auth
+      if (firebase.auth) {
+        trackLoading('Firebase auth is available');
+        // Set persistence to LOCAL
+        firebase.auth().setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+          .then(() => {
+            trackLoading('Firebase auth persistence set to LOCAL');
+          })
+          .catch((error) => {
+            trackLoading('Failed to set Firebase auth persistence: ' + error.message);
+          });
+      } else {
+        trackLoading('Firebase auth is NOT available');
+      }
+
+      // Test Firestore
+      if (firebase.firestore) {
+        trackLoading('Firebase firestore is available');
+      } else {
+        trackLoading('Firebase firestore is NOT available');
+      }
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      trackLoading('Error initializing Firebase: ' + error.message);
+
+      const errorDiv = document.getElementById('error-messages');
+      if (errorDiv) {
+        errorDiv.innerHTML += '<div style="margin-bottom: 10px;">Firebase Error: ' + error.message + '</div>';
+      } else {
+        document.body.innerHTML += '<div style="color:red; padding:20px;">Firebase Error: ' + error.message + '</div>';
+      }
+
+      window.debugInfo.firebaseInitialized = false;
+      window.debugInfo.errors.push(error.message);
+    }
+  </script>
+</body>
+</html>

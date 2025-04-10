@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AAFairShare - Simple Test</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background-color: #f5f5f5;
+    }
+    .container {
+      max-width: 600px;
+      width: 100%;
+      padding: 20px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    .card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+    }
+    button {
+      background-color: #4285F4;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+      margin-top: 20px;
+    }
+    button:hover {
+      background-color: #3367D6;
+    }
+    .error {
+      color: red;
+      margin-top: 20px;
+    }
+    .success {
+      color: green;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>AAFairShare</h1>
+    
+    <div class="card">
+      <h2>Firebase Test</h2>
+      <p>This page tests if Firebase is working correctly.</p>
+      <button id="testFirebase">Test Firebase</button>
+      <div id="firebaseResult"></div>
+    </div>
+    
+    <div class="card">
+      <h2>Authentication Test</h2>
+      <p>Test if you can sign in with Google.</p>
+      <button id="signInButton">Sign in with Google</button>
+      <button id="signOutButton" style="display: none;">Sign Out</button>
+      <div id="authResult"></div>
+    </div>
+    
+    <div id="errorMessages" class="error"></div>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  
+  <script>
+    // Global error handler
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.error('Global error:', message, 'at', source, lineno, colno, error);
+      document.getElementById('errorMessages').innerHTML += '<div>Error: ' + message + '</div>';
+      return false;
+    };
+    
+    // Initialize Firebase
+    try {
+      const firebaseConfig = {
+        apiKey: "AIzaSyAYLQoJRCZ9ynyASEQ0zNWez9GUeNG4qsg",
+        authDomain: "aafairshare-37271.firebaseapp.com",
+        projectId: "aafairshare-37271",
+        storageBucket: "aafairshare-37271.appspot.com",
+        messagingSenderId: "121020031141",
+        appId: "1:121020031141:web:c56c04b654aae5cfd76d4c"
+      };
+      
+      firebase.initializeApp(firebaseConfig);
+      console.log('Firebase initialized successfully');
+      
+      // Test Firebase button
+      document.getElementById('testFirebase').addEventListener('click', function() {
+        const resultDiv = document.getElementById('firebaseResult');
+        try {
+          // Test Firestore
+          const db = firebase.firestore();
+          db.collection('test').doc('test').set({
+            test: 'This is a test',
+            timestamp: new Date()
+          })
+          .then(() => {
+            resultDiv.innerHTML = '<div class="success">Firebase is working correctly!</div>';
+          })
+          .catch(error => {
+            resultDiv.innerHTML = '<div class="error">Firebase error: ' + error.message + '</div>';
+          });
+        } catch (error) {
+          resultDiv.innerHTML = '<div class="error">Firebase error: ' + error.message + '</div>';
+        }
+      });
+      
+      // Auth state change listener
+      firebase.auth().onAuthStateChanged(function(user) {
+        const authResult = document.getElementById('authResult');
+        const signInButton = document.getElementById('signInButton');
+        const signOutButton = document.getElementById('signOutButton');
+        
+        if (user) {
+          // User is signed in
+          authResult.innerHTML = '<div class="success">Signed in as: ' + user.email + '</div>';
+          signInButton.style.display = 'none';
+          signOutButton.style.display = 'inline-block';
+        } else {
+          // User is signed out
+          authResult.innerHTML = '<div>Not signed in</div>';
+          signInButton.style.display = 'inline-block';
+          signOutButton.style.display = 'none';
+        }
+      });
+      
+      // Sign in button
+      document.getElementById('signInButton').addEventListener('click', function() {
+        const provider = new firebase.auth.GoogleAuthProvider();
+        firebase.auth().signInWithPopup(provider)
+          .catch(error => {
+            document.getElementById('authResult').innerHTML = '<div class="error">Auth error: ' + error.message + '</div>';
+          });
+      });
+      
+      // Sign out button
+      document.getElementById('signOutButton').addEventListener('click', function() {
+        firebase.auth().signOut()
+          .catch(error => {
+            document.getElementById('authResult').innerHTML = '<div class="error">Sign out error: ' + error.message + '</div>';
+          });
+      });
+      
+    } catch (error) {
+      console.error('Error initializing Firebase:', error);
+      document.getElementById('errorMessages').innerHTML += '<div>Firebase initialization error: ' + error.message + '</div>';
+    }
+  </script>
+</body>
+</html>
