@@ -2,7 +2,7 @@
   "hosting": [
     {
       "site": "aafairshare-37271",
-      "public": "aafairshare-remix/build/client",
+      "public": "build/client",
       "ignore": [
         "firebase.json",
         "**/.*",
@@ -48,7 +48,7 @@
     },
     {
       "site": "aafairshare-online",
-      "public": "aafairshare-remix/build/client",
+      "public": "build/client",
       "ignore": [
         "firebase.json",
         "**/.*",
