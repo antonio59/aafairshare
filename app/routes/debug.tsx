@@ -12,7 +12,7 @@ import { auth, db, firebase, initializeFirebase } from "~/lib/firebase";
 import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card";
 
-export function loader() {
+export async function loader() { // Added async keyword
   return json({
     timestamp: new Date().toISOString(),
     serverEnv: {

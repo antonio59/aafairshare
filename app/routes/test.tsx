@@ -1,7 +1,7 @@
 import { json } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
 
-export function loader() {
+export async function loader() { // Added async keyword
   return json({
     message: "This is a test page",
     timestamp: new Date().toISOString(),

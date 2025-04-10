@@ -76,7 +76,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
             var errorElement = document.createElement('div');
             errorElement.innerHTML = '<h3 style="margin-top: 10px; color: red;">Error:</h3><pre style="white-space: pre-wrap; overflow: auto; max-height: 200px; padding: 10px; background-color: #f5f5f5;">' + error.message + '\n' + (error.stack || '') + '</pre>';
-            errorContainer.appendChild(errorElement);
+
+            // Ensure errorContainer exists and is in the DOM before appending
+            if (errorContainer && document.body.contains(errorContainer)) {
+              errorContainer.appendChild(errorElement);
+            } else if (errorContainer) {
+              // If container was created but not appended, append it now
+              document.body.appendChild(errorContainer);
+              errorContainer.appendChild(errorElement);
+            } else {
+              // Fallback: Log if container couldn't be found/created (should not happen with the || createElement logic)
+              console.error("Could not find or create error container to display message.");
+            }
           };
 
           // Add debug info to window
