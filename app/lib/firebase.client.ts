@@ -17,35 +17,31 @@ let functions: Functions;
 // Initialize Firebase using modular SDK and window.ENV
 // This function should only be called once ENV is available
 function initializeFirebase() {
-  console.log('Attempting Firebase initialization...');
-
   // Check if already initialized
   if (getApps().length > 0) {
-    console.log('Firebase already initialized.');
     app = getApp(); // Get existing app
-  } else {
-    // Get config from window.ENV
-    const envConfig = window.ENV as FirebaseEnv;
-    if (!envConfig) {
-      throw new Error('Firebase ENV config not found on window object.');
-    }
-
-    const firebaseConfig = createFirebaseConfig(envConfig);
-    
-    // Validate configuration
-    if (!validateFirebaseConfig(firebaseConfig)) {
-      throw new Error('Invalid Firebase configuration.');
-    }
-
-    console.log('Initializing new Firebase app with validated config.');
-    app = initializeApp(firebaseConfig);
+    return { app, auth, db, functions };
   }
 
-  // Initialize services using modular functions
+  // Get config from window.ENV
+  const envConfig = window.ENV as FirebaseEnv;
+  if (!envConfig) {
+    throw new Error('Firebase ENV config not found on window object.');
+  }
+
+  const firebaseConfig = createFirebaseConfig(envConfig);
+  
+  // Validate configuration
+  if (!validateFirebaseConfig(firebaseConfig)) {
+    throw new Error('Invalid Firebase configuration.');
+  }
+
+  // Initialize Firebase app and services
   try {
+    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
-    functions = getFunctions(app); // Optional: specify region if needed
+    functions = getFunctions(app);
 
     // Configure auth persistence
     setPersistence(auth, browserLocalPersistence)
@@ -53,52 +49,38 @@ function initializeFirebase() {
         console.error("Failed to set Firebase auth persistence:", error);
       });
 
-    console.log('Firebase services obtained successfully.');
     return { app, auth, db, functions };
 
   } catch (error) {
-    console.error('Error obtaining Firebase services:', error);
-    // Clean up potentially partially initialized app if services fail
-    // Note: Firebase doesn't have a standard 'deleteApp' in v9+ client SDK easily accessible here
-    // Consider logging the error and letting the app handle the failure state
-    throw error; // Re-throw error after logging
+    console.error('Error initializing Firebase:', error);
+    throw error;
   }
 }
 
 // Helper functions for Firestore operations using modular SDK
 function getCollection(collectionName: string) {
   if (!db) {
-    console.error('Firestore not initialized when trying to access collection:', collectionName);
-    // Attempt to initialize if not already done (e.g., on direct import/use)
     try {
-      console.log('Attempting lazy initialization for getCollection');
       const services = initializeFirebase();
-      db = services.db; // Update local db instance
+      db = services.db;
     } catch (error) {
-      console.error('Lazy initialization failed for getCollection:', error);
-      // Depending on requirements, you might throw an error or return null/undefined
-      // Returning null here to indicate failure to get the collection ref
+      console.error('Failed to initialize Firestore:', error);
       return null;
     }
   }
-  // Use modular 'collection' function
   return collection(db, collectionName);
 }
 
 function getDocument(documentPath: string) {
-   if (!db) {
-    console.error('Firestore not initialized when trying to access document:', documentPath);
-    // Attempt to initialize if not already done
+  if (!db) {
     try {
-      console.log('Attempting lazy initialization for getDocument');
       const services = initializeFirebase();
-      db = services.db; // Update local db instance
+      db = services.db;
     } catch (error) {
-      console.error('Lazy initialization failed for getDocument:', error);
-      return null; // Indicate failure
+      console.error('Failed to initialize Firestore:', error);
+      return null;
     }
   }
-  // Use modular 'doc' function
   return doc(db, documentPath);
 }
 
