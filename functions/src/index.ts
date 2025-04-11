@@ -1,70 +1,29 @@
 import * as functions from "firebase-functions/v1";
 import * as admin from "firebase-admin";
-import * as path from "path"; // <-- Add path import
+import * as path from "path";
 import {DocumentSnapshot} from "firebase-functions/v1/firestore";
 import {EventContext} from "firebase-functions/v1";
 import {Parser} from "@json2csv/plainjs";
 import PdfPrinter from "pdfmake";
 import type {
-  TDocumentDefinitions, Content, ContentTable, // <-- Remove TableCell
-} from "pdfmake/interfaces"; // Keep this path for CJS
-// Font definition moved inside handler
-// Assuming shared types are correctly mapped in tsconfig.json
-// Import shared types from the installed 'shared' package
-// Import shared types AND values using relative path (adjust if build output differs)
+  TDocumentDefinitions, Content, ContentTable,
+} from "pdfmake/interfaces";
+import './types/pdfmake';
 import {
-  Settlement, Expense, User, Category, Location, RecurringExpense, RecurringFrequency
-} from "shared/schema"; // Use updated path alias
+  Settlement, Expense, User, Category, Location
+} from "shared/schema";
+import type { RecurringExpense, RecurringFrequency } from "./types/recurring.js";
 import {
-  formatCurrency, formatDate // Import functions as values
-} from "shared/formatting"; // Use updated path alias
-import type { EmailTemplate } from "./types"; // Assuming types are in ./types
+  formatCurrency, formatDate
+} from "shared/formatting";
+import type { EmailTemplate } from "./types.js";
 
-import express from "express"; // Correct express import for default export
+// Export the remix function
+export { remix } from "./remix.js";
 
 // Initialize Firebase Admin SDK
 admin.initializeApp();
 const db = admin.firestore();
-
-// --- Remix SSR Handler ---
-// Import the Express app instance created by your Remix server build
-// Adjust the path based on your actual build output structure relative to 'functions/lib'
-// Assuming the server build entry point is '../build/server/index.js' relative to compiled functions
-// --- Remix SSR Handler ---
-// Import the Express app instance created by your Remix server build
-// Adjust the path based on your actual build output structure relative to 'functions/lib'
-// Assuming the server build entry point is '../../build/server/index.js' relative to compiled functions
-let expressApp: express.Express;
-try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    // Correct relative path from functions/lib/index.js to project_root/build/server/index.js
-    const server = require("../../build/server/index.js"); // Use specific file path
-    if (server.default && typeof server.default === 'function') {
-        // Assuming the default export is the Express app instance
-        expressApp = server.default;
-        functions.logger.info("Remix Express app loaded successfully.");
-    } else {
-        throw new Error("Remix server build did not export an Express app instance as default.");
-    }
-} catch (error) {
-    functions.logger.error("Failed to load Remix server build/Express app:", error);
-    // Fallback Express app if build fails to load
-    expressApp = express(); // Now this should work
-    expressApp.all("*", (req, res) => {
-        res.status(500).send("Remix server build failed to load.");
-    });
-}
-// --- End Remix SSR Handler ---
-
-// Define the ssrServer Cloud Function using the Express app
-export const ssrServer = functions
-    .region("europe-west1") // Match region if needed
-    .https.onRequest((req, res) => { // Wrap the express app to add logging
-      functions.logger.info(`ssrServer function invoked for URL: ${req.originalUrl}`);
-      // Now delegate to the Express app (which contains the Remix handler)
-      expressApp(req, res);
-    });
-// --- End Remix SSR Handler ---
 
 // Helper function to fetch data with caching/memoization for efficiency
 // Simple in-memory cache (using unknown for better type safety than any)
@@ -671,7 +630,7 @@ export const generateRecurringExpenses = functions.pubsub
           const newExpense: Omit<Expense, "id"> = {
             description: recurringExpense.description || recurringExpense.title,
             amount: recurringExpense.amount,
-            date: admin.firestore.Timestamp.fromDate(today),
+            date: recurringExpense.startDate, // Use startDate instead of date
             paidByUserId: recurringExpense.paidByUserId,
             splitType: recurringExpense.splitType,
             categoryId: recurringExpense.categoryId,
@@ -728,16 +687,16 @@ function shouldGenerateExpense(
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
   switch (frequency) {
-    case "daily":
+    case 'daily' as RecurringFrequency:
       return diffDays >= 1;
 
-    case "weekly":
+    case 'weekly' as RecurringFrequency:
       return diffDays >= 7;
 
-    case "biweekly":
+    case 'biweekly' as RecurringFrequency:
       return diffDays >= 14;
 
-    case "monthly":
+    case 'monthly' as RecurringFrequency:
       // Check if it's been a month (approximately)
       const lastMonth = lastDate.getMonth();
       const currentMonth = currentDate.getMonth();
@@ -749,7 +708,7 @@ function shouldGenerateExpense(
       }
       return currentMonth - lastMonth >= 1;
 
-    case "quarterly":
+    case 'quarterly' as RecurringFrequency:
       // Check if it's been 3 months (approximately)
       const lastQuarter = Math.floor(lastDate.getMonth() / 3);
       const currentQuarter = Math.floor(currentDate.getMonth() / 3);
@@ -761,7 +720,7 @@ function shouldGenerateExpense(
       }
       return currentQuarter - lastQuarter >= 1;
 
-    case "yearly":
+    case 'yearly' as RecurringFrequency:
       // Check if it's been a year
       return currentDate.getFullYear() - lastDate.getFullYear() >= 1;
 

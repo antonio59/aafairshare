@@ -6,8 +6,7 @@ import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, setPersistence, browserLocalPersistence, type Auth } from 'firebase/auth';
 import { getFirestore, collection, doc, type Firestore } from 'firebase/firestore';
 import { getFunctions, type Functions } from 'firebase/functions';
-// Global types (ENV, debugInfo) should be defined in a central .d.ts file (e.g., app/types/global.d.ts)
-// Removing duplicate declarations from here.
+import { createFirebaseConfig, validateFirebaseConfig, type FirebaseEnv } from './firebase.shared';
 
 // Firebase services (will be initialized later)
 let app: FirebaseApp;
@@ -26,23 +25,19 @@ function initializeFirebase() {
     app = getApp(); // Get existing app
   } else {
     // Get config from window.ENV
-    const envConfig = window.ENV;
-    if (!envConfig || !envConfig.FIREBASE_API_KEY) {
-      console.error('Firebase ENV config not found on window object.');
-      throw new Error('Firebase ENV config not found.');
+    const envConfig = window.ENV as FirebaseEnv;
+    if (!envConfig) {
+      throw new Error('Firebase ENV config not found on window object.');
     }
 
-    const firebaseConfig = {
-      apiKey: envConfig.FIREBASE_API_KEY,
-      authDomain: envConfig.FIREBASE_AUTH_DOMAIN,
-      projectId: envConfig.FIREBASE_PROJECT_ID,
-      storageBucket: envConfig.FIREBASE_STORAGE_BUCKET,
-      messagingSenderId: envConfig.FIREBASE_MESSAGING_SENDER_ID,
-      appId: envConfig.FIREBASE_APP_ID,
-      measurementId: envConfig.FIREBASE_MEASUREMENT_ID,
-    };
+    const firebaseConfig = createFirebaseConfig(envConfig);
+    
+    // Validate configuration
+    if (!validateFirebaseConfig(firebaseConfig)) {
+      throw new Error('Invalid Firebase configuration.');
+    }
 
-    console.log('Initializing new Firebase app with ENV config.');
+    console.log('Initializing new Firebase app with validated config.');
     app = initializeApp(firebaseConfig);
   }
 

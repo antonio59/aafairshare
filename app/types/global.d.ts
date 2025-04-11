@@ -21,3 +21,22 @@ interface Window {
   // queryClient?: any;
   // __remixContext?: any;
 }
+
+declare module 'jspdf-autotable' {
+  import { jsPDF } from 'jspdf';
+
+  interface AutoTableOptions {
+    head?: Array<Array<string>>;
+    body?: Array<Array<string>>;
+    startY?: number;
+    theme?: 'striped' | 'grid' | 'plain';
+    styles?: Record<string, any>;
+    headStyles?: Record<string, any>;
+    footStyles?: Record<string, any>;
+    columnStyles?: Record<number, Record<string, any>>;
+    alternateRowStyles?: Record<string, any>;
+    foot?: Array<Array<string>>;
+  }
+
+  export default function autoTable(doc: jsPDF, options: AutoTableOptions): void;
+}

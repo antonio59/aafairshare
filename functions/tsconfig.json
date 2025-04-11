@@ -1,23 +1,32 @@
 {
   "compilerOptions": {
-    "module": "CommonJS", // Change module type
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true, // Often helpful with esModuleInterop
-    "moduleResolution": "node", // Change resolution strategy
+    "allowSyntheticDefaultImports": true,
     "noImplicitReturns": true,
     "noUnusedLocals": true,
     "outDir": "lib",
     "sourceMap": true,
     "strict": true,
     "target": "es2017",
-    "baseUrl": "../", // Base is now project root relative to this file
+    "baseUrl": ".",
+    "rootDir": "src",
     "paths": {
-      "shared/*": ["app/shared/*"] // Path relative to new baseUrl
+      "@/*": ["src/*"],
+      "shared/*": ["../app/shared/*"],
+      "../../build/server/index.js": ["../build/server/index.js"],
+      "../lib/remix.js": ["lib/remix.js"]
     },
-    // "rootDir": "src" // Removed to allow importing from ../app/shared
+    "skipLibCheck": true,
+    "typeRoots": ["src/types", "node_modules/@types"],
+    "types": []
   },
   "compileOnSave": true,
   "include": [
-    "src"
-  ]
+    "src",
+    "src/types/*.d.ts",
+    "src/types/pdfmake.d.ts"
+  ],
+  "exclude": ["node_modules/@types/pdfmake"]
 }
