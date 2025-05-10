@@ -1,31 +1,58 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { addExpense } from "@/services/expenseService";
+import { addExpense, getUsers } from "@/services/expenseService";
 import AmountInput from "@/components/expense/AmountInput";
 import DateSelector from "@/components/expense/DateSelector";
 import CategorySelector from "@/components/expense/CategorySelector";
 import LocationSelector from "@/components/expense/LocationSelector";
 import SplitTypeSelector from "@/components/expense/SplitTypeSelector";
+import { User } from "@/types";
 
 const AddExpense = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState({
     amount: "",
     date: new Date(),
     category: "",
     location: "",
     description: "",
-    paidBy: "1", // Default to current user
+    paidBy: "", // Will be set to current user's ID
     split: "50/50", // Default to equal split
   });
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const userData = await getUsers();
+        setUsers(userData);
+        
+        // Set default paidBy to the first user if available
+        if (userData.length > 0) {
+          setFormData(prev => ({
+            ...prev,
+            paidBy: userData[0].id
+          }));
+        }
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load user data.",
+          variant: "destructive",
+        });
+      }
+    };
+    
+    fetchUsers();
+  }, [toast]);
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -39,7 +66,7 @@ const AddExpense = () => {
     
     try {
       // Validate form
-      if (!formData.amount || !formData.date || !formData.category) {
+      if (!formData.amount || !formData.date || !formData.category || !formData.paidBy) {
         toast({
           title: "Missing fields",
           description: "Please fill all required fields",
@@ -55,9 +82,11 @@ const AddExpense = () => {
         category: formData.category,
         location: formData.location,
         description: formData.description,
-        paidBy: formData.paidBy, // Always the current user
+        paidBy: formData.paidBy, // Use the selected user ID
         split: formData.split,
       };
+
+      console.log("Submitting expense:", expenseData);
 
       // Submit the expense
       await addExpense(expenseData);

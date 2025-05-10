@@ -17,6 +17,17 @@ export interface Expense {
   splitRatio?: number; // If custom split, percentage for first user
 }
 
+export interface RecurringExpense {
+  id: string;
+  amount: number;
+  nextDueDate: string;
+  category: string;
+  location: string;
+  description?: string;
+  userId: string; // User ID
+  frequency: string; // "weekly", "monthly", "yearly"
+}
+
 export interface MonthData {
   totalExpenses: number;
   fairShare: number;
