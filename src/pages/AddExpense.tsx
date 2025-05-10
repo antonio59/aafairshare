@@ -1,9 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,11 +16,14 @@ import {
 import { 
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar as CalendarIcon } from "lucide-react";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Calendar as CalendarIcon, MapPin, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { 
   Heart, 
@@ -33,7 +37,12 @@ import {
   Zap 
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { addExpense } from "@/services/expenseService";
+import { 
+  addExpense, 
+  getCategories, 
+  getLocations,
+  createLocation
+} from "@/services/expenseService";
 
 const categories = [
   { name: "Dining", icon: <Utensils className="h-6 w-6" /> },
@@ -43,17 +52,8 @@ const categories = [
   { name: "Health", icon: <Heart className="h-6 w-6" /> },
   { name: "Holidays", icon: <Umbrella className="h-6 w-6" /> },
   { name: "Shopping", icon: <ShoppingBag className="h-6 w-6" /> },
-  { name: "Subscriptions", icon: <ShoppingBag className="h-6 w-6" /> },
   { name: "Transport", icon: <Train className="h-6 w-6" /> },
   { name: "Utilities", icon: <Zap className="h-6 w-6" /> },
-];
-
-const locations = [
-  "Ocado", 
-  "Tower Hamlets Council Tax", 
-  "Thames Water", 
-  "Hyperoptic", 
-  "Ovo Energy"
 ];
 
 const AddExpense = () => {
@@ -68,6 +68,33 @@ const AddExpense = () => {
     paidBy: "1", // Default to Antonio
     split: "50/50", // Default to equal split
   });
+
+  // New location dialog
+  const [newLocationDialogOpen, setNewLocationDialogOpen] = useState(false);
+  const [newLocationName, setNewLocationName] = useState("");
+  const [creatingLocation, setCreatingLocation] = useState(false);
+
+  // Fetch categories and locations
+  const { data: dbCategories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: getCategories,
+  });
+  
+  const { data: locations, refetch: refetchLocations } = useQuery({
+    queryKey: ["locations"],
+    queryFn: getLocations,
+  });
+
+  // Combine hardcoded categories with those from the database
+  const allCategories = [...categories];
+  if (dbCategories) {
+    const dbCategoryNames = new Set(dbCategories.map(cat => cat.name));
+    const missingDbCategories = dbCategories
+      .filter(cat => !categories.some(c => c.name === cat.name))
+      .map(cat => ({ name: cat.name, icon: <ShoppingBag className="h-6 w-6" /> }));
+    
+    allCategories.push(...missingDbCategories);
+  }
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -120,6 +147,40 @@ const AddExpense = () => {
         description: "Failed to add expense. Please try again.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleAddNewLocation = async () => {
+    if (!newLocationName.trim()) return;
+    
+    setCreatingLocation(true);
+    
+    try {
+      const newLocation = await createLocation(newLocationName.trim());
+      
+      toast({
+        title: "Location added",
+        description: `${newLocationName} has been added as a new location.`,
+      });
+      
+      // Update locations list
+      await refetchLocations();
+      
+      // Set the new location as selected
+      handleChange("location", newLocation.name);
+      
+      // Close the dialog
+      setNewLocationDialogOpen(false);
+      setNewLocationName("");
+      
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to add location. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setCreatingLocation(false);
     }
   };
 
@@ -184,7 +245,7 @@ const AddExpense = () => {
         <div className="mb-6">
           <Label>Category</Label>
           <div className="mt-2 grid grid-cols-5 gap-2">
-            {categories.map((category) => (
+            {allCategories.map((category) => (
               <button
                 key={category.name}
                 type="button"
@@ -206,22 +267,32 @@ const AddExpense = () => {
         {/* Location */}
         <div className="mb-6">
           <Label htmlFor="location">Location</Label>
-          <div className="mt-1">
+          <div className="mt-1 flex gap-2">
             <Select
-              onValueChange={(value) => handleChange("location", value)}
               value={formData.location}
+              onValueChange={(value) => handleChange("location", value)}
             >
               <SelectTrigger id="location" className="w-full">
-                <SelectValue placeholder="Select or add location" />
+                <SelectValue placeholder="Select a location" />
               </SelectTrigger>
               <SelectContent>
-                {locations.map((location) => (
-                  <SelectItem key={location} value={location}>
-                    {location}
-                  </SelectItem>
-                ))}
+                <SelectGroup>
+                  <SelectLabel>Locations</SelectLabel>
+                  {locations && locations.map((location) => (
+                    <SelectItem key={location.id} value={location.name}>
+                      {location.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
+            <Button 
+              type="button" 
+              variant="outline"
+              onClick={() => setNewLocationDialogOpen(true)}
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -332,6 +403,47 @@ const AddExpense = () => {
           </Button>
         </div>
       </form>
+
+      {/* Add new location dialog */}
+      <Dialog open={newLocationDialogOpen} onOpenChange={setNewLocationDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Location</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="mb-4">
+              <Label htmlFor="new-location">Location Name</Label>
+              <div className="relative mt-1">
+                <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                <Input
+                  id="new-location"
+                  placeholder="Enter location name"
+                  className="pl-10"
+                  value={newLocationName}
+                  onChange={(e) => setNewLocationName(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setNewLocationDialogOpen(false);
+                setNewLocationName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddNewLocation}
+              disabled={creatingLocation || !newLocationName.trim()}
+            >
+              {creatingLocation ? "Adding..." : "Add Location"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

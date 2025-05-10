@@ -1,5 +1,5 @@
 
-import { Expense, MonthData, AnalyticsData } from "../types";
+import { Expense, MonthData, AnalyticsData, CategorySummary, LocationSummary } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 
@@ -21,6 +21,34 @@ export const getUsers = async () => {
   }));
 };
 
+// Get all categories from Supabase
+export const getCategories = async () => {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id, name, color, icon');
+    
+  if (error) {
+    console.error("Error fetching categories:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
+// Get all locations from Supabase
+export const getLocations = async () => {
+  const { data, error } = await supabase
+    .from('locations')
+    .select('id, name');
+    
+  if (error) {
+    console.error("Error fetching locations:", error);
+    throw error;
+  }
+  
+  return data;
+};
+
 // Format month string for database queries
 const formatMonthString = (year: number, month: number) => {
   return `${year}-${month.toString().padStart(2, '0')}`;
@@ -31,6 +59,7 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
   try {
     // Get expenses for the specified month
     const monthString = formatMonthString(year, month);
+    console.log(`Fetching expenses for month: ${monthString}`);
     
     const { data: expenses, error: expensesError } = await supabase
       .from('expenses')
@@ -41,13 +70,18 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
         description,
         split_type,
         paid_by_id,
-        category_id (name),
-        location_id (name)
+        category_id (id, name),
+        location_id (id, name)
       `)
       .eq('month', monthString)
       .order('date', { ascending: false });
       
-    if (expensesError) throw expensesError;
+    if (expensesError) {
+      console.error("Error fetching expenses:", expensesError);
+      throw expensesError;
+    }
+
+    console.log(`Found ${expenses.length} expenses for month ${monthString}`);
 
     // Get users for attribution
     const { data: users } = await supabase
@@ -236,6 +270,99 @@ export const addExpense = async (expense: Omit<Expense, "id">): Promise<Expense>
   }
 };
 
+// Mark settlement as completed
+export const markSettlementComplete = async (year: number, month: number, amount: number, fromUserId: string, toUserId: string): Promise<void> => {
+  try {
+    const monthString = formatMonthString(year, month);
+    const currentDate = format(new Date(), 'yyyy-MM-dd');
+    
+    // Insert a new settlement record
+    const { error } = await supabase
+      .from('settlements')
+      .insert({
+        month: monthString,
+        date: currentDate,
+        amount: amount,
+        from_user_id: fromUserId,
+        to_user_id: toUserId,
+        status: 'completed',
+        recorded_by: fromUserId // Assuming the person who owes is marking it as settled
+      });
+    
+    if (error) throw error;
+    
+  } catch (error) {
+    console.error("Error marking settlement as completed:", error);
+    throw error;
+  }
+};
+
+// Create new location
+export const createLocation = async (name: string): Promise<{ id: string, name: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('locations')
+      .insert({ name })
+      .select('id, name')
+      .single();
+      
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating location:", error);
+    throw error;
+  }
+};
+
+// Create new category
+export const createCategory = async (name: string, icon?: string, color?: string): Promise<{ id: string, name: string, icon?: string, color?: string }> => {
+  try {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert({ name, icon, color })
+      .select('id, name, icon, color')
+      .single();
+      
+    if (error) throw error;
+    
+    return data;
+  } catch (error) {
+    console.error("Error creating category:", error);
+    throw error;
+  }
+};
+
+// Delete location
+export const deleteLocation = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('locations')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error deleting location:", error);
+    throw error;
+  }
+};
+
+// Delete category
+export const deleteCategory = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    throw error;
+  }
+};
+
 // Function to get the current month data for display
 export const getCurrentMonthLabel = (): string => {
   const date = new Date();
@@ -248,4 +375,44 @@ export const getCurrentMonth = (): number => {
 
 export const getCurrentYear = (): number => {
   return new Date().getFullYear();
+};
+
+// Export data to CSV
+export const exportToCSV = (data: Expense[], year: number, month: number): string => {
+  // Create CSV header
+  const headers = ['Date', 'Category', 'Location', 'Description', 'Amount', 'Paid By', 'Split'];
+  
+  // Format data rows
+  const rows = data.map(expense => [
+    expense.date,
+    expense.category,
+    expense.location,
+    expense.description,
+    expense.amount.toString(),
+    expense.paidBy === "1" ? "User1" : "User2",
+    expense.split
+  ]);
+  
+  // Combine headers and rows
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n');
+  
+  return csvContent;
+};
+
+// Download as CSV
+export const downloadCSV = (expenses: Expense[], year: number, month: number): void => {
+  const csvContent = exportToCSV(expenses, year, month);
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  
+  const monthName = new Date(year, month - 1).toLocaleString('default', { month: 'long' });
+  link.setAttribute('href', url);
+  link.setAttribute('download', `expenses_${monthName}_${year}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 };
