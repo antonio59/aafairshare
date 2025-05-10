@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 export const getCategories = async () => {
   const { data, error } = await supabase
     .from('categories')
-    .select('id, name, color, icon');
+    .select('id, name, color, icon')
+    .order('name');
     
   if (error) {
     console.error("Error fetching categories:", error);

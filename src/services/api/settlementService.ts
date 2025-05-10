@@ -15,7 +15,7 @@ export const markSettlementComplete = async (year: number, month: number, amount
       .insert({
         month: monthString,
         date: currentDate,
-        amount: Math.ceil(amount), // Round up the settlement amount
+        amount: Math.round(amount * 100) / 100, // Round to 2 decimal places
         from_user_id: fromUserId,
         to_user_id: toUserId,
         status: 'completed',

@@ -11,8 +11,7 @@ import {
 import { 
   ChevronLeft, 
   ChevronRight, 
-  BarChart4, 
-  DownloadIcon 
+  BarChart4
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -130,11 +129,6 @@ const Analytics = () => {
                   <div className="text-3xl font-bold mt-1 text-green">£195.48</div>
                 </div>
               </div>
-              <div className="mt-4">
-                <Button variant="outline" size="sm" className="text-xs">
-                  <span>Show settlement calculation details</span>
-                </Button>
-              </div>
             </CardContent>
           </Card>
 
@@ -143,14 +137,7 @@ const Analytics = () => {
             {/* User Expense Comparison */}
             <Card>
               <CardHeader className="pb-0">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base">User Expense Comparison</CardTitle>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <BarChart4 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle className="text-base">User Expense Comparison</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-64">
@@ -183,14 +170,7 @@ const Analytics = () => {
             {/* Expenses by Category */}
             <Card>
               <CardHeader className="pb-0">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base">Expenses by Category</CardTitle>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <BarChart4 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle className="text-base">Expenses by Category</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-64">
@@ -225,14 +205,7 @@ const Analytics = () => {
             {/* Expenses by Location */}
             <Card>
               <CardHeader className="pb-0">
-                <div className="flex justify-between items-center">
-                  <CardTitle className="text-base">Expenses by Location</CardTitle>
-                  <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
-                      <BarChart4 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
+                <CardTitle className="text-base">Expenses by Location</CardTitle>
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="h-64">

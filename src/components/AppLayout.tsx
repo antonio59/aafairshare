@@ -1,9 +1,8 @@
+
 import { Outlet, NavLink } from "react-router-dom";
 import { BarChart3, Calendar, Home, PiggyBank, Settings as SettingsIcon } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
-import ThemeToggle from "./ThemeToggle";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getUsers } from "@/services/expenseService";
@@ -48,8 +47,7 @@ const AppLayout = () => {
         </div>
         
         <div className="mt-auto p-4 border-t">
-          <ThemeToggle />
-          <div className="flex items-center gap-2 mt-4">
+          <div className="flex items-center gap-2">
             <Avatar className="w-8 h-8">
               <AvatarImage src={user?.avatar} alt={user?.name || ""} />
               <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>

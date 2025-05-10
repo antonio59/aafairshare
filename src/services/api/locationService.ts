@@ -5,7 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 export const getLocations = async () => {
   const { data, error } = await supabase
     .from('locations')
-    .select('id, name');
+    .select('id, name')
+    .order('name');
     
   if (error) {
     console.error("Error fetching locations:", error);

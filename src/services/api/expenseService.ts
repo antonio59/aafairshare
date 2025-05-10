@@ -78,3 +78,107 @@ export const addExpense = async (expense: Omit<Expense, "id">): Promise<Expense>
     throw error;
   }
 };
+
+// Update existing expense
+export const updateExpense = async (id: string, expense: Partial<Omit<Expense, "id">>): Promise<void> => {
+  try {
+    // Prepare update data
+    const updateData: any = {};
+    
+    if (expense.amount !== undefined) {
+      updateData.amount = expense.amount;
+    }
+    
+    if (expense.date) {
+      updateData.date = expense.date;
+      // Update month string if date changes
+      const expenseDate = parseISO(expense.date);
+      updateData.month = format(expenseDate, 'yyyy-MM');
+    }
+    
+    if (expense.description !== undefined) {
+      updateData.description = expense.description;
+    }
+    
+    if (expense.paidBy) {
+      updateData.paid_by_id = expense.paidBy;
+    }
+    
+    if (expense.split) {
+      updateData.split_type = expense.split;
+    }
+    
+    // Handle category update
+    if (expense.category) {
+      // Look up or create category
+      const { data: existingCategory } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('name', expense.category)
+        .single();
+        
+      if (existingCategory) {
+        updateData.category_id = existingCategory.id;
+      } else {
+        const { data: newCategory } = await supabase
+          .from('categories')
+          .insert({ name: expense.category })
+          .select('id')
+          .single();
+        updateData.category_id = newCategory?.id;
+      }
+    }
+    
+    // Handle location update
+    if (expense.location) {
+      // Look up or create location
+      const { data: existingLocation } = await supabase
+        .from('locations')
+        .select('id')
+        .eq('name', expense.location)
+        .single();
+        
+      if (existingLocation) {
+        updateData.location_id = existingLocation.id;
+      } else {
+        const { data: newLocation } = await supabase
+          .from('locations')
+          .insert({ name: expense.location })
+          .select('id')
+          .single();
+        updateData.location_id = newLocation?.id;
+      }
+    }
+    
+    // Add updated_at timestamp
+    updateData.updated_at = new Date().toISOString();
+    
+    // Update the expense
+    const { error } = await supabase
+      .from('expenses')
+      .update(updateData)
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+  } catch (error) {
+    console.error("Error updating expense:", error);
+    throw error;
+  }
+};
+
+// Delete expense
+export const deleteExpense = async (id: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('expenses')
+      .delete()
+      .eq('id', id);
+    
+    if (error) throw error;
+    
+  } catch (error) {
+    console.error("Error deleting expense:", error);
+    throw error;
+  }
+};

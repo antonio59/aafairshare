@@ -11,6 +11,7 @@ import Analytics from "./pages/Analytics";
 import Recurring from "./pages/Recurring";
 import Settings from "./pages/Settings";
 import AddExpense from "./pages/AddExpense";
+import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 
 // Initialize QueryClient with default settings for better performance
@@ -34,6 +35,7 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/login" element={<Login />} />
             <Route path="/" element={<AppLayout />}>
               <Route index element={<Dashboard />} />
               <Route path="settlement" element={<Settlement />} />
