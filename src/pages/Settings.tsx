@@ -1,4 +1,5 @@
 
+import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LocationsManager from "@/components/LocationsManager";
 import CategoriesManager from "@/components/CategoriesManager";
@@ -24,8 +25,9 @@ const Settings = () => {
       </Tabs>
       
       {/* Debug info */}
-      <div className="mt-8 text-sm text-gray-500">
-        <p>If you're seeing this text, the settings page is loading correctly.</p>
+      <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
+        <p className="text-sm font-medium text-yellow-700">Debug Information:</p>
+        <p className="text-sm text-yellow-600">The settings page is attempting to load the LocationsManager and CategoriesManager components.</p>
       </div>
     </div>
   );
