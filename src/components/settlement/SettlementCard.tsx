@@ -1,8 +1,10 @@
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Check } from "lucide-react";
-import { MonthData } from "@/types";
+import { MonthData, User } from "@/types";
+import { getUsers } from "@/services/expenseService";
 
 interface SettlementCardProps {
   monthData: MonthData | undefined;
@@ -15,6 +17,24 @@ const SettlementCard = ({
   isSettling,
   onSettlement,
 }: SettlementCardProps) => {
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const userData = await getUsers();
+        setUsers(userData);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+
+  const user1 = users[0] || { name: "User 1", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user1" };
+  const user2 = users[1] || { name: "User 2", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user2" };
+
   return (
     <Card className="mb-6">
       <CardContent className="p-6">
@@ -28,9 +48,7 @@ const SettlementCard = ({
               <div className="flex items-center gap-2">
                 <div className="w-12 h-12 rounded-full overflow-hidden">
                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${
-                      monthData.settlementDirection === "owes" ? "Antonio" : "Andres"
-                    }`}
+                    src={monthData.settlementDirection === "owes" ? user1.avatar : user2.avatar}
                     alt="From avatar"
                     className="w-full h-full object-cover"
                   />
@@ -38,9 +56,7 @@ const SettlementCard = ({
                 <span className="text-base">owes</span>
                 <div className="w-12 h-12 rounded-full overflow-hidden">
                   <img
-                    src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${
-                      monthData.settlementDirection === "owes" ? "Andres" : "Antonio"
-                    }`}
+                    src={monthData.settlementDirection === "owes" ? user2.avatar : user1.avatar}
                     alt="To avatar"
                     className="w-full h-full object-cover"
                   />

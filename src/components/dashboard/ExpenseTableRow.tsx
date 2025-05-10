@@ -1,21 +1,36 @@
 
-import { format } from "date-fns";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect } from "react";
 import { Pencil, Trash } from "lucide-react";
-import { Expense } from "@/types";
+import { Button } from "@/components/ui/button";
+import { Expense, User } from "@/types";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { format } from "date-fns";
+import { getUsers } from "@/services/expenseService";
 
 interface ExpenseTableRowProps {
   expense: Expense;
 }
 
 const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
-  // Get the user name and photo based on paidBy value
-  const user = {
-    name: expense.paidBy === "1" ? "Antonio" : "Andres",
-    photoUrl: expense.paidBy === "1" 
-      ? "https://api.dicebear.com/7.x/avataaars/svg?seed=Antonio" 
-      : "https://api.dicebear.com/7.x/avataaars/svg?seed=Andres"
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const userData = await getUsers();
+        setUsers(userData);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+
+  // Find the user who paid for this expense
+  const user = users.find(user => user.id === expense.paidBy) || {
+    name: "Unknown User",
+    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=unknown`
   };
 
   return (
@@ -36,7 +51,7 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
       <td className="px-6 py-4">
         <div className="flex items-center gap-2">
           <Avatar className="h-6 w-6">
-            <AvatarImage src={user.photoUrl} alt={user.name} />
+            <AvatarImage src={user.avatar} alt={user.name} />
             <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
           </Avatar>
           <span>{user.name}</span>

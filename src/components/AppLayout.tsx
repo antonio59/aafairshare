@@ -1,4 +1,3 @@
-
 import { Outlet, NavLink } from "react-router-dom";
 import { BarChart3, Calendar, Home, PiggyBank, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,16 +6,28 @@ import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 import { useState, useEffect } from "react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { getUsers } from "@/services/expenseService";
+import { User } from "@/types";
 
 const AppLayout = () => {
   const { toast } = useToast();
-  const [user] = useState({
-    name: "Antonio Smith",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Antonio"
-  });
+  const [user, setUser] = useState<User | null>(null);
   
   useEffect(() => {
     console.log("AppLayout mounted");
+
+    const fetchUser = async () => {
+      try {
+        const users = await getUsers();
+        if (users.length > 0) {
+          setUser(users[0]);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user:", error);
+      }
+    };
+
+    fetchUser();
   }, []);
 
   return (
@@ -40,11 +51,11 @@ const AppLayout = () => {
           <ThemeToggle />
           <div className="flex items-center gap-2 mt-4">
             <Avatar className="w-8 h-8">
-              <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={user?.avatar} alt={user?.name || ""} />
+              <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name}</p>
+              <p className="text-sm font-medium truncate">{user?.name || "Loading..."}</p>
               <button 
                 className="text-xs text-gray-500 hover:text-gray-700"
                 onClick={() => toast({
