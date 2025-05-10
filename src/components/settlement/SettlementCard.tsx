@@ -2,20 +2,26 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import { MonthData, User } from "@/types";
 import { getUsers } from "@/services/expenseService";
 
 interface SettlementCardProps {
   monthData: MonthData | undefined;
   isSettling: boolean;
+  isUnsettling: boolean;
+  settlementExists: boolean;
   onSettlement: () => Promise<void>;
+  onUnsettlement: () => Promise<void>;
 }
 
 const SettlementCard = ({
   monthData,
   isSettling,
+  isUnsettling,
+  settlementExists,
   onSettlement,
+  onUnsettlement
 }: SettlementCardProps) => {
   const [users, setUsers] = useState<User[]>([]);
 
@@ -63,7 +69,7 @@ const SettlementCard = ({
                 </div>
               </div>
               <div className="text-4xl font-bold">
-                £{monthData.settlement.toFixed(2)}
+                £{Math.ceil(monthData.settlement).toFixed(2)}
               </div>
             </div>
           </div>
@@ -80,16 +86,29 @@ const SettlementCard = ({
           </div>
         )}
 
-        <Button
-          className="w-full py-6"
-          variant="default"
-          size="lg"
-          disabled={!monthData || monthData.settlement === 0 || isSettling}
-          onClick={onSettlement}
-        >
-          <Check className="mr-2 h-5 w-5" />
-          {isSettling ? "Processing..." : "Mark as Settled"}
-        </Button>
+        {settlementExists ? (
+          <Button
+            className="w-full py-6"
+            variant="destructive"
+            size="lg"
+            disabled={isUnsettling}
+            onClick={onUnsettlement}
+          >
+            <X className="mr-2 h-5 w-5" />
+            {isUnsettling ? "Processing..." : "Mark as Unsettled"}
+          </Button>
+        ) : (
+          <Button
+            className="w-full py-6"
+            variant="default"
+            size="lg"
+            disabled={!monthData || monthData.settlement === 0 || isSettling}
+            onClick={onSettlement}
+          >
+            <Check className="mr-2 h-5 w-5" />
+            {isSettling ? "Processing..." : "Mark as Settled"}
+          </Button>
+        )}
       </CardContent>
     </Card>
   );

@@ -16,7 +16,11 @@ interface Settlement {
   month: string;
 }
 
-const SettlementHistory = () => {
+interface SettlementHistoryProps {
+  onSettlementUpdated?: () => void;
+}
+
+const SettlementHistory = ({ onSettlementUpdated }: SettlementHistoryProps) => {
   const [settlements, setSettlements] = useState<Settlement[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,6 +41,7 @@ const SettlementHistory = () => {
         
         setSettlements(settlementsData || []);
         setUsers(userData);
+        if (onSettlementUpdated) onSettlementUpdated();
       } catch (error) {
         console.error("Error fetching settlement history:", error);
       } finally {
@@ -45,7 +50,7 @@ const SettlementHistory = () => {
     };
 
     fetchData();
-  }, []);
+  }, [onSettlementUpdated]);
 
   // Helper function to get user by ID
   const getUserById = (id: string): User => {

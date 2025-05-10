@@ -7,7 +7,10 @@ import {
   getMonthData, 
   getCurrentYear, 
   getCurrentMonth,
-  markSettlementComplete
+  markSettlementComplete,
+  markSettlementUnsettled,
+  formatMonthString,
+  checkSettlementExists
 } from "@/services/expenseService";
 
 import MonthNavigator from "@/components/settlement/MonthNavigator";
@@ -20,14 +23,22 @@ const Settlement = () => {
   const [year, setYear] = useState(getCurrentYear());
   const [month, setMonth] = useState(getCurrentMonth());
   const [isSettling, setIsSettling] = useState(false);
+  const [isUnsettling, setIsUnsettling] = useState(false);
 
   // Format the current month for display
   const currentMonthLabel = format(new Date(year, month - 1, 1), "MMMM yyyy");
+  const monthString = formatMonthString(year, month);
 
-  // Fetch the month data
+  // Fetch the month data and settlement status
   const { data: monthData, isLoading, error, refetch } = useQuery({
     queryKey: ["monthData", year, month],
     queryFn: () => getMonthData(year, month),
+  });
+
+  // Check if settlement exists
+  const { data: settlementExists = false, refetch: refetchSettlementStatus } = useQuery({
+    queryKey: ["settlementExists", monthString],
+    queryFn: () => checkSettlementExists(monthString),
   });
 
   const navigateMonth = (direction: "prev" | "next") => {
@@ -71,6 +82,7 @@ const Settlement = () => {
       
       // Refresh the data
       refetch();
+      refetchSettlementStatus();
       
     } catch (error) {
       console.error("Error settling expense:", error);
@@ -81,6 +93,33 @@ const Settlement = () => {
       });
     } finally {
       setIsSettling(false);
+    }
+  };
+
+  const handleUnsettlement = async () => {
+    setIsUnsettling(true);
+
+    try {
+      await markSettlementUnsettled(monthString);
+      
+      toast({
+        title: "Settlement Removed",
+        description: "The settlement has been marked as unsettled.",
+      });
+      
+      // Refresh the data
+      refetch();
+      refetchSettlementStatus();
+      
+    } catch (error) {
+      console.error("Error unsettling expense:", error);
+      toast({
+        title: "Unsettlement Failed",
+        description: "Failed to mark settlement as unsettled. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUnsettling(false);
     }
   };
 
@@ -109,7 +148,10 @@ const Settlement = () => {
           <SettlementCard 
             monthData={monthData} 
             isSettling={isSettling}
+            isUnsettling={isUnsettling}
+            settlementExists={settlementExists}
             onSettlement={handleSettlement}
+            onUnsettlement={handleUnsettlement}
           />
 
           <PaymentSummaryCards 
@@ -117,7 +159,7 @@ const Settlement = () => {
             user2Paid={monthData?.user2Paid || 0} 
           />
 
-          <SettlementHistory />
+          <SettlementHistory onSettlementUpdated={refetchSettlementStatus} />
         </>
       )}
     </div>

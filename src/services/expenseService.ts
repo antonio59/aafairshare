@@ -10,7 +10,7 @@ export { getUsers } from './api/userService';
 export { getCategories, createCategory, deleteCategory } from './api/categoryService';
 export { getLocations, createLocation, deleteLocation } from './api/locationService';
 export { addExpense } from './api/expenseService';
-export { markSettlementComplete } from './api/settlementService';
+export { markSettlementComplete, markSettlementUnsettled, checkSettlementExists } from './api/settlementService';
 
 // Export data services
 export { getMonthData } from './data/monthDataService';
