@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Expense, User } from "@/types";
 import { format } from "date-fns";
@@ -38,7 +39,9 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
   }, []);
 
   // Find the user who paid for this expense
-  const user = users.find(user => user.id === expense.paidBy) || {
+  // Create a proper User object with all required properties
+  const user: User = users.find(user => user.id === expense.paidBy) || {
+    id: 'unknown', // Add the required id property for the fallback
     name: "Unknown User",
     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=unknown`
   };
