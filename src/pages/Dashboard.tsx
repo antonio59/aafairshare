@@ -8,7 +8,8 @@ import {
   getMonthData, 
   getCurrentMonth, 
   getCurrentYear,
-  downloadCSV
+  downloadCSV,
+  downloadPDF
 } from "@/services/expenseService";
 
 // Import our extracted components
@@ -61,8 +62,9 @@ const Dashboard = () => {
 
   // Handle export to PDF
   const handleExportPDF = () => {
-    // PDF export would typically use a library like jspdf or pdfmake
-    alert("PDF export functionality will be implemented with a PDF generation library");
+    if (monthData?.expenses) {
+      downloadPDF(monthData.expenses, year, month);
+    }
   };
 
   return (
