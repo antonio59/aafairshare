@@ -34,7 +34,7 @@ const SplitTypeSelector = ({ selectedSplitType, onChange }: SplitTypeSelectorPro
           )}
           onClick={() => onChange("custom")}
         >
-          <div className="font-semibold">Percent</div>
+          <div className="font-semibold">100%</div>
           <div className="text-sm text-gray-500">100% owed by the other user</div>
         </button>
       </div>

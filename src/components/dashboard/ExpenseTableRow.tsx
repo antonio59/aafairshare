@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { getUsers, updateExpense, deleteExpense } from "@/services/expenseService";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,6 +19,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useQueryClient } from "@tanstack/react-query";
 
 interface ExpenseTableRowProps {
@@ -32,6 +47,7 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -60,7 +76,11 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
   const handleSave = async () => {
     try {
       setIsSubmitting(true);
-      await updateExpense(expense.id, editedExpense);
+      // Ensure we don't change the paidBy field
+      await updateExpense(expense.id, {
+        ...editedExpense,
+        paidBy: expense.paidBy // Keep original user who paid
+      });
       setIsEditing(false);
       toast({
         title: "Expense updated",
@@ -108,7 +128,125 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
     }
   };
 
-  if (isEditing) {
+  // Mobile editing dialog
+  if (isMobile && isEditing) {
+    return (
+      <>
+        <tr className="hover:bg-gray-50">
+          <td className="px-6 py-4" colSpan={7}>
+            <Button size="sm" variant="outline" onClick={() => setIsEditing(true)}>
+              Editing...
+            </Button>
+          </td>
+        </tr>
+        
+        <Dialog open={isEditing} onOpenChange={setIsEditing}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Edit Expense</DialogTitle>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="date" className="text-sm font-medium">Date</label>
+                <Input 
+                  id="date"
+                  type="date" 
+                  value={editedExpense.date} 
+                  onChange={(e) => setEditedExpense({...editedExpense, date: e.target.value})}
+                  className="col-span-3"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="category" className="text-sm font-medium">Category</label>
+                <Input 
+                  id="category"
+                  type="text" 
+                  value={editedExpense.category} 
+                  onChange={(e) => setEditedExpense({...editedExpense, category: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Category"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="location" className="text-sm font-medium">Location</label>
+                <Input 
+                  id="location"
+                  type="text" 
+                  value={editedExpense.location} 
+                  onChange={(e) => setEditedExpense({...editedExpense, location: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Location"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="description" className="text-sm font-medium">Description</label>
+                <Input 
+                  id="description"
+                  type="text" 
+                  value={editedExpense.description || ''} 
+                  onChange={(e) => setEditedExpense({...editedExpense, description: e.target.value})}
+                  className="col-span-3"
+                  placeholder="Description"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="amount" className="text-sm font-medium">Amount (£)</label>
+                <Input 
+                  id="amount"
+                  type="number" 
+                  value={editedExpense.amount} 
+                  onChange={(e) => setEditedExpense({...editedExpense, amount: parseFloat(e.target.value)})}
+                  className="col-span-3"
+                  step="0.01"
+                />
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label htmlFor="split" className="text-sm font-medium">Split</label>
+                <Select 
+                  value={editedExpense.split} 
+                  onValueChange={(value) => setEditedExpense({...editedExpense, split: value})}
+                >
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Select split type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="50/50">50/50</SelectItem>
+                    <SelectItem value="custom">100%</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-4 items-center gap-4">
+                <label className="text-sm font-medium">Paid by</label>
+                <div className="col-span-3 flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={user.avatar} alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span>{user.name}</span>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancel} disabled={isSubmitting}>Cancel</Button>
+              <Button onClick={handleSave} disabled={isSubmitting}>
+                {isSubmitting ? "Saving..." : "Save changes"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </>
+    );
+  }
+
+  if (isEditing && !isMobile) {
     return (
       <tr className="bg-blue-50">
         <td className="px-6 py-2">
@@ -154,25 +292,27 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
           />
         </td>
         <td className="px-6 py-2">
-          <select 
-            value={editedExpense.paidBy} 
-            onChange={(e) => setEditedExpense({...editedExpense, paidBy: e.target.value})}
-            className="w-full h-8 border rounded px-2"
-          >
-            {users.map(user => (
-              <option key={user.id} value={user.id}>{user.name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-2">
+            <Avatar className="h-6 w-6">
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <span>{user.name}</span>
+          </div>
         </td>
         <td className="px-6 py-2">
-          <select 
+          <Select 
             value={editedExpense.split} 
-            onChange={(e) => setEditedExpense({...editedExpense, split: e.target.value})}
-            className="w-full h-8 border rounded px-2"
+            onValueChange={(value) => setEditedExpense({...editedExpense, split: value})}
           >
-            <option value="50/50">50/50</option>
-            <option value="custom">Custom</option>
-          </select>
+            <SelectTrigger className="h-8">
+              <SelectValue placeholder="Select split type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="50/50">50/50</SelectItem>
+              <SelectItem value="custom">100%</SelectItem>
+            </SelectContent>
+          </Select>
         </td>
         <td className="px-6 py-2">
           <div className="flex gap-2">
@@ -213,7 +353,7 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
             <span>{user.name}</span>
           </div>
         </td>
-        <td className="px-6 py-4">{expense.split}</td>
+        <td className="px-6 py-4">{expense.split === "custom" ? "100%" : expense.split}</td>
         <td className="px-6 py-4">
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={handleEdit}>
