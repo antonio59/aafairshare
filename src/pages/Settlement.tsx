@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
@@ -10,8 +9,10 @@ import {
   markSettlementComplete,
   markSettlementUnsettled,
   formatMonthString,
-  checkSettlementExists
+  checkSettlementExists,
+  getUsers
 } from "@/services/expenseService";
+import { sendSettlementEmail } from "@/services/api/emailService";
 
 import MonthNavigator from "@/components/settlement/MonthNavigator";
 import SettlementCard from "@/components/settlement/SettlementCard";
@@ -24,6 +25,7 @@ const Settlement = () => {
   const [month, setMonth] = useState(getCurrentMonth());
   const [isSettling, setIsSettling] = useState(false);
   const [isUnsettling, setIsUnsettling] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
 
   // Format the current month for display
   const currentMonthLabel = format(new Date(year, month - 1, 1), "MMMM yyyy");
@@ -39,6 +41,12 @@ const Settlement = () => {
   const { data: settlementExists = false, refetch: refetchSettlementStatus } = useQuery({
     queryKey: ["settlementExists", monthString],
     queryFn: () => checkSettlementExists(monthString),
+  });
+
+  // Fetch users
+  const { data: users = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: getUsers,
   });
 
   const navigateMonth = (direction: "prev" | "next") => {
@@ -79,6 +87,27 @@ const Settlement = () => {
         title: "Settlement Complete",
         description: "The settlement has been marked as complete.",
       });
+      
+      // Send settlement email
+      if (users.length >= 2) {
+        setIsSendingEmail(true);
+        try {
+          await sendSettlementEmail(monthData, year, month, users);
+          toast({
+            title: "Settlement Email Sent",
+            description: "A settlement report has been sent to both users.",
+          });
+        } catch (emailError) {
+          console.error("Error sending settlement email:", emailError);
+          toast({
+            title: "Email Sending Failed",
+            description: "Could not send the settlement email. Please try again later.",
+            variant: "destructive",
+          });
+        } finally {
+          setIsSendingEmail(false);
+        }
+      }
       
       // Refresh the data
       refetch();
@@ -147,7 +176,7 @@ const Settlement = () => {
         <>
           <SettlementCard 
             monthData={monthData} 
-            isSettling={isSettling}
+            isSettling={isSettling || isSendingEmail}
             isUnsettling={isUnsettling}
             settlementExists={settlementExists}
             onSettlement={handleSettlement}

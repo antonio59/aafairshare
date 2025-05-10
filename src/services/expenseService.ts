@@ -20,10 +20,11 @@ export {
   generateExpenseFromRecurring
 } from './api/expenseService';
 export { markSettlementComplete, markSettlementUnsettled, checkSettlementExists } from './api/settlementService';
+export { sendSettlementEmail } from './api/emailService';
 
 // Export data services
 export { getMonthData } from './data/monthDataService';
 export { getAnalyticsData } from './data/analyticsService';
 
 // Export export services
-export { exportToCSV, downloadCSV, downloadPDF } from './export/exportService';
+export { exportToCSV, downloadCSV, downloadPDF, generateSettlementReportPDF } from './export/exportService';
