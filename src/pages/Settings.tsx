@@ -1,25 +1,46 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import LocationsManager from "@/components/LocationsManager";
-import CategoriesManager from "@/components/CategoriesManager";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+
+// Import the components with React.lazy for code splitting
+const LocationsManager = React.lazy(() => import("@/components/LocationsManager"));
+const CategoriesManager = React.lazy(() => import("@/components/CategoriesManager"));
 
 const Settings = () => {
   const [activeTab, setActiveTab] = useState<string>("locations");
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Once the component mounts, set loading to false
+  useEffect(() => {
+    setIsLoading(false);
+  }, []);
 
   // Error boundary function
   const renderWithErrorHandling = (Component: React.ComponentType, name: string) => {
     try {
-      return <Component />;
+      return (
+        <React.Suspense fallback={<div className="p-4 text-center">Loading {name}...</div>}>
+          <Component />
+        </React.Suspense>
+      );
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "Unknown error";
       setError(`Error rendering ${name}: ${errorMessage}`);
       return null;
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="container p-6 bg-white">
+        <h1 className="text-2xl font-bold mb-6">Settings</h1>
+        <div className="p-8 text-center">Loading settings page...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="container p-6 bg-white">
