@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
@@ -23,6 +22,7 @@ import {
   ChevronRight, 
   Download, 
   FileText,
+  FileType,
   FilePdf,
   Plus, 
   Pencil, 
@@ -126,7 +126,7 @@ const Dashboard = () => {
                 <FileText className="mr-2 h-4 w-4" /> Export CSV
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExportPDF}>
-                <FilePdf className="mr-2 h-4 w-4" /> Export PDF
+                <FileType className="mr-2 h-4 w-4" /> Export PDF
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
