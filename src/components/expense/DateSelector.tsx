@@ -18,7 +18,7 @@ interface DateSelectorProps {
 
 const DateSelector = ({ selectedDate, onChange }: DateSelectorProps) => {
   return (
-    <div className="mb-6">
+    <>
       <Label>Date</Label>
       <div className="mt-1">
         <Popover>
@@ -45,7 +45,7 @@ const DateSelector = ({ selectedDate, onChange }: DateSelectorProps) => {
           </PopoverContent>
         </Popover>
       </div>
-    </div>
+    </>
   );
 };
 

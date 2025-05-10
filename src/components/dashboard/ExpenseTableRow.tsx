@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Pencil, Trash, Check, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -136,20 +137,24 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
         </DialogHeader>
         
         <div className="py-4 overflow-y-auto max-h-[80vh]">
-          {/* Amount */}
-          <AmountInput 
-            value={String(editedExpense.amount)} 
-            onChange={(value) => setEditedExpense({...editedExpense, amount: parseFloat(value) || 0})} 
-          />
-
-          {/* Date */}
-          <DateSelector 
-            selectedDate={new Date(editedExpense.date)} 
-            onChange={(date) => {
-              const formattedDate = format(date, "yyyy-MM-dd");
-              setEditedExpense({...editedExpense, date: formattedDate})
-            }} 
-          />
+          {/* Amount and Date in the same row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div>
+              <AmountInput 
+                value={String(editedExpense.amount)} 
+                onChange={(value) => setEditedExpense({...editedExpense, amount: parseFloat(value) || 0})} 
+              />
+            </div>
+            <div>
+              <DateSelector 
+                selectedDate={new Date(editedExpense.date)} 
+                onChange={(date) => {
+                  const formattedDate = format(date, "yyyy-MM-dd");
+                  setEditedExpense({...editedExpense, date: formattedDate})
+                }} 
+              />
+            </div>
+          </div>
 
           {/* Category */}
           <CategorySelector 

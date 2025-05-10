@@ -88,17 +88,21 @@ const AddExpense = () => {
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* Amount */}
-        <AmountInput 
-          value={formData.amount} 
-          onChange={(value) => handleChange("amount", value)} 
-        />
-
-        {/* Date */}
-        <DateSelector 
-          selectedDate={formData.date} 
-          onChange={(date) => handleChange("date", date)} 
-        />
+        {/* Amount and Date in the same row */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div>
+            <AmountInput 
+              value={formData.amount} 
+              onChange={(value) => handleChange("amount", value)} 
+            />
+          </div>
+          <div>
+            <DateSelector 
+              selectedDate={formData.date} 
+              onChange={(date) => handleChange("date", date)} 
+            />
+          </div>
+        </div>
 
         {/* Category */}
         <CategorySelector 
