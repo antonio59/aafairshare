@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
@@ -65,7 +65,7 @@ const AddExpense = () => {
     category: "",
     location: "",
     description: "",
-    paidBy: "1", // Default to Antonio
+    paidBy: "1", // Default to Antonio (current user)
     split: "50/50", // Default to equal split
   });
 
@@ -85,7 +85,7 @@ const AddExpense = () => {
     queryFn: getLocations,
   });
 
-  // Combine hardcoded categories with those from the database
+  // Combine hardcoded categories with those from the database and sort alphabetically
   const allCategories = [...categories];
   if (dbCategories) {
     const dbCategoryNames = new Set(dbCategories.map(cat => cat.name));
@@ -95,6 +95,16 @@ const AddExpense = () => {
     
     allCategories.push(...missingDbCategories);
   }
+  
+  // Sort categories alphabetically by name
+  const sortedCategories = [...allCategories].sort((a, b) => 
+    a.name.localeCompare(b.name)
+  );
+
+  // Sort locations alphabetically
+  const sortedLocations = locations 
+    ? [...locations].sort((a, b) => a.name.localeCompare(b.name)) 
+    : [];
 
   const handleChange = (field: string, value: any) => {
     setFormData(prev => ({
@@ -124,7 +134,7 @@ const AddExpense = () => {
         category: formData.category,
         location: formData.location,
         description: formData.description,
-        paidBy: formData.paidBy,
+        paidBy: formData.paidBy, // Always the current user
         split: formData.split,
       };
 
@@ -245,7 +255,7 @@ const AddExpense = () => {
         <div className="mb-6">
           <Label>Category</Label>
           <div className="mt-2 grid grid-cols-5 gap-2">
-            {allCategories.map((category) => (
+            {sortedCategories.map((category) => (
               <button
                 key={category.name}
                 type="button"
@@ -278,7 +288,7 @@ const AddExpense = () => {
               <SelectContent>
                 <SelectGroup>
                   <SelectLabel>Locations</SelectLabel>
-                  {locations && locations.map((location) => (
+                  {sortedLocations && sortedLocations.map((location) => (
                     <SelectItem key={location.id} value={location.name}>
                       {location.name}
                     </SelectItem>
@@ -325,51 +335,6 @@ const AddExpense = () => {
             >
               <div className="font-semibold">Percent</div>
               <div className="text-sm text-gray-500">100% owed by the other user</div>
-            </button>
-          </div>
-        </div>
-
-        {/* Paid By */}
-        <div className="mb-6">
-          <Label>Paid By</Label>
-          <div className="mt-2 grid grid-cols-2 gap-4">
-            <button
-              type="button"
-              className={cn(
-                "p-4 border rounded-lg flex items-center gap-3",
-                formData.paidBy === "1"
-                  ? "border-blue-300 bg-blue-50"
-                  : "border-gray-200"
-              )}
-              onClick={() => handleChange("paidBy", "1")}
-            >
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                <img
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Antonio"
-                  alt="Antonio avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="font-medium">Antonio</div>
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "p-4 border rounded-lg flex items-center gap-3",
-                formData.paidBy === "2"
-                  ? "border-blue-300 bg-blue-50"
-                  : "border-gray-200"
-              )}
-              onClick={() => handleChange("paidBy", "2")}
-            >
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
-                <img
-                  src="https://api.dicebear.com/7.x/avataaars/svg?seed=Andres"
-                  alt="Andres avatar"
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="font-medium">Andres</div>
             </button>
           </div>
         </div>

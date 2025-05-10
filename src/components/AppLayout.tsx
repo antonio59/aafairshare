@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 import { useState, useEffect } from "react";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const AppLayout = () => {
   const { toast } = useToast();
@@ -38,11 +39,10 @@ const AppLayout = () => {
         <div className="mt-auto p-4 border-t">
           <ThemeToggle />
           <div className="flex items-center gap-2 mt-4">
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
-              className="rounded-full w-8 h-8"
-            />
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            </Avatar>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user.name}</p>
               <button 
