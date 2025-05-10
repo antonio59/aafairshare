@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const AppLayout = () => {
   const { toast } = useToast();
@@ -13,6 +13,10 @@ const AppLayout = () => {
     name: "Antonio Smith",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Antonio"
   });
+  
+  useEffect(() => {
+    console.log("AppLayout mounted");
+  }, []);
 
   return (
     <div className="flex h-screen">

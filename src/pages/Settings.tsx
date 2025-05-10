@@ -9,9 +9,11 @@ import CategoriesManager from "@/components/CategoriesManager";
 const Settings = () => {
   const [activeTab, setActiveTab] = useState<string>("locations");
   const [error, setError] = useState<string | null>(null);
+  
+  console.log("Settings component rendering, active tab:", activeTab);
 
   return (
-    <div className="container p-6 bg-white">
+    <div className="container mx-auto p-6 bg-white">
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
       
       {error && (
@@ -34,18 +36,18 @@ const Settings = () => {
         
         <TabsContent value="locations" className="mt-4 border p-4 rounded-md">
           <h2 className="text-lg font-semibold mb-4">Locations Management</h2>
-          {activeTab === "locations" && <LocationsManager />}
+          <LocationsManager />
         </TabsContent>
         
         <TabsContent value="categories" className="mt-4 border p-4 rounded-md">
           <h2 className="text-lg font-semibold mb-4">Categories Management</h2>
-          {activeTab === "categories" && <CategoriesManager />}
+          <CategoriesManager />
         </TabsContent>
       </Tabs>
       
-      {/* Simple debug info */}
       <div className="mt-8 p-4 bg-yellow-50 border border-yellow-200 rounded-md">
         <p className="text-sm text-yellow-600">Current active tab: {activeTab}</p>
+        <p className="text-sm text-yellow-600">Debug: Settings component loaded</p>
       </div>
     </div>
   );
