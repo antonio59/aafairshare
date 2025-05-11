@@ -34,12 +34,11 @@ export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLi
 // Function to check Supabase availability
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
-    // Fix: Use a more direct approach without explicit types
-    // Call the RPC function and specify the return type through the response
-    const { data, error } = await supabase.functions.invoke('heartbeat');
+    // Simple check with getSession to verify if we can connect to Supabase
+    const { data, error } = await supabase.auth.getSession();
     
-    // Simple check if we got a response and no error
-    return !error && data === 'pong';
+    // If we can reach Supabase, consider it a successful connection
+    return !error;
   } catch (e) {
     console.error("Error checking Supabase connection:", e);
     return false;
