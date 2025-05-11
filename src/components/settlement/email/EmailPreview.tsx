@@ -6,7 +6,7 @@ interface TestEmailData {
   year: number;
   month: number;
   settlementAmount: number;
-  settlementDirection: "owes" | "owed" | "none";
+  settlementDirection: "owes" | "owed" | "even";
 }
 
 interface EmailPreviewProps {

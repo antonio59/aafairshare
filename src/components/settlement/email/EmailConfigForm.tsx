@@ -13,7 +13,7 @@ export interface TestEmailConfig {
   year: number;
   month: number;
   settlementAmount: number;
-  settlementDirection: "owes" | "owed" | "none";
+  settlementDirection: "owes" | "owed" | "even";
 }
 
 interface EmailConfigFormProps {
@@ -132,7 +132,7 @@ export const EmailConfigForm = ({ config, onConfigChange }: EmailConfigFormProps
                   <SelectContent>
                     <SelectItem value="owes">User 1 owes User 2</SelectItem>
                     <SelectItem value="owed">User 2 owes User 1</SelectItem>
-                    <SelectItem value="none">No settlement needed</SelectItem>
+                    <SelectItem value="even">No settlement needed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
