@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getUsers } from "@/services/api/userService";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mail, Check } from "lucide-react";
+import { Loader2, Mail, Check, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateSettlementReportPDF } from "@/services/export/settlementReportService";
 import { exportToCSV } from "@/services/export/csvExportService";
@@ -21,6 +21,7 @@ const TestEmail = () => {
   const [isSending, setIsSending] = useState(false);
   const [success, setSuccess] = useState(false);
   const [isSupabaseReady, setIsSupabaseReady] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string | null>(null);
 
   useEffect(() => {
     // Check if Supabase is initialized before allowing the component to work
@@ -30,8 +31,10 @@ const TestEmail = () => {
         // Just a simple check to see if we can get the current session
         await supabase.auth.getSession();
         setIsSupabaseReady(true);
+        setErrorDetails(null);
       } catch (error) {
         console.error("Supabase is not ready yet:", error);
+        setErrorDetails("Could not initialize Supabase client. Please try again later.");
         // Retry after a short delay
         setTimeout(checkSupabase, 1500);
       }
@@ -58,6 +61,7 @@ const TestEmail = () => {
 
     setIsSending(true);
     setSuccess(false);
+    setErrorDetails(null);
 
     try {
       // Generate sample data
@@ -93,7 +97,7 @@ const TestEmail = () => {
         user1Paid: 200.50,
         user2Paid: 150.25,
         settlement: 25.125,
-        settlementDirection: "owes" as const,
+        settlementDirection: "owes" as const, // Use 'as const' to specify literal type
         expenses: sampleExpenses
       };
       
@@ -113,7 +117,7 @@ const TestEmail = () => {
       );
       
       // Generate CSV report
-      const csvContent = exportToCSV(sampleMonthData.expenses, testYear, testMonth);
+      const csvContent = exportToCSV(sampleExpenses, testYear, testMonth);
       const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
 
       // Prepare form data
@@ -129,6 +133,8 @@ const TestEmail = () => {
 
       // Get Supabase client
       const supabase = await getSupabase();
+      
+      console.log("Invoking edge function send-settlement-email");
 
       // Call the edge function
       const { data, error } = await supabase.functions.invoke("send-settlement-email", {
@@ -136,7 +142,11 @@ const TestEmail = () => {
       });
 
       if (error) {
-        throw error;
+        throw new Error(`Edge function error: ${error.message}`);
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || "Unknown error from edge function");
       }
 
       toast({
@@ -148,9 +158,11 @@ const TestEmail = () => {
       
     } catch (error) {
       console.error("Error sending test email:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      setErrorDetails(errorMessage);
       toast({
         title: "Failed to Send Email",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -201,6 +213,18 @@ const TestEmail = () => {
                   <li>Settlement Direction: User 1 → User 2</li>
                   <li>Attachments: PDF Report, CSV Export</li>
                 </ul>
+              </div>
+            </div>
+          )}
+          
+          {errorDetails && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md text-red-800 text-sm">
+              <div className="flex items-start">
+                <AlertCircle className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="font-semibold">Error details:</p>
+                  <p className="mt-1">{errorDetails}</p>
+                </div>
               </div>
             </div>
           )}

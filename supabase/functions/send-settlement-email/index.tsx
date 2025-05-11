@@ -22,8 +22,18 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Initialize Resend with API key
-    const resend = new Resend(Deno.env.get('SMTP_PASS'));
+    // Get SMTP configuration from environment variables
+    const smtpFrom = Deno.env.get('SMTP_FROM');
+    if (!smtpFrom) {
+      throw new Error("SMTP_FROM environment variable is not set");
+    }
+
+    // Initialize email sender with API key from environment
+    const resendApiKey = Deno.env.get('SMTP_PASS');
+    if (!resendApiKey) {
+      throw new Error("SMTP_PASS (Resend API key) is not set");
+    }
+    const resend = new Resend(resendApiKey);
 
     // Get form data
     const formData = await req.formData();
@@ -130,16 +140,15 @@ serve(async (req) => {
       });
     }
 
-    // Get the FROM address from environment variable with no hardcoded fallback
-    // If it's missing, the function will throw an error which will be caught
-    const fromAddress = Deno.env.get('SMTP_FROM');
-    if (!fromAddress) {
-      throw new Error("SMTP_FROM environment variable is not set");
-    }
+    // Log important information for debugging
+    console.log("Sending email with Resend");
+    console.log(`From: ${smtpFrom}`);
+    console.log(`To: ${user1.email}, ${user2.email}`);
+    console.log(`Attachments count: ${attachments.length}`);
 
     // Send the email with Resend
     const emailResponse = await resend.emails.send({
-      from: fromAddress,
+      from: smtpFrom,
       to: [user1.email, user2.email],
       subject: `AAFairShare: Settlement Complete for ${monthName} ${year}`,
       html: htmlContent,
