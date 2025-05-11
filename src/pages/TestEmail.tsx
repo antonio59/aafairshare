@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { getSupabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -139,11 +138,11 @@ const TestEmail = () => {
       
       console.log("Invoking edge function send-settlement-email");
 
-      // Call the edge function with timeout
+      // Call the edge function with updated parameters
       const { data, error } = await supabase.functions.invoke("send-settlement-email", {
         body: formData,
-        options: {
-          timeout: 15000 // 15 seconds timeout
+        headers: {
+          'Request-Timeout': '15000ms' // 15 seconds timeout
         }
       });
 
