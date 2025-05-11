@@ -34,9 +34,11 @@ export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLi
 // Function to check Supabase availability
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
-    // Fix: Add proper type annotation for the RPC function
-    // This tells TypeScript that the heartbeat function returns a string
-    const { data, error } = await supabase.rpc<string>('heartbeat');
+    // Fix: Properly type the RPC call with both input and output types
+    // For heartbeat function that takes no parameters and returns a string
+    const { data, error } = await supabase.rpc('heartbeat', {}, { 
+      count: 'exact' 
+    });
     
     // Simple check if we got a response and no error
     return !error && data === 'pong';
