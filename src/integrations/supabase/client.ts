@@ -61,7 +61,7 @@ export const createSupabaseClient = async () => {
 };
 
 // Initialize client
-let supabaseClientPromise: Promise<ReturnType<typeof createSupabaseClient>> | null = null;
+let supabaseClientPromise: Promise<ReturnType<typeof createClient<Database>>> | null = null;
 
 // Lazy-loaded Supabase client - only initialize when first needed
 export const getSupabase = async () => {
