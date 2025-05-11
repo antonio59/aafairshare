@@ -1,5 +1,5 @@
 
-// This file now exports functionality from our more focused services
+// This file exports functionality from our more focused services
 
 // Export utilities
 export { getCurrentMonth, getCurrentYear, getCurrentMonthLabel } from './utils/dateUtils';
@@ -13,12 +13,14 @@ export {
   addExpense, 
   updateExpense, 
   deleteExpense,
+} from './api/expenseService';
+export {
   getRecurringExpenses,
   addRecurringExpense,
   updateRecurringExpense,
   deleteRecurringExpense,
   generateExpenseFromRecurring
-} from './api/expenseService';
+} from './api/recurringExpenseService';
 export { markSettlementComplete, markSettlementUnsettled, checkSettlementExists } from './api/settlementService';
 export { sendSettlementEmail } from './api/emailService';
 
