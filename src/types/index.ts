@@ -1,4 +1,3 @@
-
 export interface User {
   id: string;
   name: string;
@@ -26,6 +25,7 @@ export interface RecurringExpense {
   description?: string;
   userId: string; // User ID
   frequency: string; // "weekly", "monthly", "yearly"
+  split?: string; // "50/50", "custom"
 }
 
 export interface MonthData {

@@ -1,4 +1,3 @@
-
 import { Expense, RecurringExpense } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, addWeeks, addMonths, addYears } from "date-fns";
@@ -227,6 +226,7 @@ export const addRecurringExpense = async (recurring: {
   description?: string;
   user_id: string;
   frequency: string;
+  split_type?: string;
 }): Promise<void> => {
   try {
     // First, we need to look up or create category and location
@@ -279,7 +279,8 @@ export const addRecurringExpense = async (recurring: {
         description: recurring.description,
         user_id: recurring.user_id,
         category_id: categoryId,
-        location_id: locationId
+        location_id: locationId,
+        split_type: recurring.split_type || '50/50' // Default to 50/50 if not provided
       });
     
     if (error) throw error;
@@ -300,6 +301,7 @@ export const updateRecurringExpense = async (recurring: {
   description?: string;
   frequency?: string;
   user_id?: string;
+  split_type?: string;
 }): Promise<void> => {
   try {
     // Prepare update data
@@ -323,6 +325,10 @@ export const updateRecurringExpense = async (recurring: {
     
     if (recurring.user_id) {
       updateData.user_id = recurring.user_id;
+    }
+    
+    if (recurring.split_type) {
+      updateData.split_type = recurring.split_type;
     }
     
     // Handle category update
@@ -411,7 +417,8 @@ export const generateExpenseFromRecurring = async (recurringId: string): Promise
         description,
         user_id,
         category_id,
-        location_id
+        location_id,
+        split_type
       `)
       .eq('id', recurringId)
       .single();
@@ -434,7 +441,7 @@ export const generateExpenseFromRecurring = async (recurringId: string): Promise
         paid_by_id: recurring.user_id,
         category_id: recurring.category_id,
         location_id: recurring.location_id,
-        split_type: '50/50' // Default split type
+        split_type: recurring.split_type || '50/50' // Use the split type from recurring expense or default to 50/50
       });
 
     if (insertError) throw insertError;

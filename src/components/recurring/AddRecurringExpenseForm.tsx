@@ -11,6 +11,7 @@ import DateSelector from "@/components/expense/DateSelector";
 import CategorySelector from "@/components/expense/CategorySelector";
 import LocationSelector from "@/components/expense/LocationSelector";
 import FrequencySelector from "@/components/recurring/FrequencySelector";
+import SplitTypeSelector from "@/components/expense/SplitTypeSelector";
 import { User } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
@@ -31,6 +32,7 @@ const AddRecurringExpenseForm = ({ isOpen, onClose, onSuccess }: AddRecurringExp
     location: "",
     description: "",
     frequency: "monthly", // Default to monthly
+    split: "50/50", // Default to 50/50 split
     userId: "", // Will be set to current user's ID
   });
 
@@ -87,6 +89,7 @@ const AddRecurringExpenseForm = ({ isOpen, onClose, onSuccess }: AddRecurringExp
         description: formData.description,
         user_id: formData.userId,
         frequency: formData.frequency,
+        split_type: formData.split, // Include split type
       };
 
       // Submit the recurring expense
@@ -148,6 +151,12 @@ const AddRecurringExpenseForm = ({ isOpen, onClose, onSuccess }: AddRecurringExp
           <LocationSelector 
             selectedLocation={formData.location} 
             onChange={(location) => handleChange("location", location)} 
+          />
+
+          {/* Split Type */}
+          <SplitTypeSelector 
+            selectedSplitType={formData.split}
+            onChange={(splitType) => handleChange("split", splitType)}
           />
 
           {/* Frequency */}

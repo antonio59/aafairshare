@@ -10,6 +10,7 @@ import DateSelector from "@/components/expense/DateSelector";
 import CategorySelector from "@/components/expense/CategorySelector";
 import LocationSelector from "@/components/expense/LocationSelector";
 import FrequencySelector from "@/components/recurring/FrequencySelector";
+import SplitTypeSelector from "@/components/expense/SplitTypeSelector";
 import { RecurringExpense } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 
@@ -35,6 +36,7 @@ const EditRecurringExpenseForm = ({
     location: recurringExpense.location,
     description: recurringExpense.description || "",
     frequency: recurringExpense.frequency,
+    split: recurringExpense.split || "50/50",
   });
 
   // Update form data when recurring expense changes
@@ -46,6 +48,7 @@ const EditRecurringExpenseForm = ({
       location: recurringExpense.location,
       description: recurringExpense.description || "",
       frequency: recurringExpense.frequency,
+      split: recurringExpense.split || "50/50",
     });
   }, [recurringExpense]);
 
@@ -81,6 +84,7 @@ const EditRecurringExpenseForm = ({
         location: formData.location,
         description: formData.description,
         frequency: formData.frequency,
+        split_type: formData.split,
         // Keep the original user ID
         user_id: recurringExpense.userId,
       };
@@ -144,6 +148,12 @@ const EditRecurringExpenseForm = ({
           <LocationSelector 
             selectedLocation={formData.location} 
             onChange={(location) => handleChange("location", location)} 
+          />
+
+          {/* Split Type */}
+          <SplitTypeSelector 
+            selectedSplitType={formData.split}
+            onChange={(splitType) => handleChange("split", splitType)}
           />
 
           {/* Frequency */}
