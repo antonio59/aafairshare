@@ -19,6 +19,18 @@ const AnalyticsCharts = ({
   locationBreakdown,
   colors
 }: AnalyticsChartsProps) => {
+  // Transform CategorySummary[] to PieChartData[]
+  const categoryData = categoryBreakdown.map(category => ({
+    name: category.name,
+    value: category.percentage
+  }));
+
+  // Transform LocationSummary[] to PieChartData[]
+  const locationData = locationBreakdown.map(location => ({
+    name: location.name,
+    value: location.percentage
+  }));
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* User Expense Comparison */}
@@ -46,7 +58,7 @@ const AnalyticsCharts = ({
         <CardContent className="pt-6">
           <MonthlyPieChart
             title="Expenses by Category"
-            data={categoryBreakdown || []}
+            data={categoryData}
             colors={colors}
           />
         </CardContent>
@@ -60,7 +72,7 @@ const AnalyticsCharts = ({
         <CardContent className="pt-6">
           <MonthlyPieChart
             title="Expenses by Location"
-            data={locationBreakdown || []}
+            data={locationData}
             colors={colors}
           />
         </CardContent>
