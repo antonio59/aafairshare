@@ -1,0 +1,26 @@
+
+# Dependabot configuration file for automated dependency updates
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    # Look for package.json and package-lock.json files in the root directory
+    directory: "/"
+    # Check for updates once a week
+    schedule:
+      interval: "weekly"
+    # Limit the number of open PRs to 10
+    open-pull-requests-limit: 10
+    # Set reviewers for pull requests
+    reviewers:
+      - "admin"
+    # Group minor and patch updates together
+    groups:
+      dependencies:
+        patterns:
+          - "*"
+    # Increase the version range for development dependencies
+    ignore:
+      # Ignore major updates for development dependencies
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
