@@ -1,5 +1,12 @@
 
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { TooltipProps } from "recharts";
+import { 
+  Tooltip as UITooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 
 interface PieChartData {
   name: string;
@@ -11,6 +18,19 @@ interface MonthlyPieChartProps {
   data: PieChartData[];
   colors: string[];
 }
+
+// Custom tooltip for the pie chart
+const CustomTooltip = ({ active, payload }: TooltipProps<number, string>) => {
+  if (active && payload && payload.length) {
+    const data = payload[0];
+    return (
+      <div className="bg-background border border-border/50 rounded-lg p-2 shadow-md">
+        <p className="font-medium">{`${data.name}: ${data.value}%`}</p>
+      </div>
+    );
+  }
+  return null;
+};
 
 const MonthlyPieChart = ({ title, data, colors }: MonthlyPieChartProps) => {
   return (
@@ -35,6 +55,7 @@ const MonthlyPieChart = ({ title, data, colors }: MonthlyPieChartProps) => {
               />
             ))}
           </Pie>
+          <Tooltip content={<CustomTooltip />} />
         </PieChart>
       </ResponsiveContainer>
     </div>
