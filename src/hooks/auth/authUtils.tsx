@@ -1,5 +1,4 @@
-
-import { supabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
+import { getSupabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
 import { showToast } from '@/components/ui/use-toast';
 import { cleanupAuthState } from '@/services/api/userService/authUtils';
 

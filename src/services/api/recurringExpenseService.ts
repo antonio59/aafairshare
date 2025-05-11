@@ -1,12 +1,13 @@
 
 import { RecurringExpense } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { format, parseISO, addWeeks, addMonths, addYears } from "date-fns";
 import { formatMonthString } from "../utils/dateUtils";
 
 // Get recurring expenses
 export const getRecurringExpenses = async (): Promise<RecurringExpense[]> => {
   try {
+    const supabase = await getSupabase();
     const { data: recurringData, error } = await supabase
       .from('recurring')
       .select(`

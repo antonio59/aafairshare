@@ -1,10 +1,9 @@
-
 import { useState, useEffect, createContext, useContext, ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { syncAuthUser, getCurrentUser } from "@/services/api/userService";
 import { User } from "@/types";
-import { supabase, cleanupAuthState, forceSignOut } from "@/integrations/supabase/client";
+import { getSupabase, cleanupAuthState, forceSignOut } from "@/integrations/supabase/client";
 
 type AuthContextType = {
   user: User | null;
@@ -114,6 +113,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         
         // First check for existing session
         console.log("Checking for existing session...");
+        const supabase = await getSupabase();
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {

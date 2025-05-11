@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { showToast } from "@/components/ui/use-toast";
 
 // Clean up auth state utility function - more thorough cleanup
@@ -42,6 +42,7 @@ export const logoutUser = async (): Promise<void> => {
     
     // Try to sign out first
     try {
+      const supabase = await getSupabase();
       await supabase.auth.signOut({ scope: 'global' });
       console.log("Successfully signed out from Supabase");
     } catch (err) {

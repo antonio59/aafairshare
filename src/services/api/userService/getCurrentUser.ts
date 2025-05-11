@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { syncAuthUser } from './syncUser';
 
@@ -9,6 +9,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
     console.log("Getting current user...");
     
     // Get the current auth session
+    const supabase = await getSupabase();
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {

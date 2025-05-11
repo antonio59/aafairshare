@@ -1,11 +1,14 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { showToast } from "@/components/ui/use-toast";
 
 // Check if authenticated user exists in users table and create if not
 export const syncAuthUser = async (): Promise<User | null> => {
   try {
+    // Get supabase client
+    const supabase = await getSupabase();
+    
     // Get current auth user
     const { data: { user: authUser } } = await supabase.auth.getUser();
     
@@ -104,6 +107,7 @@ export const syncAuthUser = async (): Promise<User | null> => {
 
 // Fetch users from the Supabase database
 export const getUsers = async (): Promise<User[]> => {
+  const supabase = await getSupabase();
   const { data, error } = await supabase
     .from('users')
     .select('id, username, email, photo_url');

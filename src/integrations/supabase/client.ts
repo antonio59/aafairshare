@@ -61,7 +61,7 @@ export const createSupabaseClient = async () => {
 };
 
 // Initialize client
-let supabaseClientPromise: Promise<ReturnType<typeof createSupabaseClient>>;
+let supabaseClientPromise: Promise<ReturnType<typeof createSupabaseClient>> | null = null;
 
 // Lazy-loaded Supabase client - only initialize when first needed
 export const getSupabase = async () => {
@@ -70,6 +70,24 @@ export const getSupabase = async () => {
   }
   return supabaseClientPromise;
 };
+
+// Create a direct client instance for non-async contexts
+// This is a temporary client for backward compatibility
+let supabaseDirectClient: ReturnType<typeof createClient> | null = null;
+
+// Export a synchronous client for backward compatibility
+// Will be initialized properly once the config is fetched
+export const supabase = createClient<Database>(
+  SUPABASE_URL || "https://placeholder.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY || "placeholder-key",
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storage: localStorage
+    }
+  }
+);
 
 // Helper to check network connection
 export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLine;
@@ -113,8 +131,11 @@ export const checkSupabaseConnection = async (retries = 2): Promise<boolean> => 
   
   while (attempt <= retries) {
     try {
+      // Get a client first
+      const client = await getSupabase();
+      
       // Simple check with getSession to verify if we can connect to Supabase
-      const { data, error } = await supabase.auth.getSession();
+      const { data, error } = await client.auth.getSession();
       
       // If we can reach Supabase, consider it a successful connection
       return !error;
@@ -135,7 +156,8 @@ export const checkSupabaseConnection = async (retries = 2): Promise<boolean> => 
 // Function to try force signout (ignores errors)
 export const forceSignOut = async (): Promise<void> => {
   try {
-    await supabase.auth.signOut({ scope: 'global' });
+    const client = await getSupabase();
+    await client.auth.signOut({ scope: 'global' });
     console.log("Successfully signed out from Supabase");
   } catch (err) {
     console.error("Error during signOut:", err);

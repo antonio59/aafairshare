@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
+import { getSupabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
 import { Loader2, WifiOff, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
@@ -45,6 +45,7 @@ const Index = () => {
         console.info("Main entry point loading");
         setStatus('redirecting');
         
+        const supabase = await getSupabase();
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {

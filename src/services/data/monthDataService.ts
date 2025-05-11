@@ -1,11 +1,12 @@
-
 import { Expense, MonthData } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
 import { formatMonthString } from "../utils/dateUtils";
+import { getSupabase } from "@/integrations/supabase/client";
+import { getUsers } from "../api/userService";
 
-// Get month data including expenses
+// Get expenses and summary for a specific month
 export const getMonthData = async (year: number, month: number): Promise<MonthData> => {
   try {
+    const supabase = await getSupabase();
     // Get expenses for the specified month
     const monthString = formatMonthString(year, month);
     console.log(`Fetching expenses for month: ${monthString}`);
@@ -33,9 +34,7 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
     console.log(`Found ${expenses.length} expenses for month ${monthString}`);
 
     // Get users for attribution
-    const { data: users } = await supabase
-      .from('users')
-      .select('id, username, email');
+    const { data: users } = await getUsers();
     
     // Map the data to match our Expense type
     const mappedExpenses: Expense[] = expenses.map(exp => ({
@@ -113,7 +112,7 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
       expenses: mappedExpenses
     };
   } catch (error) {
-    console.error("Error fetching month data:", error);
+    console.error("Error getting month data:", error);
     throw error;
   }
 };

@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { getUsers } from "@/services/expenseService";
@@ -29,6 +29,7 @@ const SettlementHistory = ({ onSettlementUpdated }: SettlementHistoryProps) => {
     const fetchData = async () => {
       try {
         // Fetch settlements
+        const supabase = await getSupabase();
         const { data: settlementsData, error: settlementsError } = await supabase
           .from('settlements')
           .select('*')
