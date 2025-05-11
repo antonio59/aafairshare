@@ -28,25 +28,29 @@ const queryClient = new QueryClient({
 });
 
 const App = () => {
-  console.log("App component rendering");
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   
   useEffect(() => {
     const checkAuth = async () => {
-      // Check for existing session
-      const { data } = await supabase.auth.getSession();
-      setIsAuthenticated(!!data.session);
-      
-      // Set up auth state listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (_event, session) => {
-          setIsAuthenticated(!!session);
-        }
-      );
-      
-      return () => {
-        subscription.unsubscribe();
-      };
+      try {
+        // Check for existing session
+        const { data } = await supabase.auth.getSession();
+        setIsAuthenticated(!!data.session);
+        
+        // Set up auth state listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (_event, session) => {
+            setIsAuthenticated(!!session);
+          }
+        );
+        
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Auth check error:", error);
+        setIsAuthenticated(false);
+      }
     };
     
     checkAuth();

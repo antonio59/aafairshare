@@ -8,10 +8,22 @@ const Index = () => {
   
   useEffect(() => {
     const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate('/');
-      } else {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session error:", error);
+          navigate('/login');
+          return;
+        }
+        
+        if (data.session) {
+          navigate('/');
+        } else {
+          navigate('/login');
+        }
+      } catch (error) {
+        console.error("Auth check error:", error);
         navigate('/login');
       }
     };

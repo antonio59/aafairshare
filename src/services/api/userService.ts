@@ -17,13 +17,7 @@ export const syncAuthUser = async (): Promise<User | null> => {
       .eq('id', authUser.id)
       .single();
     
-    if (fetchError && fetchError.code !== 'PGRST116') { // Not found is ok
-      console.error("Error fetching user:", fetchError);
-      throw fetchError;
-    }
-    
-    // If user exists, return it
-    if (existingUser) {
+    if (!fetchError && existingUser) {
       return {
         id: existingUser.id,
         name: existingUser.username || existingUser.email.split('@')[0],
@@ -31,13 +25,48 @@ export const syncAuthUser = async (): Promise<User | null> => {
       };
     }
     
+    if (fetchError && fetchError.code !== 'PGRST116') { // Not found is ok
+      console.error("Error fetching user:", fetchError);
+    }
+    
     // User doesn't exist, create a new user record
+    let username = authUser.user_metadata?.name || authUser.email?.split('@')[0] || null;
+    
+    // Check if email already exists (handle duplicate constraint)
+    const { data: emailCheck } = await supabase
+      .from('users')
+      .select('id')
+      .eq('email', authUser.email)
+      .maybeSingle();
+    
+    if (emailCheck) {
+      // If email exists but with different ID, just update that user with new auth ID
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({ id: authUser.id })
+        .eq('email', authUser.email)
+        .select()
+        .single();
+      
+      if (updateError) {
+        console.error("Error updating user:", updateError);
+        return null;
+      }
+      
+      return {
+        id: updatedUser.id,
+        name: updatedUser.username || updatedUser.email.split('@')[0],
+        avatar: updatedUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updatedUser.username || updatedUser.email}`
+      };
+    }
+    
+    // Create new user if no duplicates
     const { data: newUser, error: createError } = await supabase
       .from('users')
       .insert([{
         id: authUser.id,
         email: authUser.email,
-        username: authUser.user_metadata?.name || authUser.email?.split('@')[0] || null,
+        username: username,
         photo_url: authUser.user_metadata?.avatar_url || null
       }])
       .select()
@@ -45,7 +74,23 @@ export const syncAuthUser = async (): Promise<User | null> => {
     
     if (createError) {
       console.error("Error creating user:", createError);
-      throw createError;
+      if (createError.code === '23505') { // Duplicate key violation
+        // As a fallback, just fetch the user by email
+        const { data: existingByEmail } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', authUser.email)
+          .single();
+          
+        if (existingByEmail) {
+          return {
+            id: existingByEmail.id,
+            name: existingByEmail.username || existingByEmail.email.split('@')[0],
+            avatar: existingByEmail.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${existingByEmail.username || existingByEmail.email}`
+          };
+        }
+      }
+      return null;
     }
     
     return {
@@ -90,11 +135,16 @@ export const getCurrentUser = async (): Promise<User | null> => {
       .from('users')
       .select('id, username, email, photo_url')
       .eq('id', session.user.id)
-      .single();
+      .maybeSingle();
     
-    if (error) {
+    if (error && error.code !== 'PGRST116') {
       console.error("Error fetching current user:", error);
       return null;
+    }
+    
+    if (!user) {
+      // Try syncing the user if not found
+      return await syncAuthUser();
     }
     
     return {

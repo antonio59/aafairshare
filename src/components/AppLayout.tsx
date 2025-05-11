@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { syncAuthUser, getCurrentUser, logoutUser } from "@/services/api/userService";
 import { User } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const AppLayout = () => {
   const { toast } = useToast();
@@ -24,7 +25,7 @@ const AppLayout = () => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
             if (event === 'SIGNED_IN') {
-              // Defer loading user data
+              // Defer loading user data to avoid potential deadlocks
               setTimeout(() => {
                 loadUserData();
               }, 0);
@@ -58,22 +59,31 @@ const AppLayout = () => {
     
     const loadUserData = async () => {
       try {
-        // First, sync the auth user with our users table
-        const syncedUser = await syncAuthUser();
-        if (syncedUser) {
-          setUser(syncedUser);
+        // First try to get current user
+        let currentUser = await getCurrentUser();
+        
+        // If that fails, try to sync auth user
+        if (!currentUser) {
+          currentUser = await syncAuthUser();
+        }
+        
+        if (currentUser) {
+          setUser(currentUser);
+          setIsLoading(false);
         } else {
-          // If we couldn't sync or find the user, try to get current user
-          const currentUser = await getCurrentUser();
-          if (currentUser) {
-            setUser(currentUser);
-          } else {
-            // If still no user, redirect to login
-            navigate('/login');
-          }
+          // If we still can't get a user, go to the login page
+          console.warn("Could not retrieve user data, redirecting to login");
+          toast({
+            title: "Authentication error",
+            description: "Please login again",
+            variant: "destructive",
+          });
+          await logoutUser();
+          navigate('/login');
         }
       } catch (error) {
         console.error("Failed to load user data:", error);
+        setIsLoading(false);
       }
     };
     
@@ -102,7 +112,12 @@ const AppLayout = () => {
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="w-64 space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-32 w-full rounded-md" />
+        </div>
       </div>
     );
   }
