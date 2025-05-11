@@ -107,7 +107,7 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
   };
 
   // Format split type for display
-  const displaySplitType = expense.split === "custom" 
+  const displaySplitType = expense.split === "custom" || expense.split === "100%" 
     ? "Other pays full" 
     : "Split 50/50";
 

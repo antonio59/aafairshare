@@ -51,17 +51,43 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
 
     // Calculate totals
     const totalExpenses = mappedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    const fairShare = totalExpenses / 2;
 
-    // Calculate what each user paid
+    // Parse each expense to determine the share owed by each user
     const user1 = users && users[0] ? users[0].id : "";
     const user2 = users && users[1] ? users[1].id : "";
     
-    const user1Paid = mappedExpenses.filter(e => e.paidBy === user1).reduce((sum, exp) => sum + exp.amount, 0);
-    const user2Paid = mappedExpenses.filter(e => e.paidBy === user2).reduce((sum, exp) => sum + exp.amount, 0);
+    let user1Paid = 0;
+    let user2Paid = 0;
+    let user1Share = 0;
+    let user2Share = 0;
     
-    // Determine who owes whom
-    const user1Owes = fairShare - user1Paid;
+    mappedExpenses.forEach(expense => {
+      // Track what each user paid
+      if (expense.paidBy === user1) {
+        user1Paid += expense.amount;
+      } else if (expense.paidBy === user2) {
+        user2Paid += expense.amount;
+      }
+      
+      // Calculate fair share based on split type
+      if (expense.split === "50/50") {
+        // Split equally
+        user1Share += expense.amount / 2;
+        user2Share += expense.amount / 2;
+      } else if (expense.split === "custom" || expense.split === "100%") {
+        // "Other pays full" - the other person owes the full amount
+        if (expense.paidBy === user1) {
+          // User 1 paid, so User 2 owes the full amount
+          user2Share += expense.amount;
+        } else if (expense.paidBy === user2) {
+          // User 2 paid, so User 1 owes the full amount
+          user1Share += expense.amount;
+        }
+      }
+    });
+    
+    // Calculate settlement
+    const user1Owes = user1Share - user1Paid;
     let settlement = Math.abs(user1Owes);
     let settlementDirection: 'owes' | 'owed' | 'even' = 'even';
     
@@ -73,7 +99,7 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
 
     return {
       totalExpenses,
-      fairShare,
+      fairShare: totalExpenses / 2, // Keep this for backward compatibility
       settlement,
       settlementDirection,
       user1Paid,

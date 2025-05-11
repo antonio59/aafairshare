@@ -50,6 +50,9 @@ export const addExpense = async (expense: Omit<Expense, "id">): Promise<Expense>
     const expenseDate = parseISO(expense.date);
     const monthString = format(expenseDate, 'yyyy-MM');
     
+    // Normalize split type to "custom" for backend storage
+    const normalizedSplitType = expense.split === "100%" ? "custom" : expense.split;
+    
     // Insert the expense
     const { data, error } = await supabase
       .from('expenses')
@@ -61,7 +64,7 @@ export const addExpense = async (expense: Omit<Expense, "id">): Promise<Expense>
         paid_by_id: expense.paidBy,
         category_id: categoryId,
         location_id: locationId,
-        split_type: expense.split
+        split_type: normalizedSplitType
       })
       .select('id')
       .single();
@@ -104,7 +107,8 @@ export const updateExpense = async (id: string, expense: Partial<Omit<Expense, "
     }
     
     if (expense.split) {
-      updateData.split_type = expense.split;
+      // Normalize split type for database storage
+      updateData.split_type = expense.split === "100%" ? "custom" : expense.split;
     }
     
     // Handle category update

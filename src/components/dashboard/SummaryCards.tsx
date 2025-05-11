@@ -35,6 +35,9 @@ const SummaryCards = ({
   const user1 = users[0] || { name: "User 1", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user1" };
   const user2 = users[1] || { name: "User 2", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=user2" };
 
+  // Determine who owes money based on total paid
+  const payer = user1Paid > user2Paid ? user2 : user1;
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
       <Card>
@@ -86,7 +89,7 @@ const SummaryCards = ({
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full overflow-hidden">
               <img 
-                src={settlement > 0 ? (user1Paid > user2Paid ? user2.avatar : user1.avatar) : "https://api.dicebear.com/7.x/avataaars/svg?seed=even"}
+                src={settlement > 0 ? payer.avatar : "https://api.dicebear.com/7.x/avataaars/svg?seed=even"}
                 alt="Settlement avatar"
                 className="w-full h-full object-cover"
               />
