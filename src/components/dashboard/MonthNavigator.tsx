@@ -7,9 +7,10 @@ interface MonthNavigatorProps {
   year: number;
   month: number;
   onNavigate: (direction: "prev" | "next") => void;
+  isMobile?: boolean;
 }
 
-const MonthNavigator = ({ year, month, onNavigate }: MonthNavigatorProps) => {
+const MonthNavigator = ({ year, month, onNavigate, isMobile }: MonthNavigatorProps) => {
   // Format the current month for display
   const currentMonthLabel = format(new Date(year, month - 1, 1), "MMMM yyyy");
 
@@ -22,7 +23,7 @@ const MonthNavigator = ({ year, month, onNavigate }: MonthNavigatorProps) => {
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
-      <span className="text-sm font-medium w-28 text-center">
+      <span className={`text-sm font-medium ${isMobile ? "w-24" : "w-28"} text-center`}>
         {currentMonthLabel}
       </span>
       <Button

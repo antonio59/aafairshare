@@ -9,13 +9,15 @@ interface SummaryCardsProps {
   user1Paid: number;
   user2Paid: number;
   settlement: number;
+  isMobile?: boolean;
 }
 
 const SummaryCards = ({ 
   totalExpenses, 
   user1Paid, 
   user2Paid, 
-  settlement 
+  settlement,
+  isMobile
 }: SummaryCardsProps) => {
   const [users, setUsers] = useState<User[]>([]);
 
@@ -39,9 +41,9 @@ const SummaryCards = ({
   const payer = user1Paid > user2Paid ? user2 : user1;
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+    <div className={`grid grid-cols-1 ${isMobile ? "gap-3 mb-4" : "md:grid-cols-4 gap-4 mb-6"}`}>
       <Card>
-        <CardContent className="p-6 flex flex-col">
+        <CardContent className={`${isMobile ? "p-4" : "p-6"} flex flex-col`}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
               <span className="text-blue-600 font-semibold">£</span>
@@ -53,7 +55,7 @@ const SummaryCards = ({
       </Card>
       
       <Card>
-        <CardContent className="p-6 flex flex-col">
+        <CardContent className={`${isMobile ? "p-4" : "p-6"} flex flex-col`}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full overflow-hidden">
               <img 
@@ -69,7 +71,7 @@ const SummaryCards = ({
       </Card>
       
       <Card>
-        <CardContent className="p-6 flex flex-col">
+        <CardContent className={`${isMobile ? "p-4" : "p-6"} flex flex-col`}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full overflow-hidden">
               <img 
@@ -85,7 +87,7 @@ const SummaryCards = ({
       </Card>
       
       <Card>
-        <CardContent className="p-6 flex flex-col">
+        <CardContent className={`${isMobile ? "p-4" : "p-6"} flex flex-col`}>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-8 h-8 rounded-full overflow-hidden">
               <img 

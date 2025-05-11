@@ -7,11 +7,12 @@ import UserProfile from "./UserProfile";
 interface SidebarProps {
   user: User | null;
   onLogout: () => void;
+  isMobile: boolean;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ user, onLogout, isMobile }) => {
   return (
-    <div className="w-56 bg-white app-sidebar flex flex-col justify-between">
+    <div className={`bg-white app-sidebar flex flex-col justify-between ${isMobile ? "w-full h-full" : "w-56"}`}>
       <div>
         <div className="p-4 border-b">
           <h1 className="text-lg font-bold">AAFairShare</h1>

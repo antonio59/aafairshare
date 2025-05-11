@@ -4,15 +4,16 @@ import { Input } from "@/components/ui/input";
 interface ExpenseFilterProps {
   searchTerm: string;
   onSearchChange: (term: string) => void;
+  isMobile?: boolean;
 }
 
-const ExpenseFilter = ({ searchTerm, onSearchChange }: ExpenseFilterProps) => {
+const ExpenseFilter = ({ searchTerm, onSearchChange, isMobile }: ExpenseFilterProps) => {
   return (
     <div className="relative">
       <Input
         type="text"
-        placeholder="Filter by category, location, paid by..."
-        className="pl-9 w-80"
+        placeholder="Filter expenses..."
+        className={`pl-9 ${isMobile ? "w-full" : "w-80"}`}
         value={searchTerm}
         onChange={(e) => onSearchChange(e.target.value)}
       />
