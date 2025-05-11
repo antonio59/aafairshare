@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { isOnline } from "@/integrations/supabase/client";
+import { isOnline, supabase, cleanupAuthState } from "@/integrations/supabase/client";
 import { AuthProvider } from "@/providers/AuthProvider";
 import AppLayout from "@/components/layout/AppLayout";
 import Dashboard from "./pages/Dashboard";
@@ -17,7 +17,8 @@ import AddExpense from "./pages/AddExpense";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { WifiOff } from "lucide-react";
+import { WifiOff, AlertTriangle } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 // Initialize QueryClient with default settings for better performance
 const queryClient = new QueryClient({
@@ -33,6 +34,8 @@ const queryClient = new QueryClient({
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isOnlineStatus, setIsOnlineStatus] = useState<boolean>(isOnline());
+  const [authError, setAuthError] = useState<string | null>(null);
+  const [authTimeout, setAuthTimeout] = useState(false);
   
   // Network status listener
   useEffect(() => {
@@ -48,14 +51,91 @@ const App = () => {
     };
   }, []);
   
+  // Initial auth check
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Set a timeout to prevent infinite loading
+        const timeoutId = setTimeout(() => {
+          console.log("Auth check timeout reached");
+          setAuthTimeout(true);
+          setAuthError("Authentication check timed out. Please try again.");
+          setIsAuthenticated(false);
+          cleanupAuthState(); // Clean up any corrupt auth state
+        }, 10000); // 10 second timeout
+        
+        // Check if we're online
+        if (!isOnline()) {
+          setIsAuthenticated(false);
+          setAuthError("You appear to be offline. Please check your internet connection.");
+          clearTimeout(timeoutId);
+          return;
+        }
+        
+        // Get session
+        const { data, error } = await supabase.auth.getSession();
+        
+        clearTimeout(timeoutId); // Clear the timeout since we got a response
+        
+        if (error) {
+          console.error("Auth check error:", error);
+          setAuthError(error.message);
+          setIsAuthenticated(false);
+          return;
+        }
+        
+        setIsAuthenticated(!!data.session);
+      } catch (error: any) {
+        console.error("Auth check exception:", error);
+        setAuthError(error?.message || "Unknown authentication error");
+        setIsAuthenticated(false);
+      }
+    };
+    
+    checkAuth();
+  }, []);
+  
+  const handleResetAuth = () => {
+    // Clean up all auth tokens
+    cleanupAuthState();
+    // Force reload the app
+    window.location.reload();
+  };
+  
   // Show loading state while checking auth
-  if (isAuthenticated === null) {
+  if (isAuthenticated === null && !authTimeout) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-lg flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
           <p className="font-medium">Initializing app...</p>
           <p className="text-sm text-gray-500">Checking authentication...</p>
+          <Button 
+            variant="outline" 
+            className="mt-4" 
+            onClick={handleResetAuth}
+          >
+            Reset Authentication
+          </Button>
+        </div>
+      </div>
+    );
+  }
+  
+  // Show error state
+  if (authError) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg flex flex-col items-center gap-3 max-w-md text-center p-6">
+          <AlertTriangle className="h-12 w-12 text-red-500" />
+          <p className="font-medium text-xl">Authentication Error</p>
+          <p className="text-gray-700">{authError}</p>
+          <div className="flex gap-3 mt-4">
+            <Button onClick={handleResetAuth}>Reset Authentication</Button>
+            <Button variant="outline" onClick={() => window.location.href = '/login'}>
+              Go to Login
+            </Button>
+          </div>
         </div>
       </div>
     );

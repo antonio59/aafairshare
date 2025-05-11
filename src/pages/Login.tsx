@@ -1,14 +1,19 @@
 
-import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/auth';
 import ConnectionStatus from '@/components/auth/ConnectionStatus';
 import LoginForm from '@/components/auth/LoginForm';
 import LoadingState from '@/components/auth/LoadingState';
+import { Button } from '@/components/ui/button';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { cleanupAuthState } from '@/integrations/supabase/client';
 
 const Login = () => {
   const { toast } = useToast();
+  const [resetInProgress, setResetInProgress] = useState(false);
   const {
     email,
     setEmail,
@@ -20,6 +25,23 @@ const Login = () => {
     errorMessage,
     handleLogin
   } = useAuth();
+
+  // Handle auth reset
+  const handleAuthReset = () => {
+    setResetInProgress(true);
+    try {
+      // Clean up all auth tokens
+      cleanupAuthState();
+      toast({
+        title: "Authentication reset",
+        description: "Auth state has been reset. Please try logging in again.",
+      });
+    } catch (error) {
+      console.error("Error resetting auth:", error);
+    } finally {
+      setResetInProgress(false);
+    }
+  };
 
   // Show loading state while checking auth
   if (!authChecked || connectionStatus === 'checking') {
@@ -51,11 +73,33 @@ const Login = () => {
               setEmail={setEmail}
               password={password}
               setPassword={setPassword}
-              isLoading={isLoading}
+              isLoading={isLoading || resetInProgress}
               connectionStatus={connectionStatus}
               handleSubmit={handleLogin}
             />
           </CardContent>
+          <CardFooter className="flex flex-col">
+            <div className="w-full pt-2">
+              <Button 
+                variant="outline" 
+                className="w-full" 
+                onClick={handleAuthReset}
+                disabled={isLoading || resetInProgress}
+              >
+                Reset Authentication State
+              </Button>
+            </div>
+            
+            <div className="mt-4 w-full">
+              <Alert variant="warning">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Having trouble?</AlertTitle>
+                <AlertDescription>
+                  If you're having issues logging in, try resetting the authentication state using the button above, then try again.
+                </AlertDescription>
+              </Alert>
+            </div>
+          </CardFooter>
         </Card>
       </div>
     </div>

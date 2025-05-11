@@ -1,8 +1,7 @@
 
 import React from 'react';
-import { supabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
+import { supabase, isOnline, checkSupabaseConnection, cleanupAuthState, forceSignOut } from '@/integrations/supabase/client';
 import { showToast } from '@/components/ui/use-toast';
-import { cleanupAuthState } from '@/services/api/userService/authUtils';
 import { validateLoginInputs, checkConnectionAndSupabase } from './authUtils';
 
 interface LoginHandlerProps {
@@ -46,12 +45,7 @@ export const useLoginHandler = ({
       cleanupAuthState();
       
       // Try to sign out first to ensure clean state
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-        console.log("Pre-signout failed, continuing with login", err);
-      }
+      await forceSignOut();
       
       // Sign in with Supabase with modified approach
       console.log("Sending sign-in request to Supabase");
@@ -74,7 +68,7 @@ export const useLoginHandler = ({
       console.error("Login error:", error);
       
       // Handle network errors specially
-      if (!navigator.onLine || error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
+      if (!navigator.onLine || error.message?.toLowerCase().includes('fetch') || error.code === 'NETWORK_ERROR') {
         setErrorMessage("Network connection problem. Please check your internet connection and try again.");
       } else if (error.message?.includes('Invalid login credentials')) { 
         setErrorMessage("Invalid email or password. Please try again.");

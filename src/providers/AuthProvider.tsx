@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { syncAuthUser, getCurrentUser } from "@/services/api/userService";
 import { User } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, cleanupAuthState, forceSignOut } from "@/integrations/supabase/client";
 
 type AuthContextType = {
   user: User | null;
@@ -32,7 +32,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingText, setLoadingText] = useState("Initializing...");
   const [retryCount, setRetryCount] = useState(0);
-  const [authTimeout, setAuthTimeout] = useState<number | null>(null);
+  const [authTimeout, setAuthTimeout] = useState<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   
   const loadUserData = async () => {
@@ -67,7 +67,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         localStorage.setItem('auth-error-detected', 'true');
         
         await logoutUser();
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     } catch (error) {
       console.error("Failed to load user data:", error);
@@ -79,7 +79,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         }, delay);
       } else {
         setIsLoading(false);
-        navigate('/login');
+        navigate('/login', { replace: true });
       }
     }
   };
@@ -114,18 +114,55 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setIsLoading(true);
         setLoadingText("Checking authentication...");
         
-        // Set timeout to detect potential auth deadlocks - increased timeout
-        const timeout = window.setTimeout(() => {
+        // Set timeout to detect potential auth deadlocks - reduced timeout
+        const timeout = setTimeout(() => {
           if (isMounted) {
             console.warn("Authentication check is taking too long, possible deadlock");
             localStorage.setItem('auth-error-detected', 'true');
-            navigate('/login');
+            
+            // Clean up auth state
+            cleanupAuthState();
+            
+            // Force sign out
+            forceSignOut().finally(() => {
+              // Redirect to login page
+              navigate('/login', { replace: true });
+            });
           }
-        }, 15000); // 15 second timeout
+        }, 10000); // 10 second timeout (reduced from 15s)
         
         setAuthTimeout(timeout);
         
-        // First set up auth state change listener
+        // First check for existing session
+        console.log("Checking for existing session...");
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          if (isMounted) {
+            toast({
+              title: "Session error",
+              description: "Please login again",
+              variant: "destructive",
+            });
+            navigate('/login', { replace: true });
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        if (!session) {
+          if (isMounted) {
+            console.log("No active session found, redirecting to login");
+            navigate('/login', { replace: true });
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        console.log("Active session found, user ID:", session.user.id);
+        
+        // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
             if (!isMounted) return;
@@ -139,39 +176,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
               }, 0);
             } else if (event === 'SIGNED_OUT') {
               setUser(null);
-              navigate('/login');
+              navigate('/login', { replace: true });
             }
           }
         );
-        
-        // After listener setup, check for existing session
-        console.log("Checking for existing session...");
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          if (isMounted) {
-            toast({
-              title: "Session error",
-              description: "Please login again",
-              variant: "destructive",
-            });
-            navigate('/login');
-            setIsLoading(false);
-          }
-          return;
-        }
-        
-        if (!session) {
-          if (isMounted) {
-            console.log("No active session found, redirecting to login");
-            navigate('/login');
-            setIsLoading(false);
-          }
-          return;
-        }
-        
-        console.log("Active session found, user ID:", session.user.id);
         
         // Load user data asynchronously
         await loadUserData();
@@ -183,10 +191,10 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         console.error("Auth error:", error);
         if (isMounted) {
           setIsLoading(false);
-          navigate('/login');
+          navigate('/login', { replace: true });
         }
       } finally {
-        if (authTimeout) {
+        if (authTimeout !== null) {
           clearTimeout(authTimeout);
         }
       }
@@ -196,7 +204,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     return () => {
       isMounted = false;
-      if (authTimeout) {
+      if (authTimeout !== null) {
         clearTimeout(authTimeout);
       }
     };
@@ -209,6 +217,5 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   );
 };
 
-// Import the logoutUser function from authUtils
+// Import from supabase client directly
 import { logoutUser } from "@/services/api/userService/authUtils";
-
