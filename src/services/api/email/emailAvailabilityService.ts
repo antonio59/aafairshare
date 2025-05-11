@@ -17,13 +17,16 @@ export class EmailAvailabilityService {
         method: 'OPTIONS',
         headers: {
           'apikey': (await supabase.auth.getSession()).data.session?.access_token || '',
+          'Content-Type': 'application/json'
         }
       });
       
+      console.log("Edge function availability check result:", response.status, response.ok);
       return response.ok;
     } catch (error) {
       console.warn("Function availability check failed:", error);
-      return false;
+      // Return true if we can't check - better to attempt to send than block with a false negative
+      return true;
     }
   }
 }

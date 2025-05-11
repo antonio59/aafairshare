@@ -11,10 +11,6 @@ import { EmailForm } from "@/components/settlement/email/EmailForm";
 import { EmailConfigForm, TestEmailConfig } from "@/components/settlement/email/EmailConfigForm";
 import { User } from "@/types";
 
-interface ExtendedUser extends User {
-  email: string;
-}
-
 const TestEmail = () => {
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
@@ -45,7 +41,7 @@ const TestEmail = () => {
         console.error("Supabase is not ready yet:", error);
         setErrorDetails("Could not initialize Supabase client. Please try again later.");
         // Retry after a short delay
-        setTimeout(checkSupabase, 1500);
+        setTimeout(() => checkSupabase(), 2000);
       }
     };
     
@@ -56,6 +52,8 @@ const TestEmail = () => {
     queryKey: ["users"],
     queryFn: getUsers,
     enabled: isSupabaseReady, // Only run this query when Supabase is ready
+    retry: 3,
+    retryDelay: 1000
   });
   
   // Ensure users have email properties

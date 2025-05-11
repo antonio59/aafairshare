@@ -47,7 +47,7 @@ export const EmailForm = ({
     if (usersWithEmail.length < 2) {
       toast({
         title: "Error",
-        description: "Both users must have email addresses. Please ensure users in the database have email addresses.",
+        description: "Both users must have email addresses in the database. Please ensure the users have valid email addresses.",
         variant: "destructive",
       });
       return;
@@ -69,7 +69,7 @@ export const EmailForm = ({
         });
         onSuccess();
       } else {
-        throw new Error(result.errorMessage);
+        throw new Error(result.errorMessage || "Failed to send email");
       }
       
     } catch (error: any) {
