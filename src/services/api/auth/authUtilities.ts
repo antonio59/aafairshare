@@ -1,6 +1,6 @@
 
 import { getSupabase, isOnline, cleanupAuthState, forceSignOut } from '@/integrations/supabase/client';
-import { showToast } from "@/components/ui/use-toast";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Check network connection and Supabase availability
@@ -84,7 +84,7 @@ export const loginWithEmailAndPassword = async (
     // Log success and session details (no sensitive info)
     console.log("Login successful, session established:", !!data.session);
     
-    showToast({
+    toast({
       title: "Login successful",
       description: "Welcome back!"
     });
@@ -104,7 +104,7 @@ export const loginWithEmailAndPassword = async (
       errorMessage = error.message || "An error occurred during login. Please try again.";
     }
     
-    showToast({
+    toast({
       title: "Login failed",
       description: errorMessage,
       variant: "destructive"
@@ -149,7 +149,7 @@ export const checkSupabaseConnection = async (retries = 2): Promise<boolean> => 
  */
 export const logoutUser = async (): Promise<void> => {
   try {
-    showToast({
+    toast({
       title: "Logging out...",
       description: "Please wait"
     });
@@ -167,7 +167,7 @@ export const logoutUser = async (): Promise<void> => {
     // Then clean up regardless of signOut success
     cleanupAuthState();
     
-    showToast({
+    toast({
       title: "Logged out successfully",
       description: "You have been logged out successfully"
     });

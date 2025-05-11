@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { getSupabase, isOnline, checkSupabaseConnection } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
