@@ -28,7 +28,6 @@ export const useAuth = () => {
   const {
     checkSession,
     handleLogin,
-    handleSignUp,
   } = useAuthActions({
     email,
     password,
@@ -53,8 +52,7 @@ export const useAuth = () => {
     authChecked,
     connectionStatus,
     errorMessage,
-    handleLogin,
-    handleSignUp
+    handleLogin
   };
 };
 

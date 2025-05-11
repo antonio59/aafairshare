@@ -49,7 +49,7 @@ const Login = () => {
             <LoginForm 
               email={email}
               setEmail={setEmail}
-              password={setPassword}
+              password={password}
               setPassword={setPassword}
               isLoading={isLoading}
               connectionStatus={connectionStatus}
