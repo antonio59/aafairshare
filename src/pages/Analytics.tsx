@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAnalyticsData, getCurrentYear, getCurrentMonth } from "@/services/expenseService";
+import { getAnalyticsData, getCurrentYear, getCurrentMonth, getUsers } from "@/services/expenseService";
 import MonthlySummaryCard from "@/components/analytics/MonthlySummaryCard";
 import AnalyticsCharts from "@/components/analytics/AnalyticsCharts";
 import MonthNavigator from "@/components/dashboard/MonthNavigator";
@@ -26,6 +26,12 @@ const Analytics = () => {
   const { data, isLoading, error } = useQuery({
     queryKey: ["analytics", year, month],
     queryFn: () => getAnalyticsData(year, month),
+  });
+
+  // Fetch users to display their names
+  const { data: users = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: getUsers,
   });
 
   const navigateMonth = (direction: "prev" | "next") => {
@@ -90,6 +96,7 @@ const Analytics = () => {
             categoryBreakdown={data.categoryBreakdown}
             locationBreakdown={data.locationBreakdown}
             colors={COLORS}
+            users={users}
           />
         </>
       ) : (

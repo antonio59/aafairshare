@@ -1,7 +1,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import MonthlyPieChart from "./MonthlyPieChart";
-import { CategorySummary, LocationSummary } from "@/types";
+import { CategorySummary, LocationSummary, User } from "@/types";
 
 interface AnalyticsChartsProps {
   userComparison: {
@@ -11,14 +11,20 @@ interface AnalyticsChartsProps {
   categoryBreakdown: CategorySummary[];
   locationBreakdown: LocationSummary[];
   colors: string[];
+  users: User[];
 }
 
 const AnalyticsCharts = ({ 
   userComparison, 
   categoryBreakdown, 
   locationBreakdown,
-  colors
+  colors,
+  users
 }: AnalyticsChartsProps) => {
+  // Get user names
+  const user1Name = users[0]?.name || "User 1";
+  const user2Name = users[1]?.name || "User 2";
+
   // Transform CategorySummary[] to PieChartData[]
   const categoryData = categoryBreakdown.map(category => ({
     name: category.name,
@@ -42,8 +48,8 @@ const AnalyticsCharts = ({
           <MonthlyPieChart 
             title="User Expense Comparison" 
             data={[
-              { name: "User 1", value: userComparison?.user1Percentage || 0 },
-              { name: "User 2", value: userComparison?.user2Percentage || 0 },
+              { name: user1Name, value: userComparison?.user1Percentage || 0 },
+              { name: user2Name, value: userComparison?.user2Percentage || 0 },
             ]}
             colors={[colors[0], colors[5]]}
           />

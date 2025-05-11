@@ -69,7 +69,7 @@ const SettlementCard = ({
                 </div>
               </div>
               <div className="text-4xl font-bold">
-                £{Math.ceil(monthData.settlement).toFixed(2)}
+                £{monthData.settlement.toFixed(2)}
               </div>
             </div>
           </div>
