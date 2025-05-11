@@ -1,7 +1,7 @@
 
 import React from 'react';
-import { Alert, AlertCircle, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { Wifi, WifiOff } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
 
 interface ConnectionStatusProps {
   connectionStatus: 'checking' | 'online' | 'offline';
