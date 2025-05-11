@@ -10,8 +10,7 @@ import {
 } from "@/components/ui/card";
 import { 
   ChevronLeft, 
-  ChevronRight, 
-  BarChart4
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,8 +18,6 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Legend,
-  Tooltip,
 } from "recharts";
 import { 
   getAnalyticsData, 
@@ -168,8 +165,6 @@ const Analytics = () => {
                         <Cell key="cell-1" fill={COLORS[0]} />
                         <Cell key="cell-2" fill={COLORS[5]} />
                       </Pie>
-                      <Legend />
-                      <Tooltip formatter={(value) => `${value}%`} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -203,8 +198,6 @@ const Analytics = () => {
                           />
                         ))}
                       </Pie>
-                      <Legend />
-                      <Tooltip formatter={(value) => `£${value}`} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
@@ -238,8 +231,6 @@ const Analytics = () => {
                           />
                         ))}
                       </Pie>
-                      <Legend />
-                      <Tooltip formatter={(value) => `£${value}`} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
