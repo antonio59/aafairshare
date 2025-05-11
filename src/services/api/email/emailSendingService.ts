@@ -33,17 +33,6 @@ export class EmailSendingService {
       // Get Supabase client first so we fail early if there's an authentication issue
       const supabase = await getSupabase();
       
-      // Check if the function is available
-      try {
-        const isAvailable = await EmailAvailabilityService.checkFunctionAvailability();
-        if (!isAvailable) {
-          throw new Error("The edge function appears to be unavailable. Please check your Supabase deployment or try again later.");
-        }
-      } catch (error) {
-        console.log("Edge function check error, continuing anyway:", error);
-        // Continue even with availability check errors - the actual function call will fail if there's a real issue
-      }
-      
       // Prepare form data
       const { formData } = await EmailFormDataService.prepareFormData(users, config);
       
