@@ -51,6 +51,26 @@ const TestEmail = () => {
     enabled: isSupabaseReady, // Only run this query when Supabase is ready
   }) as { data: ExtendedUser[], isLoading: boolean };
 
+  // Function to check Supabase functions availability
+  const checkFunctionAvailability = async () => {
+    try {
+      const supabase = await getSupabase();
+      
+      // Just make a simple OPTIONS request to check if the function is available
+      const response = await fetch(`https://gsvyxsddmddipeoduyys.supabase.co/functions/v1/send-settlement-email`, {
+        method: 'OPTIONS',
+        headers: {
+          'apikey': (await supabase.auth.getSession()).data.session?.access_token || '',
+        }
+      });
+      
+      return response.ok;
+    } catch (error) {
+      console.warn("Function availability check failed:", error);
+      return false;
+    }
+  };
+
   const handleSendTest = async () => {
     if (users.length < 2) {
       toast({
@@ -67,6 +87,12 @@ const TestEmail = () => {
     setErrorTrace(null);
 
     try {
+      // Check if the function is available first
+      const isAvailable = await checkFunctionAvailability();
+      if (!isAvailable) {
+        throw new Error("Edge function appears to be unavailable. Please try again later or check your Supabase deployment.");
+      }
+      
       // Generate sample data
       const testYear = new Date().getFullYear();
       const testMonth = new Date().getMonth() + 1;
@@ -143,7 +169,7 @@ const TestEmail = () => {
       const { data, error } = await supabase.functions.invoke("send-settlement-email", {
         body: formData,
         headers: {
-          'Request-Timeout': '15000ms', // 15 seconds timeout
+          'Request-Timeout': '30000ms', // Increased to 30 seconds timeout
           'Content-Type': 'multipart/form-data'  
         }
       });
