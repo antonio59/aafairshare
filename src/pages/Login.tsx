@@ -7,20 +7,28 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from "@/integrations/supabase/client";
+import { Loader2 } from 'lucide-react';
 
 const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
   
   // Check if user is already logged in
   useEffect(() => {
     const checkSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        navigate('/');
+      try {
+        const { data } = await supabase.auth.getSession();
+        if (data.session) {
+          navigate('/');
+        }
+      } catch (error) {
+        console.error("Error checking session:", error);
+      } finally {
+        setAuthChecked(true);
       }
     };
     
@@ -34,6 +42,12 @@ const Login = () => {
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
         localStorage.removeItem(key);
+      }
+    });
+    // Do the same for sessionStorage
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
       }
     });
   };
@@ -51,6 +65,7 @@ const Login = () => {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
         // Continue even if this fails
+        console.log("Pre-signout failed, continuing with login", err);
       }
       
       // Sign in with Supabase
@@ -93,12 +108,16 @@ const Login = () => {
         await supabase.auth.signOut({ scope: 'global' });
       } catch (err) {
         // Continue even if this fails
+        console.log("Pre-signout failed, continuing with signup", err);
       }
       
       // Sign up with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: window.location.origin
+        }
       });
       
       if (error) throw error;
@@ -108,8 +127,10 @@ const Login = () => {
         description: "Your account has been created successfully. Please check your email for verification."
       });
       
-      // Force a page refresh for clean state
-      window.location.href = '/';
+      if (data.session) {
+        // If auto-confirmed, redirect to home
+        window.location.href = '/';
+      }
     } catch (error: any) {
       console.error("Sign up error:", error);
       toast({
@@ -121,6 +142,17 @@ const Login = () => {
       setIsLoading(false);
     }
   };
+
+  if (!authChecked) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-gray-500" />
+          <p className="text-gray-500">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
@@ -173,7 +205,12 @@ const Login = () => {
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? 'Logging in...' : 'Login'}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Logging in...
+                        </>
+                      ) : 'Login'}
                     </Button>
                   </div>
                 </form>
@@ -205,7 +242,12 @@ const Login = () => {
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading}>
-                      {isLoading ? 'Creating account...' : 'Create account'}
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating account...
+                        </>
+                      ) : 'Create account'}
                     </Button>
                   </div>
                 </form>

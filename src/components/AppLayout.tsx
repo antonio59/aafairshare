@@ -1,6 +1,6 @@
 
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
-import { BarChart3, Calendar, Home, PiggyBank, Settings as SettingsIcon, LogOut } from "lucide-react";
+import { BarChart3, Calendar, Home, PiggyBank, Settings as SettingsIcon, LogOut, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { useState, useEffect } from "react";
@@ -14,20 +14,37 @@ const AppLayout = () => {
   const { toast } = useToast();
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadingText, setLoadingText] = useState("Initializing...");
   const navigate = useNavigate();
   
   useEffect(() => {
+    let isMounted = true;
+    let authCheckTimeout: number | null = null;
+    
     const checkAuth = async () => {
       try {
+        if (!isMounted) return;
         setIsLoading(true);
+        setLoadingText("Checking authentication...");
+        
+        // Set timeout to detect potential auth deadlocks
+        authCheckTimeout = window.setTimeout(() => {
+          if (isMounted) {
+            console.warn("Authentication check is taking too long, possible deadlock");
+            localStorage.setItem('auth-error-detected', 'true');
+            navigate('/login');
+          }
+        }, 10000); // 10 second timeout
         
         // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
+            if (!isMounted) return;
+            
             if (event === 'SIGNED_IN') {
               // Defer loading user data to avoid potential deadlocks
               setTimeout(() => {
-                loadUserData();
+                if (isMounted) loadUserData();
               }, 0);
             } else if (event === 'SIGNED_OUT') {
               setUser(null);
@@ -37,10 +54,26 @@ const AppLayout = () => {
         );
         
         // Check initial session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          if (isMounted) {
+            toast({
+              title: "Session error",
+              description: "Please login again",
+              variant: "destructive",
+            });
+            navigate('/login');
+          }
+          return;
+        }
         
         if (!session) {
-          navigate('/login');
+          if (isMounted) {
+            console.log("No active session found");
+            navigate('/login');
+          }
           return;
         }
         
@@ -51,19 +84,29 @@ const AppLayout = () => {
         };
       } catch (error) {
         console.error("Auth error:", error);
-        navigate('/login');
+        if (isMounted) {
+          navigate('/login');
+        }
       } finally {
-        setIsLoading(false);
+        if (authCheckTimeout) {
+          clearTimeout(authCheckTimeout);
+        }
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
     const loadUserData = async () => {
+      if (!isMounted) return;
       try {
+        setLoadingText("Loading user data...");
         // First try to get current user
         let currentUser = await getCurrentUser();
         
         // If that fails, try to sync auth user
         if (!currentUser) {
+          setLoadingText("Synchronizing user data...");
           currentUser = await syncAuthUser();
         }
         
@@ -78,20 +121,34 @@ const AppLayout = () => {
             description: "Please login again",
             variant: "destructive",
           });
+          
+          // Mark auth error for cleanup on next load
+          localStorage.setItem('auth-error-detected', 'true');
+          
           await logoutUser();
           navigate('/login');
         }
       } catch (error) {
         console.error("Failed to load user data:", error);
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
     
     checkAuth();
+    
+    return () => {
+      isMounted = false;
+      if (authCheckTimeout) {
+        clearTimeout(authCheckTimeout);
+      }
+    };
   }, [navigate, toast]);
 
   const handleLogout = async () => {
     try {
+      setIsLoading(true);
       await logoutUser();
       toast({
         title: "Logout successful",
@@ -106,14 +163,18 @@ const AppLayout = () => {
         description: "An error occurred during logout",
         variant: "destructive",
       });
+      setIsLoading(false);
     }
   };
 
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="w-64 space-y-4">
-          <Skeleton className="h-12 w-full" />
+        <div className="w-64 space-y-4 text-center">
+          <div className="flex justify-center">
+            <Loader2 className="h-12 w-12 animate-spin text-blue-500" />
+          </div>
+          <p className="text-lg font-medium">{loadingText}</p>
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-3/4" />
           <Skeleton className="h-32 w-full rounded-md" />
@@ -146,7 +207,7 @@ const AppLayout = () => {
               <AvatarFallback>{user?.name?.charAt(0) || "U"}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user?.name || "Loading..."}</p>
+              <p className="text-sm font-medium truncate">{user?.name || "User"}</p>
               <button 
                 className="text-xs text-gray-500 hover:text-gray-700 flex items-center gap-1"
                 onClick={handleLogout}

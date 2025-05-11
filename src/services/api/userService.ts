@@ -32,31 +32,81 @@ export const syncAuthUser = async (): Promise<User | null> => {
     // User doesn't exist, create a new user record
     let username = authUser.user_metadata?.name || authUser.email?.split('@')[0] || null;
     
-    // Check if email already exists (handle duplicate constraint)
+    // Look for existing user by email to prevent duplication
     const { data: emailCheck } = await supabase
       .from('users')
-      .select('id')
+      .select('*')
       .eq('email', authUser.email)
       .maybeSingle();
     
     if (emailCheck) {
-      // If email exists but with different ID, just update that user with new auth ID
-      const { data: updatedUser, error: updateError } = await supabase
-        .from('users')
-        .update({ id: authUser.id })
-        .eq('email', authUser.email)
-        .select()
-        .single();
-      
-      if (updateError) {
-        console.error("Error updating user:", updateError);
-        return null;
+      // If email exists but with different ID, update that user with new auth ID
+      // We use a conditional update to avoid foreign key conflicts
+      if (emailCheck.id !== authUser.id) {
+        try {
+          // First, get all references to old user ID from other tables
+          // For this app, we need to handle the expenses table reference
+          const { data: expensesData } = await supabase
+            .from('expenses')
+            .select('*')
+            .eq('paid_by_id', emailCheck.id);
+          
+          // If there are expenses, we need to create the user with new ID
+          // instead of updating existing user (to avoid FK constraint issues)
+          if (expensesData && expensesData.length > 0) {
+            // Create a new user entry with auth ID 
+            const { data: newUser, error: createError } = await supabase
+              .from('users')
+              .insert([{
+                id: authUser.id,
+                email: authUser.email,
+                username: username,
+                photo_url: authUser.user_metadata?.avatar_url || null
+              }])
+              .select()
+              .single();
+              
+            if (createError) {
+              console.error("Error creating user:", createError);
+              return null;
+            }
+            
+            return {
+              id: newUser.id,
+              name: newUser.username || newUser.email.split('@')[0],
+              avatar: newUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUser.username || newUser.email}`
+            };
+          } else {
+            // Safe to update existing user with new auth ID
+            const { data: updatedUser, error: updateError } = await supabase
+              .from('users')
+              .update({ id: authUser.id })
+              .eq('id', emailCheck.id)
+              .select()
+              .single();
+            
+            if (updateError) {
+              console.error("Error updating user:", updateError);
+              return null;
+            }
+            
+            return {
+              id: updatedUser.id,
+              name: updatedUser.username || updatedUser.email.split('@')[0],
+              avatar: updatedUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updatedUser.username || updatedUser.email}`
+            };
+          }
+        } catch (err) {
+          console.error("Error handling existing user:", err);
+          // Fall through to using existing user as-is
+        }
       }
       
+      // Use existing user data
       return {
-        id: updatedUser.id,
-        name: updatedUser.username || updatedUser.email.split('@')[0],
-        avatar: updatedUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updatedUser.username || updatedUser.email}`
+        id: emailCheck.id,
+        name: emailCheck.username || emailCheck.email.split('@')[0],
+        avatar: emailCheck.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${emailCheck.username || emailCheck.email}`
       };
     }
     
@@ -74,22 +124,6 @@ export const syncAuthUser = async (): Promise<User | null> => {
     
     if (createError) {
       console.error("Error creating user:", createError);
-      if (createError.code === '23505') { // Duplicate key violation
-        // As a fallback, just fetch the user by email
-        const { data: existingByEmail } = await supabase
-          .from('users')
-          .select('*')
-          .eq('email', authUser.email)
-          .single();
-          
-        if (existingByEmail) {
-          return {
-            id: existingByEmail.id,
-            name: existingByEmail.username || existingByEmail.email.split('@')[0],
-            avatar: existingByEmail.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${existingByEmail.username || existingByEmail.email}`
-          };
-        }
-      }
       return null;
     }
     
@@ -161,17 +195,30 @@ export const getCurrentUser = async (): Promise<User | null> => {
 // Logout the current user
 export const logoutUser = async (): Promise<void> => {
   // Clean up auth state
-  localStorage.removeItem('supabase.auth.token');
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
+  const cleanupAuthState = () => {
+    // Remove standard auth tokens
+    localStorage.removeItem('supabase.auth.token');
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+    // Do the same for sessionStorage
+    Object.keys(sessionStorage || {}).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  };
   
   try {
+    cleanupAuthState();
     await supabase.auth.signOut({ scope: 'global' });
   } catch (error) {
     console.error("Error during logout:", error);
+    // Still clean up even if signOut fails
+    cleanupAuthState();
     throw error;
   }
 };

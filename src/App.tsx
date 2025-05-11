@@ -31,10 +31,29 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   
   useEffect(() => {
+    console.info("App component rendering");
+    
     const checkAuth = async () => {
       try {
+        // Clean up existing state if issues detected
+        if (localStorage.getItem('auth-error-detected') === 'true') {
+          localStorage.removeItem('auth-error-detected');
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+              localStorage.removeItem(key);
+            }
+          });
+        }
+        
         // Check for existing session
-        const { data } = await supabase.auth.getSession();
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error("Session check error:", error);
+          setIsAuthenticated(false);
+          return;
+        }
+        
         setIsAuthenticated(!!data.session);
         
         // Set up auth state listener
@@ -60,7 +79,10 @@ const App = () => {
   if (isAuthenticated === null) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg flex flex-col items-center gap-2">
+          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+          <p>Loading...</p>
+        </div>
       </div>
     );
   }
