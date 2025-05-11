@@ -15,6 +15,7 @@ const AppLayout = () => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadingText, setLoadingText] = useState("Initializing...");
+  const [retryCount, setRetryCount] = useState(0);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -35,23 +36,6 @@ const AppLayout = () => {
             navigate('/login');
           }
         }, 10000); // 10 second timeout
-        
-        // Set up auth state change listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (event, session) => {
-            if (!isMounted) return;
-            
-            if (event === 'SIGNED_IN') {
-              // Defer loading user data to avoid potential deadlocks
-              setTimeout(() => {
-                if (isMounted) loadUserData();
-              }, 0);
-            } else if (event === 'SIGNED_OUT') {
-              setUser(null);
-              navigate('/login');
-            }
-          }
-        );
         
         // Check initial session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -77,6 +61,27 @@ const AppLayout = () => {
           return;
         }
         
+        console.log("Active session found, user ID:", session.user.id);
+        
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            if (!isMounted) return;
+            
+            console.log("Auth state changed:", event);
+            
+            if (event === 'SIGNED_IN') {
+              // Defer loading user data to avoid potential deadlocks
+              setTimeout(() => {
+                if (isMounted) loadUserData();
+              }, 0);
+            } else if (event === 'SIGNED_OUT') {
+              setUser(null);
+              navigate('/login');
+            }
+          }
+        );
+        
         await loadUserData();
         
         return () => {
@@ -101,6 +106,8 @@ const AppLayout = () => {
       if (!isMounted) return;
       try {
         setLoadingText("Loading user data...");
+        console.log("Loading user data, attempt:", retryCount + 1);
+        
         // First try to get current user
         let currentUser = await getCurrentUser();
         
@@ -111,11 +118,23 @@ const AppLayout = () => {
         }
         
         if (currentUser) {
+          console.log("User data loaded successfully:", currentUser.name);
           setUser(currentUser);
           setIsLoading(false);
         } else {
+          // Retry logic with exponential backoff
+          if (retryCount < 2) {
+            console.log("Retrying user data load...");
+            const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+            setRetryCount(retryCount + 1);
+            setTimeout(() => {
+              if (isMounted) loadUserData();
+            }, delay);
+            return;
+          }
+          
           // If we still can't get a user, go to the login page
-          console.warn("Could not retrieve user data, redirecting to login");
+          console.warn("Could not retrieve user data after retries, redirecting to login");
           toast({
             title: "Authentication error",
             description: "Please login again",
@@ -132,6 +151,16 @@ const AppLayout = () => {
         console.error("Failed to load user data:", error);
         if (isMounted) {
           setIsLoading(false);
+          
+          if (retryCount < 2) {
+            const delay = Math.pow(2, retryCount) * 1000;
+            setRetryCount(retryCount + 1);
+            setTimeout(() => {
+              if (isMounted) loadUserData();
+            }, delay);
+          } else {
+            navigate('/login');
+          }
         }
       }
     };
@@ -144,7 +173,7 @@ const AppLayout = () => {
         clearTimeout(authCheckTimeout);
       }
     };
-  }, [navigate, toast]);
+  }, [navigate, toast, retryCount]);
 
   const handleLogout = async () => {
     try {

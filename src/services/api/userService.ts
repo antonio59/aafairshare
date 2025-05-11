@@ -15,9 +15,10 @@ export const syncAuthUser = async (): Promise<User | null> => {
       .from('users')
       .select('*')
       .eq('id', authUser.id)
-      .single();
+      .maybeSingle();
     
     if (!fetchError && existingUser) {
+      console.log("Found existing user by ID:", existingUser.id);
       return {
         id: existingUser.id,
         name: existingUser.username || existingUser.email.split('@')[0],
@@ -25,92 +26,37 @@ export const syncAuthUser = async (): Promise<User | null> => {
       };
     }
     
-    if (fetchError && fetchError.code !== 'PGRST116') { // Not found is ok
-      console.error("Error fetching user:", fetchError);
-    }
-    
-    // User doesn't exist, create a new user record
-    let username = authUser.user_metadata?.name || authUser.email?.split('@')[0] || null;
-    
-    // Look for existing user by email to prevent duplication
-    const { data: emailCheck } = await supabase
+    // User doesn't exist by ID, check by email to handle migration cases
+    const { data: emailUser, error: emailError } = await supabase
       .from('users')
       .select('*')
       .eq('email', authUser.email)
       .maybeSingle();
     
-    if (emailCheck) {
-      // If email exists but with different ID, update that user with new auth ID
-      // We use a conditional update to avoid foreign key conflicts
-      if (emailCheck.id !== authUser.id) {
-        try {
-          // First, get all references to old user ID from other tables
-          // For this app, we need to handle the expenses table reference
-          const { data: expensesData } = await supabase
-            .from('expenses')
-            .select('*')
-            .eq('paid_by_id', emailCheck.id);
-          
-          // If there are expenses, we need to create the user with new ID
-          // instead of updating existing user (to avoid FK constraint issues)
-          if (expensesData && expensesData.length > 0) {
-            // Create a new user entry with auth ID 
-            const { data: newUser, error: createError } = await supabase
-              .from('users')
-              .insert([{
-                id: authUser.id,
-                email: authUser.email,
-                username: username,
-                photo_url: authUser.user_metadata?.avatar_url || null
-              }])
-              .select()
-              .single();
-              
-            if (createError) {
-              console.error("Error creating user:", createError);
-              return null;
-            }
-            
-            return {
-              id: newUser.id,
-              name: newUser.username || newUser.email.split('@')[0],
-              avatar: newUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUser.username || newUser.email}`
-            };
-          } else {
-            // Safe to update existing user with new auth ID
-            const { data: updatedUser, error: updateError } = await supabase
-              .from('users')
-              .update({ id: authUser.id })
-              .eq('id', emailCheck.id)
-              .select()
-              .single();
-            
-            if (updateError) {
-              console.error("Error updating user:", updateError);
-              return null;
-            }
-            
-            return {
-              id: updatedUser.id,
-              name: updatedUser.username || updatedUser.email.split('@')[0],
-              avatar: updatedUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updatedUser.username || updatedUser.email}`
-            };
-          }
-        } catch (err) {
-          console.error("Error handling existing user:", err);
-          // Fall through to using existing user as-is
-        }
-      }
+    if (!emailError && emailUser) {
+      console.log("Found user by email:", emailUser.email);
+      // User exists with this email but different ID, update the ID
+      const { data: updatedUser, error: updateError } = await supabase
+        .from('users')
+        .update({ id: authUser.id })
+        .eq('email', authUser.email)
+        .select()
+        .maybeSingle();
       
-      // Use existing user data
-      return {
-        id: emailCheck.id,
-        name: emailCheck.username || emailCheck.email.split('@')[0],
-        avatar: emailCheck.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${emailCheck.username || emailCheck.email}`
-      };
+      if (!updateError && updatedUser) {
+        console.log("Updated user ID for:", updatedUser.email);
+        return {
+          id: updatedUser.id,
+          name: updatedUser.username || updatedUser.email.split('@')[0],
+          avatar: updatedUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updatedUser.username || updatedUser.email}`
+        };
+      }
     }
     
-    // Create new user if no duplicates
+    // No user found, create new user
+    let username = authUser.user_metadata?.name || authUser.email?.split('@')[0] || null;
+    
+    console.log("Creating new user for:", authUser.email);
     const { data: newUser, error: createError } = await supabase
       .from('users')
       .insert([{
@@ -124,6 +70,23 @@ export const syncAuthUser = async (): Promise<User | null> => {
     
     if (createError) {
       console.error("Error creating user:", createError);
+      
+      // As a fallback, try to get the user once more
+      const { data: retryUser } = await supabase
+        .from('users')
+        .select('*')
+        .eq('email', authUser.email)
+        .maybeSingle();
+        
+      if (retryUser) {
+        console.log("Found user in fallback:", retryUser.email);
+        return {
+          id: retryUser.id,
+          name: retryUser.username || retryUser.email.split('@')[0],
+          avatar: retryUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${retryUser.username || retryUser.email}`
+        };
+      }
+      
       return null;
     }
     
@@ -159,10 +122,22 @@ export const getUsers = async (): Promise<User[]> => {
 // Get current authenticated user
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    // Get the current auth session
-    const { data: { session } } = await supabase.auth.getSession();
+    console.log("Getting current user...");
     
-    if (!session) return null;
+    // Get the current auth session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      return null;
+    }
+    
+    if (!session) {
+      console.log("No active session");
+      return null;
+    }
+    
+    console.log("Active session found for user:", session.user.email);
     
     // Find the user in our database
     const { data: user, error } = await supabase
@@ -171,16 +146,19 @@ export const getCurrentUser = async (): Promise<User | null> => {
       .eq('id', session.user.id)
       .maybeSingle();
     
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
       console.error("Error fetching current user:", error);
-      return null;
+      // Try sync if query fails
+      return await syncAuthUser();
     }
     
     if (!user) {
+      console.log("User not found in database, trying to sync");
       // Try syncing the user if not found
       return await syncAuthUser();
     }
     
+    console.log("User found in database:", user.email);
     return {
       id: user.id,
       name: user.username || user.email.split('@')[0],

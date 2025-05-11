@@ -12,6 +12,7 @@ const Index = () => {
       try {
         // Clean up existing state if issues detected
         if (localStorage.getItem('auth-error-detected') === 'true') {
+          console.log("Auth error detected, cleaning up state");
           localStorage.removeItem('auth-error-detected');
           Object.keys(localStorage).forEach((key) => {
             if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
@@ -30,8 +31,10 @@ const Index = () => {
         }
         
         if (data.session) {
+          console.log("Session found, redirecting to dashboard");
           navigate('/');
         } else {
+          console.log("No session found, redirecting to login");
           navigate('/login');
         }
         

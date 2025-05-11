@@ -31,12 +31,13 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   
   useEffect(() => {
-    console.info("App component rendering");
+    console.info("App component mounting, checking auth state");
     
     const checkAuth = async () => {
       try {
         // Clean up existing state if issues detected
         if (localStorage.getItem('auth-error-detected') === 'true') {
+          console.info("Auth error detected, cleaning up state");
           localStorage.removeItem('auth-error-detected');
           Object.keys(localStorage).forEach((key) => {
             if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
@@ -45,7 +46,21 @@ const App = () => {
           });
         }
         
-        // Check for existing session
+        // Set up auth state listener first
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+          (event, session) => {
+            console.log("Auth state changed:", event);
+            setIsAuthenticated(!!session);
+            
+            if (event === 'SIGNED_OUT') {
+              console.log("User signed out, redirecting to login");
+              // Force a clean slate on sign out
+              window.location.href = '/login';
+            }
+          }
+        );
+        
+        // Check for existing session second
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -54,14 +69,8 @@ const App = () => {
           return;
         }
         
+        console.log("Session check complete:", data.session ? "Session found" : "No session");
         setIsAuthenticated(!!data.session);
-        
-        // Set up auth state listener
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          (_event, session) => {
-            setIsAuthenticated(!!session);
-          }
-        );
         
         return () => {
           subscription.unsubscribe();
@@ -79,9 +88,10 @@ const App = () => {
   if (isAuthenticated === null) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <div className="text-lg flex flex-col items-center gap-2">
-          <div className="w-8 h-8 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
-          <p>Loading...</p>
+        <div className="text-lg flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
+          <p className="font-medium">Initializing app...</p>
+          <p className="text-sm text-gray-500">Checking authentication...</p>
         </div>
       </div>
     );

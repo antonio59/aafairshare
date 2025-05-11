@@ -36,17 +36,25 @@ const Login = () => {
   }, [navigate]);
 
   const cleanupAuthState = () => {
+    console.log("Cleaning up auth state");
+    // Flag for detecting auth errors
+    localStorage.removeItem('auth-error-detected');
+    
     // Remove standard auth tokens
     localStorage.removeItem('supabase.auth.token');
+    
     // Remove all Supabase auth keys from localStorage
     Object.keys(localStorage).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        console.log("Removing localStorage key:", key);
         localStorage.removeItem(key);
       }
     });
+    
     // Do the same for sessionStorage
     Object.keys(sessionStorage || {}).forEach((key) => {
       if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        console.log("Removing sessionStorage key:", key);
         sessionStorage.removeItem(key);
       }
     });
@@ -57,6 +65,8 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting login for:", email);
+      
       // Clean up existing state
       cleanupAuthState();
       
@@ -81,6 +91,8 @@ const Login = () => {
         description: "You have been logged in successfully."
       });
       
+      console.log("Login successful, redirecting to homepage");
+      
       // Force a page refresh for clean state
       window.location.href = '/';
     } catch (error: any) {
@@ -100,6 +112,8 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting signup for:", email);
+      
       // Clean up existing state
       cleanupAuthState();
       
@@ -128,6 +142,7 @@ const Login = () => {
       });
       
       if (data.session) {
+        console.log("Auto-confirmed signup, redirecting to homepage");
         // If auto-confirmed, redirect to home
         window.location.href = '/';
       }
