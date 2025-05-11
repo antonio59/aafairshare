@@ -13,10 +13,13 @@ import CategorySelector from "@/components/expense/CategorySelector";
 import LocationSelector from "@/components/expense/LocationSelector";
 import SplitTypeSelector from "@/components/expense/SplitTypeSelector";
 import { User } from "@/types";
+import { useQueryClient } from "@tanstack/react-query";
+import { getCurrentMonth, getCurrentYear } from "@/services/expenseService";
 
 const AddExpense = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient(); // Add Query Client
   const [users, setUsers] = useState<User[]>([]);
   const [formData, setFormData] = useState({
     amount: "",
@@ -96,6 +99,25 @@ const AddExpense = () => {
         title: "Expense added",
         description: "Your expense has been successfully added.",
       });
+      
+      // Get the month and year from the selected date
+      const expenseDate = new Date(expenseData.date);
+      const expenseYear = expenseDate.getFullYear();
+      const expenseMonth = expenseDate.getMonth() + 1; // JavaScript months are 0-indexed
+      
+      // Invalidate the relevant queries to trigger a refetch
+      await queryClient.invalidateQueries({ 
+        queryKey: ["monthData", expenseYear, expenseMonth]
+      });
+      
+      // Also invalidate current month data in case the expense is for current month
+      const currentYear = getCurrentYear();
+      const currentMonth = getCurrentMonth();
+      if (expenseYear !== currentYear || expenseMonth !== currentMonth) {
+        await queryClient.invalidateQueries({ 
+          queryKey: ["monthData", currentYear, currentMonth]
+        });
+      }
       
       // Navigate back to dashboard
       navigate("/");
