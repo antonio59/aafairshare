@@ -4,7 +4,7 @@ import { User } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Loader2, Mail, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { EmailSendingService, TestEmailConfig } from "@/services/api/emailSendingService";
+import { EmailSendingService, TestEmailConfig } from "@/services/api/email";
 
 interface EmailFormProps {
   users: User[];
