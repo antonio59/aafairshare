@@ -1,18 +1,11 @@
+
 import { useState, useEffect } from "react";
-import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { getUsers, addRecurringExpense } from "@/services/expenseService";
-import AmountInput from "@/components/expense/AmountInput";
-import DateSelector from "@/components/expense/DateSelector";
-import CategorySelector from "@/components/expense/CategorySelector";
-import LocationSelector from "@/components/expense/LocationSelector";
-import FrequencySelector from "@/components/recurring/FrequencySelector";
-import SplitTypeSelector from "@/components/expense/SplitTypeSelector";
 import { User } from "@/types";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import RecurringExpenseFormFields from "./RecurringExpenseFormFields";
 
 interface AddRecurringExpenseFormProps {
   isOpen: boolean;
@@ -30,9 +23,9 @@ const AddRecurringExpenseForm = ({ isOpen, onClose, onSuccess }: AddRecurringExp
     category: "",
     location: "",
     description: "",
-    frequency: "monthly", // Default to monthly
-    split: "50/50", // Default to 50/50 split
-    userId: "", // Will be set to current user's ID
+    frequency: "monthly",
+    split: "50/50",
+    userId: "",
   });
 
   useEffect(() => {
@@ -82,13 +75,13 @@ const AddRecurringExpenseForm = ({ isOpen, onClose, onSuccess }: AddRecurringExp
       // Format the data for submission
       const recurringData = {
         amount: parseFloat(formData.amount),
-        next_due_date: format(formData.nextDueDate, "yyyy-MM-dd"),
+        next_due_date: formData.nextDueDate.toISOString().split('T')[0],
         category: formData.category,
         location: formData.location,
         description: formData.description,
         user_id: formData.userId,
         frequency: formData.frequency,
-        split_type: formData.split, // Include split type
+        split_type: formData.split,
       };
 
       // Submit the recurring expense
@@ -124,59 +117,10 @@ const AddRecurringExpenseForm = ({ isOpen, onClose, onSuccess }: AddRecurringExp
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="py-4">
-          {/* Amount and Date in the same row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div>
-              <AmountInput 
-                value={formData.amount} 
-                onChange={(value) => handleChange("amount", value)} 
-              />
-            </div>
-            <div>
-              <DateSelector 
-                selectedDate={formData.nextDueDate} 
-                onChange={(date) => handleChange("nextDueDate", date)} 
-              />
-            </div>
-          </div>
-
-          {/* Category */}
-          <CategorySelector 
-            selectedCategory={formData.category} 
-            onChange={(category) => handleChange("category", category)} 
+          <RecurringExpenseFormFields 
+            formData={formData}
+            onChange={handleChange}
           />
-
-          {/* Location */}
-          <LocationSelector 
-            selectedLocation={formData.location} 
-            onChange={(location) => handleChange("location", location)} 
-          />
-
-          {/* Split Type */}
-          <SplitTypeSelector 
-            selectedSplitType={formData.split}
-            onChange={(splitType) => handleChange("split", splitType)}
-          />
-
-          {/* Frequency */}
-          <FrequencySelector 
-            selectedFrequency={formData.frequency} 
-            onChange={(frequency) => handleChange("frequency", frequency)} 
-          />
-
-          {/* Description */}
-          <div className="mb-6">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <div className="mt-1">
-              <Input
-                type="text"
-                id="description"
-                placeholder="Add notes about this recurring expense"
-                value={formData.description}
-                onChange={(e) => handleChange("description", e.target.value)}
-              />
-            </div>
-          </div>
 
           <DialogFooter>
             <Button 
