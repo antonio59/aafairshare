@@ -35,10 +35,8 @@ export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLi
 export const checkSupabaseConnection = async (): Promise<boolean> => {
   try {
     // Fix: Properly type the RPC call with both input and output types
-    // For heartbeat function that takes no parameters and returns a string
-    const { data, error } = await supabase.rpc('heartbeat', {}, { 
-      count: 'exact' 
-    });
+    // The rpc method needs to be typed with <TInput, TOutput>
+    const { data, error } = await supabase.rpc<Record<string, never>, string>('heartbeat', {});
     
     // Simple check if we got a response and no error
     return !error && data === 'pong';
