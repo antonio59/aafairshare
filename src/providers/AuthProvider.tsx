@@ -32,7 +32,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingText, setLoadingText] = useState("Initializing...");
   const [retryCount, setRetryCount] = useState(0);
-  const [authTimeout, setAuthTimeout] = useState<NodeJS.Timeout | null>(null);
   const navigate = useNavigate();
   
   const loadUserData = async () => {
@@ -113,18 +112,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setIsLoading(true);
         setLoadingText("Checking authentication...");
         
-        // Set timeout to detect potential auth deadlocks - increased timeout
-        const timeout = setTimeout(() => {
-          if (isMounted) {
-            console.warn("Authentication check is taking too long, possible deadlock");
-            // Don't automatically clean up tokens - this causes unwanted logouts
-            // Only navigate to login
-            navigate('/login', { replace: true });
-          }
-        }, 30000); // 30 second timeout (increased from 10s)
-        
-        setAuthTimeout(timeout);
-        
         // First check for existing session
         console.log("Checking for existing session...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -185,10 +172,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           setIsLoading(false);
           navigate('/login', { replace: true });
         }
-      } finally {
-        if (authTimeout !== null) {
-          clearTimeout(authTimeout);
-        }
       }
     };
     
@@ -196,9 +179,6 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     
     return () => {
       isMounted = false;
-      if (authTimeout !== null) {
-        clearTimeout(authTimeout);
-      }
     };
   }, [navigate, toast]);
 

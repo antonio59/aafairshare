@@ -35,7 +35,6 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isOnlineStatus, setIsOnlineStatus] = useState<boolean>(isOnline());
   const [authError, setAuthError] = useState<string | null>(null);
-  const [authTimeout, setAuthTimeout] = useState(false);
   
   // Network status listener
   useEffect(() => {
@@ -55,27 +54,15 @@ const App = () => {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Set a timeout to prevent infinite loading
-        const timeoutId = setTimeout(() => {
-          console.log("Auth check timeout reached");
-          setAuthTimeout(true);
-          setAuthError("Authentication check timed out. Please try again.");
-          setIsAuthenticated(false);
-          // Don't clean up auth state automatically - this is causing unwanted logouts
-        }, 30000); // Increased from 10s to 30s
-        
         // Check if we're online
         if (!isOnline()) {
           setIsAuthenticated(false);
           setAuthError("You appear to be offline. Please check your internet connection.");
-          clearTimeout(timeoutId);
           return;
         }
         
         // Get session
         const { data, error } = await supabase.auth.getSession();
-        
-        clearTimeout(timeoutId); // Clear the timeout since we got a response
         
         if (error) {
           console.error("Auth check error:", error);
@@ -103,7 +90,7 @@ const App = () => {
   };
   
   // Show loading state while checking auth
-  if (isAuthenticated === null && !authTimeout) {
+  if (isAuthenticated === null) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-lg flex flex-col items-center gap-3">
