@@ -14,7 +14,7 @@ export const exportToCSV = (data: Expense[], year: number, month: number): strin
     expense.category,
     expense.location,
     expense.description || '',
-    expense.amount.toString(),
+    expense.amount.toFixed(2), // Ensure two decimal places
     expense.paidBy === "1" ? "User1" : "User2",
     expense.split
   ]);
@@ -69,7 +69,7 @@ export const downloadPDF = (expenses: Expense[], year: number, month: number): v
     doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 45);
     
     // Calculate total
-    const total = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const total = parseFloat(expenses.reduce((sum, expense) => sum + expense.amount, 0).toFixed(2));
     
     // Summary section
     doc.setFontSize(13);
@@ -87,7 +87,7 @@ export const downloadPDF = (expenses: Expense[], year: number, month: number): v
       expense.category,
       expense.location,
       expense.description || '-',
-      `£${expense.amount.toFixed(2)}`,
+      `£${expense.amount.toFixed(2)}`, // Ensure two decimal places
       expense.paidBy === "1" ? "User1" : "User2",
       expense.split
     ]);

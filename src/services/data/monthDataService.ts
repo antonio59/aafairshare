@@ -50,7 +50,7 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
     }));
 
     // Calculate totals
-    const totalExpenses = mappedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const totalExpenses = parseFloat(mappedExpenses.reduce((sum, exp) => sum + exp.amount, 0).toFixed(2));
 
     // Parse each expense to determine the share owed by each user
     const user1 = users && users[0] ? users[0].id : "";
@@ -86,9 +86,15 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
       }
     });
     
+    // Round to ensure precise decimal values
+    user1Paid = parseFloat(user1Paid.toFixed(2));
+    user2Paid = parseFloat(user2Paid.toFixed(2));
+    user1Share = parseFloat(user1Share.toFixed(2));
+    user2Share = parseFloat(user2Share.toFixed(2));
+    
     // Calculate settlement
-    const user1Owes = user1Share - user1Paid;
-    let settlement = Math.abs(user1Owes);
+    const user1Owes = parseFloat((user1Share - user1Paid).toFixed(2));
+    let settlement = parseFloat(Math.abs(user1Owes).toFixed(2));
     let settlementDirection: 'owes' | 'owed' | 'even' = 'even';
     
     if (user1Owes > 0) {
@@ -99,7 +105,7 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
 
     return {
       totalExpenses,
-      fairShare: totalExpenses / 2, // Keep this for backward compatibility
+      fairShare: parseFloat((totalExpenses / 2).toFixed(2)), // Round fair share
       settlement,
       settlementDirection,
       user1Paid,

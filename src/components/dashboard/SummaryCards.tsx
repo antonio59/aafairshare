@@ -96,7 +96,7 @@ const SummaryCards = ({
             </div>
             <span className="text-sm font-medium text-gray-500">Settlement Due</span>
           </div>
-          <span className="text-2xl font-bold text-green">£{Math.ceil(settlement).toFixed(2)}</span>
+          <span className="text-2xl font-bold text-green">£{settlement.toFixed(2)}</span>
         </CardContent>
       </Card>
     </div>
