@@ -1,5 +1,8 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getUsers } from "@/services/api/userService";
+import { User } from "@/types";
 
 interface MonthlySummaryCardProps {
   totalExpenses: number;
@@ -14,6 +17,25 @@ const MonthlySummaryCard = ({
   settlement, 
   settlementDirection 
 }: MonthlySummaryCardProps) => {
+  const [users, setUsers] = useState<User[]>([]);
+
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        const userData = await getUsers();
+        setUsers(userData);
+      } catch (error) {
+        console.error("Failed to fetch users:", error);
+      }
+    };
+    
+    fetchUsers();
+  }, []);
+
+  // Get user names or use fallbacks if not loaded yet
+  const user1Name = users[0]?.name || "User 1";
+  const user2Name = users[1]?.name || "User 2";
+
   return (
     <Card className="mb-6">
       <CardHeader>
@@ -37,7 +59,7 @@ const MonthlySummaryCard = ({
           ) : (
             <div className="text-center">
               <div className="text-sm font-medium text-gray-500">
-                Settlement ({settlementDirection === 'owes' ? 'User 1 → User 2' : 'User 2 → User 1'})
+                Settlement ({settlementDirection === 'owes' ? `${user1Name} → ${user2Name}` : `${user2Name} → ${user1Name}`})
               </div>
               <div className="text-3xl font-bold mt-1 text-green">£{settlement ? settlement.toFixed(2) : '0.00'}</div>
             </div>
