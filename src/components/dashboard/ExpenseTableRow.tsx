@@ -106,6 +106,11 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
     }
   };
 
+  // Format split type for display
+  const displaySplitType = expense.split === "custom" 
+    ? "Other pays full" 
+    : "Split 50/50";
+
   return (
     <>
       <tr className="hover:bg-gray-50">
@@ -125,7 +130,7 @@ const ExpenseTableRow = ({ expense }: ExpenseTableRowProps) => {
         <td className="px-6 py-4">
           <UserAvatar user={user} />
         </td>
-        <td className="px-6 py-4">{expense.split === "custom" ? "100%" : expense.split}</td>
+        <td className="px-6 py-4">{displaySplitType}</td>
         <td className="px-6 py-4">
           <ExpenseRowActions 
             onEdit={handleEdit} 

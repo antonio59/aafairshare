@@ -21,8 +21,8 @@ const SplitTypeSelector = ({ selectedSplitType, onChange }: SplitTypeSelectorPro
           )}
           onClick={() => onChange("50/50")}
         >
-          <div className="font-semibold">Equal</div>
-          <div className="text-sm text-gray-500">Split equally among all</div>
+          <div className="font-semibold">Split 50/50</div>
+          <div className="text-sm text-gray-500">Each person pays half</div>
         </button>
         <button
           type="button"
@@ -34,8 +34,8 @@ const SplitTypeSelector = ({ selectedSplitType, onChange }: SplitTypeSelectorPro
           )}
           onClick={() => onChange("custom")}
         >
-          <div className="font-semibold">100%</div>
-          <div className="text-sm text-gray-500">100% owed by the other user</div>
+          <div className="font-semibold">Other pays full</div>
+          <div className="text-sm text-gray-500">Other person owes entire amount</div>
         </button>
       </div>
     </div>
