@@ -1,0 +1,72 @@
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import MonthlyPieChart from "./MonthlyPieChart";
+import { CategorySummary, LocationSummary } from "@/types";
+
+interface AnalyticsChartsProps {
+  userComparison: {
+    user1Percentage: number;
+    user2Percentage: number;
+  };
+  categoryBreakdown: CategorySummary[];
+  locationBreakdown: LocationSummary[];
+  colors: string[];
+}
+
+const AnalyticsCharts = ({ 
+  userComparison, 
+  categoryBreakdown, 
+  locationBreakdown,
+  colors
+}: AnalyticsChartsProps) => {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* User Expense Comparison */}
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-base">User Expense Comparison</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <MonthlyPieChart 
+            title="User Expense Comparison" 
+            data={[
+              { name: "User 1", value: userComparison?.user1Percentage || 0 },
+              { name: "User 2", value: userComparison?.user2Percentage || 0 },
+            ]}
+            colors={[colors[0], colors[5]]}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Expenses by Category */}
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-base">Expenses by Category</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <MonthlyPieChart
+            title="Expenses by Category"
+            data={categoryBreakdown || []}
+            colors={colors}
+          />
+        </CardContent>
+      </Card>
+      
+      {/* Expenses by Location */}
+      <Card>
+        <CardHeader className="pb-0">
+          <CardTitle className="text-base">Expenses by Location</CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <MonthlyPieChart
+            title="Expenses by Location"
+            data={locationBreakdown || []}
+            colors={colors}
+          />
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+export default AnalyticsCharts;
