@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { getUsers } from "@/services/api/userService";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mail, Check, AlertCircle } from "lucide-react";
+import { Loader2, Mail, Check, AlertCircle, RefreshCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateSettlementReportPDF } from "@/services/export/settlementReportService";
 import { exportToCSV } from "@/services/export/csvExportService";
@@ -22,6 +22,8 @@ const TestEmail = () => {
   const [success, setSuccess] = useState(false);
   const [isSupabaseReady, setIsSupabaseReady] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
+  const [errorTrace, setErrorTrace] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     // Check if Supabase is initialized before allowing the component to work
@@ -41,7 +43,7 @@ const TestEmail = () => {
     };
     
     checkSupabase();
-  }, []);
+  }, [retryCount]);
 
   const { data: users = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users"],
@@ -62,6 +64,7 @@ const TestEmail = () => {
     setIsSending(true);
     setSuccess(false);
     setErrorDetails(null);
+    setErrorTrace(null);
 
     try {
       // Generate sample data
@@ -136,16 +139,21 @@ const TestEmail = () => {
       
       console.log("Invoking edge function send-settlement-email");
 
-      // Call the edge function
+      // Call the edge function with timeout
       const { data, error } = await supabase.functions.invoke("send-settlement-email", {
-        body: formData
+        body: formData,
+        options: {
+          timeout: 15000 // 15 seconds timeout
+        }
       });
 
       if (error) {
+        console.error("Edge function error:", error);
         throw new Error(`Edge function error: ${error.message}`);
       }
 
       if (!data?.success) {
+        console.error("Edge function returned error:", data?.error || "Unknown error");
         throw new Error(data?.error || "Unknown error from edge function");
       }
 
@@ -156,10 +164,16 @@ const TestEmail = () => {
       setSuccess(true);
       console.log("Email sent successfully:", data);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error sending test email:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
       setErrorDetails(errorMessage);
+      
+      // Store stack trace if available
+      if (error instanceof Error && error.stack) {
+        setErrorTrace(error.stack);
+      }
+      
       toast({
         title: "Failed to Send Email",
         description: errorMessage,
@@ -168,6 +182,15 @@ const TestEmail = () => {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleRetryConnection = () => {
+    setRetryCount(prev => prev + 1);
+    setErrorDetails("Retrying Supabase connection...");
+    toast({
+      title: "Retrying Connection",
+      description: "Attempting to reconnect to Supabase...",
+    });
   };
 
   return (
@@ -182,9 +205,20 @@ const TestEmail = () => {
           </p>
           
           {!isSupabaseReady ? (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-              <span className="ml-2">Initializing Supabase connection...</span>
+            <div className="flex flex-col items-center py-4 gap-3">
+              <div className="flex items-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mr-2" />
+                <span>Initializing Supabase connection...</span>
+              </div>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRetryConnection}
+                className="mt-2"
+              >
+                <RefreshCcw className="h-4 w-4 mr-1" />
+                Retry Connection
+              </Button>
             </div>
           ) : isLoadingUsers ? (
             <div className="flex justify-center py-4">
@@ -224,6 +258,15 @@ const TestEmail = () => {
                 <div>
                   <p className="font-semibold">Error details:</p>
                   <p className="mt-1">{errorDetails}</p>
+                  
+                  {errorTrace && (
+                    <div className="mt-2">
+                      <p className="font-semibold">Debug information:</p>
+                      <pre className="mt-1 text-xs overflow-auto max-h-32 p-2 bg-red-100 rounded">
+                        {errorTrace}
+                      </pre>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

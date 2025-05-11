@@ -50,13 +50,34 @@ export const sendSettlementEmail = async (
     formData.append("reportPdf", pdfReport, `settlement_${year}_${month}.pdf`);
     formData.append("reportCsv", csvBlob, `expenses_${year}_${month}.csv`);
 
+    console.log("Invoking edge function send-settlement-email", {
+      year,
+      month,
+      user1Id: user1.id,
+      user2Id: user2.id,
+      settlementAmount: monthData.settlement,
+      settlementDirection: monthData.settlementDirection,
+      pdfAttached: !!pdfReport,
+      csvAttached: !!csvBlob
+    });
+
     // Call Supabase Edge Function to send the email
     const { data, error } = await supabase.functions.invoke("send-settlement-email", {
-      body: formData
+      body: formData,
+      // Set a longer timeout for email sending
+      options: {
+        timeout: 15000 // 15 seconds
+      }
     });
 
     if (error) {
-      throw error;
+      console.error("Supabase functions.invoke error:", error);
+      throw new Error(`Edge function error: ${error.message || 'Unknown error'}`);
+    }
+
+    if (!data?.success) {
+      console.error("Edge function returned error:", data?.error || "Unknown error");
+      throw new Error(data?.error || "Unknown error from edge function");
     }
 
     console.log("Settlement email sent successfully", data);
