@@ -38,16 +38,23 @@ export const checkConnectionAndSupabase = async () => {
  * Validate login inputs
  */
 export const validateLoginInputs = (email: string, password: string) => {
-  if (!email) {
-    return "Email is required";
+  // Improved validation
+  if (!email || typeof email !== 'string') {
+    return "Valid email is required";
   }
   
-  if (!password) {
+  if (!password || typeof password !== 'string') {
     return "Password is required";
   }
   
   if (password.length < 6) {
     return "Password must be at least 6 characters";
+  }
+  
+  // Basic email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return "Please enter a valid email address";
   }
   
   return null;
@@ -61,7 +68,9 @@ export const loginWithEmailAndPassword = async (
   password: string
 ) => {
   try {
-    console.log("Attempting login for:", email);
+    // Sanitize inputs for logging (don't log actual values)
+    const sanitizedEmail = email ? `${email.substring(0, 2)}***@${email.split('@')[1] || ''}` : 'empty';
+    console.log(`Attempting login for: ${sanitizedEmail}`);
     
     // Clean up existing state
     cleanupAuthState();
@@ -81,7 +90,7 @@ export const loginWithEmailAndPassword = async (
     
     if (error) throw error;
     
-    // Log success and session details (no sensitive info)
+    // Log success without sensitive info
     console.log("Login successful, session established:", !!data.session);
     
     toast({
@@ -103,6 +112,9 @@ export const loginWithEmailAndPassword = async (
     } else {
       errorMessage = error.message || "An error occurred during login. Please try again.";
     }
+    
+    // Sanitize any error messages for sensitive data
+    errorMessage = errorMessage.replace(new RegExp(email, 'gi'), '[EMAIL]');
     
     toast({
       title: "Login failed",

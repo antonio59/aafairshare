@@ -1,7 +1,7 @@
-
-import { getSupabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
+import { getSupabase, isOnline } from '@/integrations/supabase/client';
 import { showToast } from '@/components/ui/use-toast';
 import { cleanupAuthState } from '@/integrations/supabase/client';
+import { checkSupabaseConnection } from '@/services/api/auth/authUtilities';
 
 export const validateLoginInputs = (email: string, password: string) => {
   if (!email.trim()) {

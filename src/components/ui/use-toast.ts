@@ -3,7 +3,7 @@ import { useToast, toast } from "@/hooks/use-toast";
 
 export { useToast, toast };
 
-// Add helper to create consistent toast notifications
+// Helper functions to create consistent toast notifications
 export const showToast = {
   success: (title: string, description?: string) => {
     return toast({

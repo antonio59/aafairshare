@@ -1,11 +1,17 @@
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-// CORS headers for allowing cross-origin requests
+// CORS headers for allowing cross-origin requests - restricted to only the domains needed
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': '*', // Ideally set to your specific domain in production
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
+  'Content-Security-Policy': "default-src 'self'",
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Strict-Transport-Security': 'max-age=31536000; includeSubDomains; preload',
+  'Cache-Control': 'no-store',
+  'Pragma': 'no-cache'
 };
 
 serve(async (req) => {
@@ -15,6 +21,23 @@ serve(async (req) => {
       status: 204,
       headers: corsHeaders 
     });
+  }
+
+  // Only allow GET requests for security
+  if (req.method !== 'GET') {
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: "Method not allowed"
+      }), 
+      { 
+        status: 405, 
+        headers: { 
+          'Content-Type': 'application/json',
+          ...corsHeaders
+        } 
+      }
+    );
   }
 
   console.log("Request received for configuration");

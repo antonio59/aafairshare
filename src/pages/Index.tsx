@@ -1,7 +1,8 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getSupabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
+import { getSupabase, isOnline } from '@/integrations/supabase/client';
+import { checkSupabaseConnection } from '@/services/api/auth/authUtilities';
 import { Loader2, WifiOff, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';

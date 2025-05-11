@@ -1,5 +1,7 @@
+
 import { useState, useEffect } from "react";
-import { getSupabase, isOnline, checkSupabaseConnection } from "@/integrations/supabase/client";
+import { getSupabase, isOnline } from "@/integrations/supabase/client";
+import { checkSupabaseConnection } from "@/services/api/auth/authUtilities";
 import { useQuery } from "@tanstack/react-query";
 import { getUsers } from "@/services/api/userService";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
