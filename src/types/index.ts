@@ -65,5 +65,9 @@ export interface AnalyticsData {
   };
   categoryBreakdown: CategorySummary[];
   locationBreakdown: LocationSummary[];
-  trends: ExpenseTrend[];
+  totalExpenses: number;
+  fairShare: number;
+  settlement: number;
+  settlementDirection: 'owes' | 'owed' | 'even';
+  trends?: ExpenseTrend[]; // Made optional since we're not using it currently
 }

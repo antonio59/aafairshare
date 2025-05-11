@@ -107,7 +107,7 @@ const Analytics = () => {
         <div className="flex justify-center p-12 text-red-500">
           Error loading data.
         </div>
-      ) : (
+      ) : data ? (
         <>
           {/* Monthly Summary */}
           <Card className="mb-6">
@@ -118,22 +118,31 @@ const Analytics = () => {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="text-center">
                   <div className="text-sm font-medium text-gray-500">Total Expenses</div>
-                  <div className="text-3xl font-bold mt-1">£390.95</div>
+                  <div className="text-3xl font-bold mt-1">£{data.totalExpenses ? data.totalExpenses.toFixed(2) : '0.00'}</div>
                 </div>
                 <div className="text-center">
                   <div className="text-sm font-medium text-gray-500">Fair Share (50/50)</div>
-                  <div className="text-3xl font-bold mt-1 text-orange">£195.48</div>
+                  <div className="text-3xl font-bold mt-1 text-orange">£{data.fairShare ? data.fairShare.toFixed(2) : '0.00'}</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-sm font-medium text-gray-500">Settlement (Andres → Antonio)</div>
-                  <div className="text-3xl font-bold mt-1 text-green">£195.48</div>
-                </div>
+                {data.settlementDirection === 'even' ? (
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-gray-500">Settlement</div>
+                    <div className="text-3xl font-bold mt-1 text-green">Even Split</div>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <div className="text-sm font-medium text-gray-500">
+                      Settlement ({data.settlementDirection === 'owes' ? 'User 1 → User 2' : 'User 2 → User 1'})
+                    </div>
+                    <div className="text-3xl font-bold mt-1 text-green">£{data.settlement ? data.settlement.toFixed(2) : '0.00'}</div>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
 
           {/* Charts */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* User Expense Comparison */}
             <Card>
               <CardHeader className="pb-0">
@@ -145,8 +154,8 @@ const Analytics = () => {
                     <PieChart>
                       <Pie
                         data={[
-                          { name: "Antonio", value: data?.userComparison.user1Percentage },
-                          { name: "Andres", value: data?.userComparison.user2Percentage },
+                          { name: "User 1", value: data.userComparison?.user1Percentage || 0 },
+                          { name: "User 2", value: data.userComparison?.user2Percentage || 0 },
                         ]}
                         cx="50%"
                         cy="50%"
@@ -177,7 +186,7 @@ const Analytics = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={data?.categoryBreakdown}
+                        data={data.categoryBreakdown || []}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -187,7 +196,7 @@ const Analytics = () => {
                         dataKey="amount"
                         nameKey="name"
                       >
-                        {data?.categoryBreakdown.map((entry, index) => (
+                        {data.categoryBreakdown?.map((entry, index) => (
                           <Cell 
                             key={`cell-${index}`} 
                             fill={COLORS[index % COLORS.length]} 
@@ -212,7 +221,7 @@ const Analytics = () => {
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
-                        data={data?.locationBreakdown}
+                        data={data.locationBreakdown || []}
                         cx="50%"
                         cy="50%"
                         labelLine={false}
@@ -222,7 +231,7 @@ const Analytics = () => {
                         dataKey="amount"
                         nameKey="name"
                       >
-                        {data?.locationBreakdown.map((entry, index) => (
+                        {data.locationBreakdown?.map((entry, index) => (
                           <Cell 
                             key={`cell-${index}`} 
                             fill={COLORS[index % COLORS.length]} 
@@ -237,22 +246,11 @@ const Analytics = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Expense Trends */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Expense Trends</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-80">
-                {/* Placeholder for the bar chart */}
-                <div className="h-full flex items-center justify-center">
-                  <p className="text-gray-500">Monthly expense trends will be shown here</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </>
+      ) : (
+        <div className="flex justify-center p-12">
+          <div>No data available for this month.</div>
+        </div>
       )}
     </div>
   );

@@ -1,14 +1,13 @@
 
 import { MonthData, AnalyticsData } from "@/types";
 import { getMonthData } from "./monthDataService";
-import { format } from "date-fns";
 
 // Get analytics data
 export const getAnalyticsData = async (year: number, month: number): Promise<AnalyticsData> => {
   try {
     // Get month data first (includes expenses)
     const monthData = await getMonthData(year, month);
-    const { expenses, user1Paid, user2Paid, totalExpenses } = monthData;
+    const { expenses, user1Paid, user2Paid, totalExpenses, settlement, settlementDirection } = monthData;
     
     // Calculate category breakdown
     const categoryMap = new Map<string, number>();
@@ -42,18 +41,14 @@ export const getAnalyticsData = async (year: number, month: number): Promise<Ana
       user2Percentage: totalExpenses ? Math.round((user2Paid / totalExpenses) * 100) : 0,
     };
     
-    // Get expense trends (past few months)
-    // This is a placeholder - in a real implementation, we'd query multiple months
-    const trends = [
-      { month: format(new Date(year, month - 1, 1), "MMM"), total: totalExpenses, user1: user1Paid, user2: user2Paid },
-      // We'd typically fetch previous months here
-    ];
-    
     return {
       userComparison,
       categoryBreakdown,
       locationBreakdown,
-      trends
+      fairShare: totalExpenses / 2,
+      totalExpenses,
+      settlement,
+      settlementDirection
     };
   } catch (error) {
     console.error("Error generating analytics data:", error);
