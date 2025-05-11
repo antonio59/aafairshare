@@ -126,7 +126,7 @@ export const downloadPDF = (expenses: Expense[], year: number, month: number): v
     });
     
     // Add footer
-    const pageCount = doc.internal.getNumberOfPages();
+    const pageCount = doc.internal.pages.length - 1;
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(10);
@@ -225,4 +225,3 @@ export const generateSettlementReportPDF = (
     throw error;
   }
 };
-
