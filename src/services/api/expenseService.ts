@@ -1,3 +1,4 @@
+
 import { Expense, RecurringExpense } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { format, parseISO, addWeeks, addMonths, addYears } from "date-fns";
@@ -195,7 +196,8 @@ export const getRecurringExpenses = async (): Promise<RecurringExpense[]> => {
         description,
         user_id,
         category_id (id, name),
-        location_id (id, name)
+        location_id (id, name),
+        split_type
       `)
       .order('next_due_date', { ascending: true });
     
@@ -209,7 +211,8 @@ export const getRecurringExpenses = async (): Promise<RecurringExpense[]> => {
       description: item.description,
       userId: item.user_id,
       category: item.category_id?.name || '',
-      location: item.location_id?.name || ''
+      location: item.location_id?.name || '',
+      split: item.split_type || '50/50'
     }));
   } catch (error) {
     console.error("Error fetching recurring expenses:", error);

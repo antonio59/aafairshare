@@ -125,6 +125,7 @@ export type Database = {
           id: string
           location_id: string | null
           next_due_date: string
+          split_type: string | null
           user_id: string | null
         }
         Insert: {
@@ -136,6 +137,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           next_due_date: string
+          split_type?: string | null
           user_id?: string | null
         }
         Update: {
@@ -147,6 +149,7 @@ export type Database = {
           id?: string
           location_id?: string | null
           next_due_date?: string
+          split_type?: string | null
           user_id?: string | null
         }
         Relationships: [
