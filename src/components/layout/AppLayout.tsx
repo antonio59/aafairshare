@@ -35,33 +35,7 @@ const AppLayout = () => {
           }
         }, 10000); // 10 second timeout
         
-        // Check initial session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error("Session error:", sessionError);
-          if (isMounted) {
-            toast({
-              title: "Session error",
-              description: "Please login again",
-              variant: "destructive",
-            });
-            navigate('/login');
-          }
-          return;
-        }
-        
-        if (!session) {
-          if (isMounted) {
-            console.log("No active session found");
-            navigate('/login');
-          }
-          return;
-        }
-        
-        console.log("Active session found, user ID:", session.user.id);
-        
-        // Set up auth state change listener
+        // First set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
           (event, session) => {
             if (!isMounted) return;
@@ -80,6 +54,35 @@ const AppLayout = () => {
           }
         );
         
+        // After listener setup, check for existing session
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Session error:", sessionError);
+          if (isMounted) {
+            toast({
+              title: "Session error",
+              description: "Please login again",
+              variant: "destructive",
+            });
+            navigate('/login');
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        if (!session) {
+          if (isMounted) {
+            console.log("No active session found");
+            navigate('/login');
+            setIsLoading(false);
+          }
+          return;
+        }
+        
+        console.log("Active session found, user ID:", session.user.id);
+        
+        // Load user data asynchronously
         await loadUserData();
         
         return () => {
@@ -88,14 +91,12 @@ const AppLayout = () => {
       } catch (error) {
         console.error("Auth error:", error);
         if (isMounted) {
+          setIsLoading(false);
           navigate('/login');
         }
       } finally {
         if (authCheckTimeout) {
           clearTimeout(authCheckTimeout);
-        }
-        if (isMounted) {
-          setIsLoading(false);
         }
       }
     };
@@ -110,7 +111,7 @@ const AppLayout = () => {
         let currentUser = await getCurrentUser();
         
         // If that fails, try to sync auth user
-        if (!currentUser) {
+        if (!currentUser && retryCount < 2) {
           setLoadingText("Synchronizing user data...");
           currentUser = await syncAuthUser();
         }
@@ -120,19 +121,8 @@ const AppLayout = () => {
           setUser(currentUser);
           setIsLoading(false);
         } else {
-          // Retry logic with exponential backoff
-          if (retryCount < 2) {
-            console.log("Retrying user data load...");
-            const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
-            setRetryCount(retryCount + 1);
-            setTimeout(() => {
-              if (isMounted) loadUserData();
-            }, delay);
-            return;
-          }
-          
-          // If we still can't get a user, go to the login page
-          console.warn("Could not retrieve user data after retries, redirecting to login");
+          // If we still can't get a user after retries, go to the login page
+          console.warn("Could not retrieve user data, redirecting to login");
           toast({
             title: "Authentication error",
             description: "Please login again",
@@ -148,15 +138,14 @@ const AppLayout = () => {
       } catch (error) {
         console.error("Failed to load user data:", error);
         if (isMounted) {
-          setIsLoading(false);
-          
           if (retryCount < 2) {
             const delay = Math.pow(2, retryCount) * 1000;
-            setRetryCount(retryCount + 1);
+            setRetryCount(prevCount => prevCount + 1);
             setTimeout(() => {
               if (isMounted) loadUserData();
             }, delay);
           } else {
+            setIsLoading(false);
             navigate('/login');
           }
         }
@@ -171,7 +160,7 @@ const AppLayout = () => {
         clearTimeout(authCheckTimeout);
       }
     };
-  }, [navigate, toast, retryCount]);
+  }, [navigate, toast]);
 
   const handleLogout = async () => {
     try {

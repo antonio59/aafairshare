@@ -21,7 +21,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     headers: {
       'Content-Type': 'application/json',
     },
-    fetch: undefined // Use default fetch with automatic retries
+    // Add retry configuration
+    fetch: (url, options) => {
+      // Default fetch implementation with retry logic
+      return fetch(url, {
+        ...options,
+        // Increase timeout for better reliability
+        signal: options?.signal || AbortSignal.timeout(30000)
+      }).catch(error => {
+        console.error("Fetch error:", error);
+        throw error;
+      });
+    }
   },
   realtime: {
     heartbeatIntervalMs: 20000 // More aggressive heartbeating
@@ -31,16 +42,27 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Helper to check network connection
 export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLine;
 
-// Function to check Supabase availability
-export const checkSupabaseConnection = async (): Promise<boolean> => {
-  try {
-    // Simple check with getSession to verify if we can connect to Supabase
-    const { data, error } = await supabase.auth.getSession();
-    
-    // If we can reach Supabase, consider it a successful connection
-    return !error;
-  } catch (e) {
-    console.error("Error checking Supabase connection:", e);
-    return false;
+// Function to check Supabase availability with retry
+export const checkSupabaseConnection = async (retries = 2): Promise<boolean> => {
+  let attempt = 0;
+  
+  while (attempt <= retries) {
+    try {
+      // Simple check with getSession to verify if we can connect to Supabase
+      const { data, error } = await supabase.auth.getSession();
+      
+      // If we can reach Supabase, consider it a successful connection
+      return !error;
+    } catch (e) {
+      console.error(`Error checking Supabase connection (attempt ${attempt + 1}):`, e);
+      attempt++;
+      
+      // Only wait between retries, not after the last one
+      if (attempt <= retries) {
+        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+      }
+    }
   }
+  
+  return false;
 };

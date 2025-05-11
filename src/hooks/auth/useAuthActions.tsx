@@ -107,13 +107,13 @@ export const useAuthActions = ({
       
       console.log("Login successful, redirecting to homepage");
       
-      // Force a page refresh for clean state
+      // Force a page reload for clean state
       window.location.href = '/';
     } catch (error: any) {
       console.error("Login error:", error);
       
       // Handle network errors specially
-      if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
+      if (!navigator.onLine || error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
         setErrorMessage("Network connection problem. Please check your internet connection and try again.");
       } else if (error.message?.includes('Invalid login credentials')) { 
         setErrorMessage("Invalid email or password. Please try again.");
@@ -183,7 +183,7 @@ export const useAuthActions = ({
       console.error("Sign up error:", error);
       
       // Handle specific errors
-      if (error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
+      if (!navigator.onLine || error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
         setErrorMessage("Network connection problem. Please check your internet connection and try again.");
       } else if (error.message?.includes('already registered')) {
         setErrorMessage("This email is already registered. Please try logging in instead.");
