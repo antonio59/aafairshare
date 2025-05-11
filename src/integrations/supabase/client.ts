@@ -19,10 +19,13 @@ export const createSupabaseClient = async () => {
     });
     
     if (!response.ok) {
-      throw new Error(`Failed to fetch config: ${response.statusText}`);
+      const errorData = await response.json().catch(() => ({}));
+      console.error("Config fetch error:", response.status, response.statusText, errorData);
+      throw new Error(`Failed to fetch config: ${response.statusText}${errorData.error ? ` - ${errorData.error}` : ''}`);
     }
     
     const config = await response.json();
+    console.log("Config loaded successfully");
     SUPABASE_URL = config.supabaseUrl;
     SUPABASE_PUBLISHABLE_KEY = config.supabaseAnonKey;
     
