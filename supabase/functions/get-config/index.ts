@@ -14,45 +14,14 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Check for API key in either the apikey header or Authorization header
-  const apiKey = req.headers.get('apikey') || req.headers.get('Authorization')?.split(' ')[1];
-  console.log("Request received, API key present:", !!apiKey);
+  console.log("Request received for configuration");
   
-  if (!apiKey) {
-    console.error("Missing API key in request");
-    return new Response(
-      JSON.stringify({ success: false, error: 'Missing API key in request headers' }),
-      { 
-        status: 401, 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        } 
-      }
-    );
-  }
-
-  // Validate the API key format (basic check)
-  if (!apiKey.startsWith('eyJ')) {
-    console.error("Invalid API key format");
-    return new Response(
-      JSON.stringify({ success: false, error: 'Invalid API key format' }),
-      { 
-        status: 401, 
-        headers: { 
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        } 
-      }
-    );
-  }
-
   try {
     // Use environment variables set in Supabase dashboard
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
 
-    // Debug output
+    // Debug output (be careful not to log the actual keys)
     console.log("Environment check:", {
       urlPresent: !!supabaseUrl,
       keyPresent: !!supabaseAnonKey
