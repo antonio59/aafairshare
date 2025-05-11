@@ -74,10 +74,13 @@ const TestEmail = () => {
   const handleSendSuccess = () => {
     setIsSending(false);
     setSuccess(true);
+    setErrorDetails(null);
+    setErrorTrace(null);
   };
   
   const handleSendError = (errorMessage: string, errorTrace?: string) => {
     setIsSending(false);
+    setSuccess(false);
     setErrorDetails(errorMessage);
     if (errorTrace) {
       setErrorTrace(errorTrace);

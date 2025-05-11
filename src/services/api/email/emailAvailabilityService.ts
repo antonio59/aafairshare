@@ -22,7 +22,7 @@ export class EmailAvailabilityService {
       });
       
       console.log("Edge function availability check result:", response.status, response.ok);
-      return response.ok;
+      return response.ok || response.status === 204;
     } catch (error) {
       console.warn("Function availability check failed:", error);
       // Return true if we can't check - better to attempt to send than block with a false negative
