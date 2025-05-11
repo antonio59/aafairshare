@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, isOnline } from "@/integrations/supabase/client";
 import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Settlement from "./pages/Settlement";
@@ -15,6 +15,8 @@ import Settings from "./pages/Settings";
 import AddExpense from "./pages/AddExpense";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { WifiOff } from "lucide-react";
 
 // Initialize QueryClient with default settings for better performance
 const queryClient = new QueryClient({
@@ -29,6 +31,21 @@ const queryClient = new QueryClient({
 
 const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [isOnlineStatus, setIsOnlineStatus] = useState<boolean>(isOnline());
+  
+  // Network status listener
+  useEffect(() => {
+    const handleOnline = () => setIsOnlineStatus(true);
+    const handleOffline = () => setIsOnlineStatus(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
   
   useEffect(() => {
     console.info("App component mounting, checking auth state");
@@ -40,7 +57,7 @@ const App = () => {
           console.info("Auth error detected, cleaning up state");
           localStorage.removeItem('auth-error-detected');
           Object.keys(localStorage).forEach((key) => {
-            if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+            if (key.startsWith('supabase.auth.') || key.includes('sb-') || key.includes('aafairshare-auth')) {
               localStorage.removeItem(key);
             }
           });
@@ -60,7 +77,7 @@ const App = () => {
           }
         );
         
-        // Check for existing session second
+        // Check for existing session
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -81,8 +98,13 @@ const App = () => {
       }
     };
     
-    checkAuth();
-  }, []);
+    // Check connection status
+    if (isOnlineStatus) {
+      checkAuth();
+    } else {
+      setIsAuthenticated(false);
+    }
+  }, [isOnlineStatus]);
   
   // Show loading state while checking auth
   if (isAuthenticated === null) {
@@ -102,6 +124,16 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
+        {!isOnlineStatus && (
+          <div className="fixed top-0 left-0 right-0 z-50 bg-red-500 text-white p-2 text-center">
+            <Alert variant="destructive">
+              <WifiOff className="h-4 w-4" />
+              <AlertDescription>
+                You are currently offline. Some features may not work properly.
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
