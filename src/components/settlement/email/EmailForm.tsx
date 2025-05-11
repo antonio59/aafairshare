@@ -4,10 +4,11 @@ import { User } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Loader2, Mail, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { EmailSendingService } from "@/services/api/emailSendingService";
+import { EmailSendingService, TestEmailConfig } from "@/services/api/emailSendingService";
 
 interface EmailFormProps {
   users: User[];
+  testConfig: TestEmailConfig;
   isSupabaseReady: boolean;
   isSending: boolean;
   isLoadingUsers: boolean;
@@ -19,6 +20,7 @@ interface EmailFormProps {
 
 export const EmailForm = ({
   users,
+  testConfig,
   isSupabaseReady,
   isSending,
   isLoadingUsers,
@@ -42,7 +44,7 @@ export const EmailForm = ({
     onSendStart();
 
     try {
-      const result = await EmailSendingService.sendTestEmail(users);
+      const result = await EmailSendingService.sendTestEmail(users, testConfig);
       
       if (result.success) {
         toast({

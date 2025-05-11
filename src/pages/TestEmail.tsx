@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { EmailStatus } from "@/components/settlement/email/EmailStatus";
 import { EmailPreview } from "@/components/settlement/email/EmailPreview";
 import { EmailForm } from "@/components/settlement/email/EmailForm";
+import { EmailConfigForm, TestEmailConfig } from "@/components/settlement/email/EmailConfigForm";
 import { User } from "@/types";
 
 interface ExtendedUser extends User {
@@ -22,6 +23,14 @@ const TestEmail = () => {
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [errorTrace, setErrorTrace] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  
+  // Default test configuration
+  const [testConfig, setTestConfig] = useState<TestEmailConfig>({
+    year: new Date().getFullYear(),
+    month: new Date().getMonth() + 1,
+    settlementAmount: 25.13,
+    settlementDirection: "owes"
+  });
 
   useEffect(() => {
     // Check if Supabase is initialized before allowing the component to work
@@ -62,10 +71,12 @@ const TestEmail = () => {
   };
   
   const handleSendSuccess = () => {
+    setIsSending(false);
     setSuccess(true);
   };
   
   const handleSendError = (errorMessage: string, errorTrace?: string) => {
+    setIsSending(false);
     setErrorDetails(errorMessage);
     if (errorTrace) {
       setErrorTrace(errorTrace);
@@ -77,6 +88,14 @@ const TestEmail = () => {
     setSuccess(false);
     setErrorDetails(null);
     setErrorTrace(null);
+  };
+  
+  const handleConfigChange = (newConfig: TestEmailConfig) => {
+    setTestConfig(newConfig);
+    toast({
+      title: "Configuration Updated",
+      description: "Test email configuration has been updated."
+    });
   };
 
   return (
@@ -101,15 +120,24 @@ const TestEmail = () => {
           />
           
           {isSupabaseReady && !isLoadingUsers && (
-            <EmailPreview 
-              users={users}
-              usersMinRequired={2}
-            />
+            <>
+              <EmailPreview 
+                users={users}
+                usersMinRequired={2}
+                testData={testConfig}
+              />
+              
+              <EmailConfigForm
+                config={testConfig}
+                onConfigChange={handleConfigChange}
+              />
+            </>
           )}
         </CardContent>
         <CardFooter>
           <EmailForm 
             users={users}
+            testConfig={testConfig}
             isSupabaseReady={isSupabaseReady}
             isSending={isSending}
             isLoadingUsers={isLoadingUsers}

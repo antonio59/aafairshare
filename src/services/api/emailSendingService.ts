@@ -4,6 +4,13 @@ import { getSupabase } from "@/integrations/supabase/client";
 import { generateSettlementReportPDF } from "@/services/export/settlementReportService";
 import { exportToCSV } from "@/services/export/csvExportService";
 
+export interface TestEmailConfig {
+  year: number;
+  month: number;
+  settlementAmount: number;
+  settlementDirection: "owes" | "owed" | "none";
+}
+
 interface EmailSendingResult {
   success: boolean;
   message?: string;
@@ -32,10 +39,13 @@ export class EmailSendingService {
     }
   }
 
-  // Generate test data for the email
-  static generateTestData(users: User[]) {
-    const testYear = new Date().getFullYear();
-    const testMonth = new Date().getMonth() + 1;
+  // Generate test data for the email with custom configuration
+  static generateTestData(users: User[], config?: TestEmailConfig) {
+    const currentDate = new Date();
+    const testYear = config?.year || currentDate.getFullYear();
+    const testMonth = config?.month || currentDate.getMonth() + 1;
+    const settlementAmount = config?.settlementAmount !== undefined ? config.settlementAmount : 25.13;
+    const settlementDirection = config?.settlementDirection || "owes";
     
     // Create sample data with correct expense format
     const sampleExpenses = [
@@ -68,8 +78,8 @@ export class EmailSendingService {
         totalExpenses: 350.75,
         user1Paid: 200.50,
         user2Paid: 150.25,
-        settlement: 25.125,
-        settlementDirection: "owes" as const,
+        settlement: settlementAmount,
+        settlementDirection,
         expenses: sampleExpenses
       }
     };
@@ -78,8 +88,8 @@ export class EmailSendingService {
   }
 
   // Prepare form data for the email
-  static async prepareFormData(users: User[]) {
-    const { testYear, testMonth, sampleMonthData } = this.generateTestData(users);
+  static async prepareFormData(users: User[], config?: TestEmailConfig) {
+    const { testYear, testMonth, sampleMonthData } = this.generateTestData(users, config);
     
     // Generate PDF report
     const pdfReport = generateSettlementReportPDF(
@@ -115,18 +125,29 @@ export class EmailSendingService {
       formData,
       testData: {
         year: testYear,
-        month: testMonth
+        month: testMonth,
+        settlementAmount: sampleMonthData.settlement,
+        settlementDirection: sampleMonthData.settlementDirection
       }
     };
   }
 
   // Send test email to users
-  static async sendTestEmail(users: User[]): Promise<EmailSendingResult> {
+  static async sendTestEmail(users: User[], config?: TestEmailConfig): Promise<EmailSendingResult> {
     try {
       if (users.length < 2) {
         return {
           success: false,
           errorMessage: "Need at least two users to send test email"
+        };
+      }
+
+      // Check if all users have email addresses
+      const usersWithEmail = users.filter(user => 'email' in user && user.email);
+      if (usersWithEmail.length < 2) {
+        return {
+          success: false,
+          errorMessage: "Both users must have email addresses"
         };
       }
 
@@ -137,7 +158,7 @@ export class EmailSendingService {
       }
       
       // Prepare form data
-      const { formData } = await this.prepareFormData(users);
+      const { formData } = await this.prepareFormData(users, config);
       
       // Get Supabase client
       const supabase = await getSupabase();
@@ -164,9 +185,13 @@ export class EmailSendingService {
       }
 
       console.log("Email sent successfully:", data);
+      const emailAddresses = users.slice(0, 2).map(user => 
+        'email' in user && user.email ? user.email : 'No email'
+      ).join(' and ');
+      
       return {
         success: true,
-        message: `Test settlement email was sent to ${users[0].email} and ${users[1].email}`
+        message: `Test settlement email was sent to ${emailAddresses}`
       };
       
     } catch (error: any) {
