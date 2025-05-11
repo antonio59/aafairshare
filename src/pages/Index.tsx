@@ -1,13 +1,22 @@
 
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Automatically redirect users to the dashboard
-    navigate('/');
+    const checkAuth = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/');
+      } else {
+        navigate('/login');
+      }
+    };
+    
+    checkAuth();
   }, [navigate]);
 
   return (

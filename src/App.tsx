@@ -3,7 +3,9 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import AppLayout from "./components/AppLayout";
 import Dashboard from "./pages/Dashboard";
 import Settlement from "./pages/Settlement";
@@ -27,6 +29,37 @@ const queryClient = new QueryClient({
 
 const App = () => {
   console.log("App component rendering");
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  
+  useEffect(() => {
+    const checkAuth = async () => {
+      // Check for existing session
+      const { data } = await supabase.auth.getSession();
+      setIsAuthenticated(!!data.session);
+      
+      // Set up auth state listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        (_event, session) => {
+          setIsAuthenticated(!!session);
+        }
+      );
+      
+      return () => {
+        subscription.unsubscribe();
+      };
+    };
+    
+    checkAuth();
+  }, []);
+  
+  // Show loading state while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
   
   return (
     <QueryClientProvider client={queryClient}>
@@ -35,8 +68,8 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/" element={<AppLayout />}>
+            <Route path="/login" element={isAuthenticated ? <Navigate to="/" /> : <Login />} />
+            <Route path="/" element={isAuthenticated ? <AppLayout /> : <Navigate to="/login" />}>
               <Route index element={<Dashboard />} />
               <Route path="settlement" element={<Settlement />} />
               <Route path="analytics" element={<Analytics />} />

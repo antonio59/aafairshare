@@ -1,11 +1,12 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from "@/integrations/supabase/client";
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -13,37 +14,112 @@ const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        navigate('/');
+      }
+    };
+    
+    checkSession();
+  }, [navigate]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const cleanupAuthState = () => {
+    // Remove standard auth tokens
+    localStorage.removeItem('supabase.auth.token');
+    // Remove all Supabase auth keys from localStorage
+    Object.keys(localStorage).forEach((key) => {
+      if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+        localStorage.removeItem(key);
+      }
+    });
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // This is where we would typically authenticate with Supabase
-    // For now, we'll just simulate a login
-    setTimeout(() => {
+    try {
+      // Clean up existing state
+      cleanupAuthState();
+      
+      // Try to sign out first to ensure clean state
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+      
+      // Sign in with Supabase
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
       toast({
         title: "Login successful",
         description: "You have been logged in successfully."
       });
+      
+      // Force a page refresh for clean state
+      window.location.href = '/';
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login failed",
+        description: error.message || "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      navigate('/');
-    }, 1000);
+    }
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    // This is where we would typically sign up with Supabase
-    // For now, we'll just simulate a signup
-    setTimeout(() => {
+    try {
+      // Clean up existing state
+      cleanupAuthState();
+      
+      // Try to sign out first to ensure clean state
+      try {
+        await supabase.auth.signOut({ scope: 'global' });
+      } catch (err) {
+        // Continue even if this fails
+      }
+      
+      // Sign up with Supabase
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (error) throw error;
+      
       toast({
         title: "Sign up successful",
-        description: "Your account has been created successfully."
+        description: "Your account has been created successfully. Please check your email for verification."
       });
+      
+      // Force a page refresh for clean state
+      window.location.href = '/';
+    } catch (error: any) {
+      console.error("Sign up error:", error);
+      toast({
+        title: "Sign up failed",
+        description: error.message || "An error occurred during sign up",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-      navigate('/');
-    }, 1000);
+    }
   };
 
   return (
