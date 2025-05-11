@@ -141,34 +141,6 @@ export const cleanupAuthState = (): void => {
   localStorage.removeItem('auth-error-detected');
 };
 
-// Function to check Supabase connection with retry
-export const checkSupabaseConnection = async (retries = 2): Promise<boolean> => {
-  let attempt = 0;
-  
-  while (attempt <= retries) {
-    try {
-      // Get a client first
-      const client = await getSupabase();
-      
-      // Simple check with getSession to verify if we can connect to Supabase
-      const { data, error } = await client.auth.getSession();
-      
-      // If we can reach Supabase, consider it a successful connection
-      return !error;
-    } catch (e) {
-      console.error(`Error checking Supabase connection (attempt ${attempt + 1}):`, e);
-      attempt++;
-      
-      // Only wait between retries, not after the last one
-      if (attempt <= retries) {
-        await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
-      }
-    }
-  }
-  
-  return false;
-};
-
 // Function to try force signout (ignores errors)
 export const forceSignOut = async (): Promise<void> => {
   try {

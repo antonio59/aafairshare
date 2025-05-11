@@ -5,4 +5,4 @@ export { useNetworkStatus } from './useNetworkStatus';
 export { useAuthActions } from './useAuthActions';
 export { useSessionCheck } from './useSessionCheck';
 export { useLoginHandler } from './useLoginHandler';
-export * from './authUtils';
+export * from '@/services/api/auth/authUtilities';

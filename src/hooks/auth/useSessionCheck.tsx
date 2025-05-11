@@ -1,7 +1,7 @@
 
 import { NavigateFunction } from 'react-router-dom';
-import { getSupabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
-import { showToast } from '@/components/ui/use-toast';
+import { getSupabase, isOnline } from '@/integrations/supabase/client';
+import { checkSupabaseConnection } from '@/services/api/auth/authUtilities';
 
 interface SessionCheckProps {
   setErrorMessage: (message: string | null) => void;

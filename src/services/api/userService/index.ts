@@ -4,6 +4,6 @@
 
 import { syncAuthUser, getUsers } from './syncUser';
 import { getCurrentUser } from './getCurrentUser';
-import { logoutUser } from './authUtils';
+import { logoutUser } from '@/services/api/auth/authUtilities';
 
 export { syncAuthUser, getUsers, getCurrentUser, logoutUser };

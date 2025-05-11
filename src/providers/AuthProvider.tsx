@@ -3,7 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { syncAuthUser, getCurrentUser } from "@/services/api/userService";
 import { User } from "@/types";
-import { getSupabase, cleanupAuthState, forceSignOut } from "@/integrations/supabase/client";
+import { getSupabase, cleanupAuthState } from "@/integrations/supabase/client";
+import { logoutUser } from "@/services/api/auth/authUtilities";
 
 type AuthContextType = {
   user: User | null;
@@ -188,6 +189,3 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
     </AuthContext.Provider>
   );
 };
-
-// Import from supabase client directly
-import { logoutUser } from "@/services/api/userService/authUtils";
