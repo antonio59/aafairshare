@@ -1,12 +1,10 @@
 
 import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/auth'; // Updated import path
+import { useAuth } from '@/hooks/auth';
 import ConnectionStatus from '@/components/auth/ConnectionStatus';
 import LoginForm from '@/components/auth/LoginForm';
-import SignUpForm from '@/components/auth/SignUpForm';
 import LoadingState from '@/components/auth/LoadingState';
 
 const Login = () => {
@@ -20,8 +18,7 @@ const Login = () => {
     authChecked,
     connectionStatus,
     errorMessage,
-    handleLogin,
-    handleSignUp
+    handleLogin
   } = useAuth();
 
   // Show loading state while checking auth
@@ -36,11 +33,6 @@ const Login = () => {
           <h1 className="text-2xl font-bold">AAFairShare</h1>
           <p className="text-gray-600">Track and split expenses fairly</p>
         </div>
-
-        <ConnectionStatus 
-          connectionStatus={connectionStatus}
-          errorMessage={errorMessage}
-        />
         
         <Card>
           <CardHeader>
@@ -57,42 +49,16 @@ const Login = () => {
             </div>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="login" className="w-full">
-              <TabsList className="grid grid-cols-2 mb-8">
-                <TabsTrigger value="login">Login</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="login">
-                <LoginForm 
-                  email={email}
-                  setEmail={setEmail}
-                  password={password}
-                  setPassword={setPassword}
-                  isLoading={isLoading}
-                  connectionStatus={connectionStatus}
-                  handleSubmit={handleLogin}
-                />
-              </TabsContent>
-
-              <TabsContent value="signup">
-                <SignUpForm 
-                  email={email}
-                  setEmail={setEmail}
-                  password={password}
-                  setPassword={setPassword}
-                  isLoading={isLoading}
-                  connectionStatus={connectionStatus}
-                  handleSubmit={handleSignUp}
-                />
-              </TabsContent>
-            </Tabs>
+            <LoginForm 
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              isLoading={isLoading}
+              connectionStatus={connectionStatus}
+              handleSubmit={handleLogin}
+            />
           </CardContent>
-          <CardFooter className="flex justify-center border-t p-4">
-            <p className="text-sm text-gray-600">
-              By continuing, you agree to our Terms of Service and Privacy Policy.
-            </p>
-          </CardFooter>
         </Card>
       </div>
     </div>
