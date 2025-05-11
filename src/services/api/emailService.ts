@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { User, MonthData, Expense } from "@/types";
 import { generateSettlementReportPDF } from "../export/settlementReportService";
+import { exportToCSV } from "../export/csvExportService";
 
 // Send settlement email to both users
 export const sendSettlementEmail = async (
@@ -32,8 +33,12 @@ export const sendSettlementEmail = async (
       user1.name,
       user2.name
     );
-
-    // Create FormData to send the PDF
+    
+    // Generate CSV report
+    const csvContent = exportToCSV(monthData.expenses, year, month);
+    const csvBlob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // Create FormData to send the reports
     const formData = new FormData();
     formData.append("year", year.toString());
     formData.append("month", month.toString());
@@ -42,6 +47,7 @@ export const sendSettlementEmail = async (
     formData.append("settlementAmount", monthData.settlement.toString());
     formData.append("settlementDirection", monthData.settlementDirection);
     formData.append("reportPdf", pdfReport, `settlement_${year}_${month}.pdf`);
+    formData.append("reportCsv", csvBlob, `expenses_${year}_${month}.csv`);
 
     // Call Supabase Edge Function to send the email
     const { data, error } = await supabase.functions.invoke("send-settlement-email", {

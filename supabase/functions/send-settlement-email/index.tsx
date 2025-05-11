@@ -35,6 +35,7 @@ serve(async (req) => {
     const settlementAmount = formData.get('settlementAmount');
     const settlementDirection = formData.get('settlementDirection');
     const pdfAttachment = formData.get('reportPdf');
+    const csvAttachment = formData.get('reportCsv');
 
     // Validate inputs
     if (!year || !month || !user1Id || !user2Id || !settlementAmount || !settlementDirection) {
@@ -68,6 +69,13 @@ serve(async (req) => {
       const pdfArrayBuffer = await pdfAttachment.arrayBuffer();
       pdfBase64 = btoa(String.fromCharCode(...new Uint8Array(pdfArrayBuffer)));
     }
+    
+    // Convert CSV to base64 for attachment
+    let csvBase64 = '';
+    if (csvAttachment instanceof File) {
+      const csvArrayBuffer = await csvAttachment.arrayBuffer();
+      csvBase64 = btoa(String.fromCharCode(...new Uint8Array(csvArrayBuffer)));
+    }
 
     // Direction message
     let settlementMessage = `No settlement needed for ${monthName} ${year}.`;
@@ -91,7 +99,11 @@ serve(async (req) => {
           <p>Period: ${monthName} ${year}</p>
         </div>
         
-        <p>The settlement report is attached to this email for your records.</p>
+        <p>The settlement report and expense details are attached to this email for your records:</p>
+        <ul>
+          <li>PDF Report - Visual representation of the settlement summary</li>
+          <li>CSV Export - Detailed expense data for the period</li>
+        </ul>
         
         <p>You can log in to the application to view more details and your expense history.</p>
         
@@ -99,18 +111,32 @@ serve(async (req) => {
       </div>
     `;
 
+    // Prepare attachments array
+    const attachments = [];
+    
+    // Add PDF attachment if available
+    if (pdfBase64) {
+      attachments.push({
+        filename: `settlement_report_${year}_${month}.pdf`,
+        content: pdfBase64
+      });
+    }
+    
+    // Add CSV attachment if available
+    if (csvBase64) {
+      attachments.push({
+        filename: `expenses_${year}_${month}.csv`,
+        content: csvBase64
+      });
+    }
+
     // Send the email with Resend
     const emailResponse = await resend.emails.send({
       from: Deno.env.get('SMTP_FROM') || 'AAFairShare <no-reply@aafairshare.com>',
       to: [user1.email, user2.email],
       subject: `AAFairShare: Settlement Complete for ${monthName} ${year}`,
       html: htmlContent,
-      attachments: pdfBase64 ? [
-        {
-          filename: `settlement_report_${year}_${month}.pdf`,
-          content: pdfBase64
-        }
-      ] : undefined
+      attachments: attachments.length > 0 ? attachments : undefined
     });
 
     console.log("Email sent successfully:", emailResponse);
