@@ -1,3 +1,4 @@
+
 # Welcome to your Lovable project
 
 ## Project info
@@ -62,7 +63,25 @@ This project is built with:
 
 ## How can I deploy this project?
 
+**Manual Deployment with Lovable**
 Simply open [Lovable](https://lovable.dev/projects/ec5bb77b-9cb5-410a-a485-c7fd0ccfd48d) and click on Share -> Publish.
+
+**Automated Deployment with GitHub Actions to Netlify**
+This project includes a GitHub Actions workflow that automatically deploys to Netlify when you push to the main branch.
+
+To set up automated Netlify deployments:
+
+1. Create a Netlify account at [netlify.com](https://netlify.com) if you don't have one.
+2. Create a new site in Netlify from your Git repository.
+3. In your Netlify site settings, navigate to "Site settings" > "Build & deploy" > "Environment variables".
+4. Take note of your Netlify Site ID (found in "Site settings" > "General" > "Site details" > "Site ID").
+5. Generate a Netlify personal access token at "User settings" > "Applications" > "Personal access tokens".
+6. Add the following secrets to your GitHub repository (Settings > Secrets and variables > Actions):
+   - `NETLIFY_AUTH_TOKEN`: Your Netlify personal access token.
+   - `NETLIFY_SITE_ID`: The ID of your Netlify site.
+7. Once set up, every push to the main branch will trigger a deployment to Netlify.
+
+For manual deployments, you can use the "Deploy manually" option in the GitHub Actions tab of your repository.
 
 ## Can I connect a custom domain to my Lovable project?
 
@@ -71,3 +90,9 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+**For Netlify deployments**:
+1. Go to your Netlify site dashboard
+2. Navigate to "Site settings" > "Domain management" > "Custom domains"
+3. Add your domain and follow the instructions to set up DNS records
+
