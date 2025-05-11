@@ -3,7 +3,7 @@ import { getSupabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { showToast } from "@/components/ui/use-toast";
 
-// Check if authenticated user exists in users table and create if not
+// Check if authenticated user exists in users table - no creation for closed app
 export const syncAuthUser = async (): Promise<User | null> => {
   try {
     // Get supabase client
@@ -14,16 +14,16 @@ export const syncAuthUser = async (): Promise<User | null> => {
     
     if (!authUser) return null;
     
-    console.log("Syncing auth user:", authUser.email);
+    console.log("Looking up authenticated user:", authUser.email);
     
-    // Check if user already exists by email first before attempting any updates
+    // Check if user exists by email
     const { data: existingUserByEmail, error: emailError } = await supabase
       .from('users')
       .select('*')
       .eq('email', authUser.email)
       .maybeSingle();
     
-    // If user exists by email, just use that
+    // If user exists by email, use that
     if (!emailError && existingUserByEmail) {
       console.log("Found existing user by email:", existingUserByEmail.email);
       return {
@@ -49,48 +49,13 @@ export const syncAuthUser = async (): Promise<User | null> => {
       };
     }
     
-    // No user found, create a new one only if we really need to
-    let username = authUser.user_metadata?.name || authUser.email?.split('@')[0] || null;
+    // No user found in database - this is a closed app, so return null
+    console.log("No existing user found for this account. Access denied.");
+    showToast.error("Access denied", "Your account is not authorized to use this application");
     
-    console.log("Creating new user for:", authUser.email);
-    const { data: newUser, error: createError } = await supabase
-      .from('users')
-      .insert([{
-        id: authUser.id,
-        email: authUser.email,
-        username: username,
-        photo_url: authUser.user_metadata?.avatar_url || null
-      }])
-      .select()
-      .single();
-    
-    if (createError) {
-      console.error("Error creating user:", createError);
-      
-      // As a last resort, try to get the user one more time
-      const { data: finalFallbackUser } = await supabase
-        .from('users')
-        .select('*')
-        .eq('email', authUser.email)
-        .maybeSingle();
-        
-      if (finalFallbackUser) {
-        console.log("Found user in final fallback:", finalFallbackUser.email);
-        return {
-          id: finalFallbackUser.id,
-          name: finalFallbackUser.username || finalFallbackUser.email.split('@')[0],
-          avatar: finalFallbackUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${finalFallbackUser.username || finalFallbackUser.email}`
-        };
-      }
-      
-      return null;
-    }
-    
-    return {
-      id: newUser.id,
-      name: newUser.username || newUser.email.split('@')[0],
-      avatar: newUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${newUser.username || newUser.email}`
-    };
+    // Force logout since this is not an authorized user
+    await supabase.auth.signOut({ scope: 'global' });
+    return null;
   } catch (error) {
     console.error("Error syncing auth user:", error);
     return null;

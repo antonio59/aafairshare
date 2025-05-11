@@ -50,7 +50,7 @@ export const useLoginHandler = ({
       // Get supabase client
       const supabase = await getSupabase();
       
-      // Sign in with Supabase - no need to try creating new users
+      // Sign in with Supabase - closed app, only authentication is allowed
       console.log("Sending sign-in request to Supabase");
       const { data, error } = await supabase.auth.signInWithPassword({
         email,

@@ -7,7 +7,7 @@ import ConnectionStatus from '@/components/auth/ConnectionStatus';
 import LoginForm from '@/components/auth/LoginForm';
 import LoadingState from '@/components/auth/LoadingState';
 import { Button } from '@/components/ui/button';
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, InfoIcon } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { cleanupAuthState } from '@/integrations/supabase/client';
 
@@ -58,8 +58,8 @@ const Login = () => {
         
         <Card>
           <CardHeader>
-            <CardTitle>Welcome back</CardTitle>
-            <CardDescription>Sign in to access your shared expenses</CardDescription>
+            <CardTitle>Sign in</CardTitle>
+            <CardDescription>Enter your credentials to access the application</CardDescription>
             <div className="mt-2">
               <ConnectionStatus 
                 connectionStatus={connectionStatus}
@@ -91,11 +91,11 @@ const Login = () => {
             </div>
             
             <div className="mt-4 w-full">
-              <Alert variant="destructive">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Having trouble?</AlertTitle>
+              <Alert>
+                <InfoIcon className="h-4 w-4" />
+                <AlertTitle>Closed Application</AlertTitle>
                 <AlertDescription>
-                  If you're having issues logging in, try resetting the authentication state using the button above, then try again.
+                  This is a closed application. Only authorized users with existing accounts can log in.
                 </AlertDescription>
               </Alert>
             </div>
