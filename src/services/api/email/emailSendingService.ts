@@ -38,27 +38,19 @@ export class EmailSendingService {
       
       console.log("Supabase client initialized successfully");
       
-      // Check if the edge function is available
-      try {
-        const functionAvailable = await EmailAvailabilityService.checkFunctionAvailability();
-        console.log("Edge function availability check result:", functionAvailable);
-      } catch (err) {
-        console.warn("Function availability check failed:", err);
-        // Continue anyway as the check is not critical
-      }
-      
       // Prepare form data
       console.log("Preparing form data...");
       const { formData } = await EmailFormDataService.prepareFormData(users, config);
       
       console.log("Invoking edge function send-settlement-email");
 
-      // Call the edge function with proper headers
+      // Call the edge function with proper headers and longer timeout
       const { data, error } = await supabase.functions.invoke("send-settlement-email", {
         body: formData,
         headers: {
-          'Request-Timeout': '60000ms', // Increased to 60 seconds timeout
-          'Content-Type': 'multipart/form-data'  
+          'Request-Timeout': '120000ms', // Increased to 2 minutes timeout
+          'Content-Type': 'multipart/form-data',
+          'Accept': 'application/json'
         }
       });
 
@@ -69,6 +61,12 @@ export class EmailSendingService {
           stack: error.stack,
           context: error.context
         });
+        
+        // Provide more specific error message for edge function availability issues
+        if (error.message.includes("Failed to send a request") || error.message.includes("fetch")) {
+          throw new Error(`Edge function unavailable: The send-settlement-email function appears to be unavailable. This could be due to deployment issues or temporary service disruption. Error: ${error.message}`);
+        }
+        
         throw new Error(`Edge function error: ${error.message}`);
       }
 
@@ -95,8 +93,9 @@ export class EmailSendingService {
         errorMessage = error.message;
         
         // Provide more helpful error message for common issues
-        if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network")) {
-          errorMessage = "Unable to connect to the email service. This could be due to network issues or the edge function may be unavailable.";
+        if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network") || 
+            errorMessage.includes("unavailable") || errorMessage.includes("Failed to send a request")) {
+          errorMessage = "Unable to connect to the email service. This could be due to network issues or the edge function may be unavailable. Please check that the edge function is properly deployed in the Supabase dashboard.";
         } else if (errorMessage.includes("timeout")) {
           errorMessage = "The request timed out while trying to send the email. The server might be busy or experiencing issues.";
         }

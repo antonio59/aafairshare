@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { User } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mail, Check, RefreshCw } from "lucide-react";
+import { Loader2, Mail, Check, RefreshCw, AlertTriangle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EmailSendingService } from "@/services/api/email";
 import { TestEmailConfig } from "@/services/api/email/types";
@@ -32,6 +32,7 @@ export const EmailForm = ({
 }: EmailFormProps) => {
   const { toast } = useToast();
   const [retryCount, setRetryCount] = useState(0);
+  const [showDebugging, setShowDebugging] = useState(false);
 
   const handleSendTest = async () => {
     // Validate that we have at least two users
@@ -82,7 +83,9 @@ export const EmailForm = ({
       // Provide more helpful error message for common issues
       let userFriendlyMessage = errorMessage;
       
-      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network") || errorMessage.includes("connect") || errorMessage.includes("Failed to send a request")) {
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network") || 
+          errorMessage.includes("connect") || errorMessage.includes("Failed to send a request") || 
+          errorMessage.includes("unavailable")) {
         userFriendlyMessage = "Unable to connect to the email service. This could be due to network issues or the edge function may be unavailable. Please check that the edge function is properly deployed in the Supabase dashboard.";
       } else if (errorMessage.includes("timeout")) {
         userFriendlyMessage = "The request timed out while trying to send the email. The server might be busy or experiencing issues.";
@@ -111,6 +114,16 @@ export const EmailForm = ({
       description: "Retry count has been reset to maximum. Try sending the email again.",
     });
   };
+  
+  const toggleDebugging = () => {
+    setShowDebugging(prev => !prev);
+    if (!showDebugging) {
+      toast({
+        title: "Debugging Mode Enabled",
+        description: "Advanced debugging options are now available.",
+      });
+    }
+  };
 
   return (
     <div className="space-y-2">
@@ -137,16 +150,40 @@ export const EmailForm = ({
         )}
       </Button>
 
-      {retryCount > 2 && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleSetMaxRetryAttempt} 
-          className="w-full mt-2"
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Reset Edge Function Connection
-        </Button>
+      {retryCount > 1 && (
+        <div className="flex flex-col gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleSetMaxRetryAttempt} 
+            className="w-full"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reset Edge Function Connection
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleDebugging}
+            className="w-full text-xs"
+          >
+            <AlertTriangle className="mr-2 h-3 w-3" />
+            {showDebugging ? "Hide Debugging Info" : "Show Debugging Info"}
+          </Button>
+          
+          {showDebugging && (
+            <div className="text-xs text-muted-foreground mt-2 p-2 bg-muted/50 rounded border">
+              <p className="font-semibold mb-1">Edge Function Debug Tips:</p>
+              <ul className="list-disc pl-4 space-y-1">
+                <li>The function may not be deployed or configured correctly</li>
+                <li>Check the Supabase dashboard for function logs</li>
+                <li>Verify CORS settings in the function</li>
+                <li>Ensure required environment variables are set</li>
+              </ul>
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
