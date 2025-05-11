@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { getSupabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
@@ -57,8 +58,11 @@ const TestEmail = () => {
     enabled: isSupabaseReady, // Only run this query when Supabase is ready
   });
   
-  // Type assertion to make TypeScript happy
-  const users = fetchedUsers as ExtendedUser[];
+  // Ensure users have email properties
+  const users = fetchedUsers.map(user => ({
+    ...user,
+    email: 'email' in user ? user.email : undefined
+  }));
 
   const handleRetryConnection = () => {
     setRetryCount(prev => prev + 1);

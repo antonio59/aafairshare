@@ -1,4 +1,3 @@
-
 import { getSupabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { showToast } from "@/components/ui/use-toast";
@@ -120,6 +119,7 @@ export const getUsers = async (): Promise<User[]> => {
   return data.map(user => ({
     id: user.id,
     name: user.username || user.email.split('@')[0], // Use username or fallback to email
-    avatar: user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.email}`
+    avatar: user.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.username || user.email}`,
+    email: user.email // Make sure email is included
   }));
 };

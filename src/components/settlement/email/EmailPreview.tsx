@@ -16,10 +16,21 @@ interface EmailPreviewProps {
 }
 
 export const EmailPreview = ({ users, usersMinRequired, testData }: EmailPreviewProps) => {
+  // Check if we have enough users
   if (users.length < usersMinRequired) {
     return (
       <div className="text-amber-500 text-sm p-4 bg-amber-50 rounded-md">
         You need at least two users in your system to test this feature.
+      </div>
+    );
+  }
+
+  // Check if users have email addresses
+  const usersWithEmail = users.filter(user => 'email' in user && user.email);
+  if (usersWithEmail.length < usersMinRequired) {
+    return (
+      <div className="text-amber-500 text-sm p-4 bg-amber-50 rounded-md">
+        Some users don't have email addresses. Please make sure all users in the database have valid email addresses.
       </div>
     );
   }

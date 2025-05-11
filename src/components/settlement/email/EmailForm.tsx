@@ -32,6 +32,7 @@ export const EmailForm = ({
   const { toast } = useToast();
 
   const handleSendTest = async () => {
+    // Validate that we have at least two users
     if (users.length < 2) {
       toast({
         title: "Error",
@@ -41,10 +42,25 @@ export const EmailForm = ({
       return;
     }
 
+    // Check if users have email property
+    const usersWithEmail = users.filter(user => 'email' in user && user.email);
+    if (usersWithEmail.length < 2) {
+      toast({
+        title: "Error",
+        description: "Both users must have email addresses. Please ensure users in the database have email addresses.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     onSendStart();
 
     try {
-      const result = await EmailSendingService.sendTestEmail(users, testConfig);
+      // Pass only the first two users with emails
+      const result = await EmailSendingService.sendTestEmail(
+        usersWithEmail.slice(0, 2),
+        testConfig
+      );
       
       if (result.success) {
         toast({

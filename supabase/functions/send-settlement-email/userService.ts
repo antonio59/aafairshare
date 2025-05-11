@@ -20,9 +20,11 @@ export async function getUsersData(
   user1Id: string,
   user2Id: string
 ): Promise<UsersResult> {
+  console.log(`Fetching data for users: ${user1Id} and ${user2Id}`);
+  
   const { data: users, error: userError } = await supabase
     .from('users')
-    .select('id, email, name')
+    .select('id, email, username')
     .in('id', [user1Id, user2Id]);
 
   if (userError) {
@@ -49,5 +51,16 @@ export async function getUsersData(
     throw new Error("Could not find valid email addresses for both users");
   }
 
-  return { user1, user2 };
+  return { 
+    user1: {
+      id: user1.id,
+      email: user1.email,
+      name: user1.username || user1.email.split('@')[0]
+    }, 
+    user2: {
+      id: user2.id,
+      email: user2.email,
+      name: user2.username || user2.email.split('@')[0]
+    } 
+  };
 }
