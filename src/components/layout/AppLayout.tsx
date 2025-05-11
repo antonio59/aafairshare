@@ -14,11 +14,11 @@ const AppLayout = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [loadingText, setLoadingText] = useState("Initializing...");
   const [retryCount, setRetryCount] = useState(0);
+  const [authTimeout, setAuthTimeout] = useState<number | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {
     let isMounted = true;
-    let authCheckTimeout: number | null = null;
     
     const checkAuth = async () => {
       try {
@@ -26,14 +26,16 @@ const AppLayout = () => {
         setIsLoading(true);
         setLoadingText("Checking authentication...");
         
-        // Set timeout to detect potential auth deadlocks
-        authCheckTimeout = window.setTimeout(() => {
+        // Set timeout to detect potential auth deadlocks - increased timeout
+        const timeout = window.setTimeout(() => {
           if (isMounted) {
             console.warn("Authentication check is taking too long, possible deadlock");
             localStorage.setItem('auth-error-detected', 'true');
             navigate('/login');
           }
-        }, 10000); // 10 second timeout
+        }, 15000); // 15 second timeout
+        
+        setAuthTimeout(timeout);
         
         // First set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -55,6 +57,7 @@ const AppLayout = () => {
         );
         
         // After listener setup, check for existing session
+        console.log("Checking for existing session...");
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
@@ -73,7 +76,7 @@ const AppLayout = () => {
         
         if (!session) {
           if (isMounted) {
-            console.log("No active session found");
+            console.log("No active session found, redirecting to login");
             navigate('/login');
             setIsLoading(false);
           }
@@ -95,8 +98,8 @@ const AppLayout = () => {
           navigate('/login');
         }
       } finally {
-        if (authCheckTimeout) {
-          clearTimeout(authCheckTimeout);
+        if (authTimeout) {
+          clearTimeout(authTimeout);
         }
       }
     };
@@ -113,6 +116,7 @@ const AppLayout = () => {
         // If that fails, try to sync auth user
         if (!currentUser && retryCount < 2) {
           setLoadingText("Synchronizing user data...");
+          console.log("Attempting to sync auth user...");
           currentUser = await syncAuthUser();
         }
         
@@ -156,8 +160,8 @@ const AppLayout = () => {
     
     return () => {
       isMounted = false;
-      if (authCheckTimeout) {
-        clearTimeout(authCheckTimeout);
+      if (authTimeout) {
+        clearTimeout(authTimeout);
       }
     };
   }, [navigate, toast]);

@@ -15,8 +15,8 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   return (
     <>
       {connectionStatus === 'offline' && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
+        <Alert variant="destructive">
+          <WifiOff className="h-4 w-4" />
           <AlertTitle>You are offline</AlertTitle>
           <AlertDescription>
             Please check your internet connection and try again.
@@ -25,26 +25,19 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       )}
       
       {errorMessage && (
-        <Alert variant="destructive" className="mb-6">
+        <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Authentication Error</AlertTitle>
           <AlertDescription>{errorMessage}</AlertDescription>
         </Alert>
       )}
 
-      <div className="text-sm flex items-center gap-1 text-gray-500">
-        {connectionStatus === 'online' ? (
-          <>
-            <Wifi className="h-4 w-4" />
-            <span>Online</span>
-          </>
-        ) : (
-          <>
-            <WifiOff className="h-4 w-4" />
-            <span>Offline</span>
-          </>
-        )}
-      </div>
+      {!errorMessage && connectionStatus === 'online' && (
+        <div className="text-sm flex items-center gap-1 text-green-600">
+          <Wifi className="h-4 w-4" />
+          <span>Connected to server</span>
+        </div>
+      )}
     </>
   );
 };

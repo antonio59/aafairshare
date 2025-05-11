@@ -15,19 +15,19 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     storage: localStorage,
     storageKey: 'aafairshare-auth', // Use a unique key to prevent conflicts
-    detectSessionInUrl: true
+    detectSessionInUrl: false // Change to false to prevent URL parsing issues
   },
   global: {
     headers: {
       'Content-Type': 'application/json',
     },
-    // Add retry configuration
+    // Add retry configuration with longer timeout
     fetch: (url, options) => {
       // Default fetch implementation with retry logic
       return fetch(url, {
         ...options,
         // Increase timeout for better reliability
-        signal: options?.signal || AbortSignal.timeout(30000)
+        signal: options?.signal || AbortSignal.timeout(45000) // 45 seconds timeout
       }).catch(error => {
         console.error("Fetch error:", error);
         throw error;
@@ -43,7 +43,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLine;
 
 // Function to check Supabase availability with retry
-export const checkSupabaseConnection = async (retries = 2): Promise<boolean> => {
+export const checkSupabaseConnection = async (retries = 3): Promise<boolean> => {
   let attempt = 0;
   
   while (attempt <= retries) {
@@ -59,7 +59,7 @@ export const checkSupabaseConnection = async (retries = 2): Promise<boolean> => 
       
       // Only wait between retries, not after the last one
       if (attempt <= retries) {
-        await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        await new Promise(resolve => setTimeout(resolve, 1500 * attempt));
       }
     }
   }

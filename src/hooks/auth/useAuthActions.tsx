@@ -95,7 +95,8 @@ export const useAuthActions = ({
         console.log("Pre-signout failed, continuing with login", err);
       }
       
-      // Sign in with Supabase
+      // Sign in with Supabase with modified approach
+      console.log("Sending sign-in request to Supabase");
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -103,11 +104,13 @@ export const useAuthActions = ({
       
       if (error) throw error;
       
-      showToast.success("Login successful", "You have been logged in successfully.");
+      // Log success and session details (no sensitive info)
+      console.log("Login successful, session established:", !!data.session);
       
-      console.log("Login successful, redirecting to homepage");
+      showToast.success("Login successful!");
       
-      // Force a page reload for clean state
+      // Force a page reload for clean state - more reliable than navigation
+      console.log("Redirecting to homepage");
       window.location.href = '/';
     } catch (error: any) {
       console.error("Login error:", error);
@@ -127,79 +130,8 @@ export const useAuthActions = ({
     }
   };
   
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Input validation
-    const validationError = validateSignupInputs(email, password);
-    if (validationError) {
-      setErrorMessage(validationError);
-      return;
-    }
-    
-    // Check connection
-    const connection = await checkConnectionAndSupabase();
-    if (!connection.isConnected) {
-      setErrorMessage(connection.error || "Connection error");
-      return;
-    }
-    
-    setIsLoading(true);
-    setErrorMessage(null);
-    
-    try {
-      console.log("Attempting signup for:", email);
-      
-      // Clean up existing state
-      cleanupAuthState();
-      
-      // Try to sign out first to ensure clean state
-      try {
-        await supabase.auth.signOut({ scope: 'global' });
-      } catch (err) {
-        // Continue even if this fails
-        console.log("Pre-signout failed, continuing with signup", err);
-      }
-      
-      // Sign up with Supabase
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          emailRedirectTo: window.location.origin
-        }
-      });
-      
-      if (error) throw error;
-      
-      showToast.success("Sign up successful", "Your account has been created successfully. Please check your email for verification.");
-      
-      if (data.session) {
-        console.log("Auto-confirmed signup, redirecting to homepage");
-        // If auto-confirmed, redirect to home
-        window.location.href = '/';
-      }
-    } catch (error: any) {
-      console.error("Sign up error:", error);
-      
-      // Handle specific errors
-      if (!navigator.onLine || error.message === 'Failed to fetch' || error.code === 'NETWORK_ERROR') {
-        setErrorMessage("Network connection problem. Please check your internet connection and try again.");
-      } else if (error.message?.includes('already registered')) {
-        setErrorMessage("This email is already registered. Please try logging in instead.");
-      } else {
-        setErrorMessage(error.message || "An error occurred during sign up. Please try again.");
-      }
-      
-      showToast.error("Sign up failed", error.message || "An error occurred during sign up");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
   return {
     checkSession,
-    handleLogin,
-    handleSignUp
+    handleLogin
   };
 };

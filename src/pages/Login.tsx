@@ -36,15 +36,12 @@ const Login = () => {
         
         <Card>
           <CardHeader>
-            <div className="flex justify-between items-center">
-              <div>
-                <CardTitle>Welcome</CardTitle>
-                <CardDescription>Sign in to access your shared expenses</CardDescription>
-              </div>
-              
+            <CardTitle>Welcome back</CardTitle>
+            <CardDescription>Sign in to access your shared expenses</CardDescription>
+            <div className="mt-2">
               <ConnectionStatus 
                 connectionStatus={connectionStatus}
-                errorMessage={null}
+                errorMessage={errorMessage}
               />
             </div>
           </CardHeader>
@@ -52,7 +49,7 @@ const Login = () => {
             <LoginForm 
               email={email}
               setEmail={setEmail}
-              password={password}
+              password={setPassword}
               setPassword={setPassword}
               isLoading={isLoading}
               connectionStatus={connectionStatus}
