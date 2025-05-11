@@ -32,8 +32,23 @@ export class EmailSendingService {
 
       // Get Supabase client first so we fail early if there's an authentication issue
       const supabase = await getSupabase();
+      if (!supabase) {
+        throw new Error("Failed to initialize Supabase client");
+      }
+      
+      console.log("Supabase client initialized successfully");
+      
+      // Check if the edge function is available
+      try {
+        const functionAvailable = await EmailAvailabilityService.checkFunctionAvailability();
+        console.log("Edge function availability check result:", functionAvailable);
+      } catch (err) {
+        console.warn("Function availability check failed:", err);
+        // Continue anyway as the check is not critical
+      }
       
       // Prepare form data
+      console.log("Preparing form data...");
       const { formData } = await EmailFormDataService.prepareFormData(users, config);
       
       console.log("Invoking edge function send-settlement-email");
@@ -48,7 +63,12 @@ export class EmailSendingService {
       });
 
       if (error) {
-        console.error("Edge function error:", error);
+        console.error("Edge function error details:", {
+          message: error.message,
+          name: error.name,
+          stack: error.stack,
+          context: error.context
+        });
         throw new Error(`Edge function error: ${error.message}`);
       }
 
@@ -69,7 +89,18 @@ export class EmailSendingService {
       
     } catch (error: any) {
       console.error("Error sending test email:", error);
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+      
+      let errorMessage = "Unknown error occurred";
+      if (error instanceof Error) {
+        errorMessage = error.message;
+        
+        // Provide more helpful error message for common issues
+        if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network")) {
+          errorMessage = "Unable to connect to the email service. This could be due to network issues or the edge function may be unavailable.";
+        } else if (errorMessage.includes("timeout")) {
+          errorMessage = "The request timed out while trying to send the email. The server might be busy or experiencing issues.";
+        }
+      }
       
       // Return error details
       return {

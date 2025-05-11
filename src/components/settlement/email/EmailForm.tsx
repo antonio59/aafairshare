@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { User } from "@/types";
 import { Button } from "@/components/ui/button";
-import { Loader2, Mail, Check } from "lucide-react";
+import { Loader2, Mail, Check, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { EmailSendingService } from "@/services/api/email";
 import { TestEmailConfig } from "@/services/api/email/types";
@@ -82,8 +82,8 @@ export const EmailForm = ({
       // Provide more helpful error message for common issues
       let userFriendlyMessage = errorMessage;
       
-      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network") || errorMessage.includes("connect")) {
-        userFriendlyMessage = "Unable to connect to the email service. This could be due to network issues or the edge function may be unavailable. Please try again later.";
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("network") || errorMessage.includes("connect") || errorMessage.includes("Failed to send a request")) {
+        userFriendlyMessage = "Unable to connect to the email service. This could be due to network issues or the edge function may be unavailable. Please check that the edge function is properly deployed in the Supabase dashboard.";
       } else if (errorMessage.includes("timeout")) {
         userFriendlyMessage = "The request timed out while trying to send the email. The server might be busy or experiencing issues.";
       }
@@ -103,28 +103,51 @@ export const EmailForm = ({
     }
   };
 
+  const handleSetMaxRetryAttempt = () => {
+    // Force a retry with a high count to attempt to trigger a different behavior
+    setRetryCount(10);
+    toast({
+      title: "Reset Retry Count",
+      description: "Retry count has been reset to maximum. Try sending the email again.",
+    });
+  };
+
   return (
-    <Button 
-      onClick={handleSendTest} 
-      disabled={!isSupabaseReady || isSending || isLoadingUsers || users.length < 2}
-      className="w-full"
-    >
-      {isSending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Sending Email...
-        </>
-      ) : success ? (
-        <>
-          <Check className="mr-2 h-4 w-4" />
-          Send Another Test Email
-        </>
-      ) : (
-        <>
-          <Mail className="mr-2 h-4 w-4" />
-          Send Test Email {retryCount > 1 ? `(Attempt ${retryCount})` : ''}
-        </>
+    <div className="space-y-2">
+      <Button 
+        onClick={handleSendTest} 
+        disabled={!isSupabaseReady || isSending || isLoadingUsers || users.length < 2}
+        className="w-full"
+      >
+        {isSending ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Sending Email...
+          </>
+        ) : success ? (
+          <>
+            <Check className="mr-2 h-4 w-4" />
+            Send Another Test Email
+          </>
+        ) : (
+          <>
+            <Mail className="mr-2 h-4 w-4" />
+            Send Test Email {retryCount > 1 ? `(Attempt ${retryCount})` : ''}
+          </>
+        )}
+      </Button>
+
+      {retryCount > 2 && (
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={handleSetMaxRetryAttempt} 
+          className="w-full mt-2"
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Reset Edge Function Connection
+        </Button>
       )}
-    </Button>
+    </div>
   );
-};
+}
