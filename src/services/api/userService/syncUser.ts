@@ -1,3 +1,4 @@
+
 import { getSupabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
 import { showToast } from "@/components/ui/use-toast";
@@ -13,7 +14,26 @@ export const syncAuthUser = async (): Promise<User | null> => {
     
     if (!authUser) return null;
     
-    // Check if user exists in our users table
+    console.log("Syncing auth user:", authUser.email);
+    
+    // Check if user already exists by email first before attempting any updates
+    const { data: existingUserByEmail, error: emailError } = await supabase
+      .from('users')
+      .select('*')
+      .eq('email', authUser.email)
+      .maybeSingle();
+    
+    // If user exists by email, just use that
+    if (!emailError && existingUserByEmail) {
+      console.log("Found existing user by email:", existingUserByEmail.email);
+      return {
+        id: existingUserByEmail.id,
+        name: existingUserByEmail.username || existingUserByEmail.email.split('@')[0],
+        avatar: existingUserByEmail.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${existingUserByEmail.username || existingUserByEmail.email}`
+      };
+    }
+    
+    // If not found by email, check by ID
     const { data: existingUser, error: fetchError } = await supabase
       .from('users')
       .select('*')
@@ -29,34 +49,7 @@ export const syncAuthUser = async (): Promise<User | null> => {
       };
     }
     
-    // User doesn't exist by ID, check by email to handle migration cases
-    const { data: emailUser, error: emailError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('email', authUser.email)
-      .maybeSingle();
-    
-    if (!emailError && emailUser) {
-      console.log("Found user by email:", emailUser.email);
-      // User exists with this email but different ID, update the ID
-      const { data: updatedUser, error: updateError } = await supabase
-        .from('users')
-        .update({ id: authUser.id })
-        .eq('email', authUser.email)
-        .select()
-        .maybeSingle();
-      
-      if (!updateError && updatedUser) {
-        console.log("Updated user ID for:", updatedUser.email);
-        return {
-          id: updatedUser.id,
-          name: updatedUser.username || updatedUser.email.split('@')[0],
-          avatar: updatedUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${updatedUser.username || updatedUser.email}`
-        };
-      }
-    }
-    
-    // No user found, create new user
+    // No user found, create a new one only if we really need to
     let username = authUser.user_metadata?.name || authUser.email?.split('@')[0] || null;
     
     console.log("Creating new user for:", authUser.email);
@@ -74,19 +67,19 @@ export const syncAuthUser = async (): Promise<User | null> => {
     if (createError) {
       console.error("Error creating user:", createError);
       
-      // As a fallback, try to get the user once more
-      const { data: retryUser } = await supabase
+      // As a last resort, try to get the user one more time
+      const { data: finalFallbackUser } = await supabase
         .from('users')
         .select('*')
         .eq('email', authUser.email)
         .maybeSingle();
         
-      if (retryUser) {
-        console.log("Found user in fallback:", retryUser.email);
+      if (finalFallbackUser) {
+        console.log("Found user in final fallback:", finalFallbackUser.email);
         return {
-          id: retryUser.id,
-          name: retryUser.username || retryUser.email.split('@')[0],
-          avatar: retryUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${retryUser.username || retryUser.email}`
+          id: finalFallbackUser.id,
+          name: finalFallbackUser.username || finalFallbackUser.email.split('@')[0],
+          avatar: finalFallbackUser.photo_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${finalFallbackUser.username || finalFallbackUser.email}`
         };
       }
       
