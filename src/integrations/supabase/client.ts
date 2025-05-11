@@ -16,7 +16,8 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     autoRefreshToken: true,
     storage: localStorage,
     storageKey: 'aafairshare-auth', // Use a unique key to prevent conflicts
-    detectSessionInUrl: false // Change to false to prevent URL parsing issues
+    detectSessionInUrl: false, // Change to false to prevent URL parsing issues
+    flowType: 'implicit' // Use implicit flow for more reliable session handling
   },
   global: {
     headers: {
@@ -28,7 +29,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
       return fetch(url, {
         ...options,
         // Increase timeout for better reliability
-        signal: options?.signal || AbortSignal.timeout(20000) // 20 seconds timeout (reduced from 45s)
+        signal: options?.signal || AbortSignal.timeout(30000) // 30 seconds timeout (increased from 20s)
       }).catch(error => {
         console.error("Fetch error:", error);
         throw error;
@@ -36,7 +37,7 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     }
   },
   realtime: {
-    heartbeatIntervalMs: 20000 // More aggressive heartbeating
+    heartbeatIntervalMs: 30000 // More regular heartbeating (increased from 20s)
   }
 });
 

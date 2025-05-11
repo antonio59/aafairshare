@@ -61,8 +61,8 @@ const App = () => {
           setAuthTimeout(true);
           setAuthError("Authentication check timed out. Please try again.");
           setIsAuthenticated(false);
-          cleanupAuthState(); // Clean up any corrupt auth state
-        }, 10000); // 10 second timeout
+          // Don't clean up auth state automatically - this is causing unwanted logouts
+        }, 30000); // Increased from 10s to 30s
         
         // Check if we're online
         if (!isOnline()) {

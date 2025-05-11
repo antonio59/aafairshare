@@ -63,10 +63,9 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
           variant: "destructive",
         });
         
-        // Mark auth error for cleanup on next load
+        // Mark auth error for cleanup on next load, but don't automatically clean up
         localStorage.setItem('auth-error-detected', 'true');
         
-        await logoutUser();
         navigate('/login', { replace: true });
       }
     } catch (error) {
@@ -114,22 +113,15 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
         setIsLoading(true);
         setLoadingText("Checking authentication...");
         
-        // Set timeout to detect potential auth deadlocks - reduced timeout
+        // Set timeout to detect potential auth deadlocks - increased timeout
         const timeout = setTimeout(() => {
           if (isMounted) {
             console.warn("Authentication check is taking too long, possible deadlock");
-            localStorage.setItem('auth-error-detected', 'true');
-            
-            // Clean up auth state
-            cleanupAuthState();
-            
-            // Force sign out
-            forceSignOut().finally(() => {
-              // Redirect to login page
-              navigate('/login', { replace: true });
-            });
+            // Don't automatically clean up tokens - this causes unwanted logouts
+            // Only navigate to login
+            navigate('/login', { replace: true });
           }
-        }, 10000); // 10 second timeout (reduced from 15s)
+        }, 30000); // 30 second timeout (increased from 10s)
         
         setAuthTimeout(timeout);
         
@@ -169,7 +161,7 @@ export const AuthProvider = ({ children }: AuthProviderProps) => {
             
             console.log("Auth state changed:", event);
             
-            if (event === 'SIGNED_IN') {
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
               // Defer loading user data to avoid potential deadlocks
               setTimeout(() => {
                 if (isMounted) loadUserData();
