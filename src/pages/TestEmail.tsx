@@ -9,6 +9,12 @@ import { Loader2, Mail, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { generateSettlementReportPDF } from "@/services/export/settlementReportService";
 import { exportToCSV } from "@/services/export/csvExportService";
+import { User, Expense } from "@/types";
+
+// Extended user type that includes email
+interface ExtendedUser extends User {
+  email: string;
+}
 
 const TestEmail = () => {
   const { toast } = useToast();
@@ -18,7 +24,7 @@ const TestEmail = () => {
   const { data: users = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users"],
     queryFn: getUsers,
-  });
+  }) as { data: ExtendedUser[], isLoading: boolean };
 
   const handleSendTest = async () => {
     if (users.length < 2) {
@@ -38,36 +44,48 @@ const TestEmail = () => {
       const testYear = new Date().getFullYear();
       const testMonth = new Date().getMonth() + 1;
       
-      // Create sample data
+      // Create sample data with correct expense format
+      const sampleExpenses: Expense[] = [
+        {
+          id: "test-1",
+          description: "Groceries",
+          amount: 85.25,
+          date: new Date().toISOString(),
+          category: "Food",
+          location: "Supermarket",
+          paidBy: users[0].id,
+          split: "50/50"
+        },
+        {
+          id: "test-2",
+          description: "Dinner",
+          amount: 65.50,
+          date: new Date().toISOString(),
+          category: "Food",
+          location: "Restaurant",
+          paidBy: users[1].id,
+          split: "50/50"
+        }
+      ];
+      
       const sampleMonthData = {
         totalExpenses: 350.75,
         user1Paid: 200.50,
         user2Paid: 150.25,
         settlement: 25.125,
-        settlementDirection: "owes",
-        expenses: [
-          {
-            id: "test-1",
-            description: "Groceries",
-            amount: 85.25,
-            date: new Date().toISOString(),
-            paid_by_id: users[0].id,
-            split_type: "50/50"
-          },
-          {
-            id: "test-2",
-            description: "Dinner",
-            amount: 65.50,
-            date: new Date().toISOString(),
-            paid_by_id: users[1].id,
-            split_type: "50/50"
-          }
-        ]
+        settlementDirection: "owes" as const,
+        expenses: sampleExpenses
       };
       
       // Generate PDF report
       const pdfReport = generateSettlementReportPDF(
-        sampleMonthData,
+        {
+          totalExpenses: sampleMonthData.totalExpenses,
+          user1Paid: sampleMonthData.user1Paid,
+          user2Paid: sampleMonthData.user2Paid,
+          settlement: sampleMonthData.settlement,
+          settlementDirection: sampleMonthData.settlementDirection
+        },
         testYear,
         testMonth,
         users[0].name,
