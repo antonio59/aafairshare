@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { supabase, isOnline, checkSupabaseConnection, cleanupAuthState, forceSignOut } from '@/integrations/supabase/client';
+import { getSupabase, isOnline, checkSupabaseConnection, cleanupAuthState, forceSignOut } from '@/integrations/supabase/client';
 import { showToast } from '@/components/ui/use-toast';
 import { validateLoginInputs, checkConnectionAndSupabase } from './authUtils';
 
@@ -46,6 +46,9 @@ export const useLoginHandler = ({
       
       // Try to sign out first to ensure clean state
       await forceSignOut();
+      
+      // Get supabase client
+      const supabase = await getSupabase();
       
       // Sign in with Supabase with modified approach
       console.log("Sending sign-in request to Supabase");

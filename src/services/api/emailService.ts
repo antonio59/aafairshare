@@ -1,6 +1,6 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { User, MonthData, Expense } from "@/types";
+import { getSupabase } from "@/integrations/supabase/client";
+import { User, MonthData } from "@/types";
 import { generateSettlementReportPDF } from "../export/settlementReportService";
 import { exportToCSV } from "../export/csvExportService";
 
@@ -16,6 +16,7 @@ export const sendSettlementEmail = async (
       throw new Error("Need at least two users to send settlement emails");
     }
 
+    const supabase = await getSupabase();
     const user1 = users[0];
     const user2 = users[1];
     

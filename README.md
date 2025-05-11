@@ -96,3 +96,13 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-trick
 2. Navigate to "Site settings" > "Domain management" > "Custom domains"
 3. Add your domain and follow the instructions to set up DNS records
 
+## Supabase Edge Functions
+
+This project uses Supabase Edge Functions to securely handle API keys and sensitive configuration. 
+All secrets are stored in Supabase and not in the client code.
+
+To manage or add secrets to your Supabase project:
+1. Go to the Supabase Dashboard
+2. Navigate to "Settings" > "API" > "Edge Functions"
+3. Click on "Secrets" and add or update as needed
+

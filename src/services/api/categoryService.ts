@@ -1,8 +1,9 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 
 // Get all categories from Supabase
 export const getCategories = async () => {
+  const supabase = await getSupabase();
   const { data, error } = await supabase
     .from('categories')
     .select('id, name, color, icon')
@@ -19,6 +20,7 @@ export const getCategories = async () => {
 // Create new category
 export const createCategory = async (name: string, icon?: string, color?: string): Promise<{ id: string, name: string, icon?: string, color?: string }> => {
   try {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('categories')
       .insert({ name, icon, color })
@@ -37,6 +39,7 @@ export const createCategory = async (name: string, icon?: string, color?: string
 // Delete category
 export const deleteCategory = async (id: string): Promise<void> => {
   try {
+    const supabase = await getSupabase();
     const { error } = await supabase
       .from('categories')
       .delete()

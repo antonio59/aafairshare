@@ -1,6 +1,6 @@
 
 import { NavigateFunction } from 'react-router-dom';
-import { supabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
+import { getSupabase, isOnline, checkSupabaseConnection } from '@/integrations/supabase/client';
 import { showToast } from '@/components/ui/use-toast';
 
 interface SessionCheckProps {
@@ -28,8 +28,10 @@ export const useSessionCheck = ({ setErrorMessage, setAuthChecked }: SessionChec
         return;
       }
       
-      // Get session
+      // Get supabase client and session
+      const supabase = await getSupabase();
       const { data, error } = await supabase.auth.getSession();
+      
       if (error) {
         console.error("Session error:", error);
         setErrorMessage("Error checking authentication status: " + error.message);

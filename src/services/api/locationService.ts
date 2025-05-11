@@ -1,8 +1,9 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 
 // Get all locations from Supabase
 export const getLocations = async () => {
+  const supabase = await getSupabase();
   const { data, error } = await supabase
     .from('locations')
     .select('id, name')
@@ -19,6 +20,7 @@ export const getLocations = async () => {
 // Create new location
 export const createLocation = async (name: string): Promise<{ id: string, name: string }> => {
   try {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('locations')
       .insert({ name })
@@ -37,6 +39,7 @@ export const createLocation = async (name: string): Promise<{ id: string, name: 
 // Delete location
 export const deleteLocation = async (id: string): Promise<void> => {
   try {
+    const supabase = await getSupabase();
     const { error } = await supabase
       .from('locations')
       .delete()

@@ -1,11 +1,13 @@
 
 import { Expense } from "@/types";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { format, parseISO } from "date-fns";
 
 // Add new expense
 export const addExpense = async (expense: Omit<Expense, "id">): Promise<Expense> => {
   try {
+    const supabase = await getSupabase();
+    
     // First, we need to look up or create category and location
     let categoryId;
     let locationId;
@@ -84,6 +86,8 @@ export const addExpense = async (expense: Omit<Expense, "id">): Promise<Expense>
 // Update existing expense
 export const updateExpense = async (id: string, expense: Partial<Omit<Expense, "id">>): Promise<void> => {
   try {
+    const supabase = await getSupabase();
+    
     // Prepare update data
     const updateData: any = {};
     
@@ -173,6 +177,7 @@ export const updateExpense = async (id: string, expense: Partial<Omit<Expense, "
 // Delete expense
 export const deleteExpense = async (id: string): Promise<void> => {
   try {
+    const supabase = await getSupabase();
     const { error } = await supabase
       .from('expenses')
       .delete()

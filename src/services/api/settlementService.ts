@@ -1,11 +1,12 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/integrations/supabase/client";
 import { formatMonthString } from "../utils/dateUtils";
 import { format } from "date-fns";
 
 // Mark settlement as completed
 export const markSettlementComplete = async (year: number, month: number, amount: number, fromUserId: string, toUserId: string): Promise<void> => {
   try {
+    const supabase = await getSupabase();
     const monthString = formatMonthString(year, month);
     const currentDate = format(new Date(), 'yyyy-MM-dd');
     
@@ -33,6 +34,7 @@ export const markSettlementComplete = async (year: number, month: number, amount
 // Mark settlement as unsettled (delete the settlement record)
 export const markSettlementUnsettled = async (month: string): Promise<void> => {
   try {
+    const supabase = await getSupabase();
     // Delete the settlement record for the specified month
     const { error } = await supabase
       .from('settlements')
@@ -50,6 +52,7 @@ export const markSettlementUnsettled = async (month: string): Promise<void> => {
 // Check if a settlement exists for a given month
 export const checkSettlementExists = async (month: string): Promise<boolean> => {
   try {
+    const supabase = await getSupabase();
     const { data, error } = await supabase
       .from('settlements')
       .select('id')

@@ -4,42 +4,72 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { showToast } from '@/components/ui/use-toast';
 
-const SUPABASE_URL = "https://gsvyxsddmddipeoduyys.supabase.co";
-const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk";
+// Default to empty strings - will be populated by the edge function
+let SUPABASE_URL = "";
+let SUPABASE_PUBLISHABLE_KEY = "";
 
-// Import the supabase client like this:
-// import { supabase } from "@/integrations/supabase/client";
-
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    storage: localStorage,
-    storageKey: 'aafairshare-auth', // Use a unique key to prevent conflicts
-    detectSessionInUrl: false, // Change to false to prevent URL parsing issues
-    flowType: 'implicit' // Use implicit flow for more reliable session handling
-  },
-  global: {
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    // Add retry configuration with longer timeout
-    fetch: (url, options) => {
-      // Default fetch implementation with retry logic
-      return fetch(url, {
-        ...options,
-        // Increase timeout for better reliability
-        signal: options?.signal || AbortSignal.timeout(30000) // 30 seconds timeout (increased from 20s)
-      }).catch(error => {
-        console.error("Fetch error:", error);
-        throw error;
-      });
+// Create Supabase client with dynamic configuration
+export const createSupabaseClient = async () => {
+  try {
+    // Fetch configuration from edge function
+    const response = await fetch('https://gsvyxsddmddipeoduyys.supabase.co/functions/v1/get-config');
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch config: ${response.statusText}`);
     }
-  },
-  realtime: {
-    heartbeatIntervalMs: 30000 // More regular heartbeating (increased from 20s)
+    
+    const config = await response.json();
+    SUPABASE_URL = config.supabaseUrl;
+    SUPABASE_PUBLISHABLE_KEY = config.supabaseAnonKey;
+    
+    return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        storage: localStorage,
+        storageKey: 'aafairshare-auth',
+        detectSessionInUrl: false,
+        flowType: 'implicit'
+      },
+      global: {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        fetch: (url, options) => {
+          return fetch(url, {
+            ...options,
+            signal: options?.signal || AbortSignal.timeout(30000)
+          }).catch(error => {
+            console.error("Fetch error:", error);
+            throw error;
+          });
+        }
+      },
+      realtime: {
+        heartbeatIntervalMs: 30000
+      }
+    });
+  } catch (error) {
+    console.error("Error initializing Supabase client:", error);
+    showToast({
+      title: "Connection Error",
+      description: "Failed to initialize database connection. Please try again later.",
+      variant: "destructive"
+    });
+    throw error;
   }
-});
+};
+
+// Initialize client
+let supabaseClientPromise: Promise<ReturnType<typeof createSupabaseClient>>;
+
+// Lazy-loaded Supabase client - only initialize when first needed
+export const getSupabase = async () => {
+  if (!supabaseClientPromise) {
+    supabaseClientPromise = createSupabaseClient();
+  }
+  return supabaseClientPromise;
+};
 
 // Helper to check network connection
 export const isOnline = () => typeof navigator !== 'undefined' && navigator.onLine;
