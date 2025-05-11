@@ -42,7 +42,7 @@ export class EmailSendingService {
       const { data, error } = await supabase.functions.invoke("send-settlement-email", {
         body: formData,
         headers: {
-          'Request-Timeout': '30000ms', // Increased to 30 seconds timeout
+          'Request-Timeout': '60000ms', // Increased to 60 seconds timeout
           'Content-Type': 'multipart/form-data'  
         }
       });

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { getSupabase } from "@/integrations/supabase/client";
+import { getSupabase, isOnline, checkSupabaseConnection } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { getUsers } from "@/services/api/userService";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
@@ -10,6 +10,8 @@ import { EmailPreview } from "@/components/settlement/email/EmailPreview";
 import { EmailForm } from "@/components/settlement/email/EmailForm";
 import { EmailConfigForm, TestEmailConfig } from "@/components/settlement/email/EmailConfigForm";
 import { User } from "@/types";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "lucide-react";
 
 const TestEmail = () => {
   const { toast } = useToast();
@@ -19,6 +21,7 @@ const TestEmail = () => {
   const [errorDetails, setErrorDetails] = useState<string | null>(null);
   const [errorTrace, setErrorTrace] = useState<string | null>(null);
   const [retryCount, setRetryCount] = useState(0);
+  const [initializationAttempts, setInitializationAttempts] = useState(0);
   
   // Default test configuration
   const [testConfig, setTestConfig] = useState<TestEmailConfig>({
@@ -32,21 +35,47 @@ const TestEmail = () => {
     // Check if Supabase is initialized before allowing the component to work
     const checkSupabase = async () => {
       try {
+        setErrorDetails("Attempting to connect to Supabase...");
+        console.log("Checking Supabase connection...");
+        
+        // First check if we're online
+        if (!isOnline()) {
+          setErrorDetails("You appear to be offline. Please check your internet connection.");
+          setTimeout(() => {
+            setInitializationAttempts(prev => prev + 1);
+          }, 5000);
+          return;
+        }
+        
+        // Check if Supabase is available
+        const isConnected = await checkSupabaseConnection(2);
+        if (!isConnected) {
+          console.warn("Cannot connect to Supabase, will retry");
+          setErrorDetails("Having trouble connecting to Supabase. Retrying...");
+          setTimeout(() => {
+            setInitializationAttempts(prev => prev + 1);
+          }, 3000);
+          return;
+        }
+        
         const supabase = await getSupabase();
         // Just a simple check to see if we can get the current session
         await supabase.auth.getSession();
+        console.log("Supabase connection successful!");
         setIsSupabaseReady(true);
         setErrorDetails(null);
       } catch (error) {
         console.error("Supabase is not ready yet:", error);
-        setErrorDetails("Could not initialize Supabase client. Please try again later.");
-        // Retry after a short delay
-        setTimeout(() => checkSupabase(), 2000);
+        setErrorDetails(`Could not initialize Supabase client: ${error instanceof Error ? error.message : "Unknown error"}. Will retry in ${Math.min(5, initializationAttempts + 1)} seconds.`);
+        // Retry after a delay that increases with each attempt
+        setTimeout(() => {
+          setInitializationAttempts(prev => prev + 1);
+        }, Math.min(5000, 1000 * (initializationAttempts + 1)));
       }
     };
     
     checkSupabase();
-  }, [retryCount]);
+  }, [initializationAttempts, retryCount]);
 
   const { data: fetchedUsers = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users"],
@@ -64,6 +93,7 @@ const TestEmail = () => {
 
   const handleRetryConnection = () => {
     setRetryCount(prev => prev + 1);
+    setInitializationAttempts(0);
     setErrorDetails("Retrying Supabase connection...");
     toast({
       title: "Retrying Connection",
@@ -102,6 +132,10 @@ const TestEmail = () => {
     });
   };
 
+  const handleReloadApp = () => {
+    window.location.reload();
+  };
+
   return (
     <div className="container py-8">
       <Card className="max-w-md mx-auto">
@@ -122,6 +156,19 @@ const TestEmail = () => {
             errorTrace={errorTrace}
             onRetryConnection={handleRetryConnection}
           />
+          
+          {!isSupabaseReady && initializationAttempts > 5 && (
+            <div className="flex justify-center mt-4">
+              <Button 
+                variant="outline" 
+                className="flex items-center gap-2"
+                onClick={handleReloadApp}
+              >
+                <RefreshCw className="h-4 w-4" /> 
+                Reload Application
+              </Button>
+            </div>
+          )}
           
           {isSupabaseReady && !isLoadingUsers && (
             <>

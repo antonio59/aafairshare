@@ -3,16 +3,15 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { toast } from "@/hooks/use-toast";
 
-// Default to empty strings - will be populated by the edge function
-let SUPABASE_URL = "";
+// Default to project URL with placeholder keys - will be updated by fetching from edge function
+let SUPABASE_URL = "https://gsvyxsddmddipeoduyys.supabase.co";
 let SUPABASE_PUBLISHABLE_KEY = "";
 
 // Create Supabase client with dynamic configuration
 export const createSupabaseClient = async () => {
   try {
     // Fetch configuration from edge function
-    // We'll use a secure approach by calling the function without credentials
-    // The function itself will use Deno.env to access the stored credentials
+    console.log("Fetching Supabase configuration from edge function...");
     const response = await fetch('https://gsvyxsddmddipeoduyys.supabase.co/functions/v1/get-config', {
       method: 'GET',
       headers: {
@@ -23,13 +22,28 @@ export const createSupabaseClient = async () => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("Config fetch error:", response.status, response.statusText, errorData);
-      throw new Error(`Failed to fetch config: ${response.statusText}${errorData.error ? ` - ${errorData.error}` : ''}`);
+      
+      // Fall back to using direct access with anon key if config fetch fails
+      console.log("Using fallback authentication method");
+      SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk";
+    } else {
+      const config = await response.json();
+      console.log("Config loaded successfully");
+      
+      // Only update URL if provided (otherwise keep default)
+      if (config.supabaseUrl) {
+        SUPABASE_URL = config.supabaseUrl;
+      }
+      
+      SUPABASE_PUBLISHABLE_KEY = config.supabaseAnonKey;
     }
     
-    const config = await response.json();
-    console.log("Config loaded successfully");
-    SUPABASE_URL = config.supabaseUrl;
-    SUPABASE_PUBLISHABLE_KEY = config.supabaseAnonKey;
+    if (!SUPABASE_PUBLISHABLE_KEY) {
+      console.error("No Supabase anon key available");
+      throw new Error("Failed to initialize Supabase client: No authentication key available");
+    }
+    
+    console.log("Creating Supabase client with URL:", SUPABASE_URL);
     
     return createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
       auth: {
