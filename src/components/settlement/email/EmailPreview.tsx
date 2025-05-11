@@ -2,7 +2,7 @@
 import { User } from "@/types";
 
 interface EmailPreviewProps {
-  users: User[];
+  users: (User & { email?: string })[];
   usersMinRequired: number;
 }
 
@@ -21,7 +21,7 @@ export const EmailPreview = ({ users, usersMinRequired }: EmailPreviewProps) => 
         <p className="font-medium">Recipients:</p>
         <ul className="text-sm mt-1">
           {users.slice(0, 2).map(user => (
-            <li key={user.id}>{user.name} ({(user as any).email})</li>
+            <li key={user.id}>{user.name} ({user.email || 'No email'})</li>
           ))}
         </ul>
       </div>

@@ -8,8 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { EmailStatus } from "@/components/settlement/email/EmailStatus";
 import { EmailPreview } from "@/components/settlement/email/EmailPreview";
 import { EmailForm } from "@/components/settlement/email/EmailForm";
+import { User } from "@/types";
 
-// Extended user type that includes email
 interface ExtendedUser extends User {
   email: string;
 }
@@ -43,11 +43,14 @@ const TestEmail = () => {
     checkSupabase();
   }, [retryCount]);
 
-  const { data: users = [], isLoading: isLoadingUsers } = useQuery({
+  const { data: fetchedUsers = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users"],
     queryFn: getUsers,
     enabled: isSupabaseReady, // Only run this query when Supabase is ready
-  }) as { data: ExtendedUser[], isLoading: boolean };
+  });
+  
+  // Type assertion to make TypeScript happy
+  const users = fetchedUsers as ExtendedUser[];
 
   const handleRetryConnection = () => {
     setRetryCount(prev => prev + 1);
