@@ -62,12 +62,11 @@ export const sendSettlementEmail = async (
     });
 
     // Call Supabase Edge Function to send the email
-    // Use the correct typing for function invocation - remove the 'options' object
     const { data, error } = await supabase.functions.invoke("send-settlement-email", {
       body: formData,
-      // Set a longer timeout for email sending using headers instead of options
       headers: {
-        'Request-Timeout': '15000ms', // 15 seconds
+        'Request-Timeout': '15000ms', // 15 seconds timeout
+        'Content-Type': 'multipart/form-data'
       }
     });
 
