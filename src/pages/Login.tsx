@@ -91,7 +91,7 @@ const Login = () => {
             </div>
             
             <div className="mt-4 w-full">
-              <Alert variant="warning">
+              <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
                 <AlertTitle>Having trouble?</AlertTitle>
                 <AlertDescription>
