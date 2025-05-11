@@ -11,10 +11,16 @@ let SUPABASE_PUBLISHABLE_KEY = "";
 // Create Supabase client with dynamic configuration
 export const createSupabaseClient = async () => {
   try {
+    // API key from Supabase project
+    const apiKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk';
+    
     // Fetch configuration from edge function
     const response = await fetch('https://gsvyxsddmddipeoduyys.supabase.co/functions/v1/get-config', {
+      method: 'GET',
       headers: {
-        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk'
+        'apikey': apiKey,
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
       }
     });
     
@@ -81,8 +87,8 @@ export const getSupabase = async () => {
 // Create a direct client instance for non-async contexts
 // This is a temporary client for backward compatibility
 export const supabase = createClient<Database>(
-  SUPABASE_URL || "https://gsvyxsddmddipeoduyys.supabase.co",
-  SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk",
+  "https://gsvyxsddmddipeoduyys.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk",
   {
     auth: {
       persistSession: true,

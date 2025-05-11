@@ -14,8 +14,8 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Check for API key in the request headers
-  const apiKey = req.headers.get('apikey');
+  // Check for API key in either the apikey header or Authorization header
+  const apiKey = req.headers.get('apikey') || req.headers.get('Authorization')?.split(' ')[1];
   console.log("Request received, API key present:", !!apiKey);
   
   if (!apiKey) {
