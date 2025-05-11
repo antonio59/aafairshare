@@ -1,7 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { User, MonthData, Expense } from "@/types";
-import { generateSettlementReportPDF } from "../export/exportService";
+import { generateSettlementReportPDF } from "../export/settlementReportService";
 
 // Send settlement email to both users
 export const sendSettlementEmail = async (
