@@ -1,12 +1,6 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { TooltipProps } from "recharts";
-import { 
-  Tooltip as UITooltip, 
-  TooltipContent, 
-  TooltipProvider, 
-  TooltipTrigger 
-} from "@/components/ui/tooltip";
 
 interface PieChartData {
   name: string;
@@ -42,7 +36,7 @@ const MonthlyPieChart = ({ title, data, colors }: MonthlyPieChartProps) => {
             cx="50%"
             cy="50%"
             labelLine={false}
-            label={({ percent }) => `${(percent * 100).toFixed(0)}%`}
+            // Removed the label prop that was showing percentages
             outerRadius={80}
             fill="#8884d8"
             dataKey="value"
