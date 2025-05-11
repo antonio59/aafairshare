@@ -1,3 +1,4 @@
+
 import { Expense, MonthData } from "@/types";
 import { formatMonthString } from "../utils/dateUtils";
 import { getSupabase } from "@/integrations/supabase/client";
@@ -34,7 +35,7 @@ export const getMonthData = async (year: number, month: number): Promise<MonthDa
     console.log(`Found ${expenses.length} expenses for month ${monthString}`);
 
     // Get users for attribution
-    const { data: users } = await getUsers();
+    const users = await getUsers();
     
     // Map the data to match our Expense type
     const mappedExpenses: Expense[] = expenses.map(exp => ({

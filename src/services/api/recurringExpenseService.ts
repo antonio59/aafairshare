@@ -54,6 +54,8 @@ export const addRecurringExpense = async (recurring: {
   split_type?: string;
 }): Promise<void> => {
   try {
+    const supabase = await getSupabase();
+
     // First, we need to look up or create category and location
     let categoryId;
     let locationId;
@@ -129,6 +131,8 @@ export const updateRecurringExpense = async (recurring: {
   split_type?: string;
 }): Promise<void> => {
   try {
+    const supabase = await getSupabase();
+    
     // Prepare update data
     const updateData: any = {};
     
@@ -215,6 +219,8 @@ export const updateRecurringExpense = async (recurring: {
 // Delete recurring expense
 export const deleteRecurringExpense = async (id: string): Promise<void> => {
   try {
+    const supabase = await getSupabase();
+    
     const { error } = await supabase
       .from('recurring')
       .delete()
@@ -231,6 +237,8 @@ export const deleteRecurringExpense = async (id: string): Promise<void> => {
 // Generate expense from recurring expense
 export const generateExpenseFromRecurring = async (recurringId: string): Promise<void> => {
   try {
+    const supabase = await getSupabase();
+    
     // Get the recurring expense
     const { data: recurring, error: fetchError } = await supabase
       .from('recurring')
