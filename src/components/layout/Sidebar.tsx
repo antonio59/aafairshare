@@ -1,0 +1,33 @@
+
+import { BarChart3, Calendar, Home, PiggyBank, Settings as SettingsIcon } from "lucide-react";
+import { User } from "@/types";
+import NavItem from "./NavItem";
+import UserProfile from "./UserProfile";
+
+interface SidebarProps {
+  user: User | null;
+  onLogout: () => void;
+}
+
+const Sidebar: React.FC<SidebarProps> = ({ user, onLogout }) => {
+  return (
+    <div className="w-56 bg-white app-sidebar flex flex-col justify-between">
+      <div>
+        <div className="p-4 border-b">
+          <h1 className="text-lg font-bold">AAFairShare</h1>
+        </div>
+        <nav className="p-2">
+          <NavItem to="/" icon={<Home className="w-5 h-5" />} label="Dashboard" />
+          <NavItem to="/settlement" icon={<PiggyBank className="w-5 h-5" />} label="Settlement" />
+          <NavItem to="/analytics" icon={<BarChart3 className="w-5 h-5" />} label="Analytics" />
+          <NavItem to="/recurring" icon={<Calendar className="w-5 h-5" />} label="Recurring" />
+          <NavItem to="/settings" icon={<SettingsIcon className="w-5 h-5" />} label="Settings" />
+        </nav>
+      </div>
+      
+      <UserProfile user={user} onLogout={onLogout} />
+    </div>
+  );
+};
+
+export default Sidebar;
