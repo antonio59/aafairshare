@@ -130,9 +130,16 @@ serve(async (req) => {
       });
     }
 
+    // Get the FROM address from environment variable with no hardcoded fallback
+    // If it's missing, the function will throw an error which will be caught
+    const fromAddress = Deno.env.get('SMTP_FROM');
+    if (!fromAddress) {
+      throw new Error("SMTP_FROM environment variable is not set");
+    }
+
     // Send the email with Resend
     const emailResponse = await resend.emails.send({
-      from: Deno.env.get('SMTP_FROM') || 'AAFairShare <no-reply@aafairshare.com>',
+      from: fromAddress,
       to: [user1.email, user2.email],
       subject: `AAFairShare: Settlement Complete for ${monthName} ${year}`,
       html: htmlContent,
