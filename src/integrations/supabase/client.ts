@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 import type { Database } from './types';
 import { toast } from "@/hooks/use-toast";
 
-// Default to project URL with placeholder keys - will be updated by fetching from edge function
+// Default to project URL without keys - will be updated by fetching from edge function
 let SUPABASE_URL = "https://gsvyxsddmddipeoduyys.supabase.co";
 let SUPABASE_PUBLISHABLE_KEY = "";
 
@@ -22,21 +22,18 @@ export const createSupabaseClient = async () => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
       console.error("Config fetch error:", response.status, response.statusText, errorData);
-      
-      // Fall back to using direct access with anon key if config fetch fails
-      console.log("Using fallback authentication method");
-      SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk";
-    } else {
-      const config = await response.json();
-      console.log("Config loaded successfully");
-      
-      // Only update URL if provided (otherwise keep default)
-      if (config.supabaseUrl) {
-        SUPABASE_URL = config.supabaseUrl;
-      }
-      
-      SUPABASE_PUBLISHABLE_KEY = config.supabaseAnonKey;
+      throw new Error(`Failed to get configuration: ${response.status} ${response.statusText}`);
     }
+    
+    const config = await response.json();
+    console.log("Config loaded successfully");
+    
+    // Only update URL if provided (otherwise keep default)
+    if (config.supabaseUrl) {
+      SUPABASE_URL = config.supabaseUrl;
+    }
+    
+    SUPABASE_PUBLISHABLE_KEY = config.supabaseAnonKey;
     
     if (!SUPABASE_PUBLISHABLE_KEY) {
       console.error("No Supabase anon key available");
@@ -97,7 +94,7 @@ export const getSupabase = async () => {
 // Create a temporary client instance for non-async contexts
 // This will get replaced once the proper configuration is loaded
 export const supabase = createClient<Database>(
-  "https://gsvyxsddmddipeoduyys.supabase.co",
+  SUPABASE_URL,
   "placeholder-key-will-be-replaced",  // Use a placeholder key to prevent immediate errors
   {
     auth: {
