@@ -84,7 +84,7 @@ export const getSupabase = async () => {
 // This will get replaced once the proper configuration is loaded
 export const supabase = createClient<Database>(
   "https://gsvyxsddmddipeoduyys.supabase.co",
-  "",  // Empty key, will be initialized properly via getSupabase() method
+  "placeholder-key-will-be-replaced",  // Use a placeholder key to prevent immediate errors
   {
     auth: {
       persistSession: true,

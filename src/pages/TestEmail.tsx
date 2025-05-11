@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getSupabase } from "@/integrations/supabase/client";
 import { useQuery } from "@tanstack/react-query";
 import { getUsers } from "@/services/api/userService";
@@ -20,10 +20,30 @@ const TestEmail = () => {
   const { toast } = useToast();
   const [isSending, setIsSending] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [isSupabaseReady, setIsSupabaseReady] = useState(false);
+
+  useEffect(() => {
+    // Check if Supabase is initialized before allowing the component to work
+    const checkSupabase = async () => {
+      try {
+        const supabase = await getSupabase();
+        // Just a simple check to see if we can get the current session
+        await supabase.auth.getSession();
+        setIsSupabaseReady(true);
+      } catch (error) {
+        console.error("Supabase is not ready yet:", error);
+        // Retry after a short delay
+        setTimeout(checkSupabase, 1500);
+      }
+    };
+    
+    checkSupabase();
+  }, []);
 
   const { data: users = [], isLoading: isLoadingUsers } = useQuery({
     queryKey: ["users"],
     queryFn: getUsers,
+    enabled: isSupabaseReady, // Only run this query when Supabase is ready
   }) as { data: ExtendedUser[], isLoading: boolean };
 
   const handleSendTest = async () => {
@@ -149,7 +169,12 @@ const TestEmail = () => {
             This page allows you to test the settlement email function by sending a test email to the users in your account.
           </p>
           
-          {isLoadingUsers ? (
+          {!isSupabaseReady ? (
+            <div className="flex justify-center py-4">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              <span className="ml-2">Initializing Supabase connection...</span>
+            </div>
+          ) : isLoadingUsers ? (
             <div className="flex justify-center py-4">
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
@@ -183,7 +208,7 @@ const TestEmail = () => {
         <CardFooter>
           <Button 
             onClick={handleSendTest} 
-            disabled={isSending || isLoadingUsers || users.length < 2}
+            disabled={!isSupabaseReady || isSending || isLoadingUsers || users.length < 2}
             className="w-full"
           >
             {isSending ? (

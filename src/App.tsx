@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -35,6 +36,7 @@ const App = () => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
   const [isOnlineStatus, setIsOnlineStatus] = useState<boolean>(isOnline());
   const [authError, setAuthError] = useState<string | null>(null);
+  const [isSupabaseReady, setIsSupabaseReady] = useState<boolean>(false);
   
   // Network status listener
   useEffect(() => {
@@ -50,14 +52,31 @@ const App = () => {
     };
   }, []);
   
+  // Initialize Supabase client
+  useEffect(() => {
+    const initSupabase = async () => {
+      try {
+        await getSupabase();
+        setIsSupabaseReady(true);
+      } catch (error) {
+        console.error("Failed to initialize Supabase:", error);
+        setAuthError("Failed to initialize database connection. Please try again later.");
+      }
+    };
+    
+    initSupabase();
+  }, []);
+  
   // Initial auth check
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        // Check if we're online
-        if (!isOnline()) {
+        // Check if we're online and Supabase is ready
+        if (!isOnline() || !isSupabaseReady) {
           setIsAuthenticated(false);
-          setAuthError("You appear to be offline. Please check your internet connection.");
+          if (!isOnline()) {
+            setAuthError("You appear to be offline. Please check your internet connection.");
+          }
           return;
         }
         
@@ -80,8 +99,10 @@ const App = () => {
       }
     };
     
-    checkAuth();
-  }, []);
+    if (isSupabaseReady) {
+      checkAuth();
+    }
+  }, [isSupabaseReady]);
   
   const handleResetAuth = () => {
     // Clean up all auth tokens
@@ -90,14 +111,16 @@ const App = () => {
     window.location.reload();
   };
   
-  // Show loading state while checking auth
-  if (isAuthenticated === null) {
+  // Show loading state while checking auth or initializing Supabase
+  if (isAuthenticated === null || !isSupabaseReady) {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-lg flex flex-col items-center gap-3">
           <div className="w-10 h-10 border-4 border-gray-300 border-t-blue-500 rounded-full animate-spin"></div>
           <p className="font-medium">Initializing app...</p>
-          <p className="text-sm text-gray-500">Checking authentication...</p>
+          <p className="text-sm text-gray-500">
+            {!isSupabaseReady ? "Connecting to database..." : "Checking authentication..."}
+          </p>
           <Button 
             variant="outline" 
             className="mt-4" 
