@@ -12,7 +12,11 @@ let SUPABASE_PUBLISHABLE_KEY = "";
 export const createSupabaseClient = async () => {
   try {
     // Fetch configuration from edge function
-    const response = await fetch('https://gsvyxsddmddipeoduyys.supabase.co/functions/v1/get-config');
+    const response = await fetch('https://gsvyxsddmddipeoduyys.supabase.co/functions/v1/get-config', {
+      headers: {
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk'
+      }
+    });
     
     if (!response.ok) {
       throw new Error(`Failed to fetch config: ${response.statusText}`);
@@ -74,8 +78,8 @@ export const getSupabase = async () => {
 // Create a direct client instance for non-async contexts
 // This is a temporary client for backward compatibility
 export const supabase = createClient<Database>(
-  SUPABASE_URL || "https://placeholder.supabase.co",
-  SUPABASE_PUBLISHABLE_KEY || "placeholder-key",
+  SUPABASE_URL || "https://gsvyxsddmddipeoduyys.supabase.co",
+  SUPABASE_PUBLISHABLE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imdzdnl4c2RkbWRkaXBlb2R1eXlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY1NjI0NDMsImV4cCI6MjA2MjEzODQ0M30.5D42pv74UQ9crKIKKV78sTeQOSH8yW4_HtRuKU2wuBk",
   {
     auth: {
       persistSession: true,
