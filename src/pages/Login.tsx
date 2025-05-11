@@ -5,8 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { supabase, isOnline } from "@/integrations/supabase/client";
+import { useToast, showToast } from '@/components/ui/use-toast';
+import { supabase, isOnline, checkSupabaseConnection } from "@/integrations/supabase/client";
 import { Loader2, AlertCircle, Wifi, WifiOff } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
@@ -34,13 +34,32 @@ const Login = () => {
           return;
         }
         
-        const { data } = await supabase.auth.getSession();
+        // Check Supabase connection before attempting to get session
+        const isConnected = await checkSupabaseConnection();
+        if (!isConnected) {
+          console.error("Cannot connect to Supabase");
+          setConnectionStatus('offline');
+          setErrorMessage("Cannot connect to authentication service. Please check your internet connection.");
+          setAuthChecked(true);
+          return;
+        }
+        
+        // Get session
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error("Session error:", error);
+          setErrorMessage("Error checking authentication status: " + error.message);
+          setAuthChecked(true);
+          return;
+        }
+        
         if (data.session) {
           console.log("Active session found, redirecting to home");
           navigate('/');
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error checking session:", error);
+        setErrorMessage("Session check failed: " + (error.message || "Unknown error"));
       } finally {
         setConnectionStatus('online');
         setAuthChecked(true);
@@ -50,8 +69,15 @@ const Login = () => {
     checkSession();
     
     // Add network status listeners
-    const handleOnline = () => setConnectionStatus('online');
-    const handleOffline = () => setConnectionStatus('offline');
+    const handleOnline = () => {
+      setConnectionStatus('online');
+      setErrorMessage(null); // Clear error messages when going online
+    };
+    
+    const handleOffline = () => {
+      setConnectionStatus('offline');
+      setErrorMessage("You are offline. Please check your internet connection.");
+    };
     
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
@@ -90,9 +116,27 @@ const Login = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Input validation
+    if (!email.trim()) {
+      setErrorMessage("Email is required");
+      return;
+    }
+    
+    if (!password.trim()) {
+      setErrorMessage("Password is required");
+      return;
+    }
+    
     // Check if we're online
     if (!isOnline()) {
       setErrorMessage("You appear to be offline. Please check your internet connection and try again.");
+      return;
+    }
+    
+    // Check Supabase connection
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      setErrorMessage("Cannot connect to authentication service. Please check your internet connection.");
       return;
     }
     
@@ -121,10 +165,7 @@ const Login = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Login successful",
-        description: "You have been logged in successfully."
-      });
+      showToast.success("Login successful", "You have been logged in successfully.");
       
       console.log("Login successful, redirecting to homepage");
       
@@ -146,11 +187,7 @@ const Login = () => {
         setErrorMessage(error.message || "An error occurred during login. Please try again.");
       }
       
-      toast({
-        title: "Login failed",
-        description: error.message || "An error occurred during login",
-        variant: "destructive",
-      });
+      showToast.error("Login failed", error.message || "An error occurred during login");
     } finally {
       setIsLoading(false);
     }
@@ -159,9 +196,27 @@ const Login = () => {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Input validation
+    if (!email.trim()) {
+      setErrorMessage("Email is required");
+      return;
+    }
+    
+    if (!password.trim() || password.length < 6) {
+      setErrorMessage("Password must be at least 6 characters");
+      return;
+    }
+    
     // Check if we're online
     if (!isOnline()) {
       setErrorMessage("You appear to be offline. Please check your internet connection and try again.");
+      return;
+    }
+    
+    // Check Supabase connection
+    const isConnected = await checkSupabaseConnection();
+    if (!isConnected) {
+      setErrorMessage("Cannot connect to authentication service. Please check your internet connection.");
       return;
     }
     
@@ -193,10 +248,7 @@ const Login = () => {
       
       if (error) throw error;
       
-      toast({
-        title: "Sign up successful",
-        description: "Your account has been created successfully. Please check your email for verification."
-      });
+      showToast.success("Sign up successful", "Your account has been created successfully. Please check your email for verification.");
       
       if (data.session) {
         console.log("Auto-confirmed signup, redirecting to homepage");
@@ -215,11 +267,7 @@ const Login = () => {
         setErrorMessage(error.message || "An error occurred during sign up. Please try again.");
       }
       
-      toast({
-        title: "Sign up failed",
-        description: error.message || "An error occurred during sign up",
-        variant: "destructive",
-      });
+      showToast.error("Sign up failed", error.message || "An error occurred during sign up");
     } finally {
       setIsLoading(false);
     }
@@ -357,6 +405,7 @@ const Login = () => {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
+                        minLength={6}
                       />
                     </div>
                     <Button type="submit" className="w-full" disabled={isLoading || connectionStatus === 'offline'}>

@@ -1,6 +1,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/types";
+import { showToast } from "@/components/ui/use-toast";
 
 // Check if authenticated user exists in users table and create if not
 export const syncAuthUser = async (): Promise<User | null> => {
@@ -191,8 +192,10 @@ export const logoutUser = async (): Promise<void> => {
   };
   
   try {
+    showToast.info("Logging out...");
     cleanupAuthState();
     await supabase.auth.signOut({ scope: 'global' });
+    showToast.success("Logged out successfully");
   } catch (error) {
     console.error("Error during logout:", error);
     // Still clean up even if signOut fails
