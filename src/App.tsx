@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { WifiOff, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import TestEmail from "./pages/TestEmail";
 
 // Initialize QueryClient with default settings for better performance
 const queryClient = new QueryClient({
@@ -146,6 +147,7 @@ const App = () => {
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
+            <Route path="/test-email" element={<TestEmail />} />
             <Route path="/" element={
               <AuthProvider>
                 <AppLayout />
